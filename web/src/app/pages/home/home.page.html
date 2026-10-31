@@ -1,0 +1,62 @@
+<section class="hero">
+  <p class="brand">X Cron</p>
+  <p class="brand-sub">Jobs</p>
+  <h1>Local jobs, clearly listed.</h1>
+  <p class="lead">Browse as a guest. Contact details stay private until unlock.</p>
+</section>
+
+<form class="search" (ngSubmit)="search()">
+  <label>
+    <span>Keyword</span>
+    <input [(ngModel)]="keyword" name="keyword" placeholder="Role, skill, employer" />
+  </label>
+  <label>
+    <span>Location</span>
+    <input [(ngModel)]="location" name="location" placeholder="City or district" />
+  </label>
+  <label>
+    <span>Sort</span>
+    <select [(ngModel)]="sort" name="sort">
+      <option value="newest">Newest</option>
+      <option value="oldest">Oldest</option>
+      <option value="salary-desc">Salary high to low</option>
+      <option value="salary-asc">Salary low to high</option>
+      <option value="relevance">Relevance</option>
+    </select>
+  </label>
+  <button type="submit">Search</button>
+</form>
+
+@if (loading()) {
+  <p class="status">Loading jobs…</p>
+} @else if (error()) {
+  <p class="status">{{ error() }}</p>
+} @else {
+  <div class="results-head">
+    <h2>Open roles</h2>
+    <span>{{ jobs().length }}</span>
+  </div>
+
+  <div class="job-list">
+    @for (job of jobs(); track job.id) {
+      <a class="job-card" [routerLink]="jobPath(job)">
+        <div class="job-card__meta">
+          <span class="badge">{{ job.contentLanguage === 'ta' ? 'Tamil' : 'English' }}</span>
+          <time>{{ formatPostedDate(job.publishedAt) }}</time>
+        </div>
+        <h3>{{ job.title }}</h3>
+        <p class="employer">
+          {{ job.employerName }}
+          @if (job.verifiedEmployer) {
+            · Verified
+          }
+        </p>
+        <p>{{ formatLocation(job) }}</p>
+        <p>{{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}</p>
+        <p class="about">{{ job.description.about }}</p>
+      </a>
+    } @empty {
+      <p class="status">No jobs match these filters.</p>
+    }
+  </div>
+}

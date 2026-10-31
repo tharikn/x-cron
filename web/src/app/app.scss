@@ -1,0 +1,55 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.logo {
+  text-decoration: none;
+  color: #000;
+  display: grid;
+}
+
+.logo__x {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.logo__jobs {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+}
+
+nav a {
+  color: #000;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+nav a:hover {
+  border-bottom-color: #000;
+}
+
+.foot {
+  border-top: 1px solid #d9d9d9;
+  padding: 1rem 0 1.5rem;
+  color: #555;
+  font-size: 0.85rem;
+}

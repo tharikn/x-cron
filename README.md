@@ -10,7 +10,7 @@ Product baseline: PRD v1.0 (31 Oct 2026). Build order follows [docs/ROADMAP.md](
 | --- | --- |
 | `mobile/` | Ionic + Capacitor + Angular Android client |
 | `api/` | NestJS modular monolith (`/v1/*`) |
-| `web/` | Angular SSR SEO site — planned |
+| `web/` | Angular SSR public SEO site |
 | `docker-compose.yml` | PostgreSQL for later Prisma runtime |
 
 ## Quick start
@@ -30,6 +30,13 @@ cd ../mobile
 npm install
 npm start
 # http://localhost:4200  → talks to http://localhost:3000/v1
+
+# Public web (SSR)
+cd ../web
+npm install
+npm start
+# http://localhost:4201
+# Production-like SSR: npm run build && npm run serve:ssr  → http://localhost:4000
 ```
 
 ### Auth demo (Step 2)

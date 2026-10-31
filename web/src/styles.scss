@@ -1,0 +1,28 @@
+:root {
+  color-scheme: light;
+  --xcron-bg: #ffffff;
+  --xcron-text: #000000;
+  --xcron-border: #d9d9d9;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--xcron-bg);
+  color: var(--xcron-text);
+  font-family: 'Segoe UI', 'Noto Sans', 'Noto Sans Tamil', sans-serif;
+  line-height: 1.5;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}

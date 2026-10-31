@@ -1,0 +1,16 @@
+<section class="page">
+  <p class="crumb"><a routerLink="/">Jobs</a> / {{ state() }} / {{ city() }}</p>
+  <h1>Jobs in {{ city() }}</h1>
+  <p class="lead">Local listings for {{ city() }}, {{ state() }}.</p>
+
+  <div class="list">
+    @for (job of jobs(); track job.id) {
+      <a [routerLink]="jobPath(job)">
+        <strong>{{ job.title }}</strong>
+        <span>{{ job.employerName }} · {{ formatSalary(job.salary) }}</span>
+      </a>
+    } @empty {
+      <p>No published jobs for this location right now.</p>
+    }
+  </div>
+</section>

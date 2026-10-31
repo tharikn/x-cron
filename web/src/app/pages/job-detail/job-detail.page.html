@@ -1,0 +1,101 @@
+@if (job(); as job) {
+  <article class="job">
+    <p class="crumb"><a routerLink="/">Jobs</a> / {{ job.location.city }}</p>
+    <div class="meta">
+      <span class="badge">{{ job.contentLanguage === 'ta' ? 'Tamil' : 'English' }}</span>
+      <time>{{ formatPostedDate(job.publishedAt) }}</time>
+    </div>
+    <h1>{{ job.title }}</h1>
+    <p class="employer">
+      {{ job.employerName }}
+      @if (job.verifiedEmployer) {
+        · Verified
+      }
+    </p>
+    <p>{{ formatLocation(job) }}</p>
+    <p>{{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}</p>
+
+    <section class="panel">
+      <h2>Key details</h2>
+      <ul>
+        @if (job.experienceLabel) {
+          <li>Experience: {{ job.experienceLabel }}</li>
+        }
+        @if (job.vacancies) {
+          <li>Vacancies: {{ job.vacancies }}</li>
+        }
+        @if (job.workSchedule) {
+          <li>Schedule: {{ job.workSchedule }}</li>
+        }
+        @if (job.skills?.length) {
+          <li>Skills: {{ job.skills.join(', ') }}</li>
+        }
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>About the role</h2>
+      <p>{{ job.description.about }}</p>
+      @if (job.description.responsibilities?.length) {
+        <h3>Responsibilities</h3>
+        <ul>
+          @for (item of job.description.responsibilities; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      }
+      @if (job.description.requirements?.length) {
+        <h3>Requirements</h3>
+        <ul>
+          @for (item of job.description.requirements; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      }
+      @if (job.description.benefits?.length) {
+        <h3>Benefits</h3>
+        <ul>
+          @for (item of job.description.benefits; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="panel contact">
+      <h2>Employer contact</h2>
+      <p class="masked">
+        @if (job.contact.hasPhone) {
+          Phone: ••••• •••••
+        }
+        @if (job.contact.hasWhatsapp) {
+          · WhatsApp: locked
+        }
+        @if (job.contact.hasEmail) {
+          · Email: locked
+        }
+      </p>
+      <p class="unlock">{{ job.contact.unlockLabel }}</p>
+      <p class="note">Unlock is handled in the mobile app / account flow. Public pages never expose raw contact data.</p>
+    </section>
+
+    @if (related().length) {
+      <section>
+        <h2>Related jobs</h2>
+        <div class="related">
+          @for (item of related(); track item.id) {
+            <a [routerLink]="jobPath(item)">{{ item.title }} · {{ item.location.city }}</a>
+          }
+        </div>
+      </section>
+    }
+  </article>
+} @else if (error()) {
+  <section class="missing">
+    <h1>Job not found</h1>
+    <p>{{ error() }}</p>
+    <a routerLink="/">Back to jobs</a>
+  </section>
+} @else {
+  <p class="status">Loading…</p>
+}

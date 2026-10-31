@@ -1,0 +1,76 @@
+.job {
+  padding: 1.5rem 0 3rem;
+}
+
+.crumb {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.crumb a {
+  color: inherit;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  color: #555;
+  margin: 1rem 0 0.5rem;
+}
+
+.badge {
+  background: #111;
+  color: #fff;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.75rem;
+}
+
+h1 {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+}
+
+.employer {
+  font-weight: 600;
+}
+
+.panel {
+  border: 1px solid #d9d9d9;
+  padding: 1rem;
+  margin: 1.25rem 0;
+}
+
+.panel h2,
+.panel h3 {
+  margin-top: 0;
+}
+
+.contact .unlock {
+  font-weight: 700;
+}
+
+.contact .note,
+.masked {
+  color: #444;
+}
+
+.related {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.related a {
+  color: #000;
+  border-bottom: 1px solid #d9d9d9;
+  padding: 0.5rem 0;
+  text-decoration: none;
+}
+
+.missing,
+.status {
+  padding: 2rem 0;
+}
+
+.missing a {
+  color: #000;
+}
