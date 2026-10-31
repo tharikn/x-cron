@@ -12,6 +12,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Path | Purpose |
 | --- | --- |
 | `README.md` | Project overview, quick start, demo flows |
+| `CLAUDE.md` | Root agent guide (monorepo rules) |
 | `docker-compose.yml` | Local Postgres 16 for future Prisma runtime |
 | `.gitignore` | Git ignore rules |
 | `.github/workflows/api-build.yml` | CI: API build |
@@ -49,6 +50,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `api/.env.example` | Env template (safe to commit) |
 | `api/.env` | Local secrets/config (**do not commit secrets**) |
 | `api/README.md` | API package readme |
+| `api/CLAUDE.md` | Agent guide for NestJS API |
 
 ### `api/prisma/`
 
@@ -212,6 +214,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `mobile/eslint.config.js` | ESLint |
 | `mobile/playwright.config.ts` | Playwright e2e |
 | `mobile/vitest.config.mts` | Unit test (Vitest) |
+| `mobile/CLAUDE.md` | Agent guide for Ionic/Capacitor mobile |
 | `mobile/.browserslistrc` | Browser targets |
 | `mobile/.editorconfig` / `.npmrc` / `.prettierignore` | Editor / npm / prettier |
 | `mobile/.vscode/*` | VS Code workspace hints |
@@ -321,6 +324,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `web/.editorconfig` / `.prettierrc` / `.gitignore` | Tooling |
 | `web/.vscode/*` | Launch/tasks/extensions |
 | `web/README.md` | Web package readme |
+| `web/CLAUDE.md` | Agent guide for Angular SSR web |
 | `web/public/favicon.ico` | Favicon |
 
 ### `web/src/`
