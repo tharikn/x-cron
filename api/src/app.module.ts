@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthGuard } from './auth/auth.guard';
+import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
 import { JobsModule } from './jobs/jobs.module';
 import { PreferencesModule } from './preferences/preferences.module';
@@ -7,9 +10,16 @@ import { PreferencesModule } from './preferences/preferences.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    AuthModule,
     JobsModule,
     PreferencesModule,
   ],
   controllers: [HealthController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+  ],
 })
 export class AppModule {}

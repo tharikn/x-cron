@@ -8,8 +8,15 @@
   <div class="page">
     <p class="lead">
       Mobile-first posting for non-technical employers. Use a quick form or paste a message.
-      Uploaded contacts stay private by default.
+      Uploaded contacts stay private by default. New posts go to moderation before search.
     </p>
+
+    @if (!isSignedIn()) {
+      <div class="auth-gate">
+        <p>Employers must sign in with OTP before posting.</p>
+        <ion-button expand="block" color="dark" routerLink="/tabs/account">Go to Account</ion-button>
+      </div>
+    }
 
     <ion-segment [value]="mode()" (ionChange)="setMode($event.detail.value)">
       <ion-segment-button value="quick">

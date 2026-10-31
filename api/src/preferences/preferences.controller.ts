@@ -8,6 +8,7 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
+import { Public } from '../auth/decorators';
 import { PreferencesService } from './preferences.service';
 
 class SavePreferencesDto {
@@ -52,6 +53,7 @@ class SavePreferencesDto {
   sort?: string;
 }
 
+@Public()
 @Controller('v1/preferences')
 export class PreferencesController {
   constructor(private readonly preferencesService: PreferencesService) {}

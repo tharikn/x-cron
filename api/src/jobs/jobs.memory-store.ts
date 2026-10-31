@@ -108,11 +108,14 @@ export class JobsMemoryStore implements OnModuleInit {
     const phone = input.contactPhone?.trim();
     const email = input.contactEmail?.trim();
 
+    const status = input.status ?? 'needs-review';
     const job: JobRecord = {
       id,
       slug: `tamil-nadu/${this.slugify(city)}/${this.slugify(title)}-${id}`,
       title,
       employerName: input.employerName.trim() || 'Employer',
+      employerId: input.employerId,
+      ownerUserId: input.ownerUserId,
       verifiedEmployer: false,
       location: {
         country: 'India',
@@ -133,7 +136,8 @@ export class JobsMemoryStore implements OnModuleInit {
       category: input.category?.trim() || 'General',
       publishedAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'published',
+      status,
+      reportCount: 0,
       contact: {
         hasPhone: !!phone,
         hasEmail: !!email,
@@ -151,7 +155,11 @@ export class JobsMemoryStore implements OnModuleInit {
     return job;
   }
 
-  createFromPaste(rawText: string, contentLanguage: string): JobRecord {
+  createFromPaste(
+    rawText: string,
+    contentLanguage: string,
+    meta?: { employerId?: string; ownerUserId?: string; employerName?: string },
+  ): JobRecord {
     const lines = rawText
       .split(/\r?\n/)
       .map((line) => line.trim())
@@ -165,14 +173,52 @@ export class JobsMemoryStore implements OnModuleInit {
 
     return this.createAndPublish({
       title: title.slice(0, 80),
-      employerName: 'From pasted message',
+      employerName: meta?.employerName || 'From pasted message',
       locationCity: this.detectCity(joined) ?? 'Palani',
       jobType: 'full-time',
       salaryText: this.detectSalaryText(joined),
       description: rawText.trim(),
       contentLanguage,
       contactPhone: phoneMatch?.[0],
+      employerId: meta?.employerId,
+      ownerUserId: meta?.ownerUserId,
+      status: 'needs-review',
     });
+  }
+
+  listByStatus(status?: string): JobRecord[] {
+    if (!status) return [...this.jobs];
+    return this.jobs.filter((job) => job.status === status);
+  }
+
+  listByOwner(userId: string): JobRecord[] {
+    return this.jobs.filter((job) => job.ownerUserId === userId);
+  }
+
+  setStatus(
+    id: string,
+    status: JobRecord['status'],
+    note?: string,
+  ): JobRecord | undefined {
+    const job = this.findById(id);
+    if (!job) return undefined;
+    job.status = status;
+    if (note) job.moderationNote = note;
+    if (status === 'published' && !job.publishedAt) {
+      job.publishedAt = new Date().toISOString();
+    }
+    return job;
+  }
+
+  report(id: string, reason: string): JobRecord | undefined {
+    const job = this.findById(id);
+    if (!job) return undefined;
+    job.reportCount = (job.reportCount ?? 0) + 1;
+    job.moderationNote = reason.slice(0, 500);
+    if (job.reportCount >= 3 && job.status === 'published') {
+      job.status = 'needs-review';
+    }
+    return job;
   }
 
   private sortJobs(

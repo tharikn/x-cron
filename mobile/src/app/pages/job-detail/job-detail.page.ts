@@ -119,4 +119,25 @@ export class JobDetailPage implements OnInit {
     });
     await toast.present();
   }
+
+  async reportJob(): Promise<void> {
+    const job = this.job();
+    if (!job) return;
+    try {
+      await this.jobsService.reportJob(job.id, 'Reported as suspicious or incorrect from mobile app');
+      const toast = await this.toastController.create({
+        message: 'Report submitted for moderation.',
+        duration: 2000,
+        color: 'dark',
+      });
+      await toast.present();
+    } catch {
+      const toast = await this.toastController.create({
+        message: 'Could not submit report.',
+        duration: 2000,
+        color: 'dark',
+      });
+      await toast.present();
+    }
+  }
 }

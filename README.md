@@ -13,7 +13,7 @@ Product baseline: PRD v1.0 (31 Oct 2026). Build order follows [docs/ROADMAP.md](
 | `web/` | Angular SSR SEO site — planned |
 | `docker-compose.yml` | PostgreSQL for later Prisma runtime |
 
-## Quick start (Step 1)
+## Quick start
 
 Requires **Node.js 22.22.3+**.
 
@@ -31,6 +31,13 @@ npm install
 npm start
 # http://localhost:4200  → talks to http://localhost:3000/v1
 ```
+
+### Auth demo (Step 2)
+
+- Guest browse/search stays public.
+- OTP: use any email/phone; in development the API returns `devCode` (`123456`).
+- Admin: sign in as `admin@xcron.local` to approve/reject the moderation queue.
+- Employer posts require OTP sign-in and enter `needs-review` until approved.
 
 ```bash
 # Optional Postgres (for upcoming Prisma store)

@@ -9,34 +9,135 @@
     <div class="brand-block">
       <h1>X Cron</h1>
       <p class="descriptor">Jobs</p>
-      <p class="lead">Local-first job discovery. Guest browsing is a first-class flow.</p>
+      <p class="lead">Guest browsing is first-class. Sign in only for posting, purchases, or sync.</p>
     </div>
 
-    <ion-list lines="full" class="panel">
-      <ion-item>
-        <ion-label>Current mode</ion-label>
-        <ion-note slot="end">{{ mode() === 'guest' ? 'Guest' : 'Signed in' }}</ion-note>
-      </ion-item>
-      <ion-item>
-        <ion-label>
-          Contact privacy
-          <p>Phone, email and WhatsApp stay masked until entitlement.</p>
-        </ion-label>
-      </ion-item>
-      <ion-item>
-        <ion-label>
-          Visual system
-          <p>Black and white only. No colored accents.</p>
-        </ion-label>
-      </ion-item>
-    </ion-list>
+    @if (isSignedIn()) {
+      <ion-list lines="full" class="panel">
+        <ion-item>
+          <ion-label>Signed in</ion-label>
+          <ion-note slot="end">{{ user()?.email || user()?.phone }}</ion-note>
+        </ion-item>
+        <ion-item>
+          <ion-label>Roles</ion-label>
+          <ion-note slot="end">{{ user()?.roles?.join(', ') }}</ion-note>
+        </ion-item>
+        <ion-item>
+          <ion-label>
+            Employer
+            <p>{{ employer()?.name || 'Not created yet' }}</p>
+          </ion-label>
+        </ion-item>
+      </ion-list>
 
-    <ion-button expand="block" color="dark" (click)="continueAsGuest()">Continue as guest</ion-button>
-    <ion-button expand="block" fill="outline" color="dark" (click)="startOtpStub()">
-      Phone / email OTP
-    </ion-button>
-    <ion-button expand="block" fill="clear" color="dark" (click)="startGoogleStub()">
-      Optional Google sign-in
-    </ion-button>
+      @if (!employer()) {
+        <ion-list lines="full" class="panel">
+          <ion-item>
+            <ion-input
+              label="Business name"
+              labelPlacement="stacked"
+              [(ngModel)]="employerName"
+            ></ion-input>
+          </ion-item>
+        </ion-list>
+        <ion-button expand="block" color="dark" (click)="createEmployer()">
+          Create employer profile
+        </ion-button>
+      }
+
+      @if (isAdmin()) {
+        <section class="moderation">
+          <div class="moderation__head">
+            <h2>Moderation queue</h2>
+            <ion-button size="small" fill="outline" color="dark" (click)="reloadQueue()">
+              Refresh
+            </ion-button>
+          </div>
+          @for (job of queue(); track job.id) {
+            <div class="mod-card">
+              <strong>{{ job.title }}</strong>
+              <p>{{ job.employerName }} · {{ job.status }}</p>
+              <div class="mod-card__actions">
+                <ion-button size="small" color="dark" (click)="approve(job)">Approve</ion-button>
+                <ion-button size="small" fill="outline" color="dark" (click)="reject(job)">
+                  Reject
+                </ion-button>
+              </div>
+            </div>
+          } @empty {
+            <p class="empty">No jobs waiting for review.</p>
+          }
+        </section>
+      }
+
+      <ion-button expand="block" fill="outline" color="dark" (click)="logout()">
+        Sign out
+      </ion-button>
+    } @else {
+      <ion-segment [(ngModel)]="channel">
+        <ion-segment-button value="email">
+          <ion-label>Email OTP</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="phone">
+          <ion-label>Phone OTP</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      <ion-list lines="full" class="panel">
+        <ion-item>
+          <ion-select
+            label="I want to"
+            labelPlacement="stacked"
+            interface="popover"
+            [(ngModel)]="intendedRole"
+          >
+            <ion-select-option value="seeker">Browse / unlock later</ion-select-option>
+            <ion-select-option value="employer">Post jobs as employer</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-input
+            [label]="channel === 'email' ? 'Email' : 'Phone'"
+            labelPlacement="stacked"
+            [(ngModel)]="destination"
+            [placeholder]="channel === 'email' ? 'you@example.com' : '+91...'"
+          ></ion-input>
+        </ion-item>
+        @if (intendedRole === 'employer') {
+          <ion-item>
+            <ion-input
+              label="Business name (optional now)"
+              labelPlacement="stacked"
+              [(ngModel)]="employerName"
+            ></ion-input>
+          </ion-item>
+        }
+        @if (challengeId) {
+          <ion-item>
+            <ion-input
+              label="OTP code"
+              labelPlacement="stacked"
+              [(ngModel)]="code"
+              placeholder="123456"
+            ></ion-input>
+          </ion-item>
+        }
+      </ion-list>
+
+      @if (!challengeId) {
+        <ion-button expand="block" color="dark" (click)="startOtp()">Send OTP</ion-button>
+      } @else {
+        <ion-button expand="block" color="dark" (click)="verifyOtp()">Verify OTP</ion-button>
+      }
+
+      <ion-button expand="block" fill="outline" color="dark" (click)="continueAsGuest()">
+        Continue as guest
+      </ion-button>
+      <ion-button expand="block" fill="clear" color="dark" (click)="startGoogleStub()">
+        Optional Google sign-in
+      </ion-button>
+
+      <p class="hint">Admin demo: sign in with admin@xcron.local (dev OTP 123456).</p>
+    }
   </div>
 </ion-content>

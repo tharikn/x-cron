@@ -44,6 +44,8 @@ export interface JobRecord {
   slug: string;
   title: string;
   employerName: string;
+  employerId?: string;
+  ownerUserId?: string;
   verifiedEmployer: boolean;
   location: JobLocation;
   jobType: JobType;
@@ -64,6 +66,8 @@ export interface JobRecord {
   expiresAt: string;
   status: JobStatus;
   contact: JobContactMask;
+  reportCount?: number;
+  moderationNote?: string;
   /** Private — never returned by public DTOs */
   privateContact?: {
     phone?: string;
@@ -106,4 +110,7 @@ export interface CreateJobInput {
   vacancies?: number;
   workSchedule?: string;
   skills?: string[];
+  employerId?: string;
+  ownerUserId?: string;
+  status?: JobStatus;
 }

@@ -4,12 +4,14 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MOCK_JOBS } from '../data/mock-jobs';
 import type { Job, JobSearchQuery, JobType } from '../models/job.model';
+import { AuthService } from './auth.service';
 
 const SEARCH_COUNT_KEY = 'xcron.searchCount';
 
 @Injectable({ providedIn: 'root' })
 export class JobsService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly cache = signal<Job[]>([...MOCK_JOBS]);
   readonly searchCount = signal(this.readSearchCount());
   readonly loading = signal(false);
@@ -103,43 +105,61 @@ export class JobsService {
     contentLanguage: string;
     contactPhone?: string;
   }): Promise<Job> {
-    try {
-      const job = await firstValueFrom(
-        this.http.post<Job>(`${environment.apiUrl}/employers/jobs`, input),
-      );
-      this.usingApi.set(true);
-      this.cache.update((items) => [job, ...items]);
-      return job;
-    } catch {
-      const local = this.createLocalDraft(input);
-      this.cache.update((items) => [local, ...items]);
-      return local;
-    }
+    const job = await firstValueFrom(
+      this.http.post<Job>(`${environment.apiUrl}/employers/jobs`, input, {
+        headers: this.auth.authHeaders(),
+      }),
+    );
+    this.usingApi.set(true);
+    return job;
   }
 
   async createFromPaste(rawText: string, contentLanguage: string): Promise<Job> {
-    try {
-      const job = await firstValueFrom(
-        this.http.post<Job>(`${environment.apiUrl}/employers/jobs/paste`, {
-          text: rawText,
-          contentLanguage,
-        }),
-      );
-      this.usingApi.set(true);
-      this.cache.update((items) => [job, ...items]);
-      return job;
-    } catch {
-      const local = this.createLocalDraft({
-        title: rawText.split('\n')[0]?.slice(0, 80) || 'Pasted job',
-        employerName: 'From pasted message',
-        locationCity: 'Palani',
-        jobType: 'full-time',
-        description: rawText,
-        contentLanguage,
-      });
-      this.cache.update((items) => [local, ...items]);
-      return local;
-    }
+    const job = await firstValueFrom(
+      this.http.post<Job>(
+        `${environment.apiUrl}/employers/jobs/paste`,
+        { text: rawText, contentLanguage },
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+    this.usingApi.set(true);
+    return job;
+  }
+
+  async moderationQueue(status = 'needs-review'): Promise<Job[]> {
+    const response = await firstValueFrom(
+      this.http.get<{ items: Job[] }>(`${environment.apiUrl}/admin/jobs`, {
+        params: { status },
+        headers: this.auth.authHeaders(),
+      }),
+    );
+    return response.items;
+  }
+
+  async approveJob(id: string, note?: string): Promise<Job> {
+    return firstValueFrom(
+      this.http.post<Job>(
+        `${environment.apiUrl}/admin/jobs/${id}/approve`,
+        { note },
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+  }
+
+  async rejectJob(id: string, note?: string): Promise<Job> {
+    return firstValueFrom(
+      this.http.post<Job>(
+        `${environment.apiUrl}/admin/jobs/${id}/reject`,
+        { note },
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+  }
+
+  async reportJob(id: string, reason: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post(`${environment.apiUrl}/jobs/${id}/report`, { reason }),
+    );
   }
 
   private localSearch(query: JobSearchQuery): Job[] {

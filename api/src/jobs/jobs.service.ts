@@ -1,5 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { AuthStore } from '../auth/auth.store';
+import { AuthUser } from '../auth/auth.types';
 import { CreateJobDto, PasteJobDto } from './dto/create-job.dto';
+import { ModerateJobDto, ReportJobDto } from './dto/moderation.dto';
 import { SearchJobsDto } from './dto/search-jobs.dto';
 import { toPublicJob } from './jobs.mapper';
 import { JobsMemoryStore } from './jobs.memory-store';
@@ -7,7 +14,10 @@ import { JobType } from './job.types';
 
 @Injectable()
 export class JobsService {
-  constructor(private readonly store: JobsMemoryStore) {}
+  constructor(
+    private readonly store: JobsMemoryStore,
+    private readonly authStore: AuthStore,
+  ) {}
 
   search(query: SearchJobsDto) {
     const result = this.store.search({
@@ -56,20 +66,67 @@ export class JobsService {
     return { items: this.store.categories() };
   }
 
-  createQuick(dto: CreateJobDto) {
-    const job = this.store.createAndPublish(dto);
+  createQuick(user: AuthUser, dto: CreateJobDto) {
+    const employer = this.requireEmployer(user);
+    const job = this.store.createAndPublish({
+      ...dto,
+      employerName: dto.employerName || employer.name,
+      employerId: employer.id,
+      ownerUserId: user.id,
+      status: 'needs-review',
+    });
     return toPublicJob(job);
   }
 
-  createFromPaste(dto: PasteJobDto) {
-    const job = this.store.createFromPaste(
-      dto.text,
-      dto.contentLanguage || 'en',
-    );
+  createFromPaste(user: AuthUser, dto: PasteJobDto) {
+    const employer = this.requireEmployer(user);
+    const job = this.store.createFromPaste(dto.text, dto.contentLanguage || 'en', {
+      employerId: employer.id,
+      ownerUserId: user.id,
+      employerName: employer.name,
+    });
     return toPublicJob(job);
   }
 
-  /** Contact reveal — always denied in Step 1 without entitlement (AC-13/16). */
+  myJobs(user: AuthUser) {
+    return {
+      items: this.store.listByOwner(user.id).map(toPublicJob),
+    };
+  }
+
+  moderationQueue(status = 'needs-review') {
+    return {
+      items: this.store.listByStatus(status).map((job) => ({
+        ...toPublicJob(job),
+        reportCount: job.reportCount ?? 0,
+        moderationNote: job.moderationNote,
+        ownerUserId: job.ownerUserId,
+      })),
+    };
+  }
+
+  approve(id: string, dto: ModerateJobDto) {
+    const job = this.store.setStatus(id, 'published', dto.note);
+    if (!job) throw new NotFoundException('Job not found');
+    return toPublicJob(job);
+  }
+
+  reject(id: string, dto: ModerateJobDto) {
+    const job = this.store.setStatus(id, 'rejected', dto.note || 'Rejected by moderator');
+    if (!job) throw new NotFoundException('Job not found');
+    return toPublicJob(job);
+  }
+
+  report(id: string, dto: ReportJobDto) {
+    const job = this.store.report(id, dto.reason);
+    if (!job) throw new NotFoundException('Job not found');
+    return {
+      ok: true,
+      reportCount: job.reportCount ?? 0,
+      status: job.status,
+    };
+  }
+
   getContact(_id: string) {
     return {
       allowed: false,
@@ -77,5 +134,21 @@ export class JobsService {
       message:
         'Contact details are private. A verified unlock or active subscription is required.',
     };
+  }
+
+  private requireEmployer(user: AuthUser) {
+    let employer = this.authStore.getEmployerByOwner(user.id);
+    if (!employer) {
+      if (!user.roles.includes('employer') && !user.roles.includes('admin')) {
+        throw new ForbiddenException(
+          'Create an employer profile before posting jobs',
+        );
+      }
+      employer = this.authStore.createEmployer(
+        user.id,
+        user.displayName || 'Employer',
+      );
+    }
+    return employer;
   }
 }
