@@ -1,0 +1,133 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/discover"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Job</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (job(); as job) {
+    <div class="page">
+      <div class="header-block">
+        <div class="meta">
+          <ion-badge color="medium">{{ languageLabel(job.contentLanguage) }}</ion-badge>
+          <span>{{ formatPostedDate(job.publishedAt) }}</span>
+        </div>
+        <h1>{{ job.title }}</h1>
+        <p class="employer">
+          {{ job.employerName }}
+          @if (job.verifiedEmployer) {
+            · Verified
+          }
+        </p>
+        <p>{{ formatLocation(job) }}</p>
+        <p>{{ formatJobType(job) }} · {{ formatSalary(job.salary) }}</p>
+      </div>
+
+      <section class="panel">
+        <h2>Key details</h2>
+        <ion-list lines="full">
+          @if (job.experienceLabel) {
+            <ion-item>
+              <ion-label>Experience</ion-label>
+              <ion-note slot="end">{{ job.experienceLabel }}</ion-note>
+            </ion-item>
+          }
+          @if (job.vacancies) {
+            <ion-item>
+              <ion-label>Vacancies</ion-label>
+              <ion-note slot="end">{{ job.vacancies }}</ion-note>
+            </ion-item>
+          }
+          @if (job.workSchedule) {
+            <ion-item>
+              <ion-label>Schedule</ion-label>
+              <ion-note slot="end">{{ job.workSchedule }}</ion-note>
+            </ion-item>
+          }
+          @if (job.skills?.length) {
+            <ion-item>
+              <ion-label>
+                Skills
+                <p>{{ job.skills.join(', ') }}</p>
+              </ion-label>
+            </ion-item>
+          }
+        </ion-list>
+      </section>
+
+      <section class="panel">
+        <h2>About the role</h2>
+        <p>{{ job.description.about }}</p>
+        @if (job.description.responsibilities?.length) {
+          <h3>Responsibilities</h3>
+          <ul>
+            @for (item of job.description.responsibilities; track item) {
+              <li>{{ item }}</li>
+            }
+          </ul>
+        }
+        @if (job.description.requirements?.length) {
+          <h3>Requirements</h3>
+          <ul>
+            @for (item of job.description.requirements; track item) {
+              <li>{{ item }}</li>
+            }
+          </ul>
+        }
+        @if (job.description.benefits?.length) {
+          <h3>Benefits</h3>
+          <ul>
+            @for (item of job.description.benefits; track item) {
+              <li>{{ item }}</li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section class="panel contact-panel">
+        <h2>Employer contact</h2>
+        <p class="masked">
+          @if (job.contact.hasPhone) {
+            Phone: ••••• •••••
+          }
+          @if (job.contact.hasWhatsapp) {
+            · WhatsApp: locked
+          }
+          @if (job.contact.hasEmail) {
+            · Email: locked
+          }
+        </p>
+        <p class="hint">Unlock employer contact – {{ formatUnlockPrice(job.contact.unlockPricePaise) }}</p>
+        <ion-button expand="block" color="dark" (click)="unlockContact()">
+          Unlock contact
+        </ion-button>
+      </section>
+
+      <div class="actions">
+        <ion-button expand="block" fill="outline" color="dark" (click)="shareJob()">
+          Share job
+        </ion-button>
+        <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/discover">
+          Back to discover
+        </ion-button>
+      </div>
+
+      @if (related().length) {
+        <section>
+          <h2>Related jobs</h2>
+          @for (relatedJob of related(); track relatedJob.id) {
+            <app-job-card [job]="relatedJob"></app-job-card>
+          }
+        </section>
+      }
+    </div>
+  } @else {
+    <div class="page">
+      <p>Job not found.</p>
+      <ion-button routerLink="/tabs/discover" color="dark">Browse jobs</ion-button>
+    </div>
+  }
+</ion-content>

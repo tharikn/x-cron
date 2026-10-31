@@ -1,0 +1,119 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>
+      <span class="brand">X Cron</span>
+      <span class="brand-sub">Jobs</span>
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="lead">Local jobs near you. Browse as a guest — no sign-in required.</p>
+
+    @if (savedPrefs().locations.length) {
+      <div class="pref-summary">
+        <ion-icon name="location-outline"></ion-icon>
+        <span>Your preferences: {{ savedPrefs().locations.join(', ') }}</span>
+      </div>
+    }
+
+    <ion-searchbar
+      [value]="query().keyword"
+      placeholder="Search role, skill, employer"
+      debounce="250"
+      (ionInput)="onKeyword($event.detail.value)"
+    ></ion-searchbar>
+
+    <ion-searchbar
+      [value]="query().locationText"
+      placeholder="Location (city / district)"
+      debounce="250"
+      (ionInput)="onLocation($event.detail.value)"
+    ></ion-searchbar>
+
+    <ion-list lines="full" class="filters">
+      <ion-item>
+        <ion-select
+          label="Sort"
+          labelPlacement="stacked"
+          interface="popover"
+          [value]="query().sort"
+          (ionChange)="onSort($event.detail.value)"
+        >
+          <ion-select-option value="newest">Newest</ion-select-option>
+          <ion-select-option value="oldest">Oldest</ion-select-option>
+          <ion-select-option value="salary-desc">Salary high to low</ion-select-option>
+          <ion-select-option value="salary-asc">Salary low to high</ion-select-option>
+          <ion-select-option value="relevance">Relevance</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-select
+          label="Job type"
+          labelPlacement="stacked"
+          interface="popover"
+          [value]="query().jobType"
+          (ionChange)="onJobType($event.detail.value)"
+        >
+          <ion-select-option value="">Any</ion-select-option>
+          @for (entry of jobTypeEntries; track entry[0]) {
+            <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-select
+          label="Category"
+          labelPlacement="stacked"
+          interface="popover"
+          [value]="query().category"
+          (ionChange)="onCategory($event.detail.value)"
+        >
+          <ion-select-option value="">Any</ion-select-option>
+          @for (category of categories; track category) {
+            <ion-select-option [value]="category">{{ category }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-select
+          label="Language"
+          labelPlacement="stacked"
+          interface="popover"
+          [value]="query().language"
+          (ionChange)="onLanguage($event.detail.value)"
+        >
+          <ion-select-option value="">Any</ion-select-option>
+          <ion-select-option value="en">English</ion-select-option>
+          <ion-select-option value="ta">Tamil</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-list>
+
+    @if (showPrefPrompt()) {
+      <div class="pref-prompt">
+        <p>Save your job preferences to see relevant jobs next time.</p>
+        <div class="pref-prompt__actions">
+          <ion-button fill="solid" color="dark" size="small" (click)="savePromptPreferences()">
+            Save
+          </ion-button>
+          <ion-button fill="outline" color="dark" size="small" (click)="dismissPrompt()">
+            Not now
+          </ion-button>
+        </div>
+      </div>
+    }
+
+    <div class="results-head">
+      <h2>Jobs</h2>
+      <ion-badge color="medium">{{ results().length }}</ion-badge>
+    </div>
+
+    @for (job of results(); track job.id) {
+      <app-job-card [job]="job"></app-job-card>
+    } @empty {
+      <p class="empty">No jobs match these filters. Try another location or clear filters.</p>
+    }
+  </div>
+</ion-content>

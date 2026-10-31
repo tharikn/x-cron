@@ -1,0 +1,127 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import {
+  IonBadge,
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonItem,
+  IonList,
+  IonSearchbar,
+  IonSelect,
+  IonSelectOption,
+  IonTitle,
+  IonToolbar,
+  ToastController,
+} from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { locationOutline } from 'ionicons/icons';
+import type { JobSearchQuery, JobType } from '../../core/models/job.model';
+import { JOB_TYPE_LABELS } from '../../core/models/job.model';
+import { JobsService } from '../../core/services/jobs.service';
+import { PreferencesService } from '../../core/services/preferences.service';
+import { JobCardComponent } from '../../shared/job-card/job-card.component';
+
+@Component({
+  selector: 'app-discover',
+  templateUrl: './discover.page.html',
+  styleUrls: ['./discover.page.scss'],
+  imports: [
+    FormsModule,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButton,
+    IonIcon,
+    IonContent,
+    IonSearchbar,
+    IonList,
+    IonItem,
+    IonSelect,
+    IonSelectOption,
+    IonBadge,
+    JobCardComponent,
+  ],
+})
+export class DiscoverPage {
+  private readonly jobsService = inject(JobsService);
+  private readonly preferencesService = inject(PreferencesService);
+  private readonly toastController = inject(ToastController);
+
+  readonly jobTypeEntries = Object.entries(JOB_TYPE_LABELS) as Array<[JobType, string]>;
+  readonly categories = this.jobsService.categories();
+
+  readonly query = signal<JobSearchQuery>({
+    keyword: '',
+    locationText: 'Palani',
+    jobType: '',
+    category: '',
+    language: '',
+    salaryMin: null,
+    sort: 'newest',
+  });
+
+  readonly results = computed(() => this.jobsService.search(this.query()));
+  readonly showPrefPrompt = computed(() =>
+    this.preferencesService.shouldShowPrompt(this.jobsService.searchCount()),
+  );
+  readonly savedPrefs = this.preferencesService.preferences;
+
+  constructor() {
+    addIcons({ locationOutline });
+    const prefs = this.preferencesService.preferences();
+    if (prefs.locations[0]) {
+      this.query.update((q) => ({ ...q, locationText: prefs.locations[0] }));
+    }
+  }
+
+  onKeyword(value: string | null | undefined): void {
+    this.query.update((q) => ({ ...q, keyword: value ?? '' }));
+  }
+
+  onLocation(value: string | null | undefined): void {
+    this.query.update((q) => ({ ...q, locationText: value ?? '' }));
+  }
+
+  onSort(value: JobSearchQuery['sort']): void {
+    this.query.update((q) => ({ ...q, sort: value }));
+  }
+
+  onJobType(value: JobType | ''): void {
+    this.query.update((q) => ({ ...q, jobType: value }));
+  }
+
+  onCategory(value: string): void {
+    this.query.update((q) => ({ ...q, category: value }));
+  }
+
+  onLanguage(value: string): void {
+    this.query.update((q) => ({ ...q, language: value }));
+  }
+
+  async savePromptPreferences(): Promise<void> {
+    const current = this.query();
+    const location = current.locationText?.trim() ?? '';
+    const category = current.category?.trim() ?? '';
+    const language = current.language?.trim() ?? '';
+    this.preferencesService.save({
+      locations: location ? [location] : [],
+      jobTypes: current.jobType ? [current.jobType as JobType] : [],
+      categories: category ? [category] : [],
+      languages: language ? [language] : ['en', 'ta'],
+    });
+    this.preferencesService.dismissPrompt();
+    const toast = await this.toastController.create({
+      message: 'Preferences saved on this device.',
+      duration: 2000,
+      position: 'bottom',
+      color: 'dark',
+    });
+    await toast.present();
+  }
+
+  dismissPrompt(): void {
+    this.preferencesService.dismissPrompt();
+  }
+}

@@ -1,0 +1,25 @@
+.page {
+  padding: 12px 12px 28px;
+}
+
+.brand-block h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 0.02em;
+}
+
+.descriptor {
+  margin: 0 0 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.lead {
+  color: #333;
+}
+
+.panel {
+  border: 1px solid var(--xcron-border);
+  margin: 16px 0;
+}

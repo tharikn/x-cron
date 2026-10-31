@@ -1,0 +1,127 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Post a job</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="lead">
+      Mobile-first posting for non-technical employers. Use a quick form or paste a message.
+      Uploaded contacts stay private by default.
+    </p>
+
+    <ion-segment [value]="mode()" (ionChange)="setMode($event.detail.value)">
+      <ion-segment-button value="quick">
+        <ion-label>Quick form</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="paste">
+        <ion-label>Paste message</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <div class="upload-row">
+      <ion-button expand="block" fill="outline" color="dark" (click)="onPickImageStub()">
+        Camera / screenshots
+      </ion-button>
+      <ion-button expand="block" fill="outline" color="dark" (click)="onPickFileStub()">
+        PDF / spreadsheet
+      </ion-button>
+    </div>
+
+    @if (mode() === 'quick') {
+      <ion-list lines="full" class="form">
+        <ion-item>
+          <ion-input label="Job title" labelPlacement="stacked" [(ngModel)]="title"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input
+            label="Employer / business name"
+            labelPlacement="stacked"
+            [(ngModel)]="employerName"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input
+            label="Location (city)"
+            labelPlacement="stacked"
+            [(ngModel)]="locationCity"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-select
+            label="Job type"
+            labelPlacement="stacked"
+            interface="popover"
+            [(ngModel)]="jobType"
+          >
+            @for (entry of jobTypeEntries; track entry[0]) {
+              <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-input
+            label="Salary (optional)"
+            labelPlacement="stacked"
+            placeholder="e.g. 12000-15000 / month"
+            [(ngModel)]="salaryText"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-select
+            label="Content language"
+            labelPlacement="stacked"
+            interface="popover"
+            [(ngModel)]="contentLanguage"
+          >
+            <ion-select-option value="en">English</ion-select-option>
+            <ion-select-option value="ta">Tamil</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-textarea
+            label="Description / duties"
+            labelPlacement="stacked"
+            autoGrow="true"
+            [(ngModel)]="description"
+          ></ion-textarea>
+        </ion-item>
+        <ion-item>
+          <ion-input
+            label="Private contact phone"
+            labelPlacement="stacked"
+            type="tel"
+            [(ngModel)]="contactPhone"
+          ></ion-input>
+        </ion-item>
+      </ion-list>
+      <ion-button expand="block" color="dark" (click)="submitQuick()">Submit job</ion-button>
+    } @else {
+      <ion-list lines="full" class="form">
+        <ion-item>
+          <ion-select
+            label="Content language"
+            labelPlacement="stacked"
+            interface="popover"
+            [(ngModel)]="contentLanguage"
+          >
+            <ion-select-option value="en">English</ion-select-option>
+            <ion-select-option value="ta">Tamil</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-textarea
+            label="Paste WhatsApp / Telegram text"
+            labelPlacement="stacked"
+            autoGrow="true"
+            rows="10"
+            [(ngModel)]="pasteText"
+            placeholder="Paste the full message. Phone numbers are extracted privately."
+          ></ion-textarea>
+        </ion-item>
+      </ion-list>
+      <ion-button expand="block" color="dark" (click)="submitPaste()">Extract and publish</ion-button>
+    }
+  </div>
+</ion-content>

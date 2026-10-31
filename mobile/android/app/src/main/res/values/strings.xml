@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">X Cron Jobs</string>
+    <string name="title_activity_main">X Cron Jobs</string>
+    <string name="package_name">com.xcron.jobs</string>
+    <string name="custom_url_scheme">com.xcron.jobs</string>
+</resources>

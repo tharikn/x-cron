@@ -1,0 +1,74 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Preferences</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="lead">
+      Guest preferences stay on this device. Sign-in later can sync them across devices.
+    </p>
+
+    <ion-list lines="full" class="form">
+      <ion-item>
+        <ion-input
+          label="Preferred location"
+          labelPlacement="stacked"
+          [(ngModel)]="location"
+        ></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-select
+          label="Preferred job type"
+          labelPlacement="stacked"
+          interface="popover"
+          [(ngModel)]="jobType"
+        >
+          <ion-select-option value="">Any</ion-select-option>
+          @for (entry of jobTypeEntries; track entry[0]) {
+            <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-select
+          label="Preferred job language"
+          labelPlacement="stacked"
+          interface="popover"
+          [(ngModel)]="language"
+        >
+          <ion-select-option value="en">English</ion-select-option>
+          <ion-select-option value="ta">Tamil</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-select
+          label="App language"
+          labelPlacement="stacked"
+          interface="popover"
+          [(ngModel)]="interfaceLocale"
+        >
+          <ion-select-option value="en">English</ion-select-option>
+          <ion-select-option value="ta">Tamil</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-input
+          label="Minimum salary (optional)"
+          labelPlacement="stacked"
+          type="number"
+          [(ngModel)]="salaryMin"
+        ></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-toggle [(ngModel)]="remotePreferred" labelPlacement="start" justify="space-between">
+          Prefer remote / WFH
+        </ion-toggle>
+      </ion-item>
+    </ion-list>
+
+    <ion-button expand="block" color="dark" (click)="save()">Save preferences</ion-button>
+    <ion-button expand="block" fill="outline" color="dark" (click)="clear()">Clear</ion-button>
+  </div>
+</ion-content>

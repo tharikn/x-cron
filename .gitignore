@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.npm/
+
+# Builds
+dist/
+www/
+out/
+build/
+*.apk
+*.aab
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs / coverage
+*.log
+coverage/
+.nyc_output/
+
+# Capacitor / Android local
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/local.properties
+mobile/android/captures/
+*.keystore
+!debug.keystore
+
+# Misc
+.angular/
+.turbo/
+.capacitor/
+*.tsbuildinfo

@@ -1,0 +1,7 @@
+{
+  "name": "X Cron Jobs",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}

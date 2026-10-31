@@ -1,0 +1,18 @@
+.page {
+  padding: 12px 12px 28px;
+}
+
+.lead {
+  color: #333;
+}
+
+.upload-row {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.form {
+  border: 1px solid var(--xcron-border);
+  margin-bottom: 12px;
+}

@@ -1,0 +1,43 @@
+.page {
+  padding: 12px 12px 28px;
+}
+
+.header-block h1 {
+  margin: 8px 0 4px;
+  font-size: 1.5rem;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.employer {
+  font-weight: 600;
+}
+
+.panel {
+  border: 1px solid var(--xcron-border);
+  padding: 12px;
+  margin: 14px 0;
+}
+
+.panel h2,
+.panel h3 {
+  margin-top: 0;
+}
+
+.contact-panel .masked,
+.contact-panel .hint {
+  margin: 0 0 8px;
+}
+
+.contact-panel .hint {
+  font-weight: 600;
+}
+
+.actions {
+  margin: 8px 0 18px;
+}

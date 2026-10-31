@@ -1,0 +1,50 @@
+/*
+ * X Cron Jobs — monochrome global styles (PRD §4.2)
+ */
+
+@import '@ionic/angular/css/core.css';
+@import '@ionic/angular/css/normalize.css';
+@import '@ionic/angular/css/structure.css';
+@import '@ionic/angular/css/typography.css';
+@import '@ionic/angular/css/display.css';
+@import '@ionic/angular/css/padding.css';
+@import '@ionic/angular/css/float-elements.css';
+@import '@ionic/angular/css/text-alignment.css';
+@import '@ionic/angular/css/text-transformation.css';
+@import '@ionic/angular/css/flex-utils.css';
+
+/* PRD: white background required; no dark theme in initial scope */
+html,
+body {
+  background: #ffffff;
+  color: #000000;
+}
+
+ion-content {
+  --background: #ffffff;
+  --color: #000000;
+}
+
+ion-searchbar {
+  --background: #ffffff;
+  --box-shadow: none;
+  --border-radius: 0;
+  padding: 0 0 8px;
+}
+
+ion-badge {
+  --background: #111111;
+  --color: #ffffff;
+  border-radius: 0;
+}
+
+ion-button {
+  --border-radius: 0;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+ion-card-title {
+  font-size: 1.05rem;
+}
