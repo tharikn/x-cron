@@ -3,7 +3,7 @@
 Local-first, multilingual job discovery and publishing. India-first, mobile-first, monochrome (black & white).
 
 Product baseline: PRD v1.0 (31 Oct 2026). Build order follows [docs/ROADMAP.md](docs/ROADMAP.md).  
-**Developers:** start at [docs/DEVELOPER.md](docs/DEVELOPER.md) (what shipped, stubs, runbook, release readiness).
+**Developers:** [docs/DEVELOPER.md](docs/DEVELOPER.md) (runbook / release gate) · [docs/FILE_MAP.md](docs/FILE_MAP.md) (folder-wise file inventory).
 
 ## Monorepo
 
