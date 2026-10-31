@@ -17,6 +17,11 @@ export const routes: Routes = [
           import('./pages/post-job/post-job.page').then((m) => m.PostJobPage),
       },
       {
+        path: 'import',
+        loadComponent: () =>
+          import('./pages/import-batch/import-batch.page').then((m) => m.ImportBatchPage),
+      },
+      {
         path: 'preferences',
         loadComponent: () =>
           import('./pages/preferences/preferences.page').then((m) => m.PreferencesPage),

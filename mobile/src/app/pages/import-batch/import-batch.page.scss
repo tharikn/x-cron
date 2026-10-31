@@ -1,0 +1,55 @@
+.page {
+  padding: 12px 12px 28px;
+}
+
+.lead,
+.warn {
+  color: #333;
+}
+
+.gate,
+.panel,
+.batch {
+  border: 1px solid var(--xcron-border);
+  margin: 12px 0;
+}
+
+.gate,
+.batch {
+  padding: 12px;
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.file-btn {
+  display: block;
+  border: 1px solid #000;
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.file-btn input {
+  display: none;
+}
+
+.review-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.warn {
+  font-size: 0.9rem;
+}

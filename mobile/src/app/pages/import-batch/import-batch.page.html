@@ -1,0 +1,100 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Bulk import</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="lead">
+      Import many jobs from CSV, pasted WhatsApp/Telegram text, camera screenshots, or PDF.
+      Extracted contacts stay private. Low-confidence rows need review before publish.
+    </p>
+
+    @if (!isSignedIn()) {
+      <div class="gate">
+        <p>Employer sign-in required.</p>
+        <ion-button expand="block" color="dark" routerLink="/tabs/account">Account</ion-button>
+      </div>
+    } @else {
+      <div class="actions">
+        <ion-button expand="block" color="dark" [disabled]="busy()" (click)="fromClipboard()">
+          Paste from clipboard
+        </ion-button>
+        <ion-button expand="block" fill="outline" color="dark" [disabled]="busy()" (click)="fromCamera()">
+          Camera / screenshot
+        </ion-button>
+        <label class="file-btn">
+          Choose CSV / PDF / image
+          <input type="file" accept=".csv,.txt,.pdf,image/*" (change)="onFilePicked($event)" />
+        </label>
+      </div>
+
+      <ion-list lines="full" class="panel">
+        <ion-item>
+          <ion-textarea
+            label="Or paste message text"
+            labelPlacement="stacked"
+            autoGrow="true"
+            rows="6"
+            [(ngModel)]="pasteText"
+          ></ion-textarea>
+        </ion-item>
+      </ion-list>
+      <ion-button expand="block" fill="outline" color="dark" [disabled]="busy()" (click)="fromPasteBox()">
+        Extract from pasted text
+      </ion-button>
+
+      @if (batch(); as batch) {
+        <div class="batch">
+          <p>
+            Batch <strong>{{ batch.id }}</strong> · {{ batch.status }} ·
+            {{ batch.totalRecords }} records
+          </p>
+          @if (batch.warnings?.length) {
+            <p class="warn">{{ batch.warnings.join(' ') }}</p>
+          }
+        </div>
+      }
+
+      @if (records().length) {
+        <div class="review-head">
+          <h2>Review extracted records</h2>
+          <ion-button size="small" color="dark" [disabled]="busy()" (click)="approveSelected()">
+            Approve selected
+          </ion-button>
+        </div>
+
+        <ion-list lines="full" class="panel">
+          @for (record of records(); track record.id) {
+            <ion-item>
+              <ion-checkbox
+                slot="start"
+                [checked]="!!selected()[record.id]"
+                (ionChange)="toggle(record.id, $event.detail.checked === true)"
+              ></ion-checkbox>
+              <ion-label>
+                <h3>{{ record.extraction.title || 'Untitled' }}</h3>
+                <p>
+                  {{ record.extraction.locationCity || 'Location n/a' }} ·
+                  confidence {{ (record.confidence * 100) | number: '1.0-0' }}% ·
+                  {{ record.dedupeStatus }} · {{ record.reviewStatus }}
+                </p>
+                <p>
+                  Contact masked:
+                  {{ record.extraction.hasPhone ? 'phone' : '' }}
+                  {{ record.extraction.hasEmail ? 'email' : '' }}
+                  {{ !record.extraction.hasPhone && !record.extraction.hasEmail ? 'none' : '' }}
+                </p>
+              </ion-label>
+            </ion-item>
+          }
+        </ion-list>
+      }
+    }
+
+    <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/post">
+      Back to quick post
+    </ion-button>
+  </div>
+</ion-content>

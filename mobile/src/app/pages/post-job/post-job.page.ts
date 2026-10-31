@@ -117,14 +117,6 @@ export class PostJobPage {
     }
   }
 
-  async onPickImageStub(): Promise<void> {
-    await this.showToast('Camera / image OCR will connect via Capacitor plugins next.');
-  }
-
-  async onPickFileStub(): Promise<void> {
-    await this.showToast('PDF / spreadsheet import will connect via Capacitor file picker next.');
-  }
-
   private async ensureEmployerReady(): Promise<boolean> {
     if (!this.auth.isSignedIn()) {
       await this.showToast('Employers must sign in before posting.');

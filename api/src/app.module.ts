@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
+import { IngestionModule } from './ingestion/ingestion.module';
 import { JobsModule } from './jobs/jobs.module';
 import { PreferencesModule } from './preferences/preferences.module';
 
@@ -12,6 +13,7 @@ import { PreferencesModule } from './preferences/preferences.module';
     ConfigModule.forRoot({ isGlobal: true }),
     AuthModule,
     JobsModule,
+    IngestionModule,
     PreferencesModule,
   ],
   controllers: [HealthController],

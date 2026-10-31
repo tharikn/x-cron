@@ -39,6 +39,15 @@ npm start
 # Production-like SSR: npm run build && npm run serve:ssr  → http://localhost:4000
 ```
 
+### Bulk import demo (Step 4)
+
+1. Sign in as employer (OTP).
+2. Mobile → Post → **Bulk import**.
+3. Upload a CSV (`title,employer,location,jobType,salary,description,phone`) or paste WhatsApp text / take a screenshot.
+4. Review extracted rows (contacts masked) → Approve selected → jobs enter admin moderation.
+
+OCR for images/PDF is a stub provider (`OCR_PROVIDER`) — no invented facts; records require review.
+
 ### Auth demo (Step 2)
 
 - Guest browse/search stays public.
