@@ -1,70 +1,74 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Put, Query } from '@nestjs/common';
+import { CurrentUser, Public } from '../auth/decorators';
+import type { AuthUser } from '../auth/auth.types';
 import {
-  IsArray,
-  IsBoolean,
-  IsIn,
-  IsInt,
-  IsOptional,
-  IsString,
-  MinLength,
-} from 'class-validator';
-import { Public } from '../auth/decorators';
+  ClaimPreferencesDto,
+  PreferenceFieldsDto,
+  SaveGuestPreferencesDto,
+} from './dto/preferences.dto';
 import { PreferencesService } from './preferences.service';
 
-class SavePreferencesDto {
-  @IsString()
-  @MinLength(3)
-  deviceId!: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  locations?: string[];
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  jobTypes?: string[];
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  categories?: string[];
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  languages?: string[];
-
-  @IsOptional()
-  @IsInt()
-  salaryMin?: number | null;
-
-  @IsOptional()
-  @IsBoolean()
-  remotePreferred?: boolean;
-
-  @IsOptional()
-  @IsIn(['en', 'ta'])
-  interfaceLocale?: 'en' | 'ta';
-
-  @IsOptional()
-  @IsString()
-  sort?: string;
-}
-
-@Public()
-@Controller('v1/preferences')
+@Controller('v1')
 export class PreferencesController {
   constructor(private readonly preferencesService: PreferencesService) {}
 
-  @Post()
-  save(@Body() dto: SavePreferencesDto) {
-    return this.preferencesService.save(dto);
+  /** Guest / device-local preferences (no account). */
+  @Public()
+  @Post('preferences')
+  saveGuest(@Body() dto: SaveGuestPreferencesDto) {
+    const { deviceId, ...fields } = dto;
+    return {
+      scope: 'device' as const,
+      deviceId,
+      ...this.preferencesService.saveGuest(deviceId, fields),
+    };
   }
 
-  @Get()
-  get(@Query('deviceId') deviceId: string) {
-    return this.preferencesService.get(deviceId || 'anonymous');
+  @Public()
+  @Get('preferences')
+  getGuest(@Query('deviceId') deviceId: string) {
+    const id = deviceId || 'anonymous';
+    return {
+      scope: 'device' as const,
+      deviceId: id,
+      ...this.preferencesService.getGuest(id),
+    };
+  }
+
+  /** Account-synced preferences. */
+  @Get('me/preferences')
+  getMine(@CurrentUser() user: AuthUser) {
+    return {
+      scope: 'account' as const,
+      userId: user.id,
+      ...this.preferencesService.getForUser(user),
+    };
+  }
+
+  @Put('me/preferences')
+  saveMine(@CurrentUser() user: AuthUser, @Body() dto: PreferenceFieldsDto) {
+    return {
+      scope: 'account' as const,
+      userId: user.id,
+      ...this.preferencesService.saveForUser(user, dto),
+    };
+  }
+
+  @Post('me/preferences/claim')
+  claim(@CurrentUser() user: AuthUser, @Body() dto: ClaimPreferencesDto) {
+    return {
+      scope: 'account' as const,
+      userId: user.id,
+      ...this.preferencesService.claimDevice(user, dto.deviceId),
+    };
+  }
+
+  @Delete('me/preferences')
+  clearMine(@CurrentUser() user: AuthUser) {
+    return {
+      scope: 'account' as const,
+      userId: user.id,
+      ...this.preferencesService.clearForUser(user),
+    };
   }
 }

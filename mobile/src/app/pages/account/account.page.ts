@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -20,12 +21,15 @@ import {
 import type { Job } from '../../core/models/job.model';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
+import { NotificationsService } from '../../core/services/notifications.service';
+import { PreferencesService } from '../../core/services/preferences.service';
 
 @Component({
   selector: 'app-account',
   templateUrl: './account.page.html',
   styleUrls: ['./account.page.scss'],
   imports: [
+    DatePipe,
     FormsModule,
     IonHeader,
     IonToolbar,
@@ -46,6 +50,8 @@ import { JobsService } from '../../core/services/jobs.service';
 export class AccountPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly jobsService = inject(JobsService);
+  private readonly preferences = inject(PreferencesService);
+  private readonly notifications = inject(NotificationsService);
   private readonly toastController = inject(ToastController);
 
   readonly user = this.auth.user;
@@ -53,6 +59,7 @@ export class AccountPage implements OnInit {
   readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
   readonly queue = signal<Job[]>([]);
+  readonly inbox = this.notifications.items;
 
   channel: 'phone' | 'email' = 'email';
   destination = '';
@@ -64,8 +71,8 @@ export class AccountPage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.auth.refreshMe();
-    if (this.isAdmin()) {
-      await this.reloadQueue();
+    if (this.isSignedIn()) {
+      await this.afterSignIn();
     }
   }
 
@@ -106,8 +113,8 @@ export class AccountPage implements OnInit {
       if (this.intendedRole === 'employer' && !this.auth.employer()) {
         await this.auth.createEmployer(this.employerName || 'My Business');
       }
-      if (this.isAdmin()) await this.reloadQueue();
-      await this.showToast('Signed in.');
+      await this.afterSignIn();
+      await this.showToast('Signed in. Preferences claimed for sync.');
     } catch {
       await this.showToast('Invalid or expired OTP.');
     }
@@ -129,7 +136,36 @@ export class AccountPage implements OnInit {
   async logout(): Promise<void> {
     await this.auth.logout();
     this.queue.set([]);
+    this.notifications.items.set([]);
     await this.showToast('Signed out. Guest browsing still works.');
+  }
+
+  async markRead(id: string): Promise<void> {
+    try {
+      await this.notifications.markRead(id);
+    } catch {
+      await this.showToast('Could not mark notification read.');
+    }
+  }
+
+  async refreshInbox(): Promise<void> {
+    try {
+      await this.notifications.refreshInbox();
+    } catch {
+      await this.showToast('Could not load notifications.');
+    }
+  }
+
+  private async afterSignIn(): Promise<void> {
+    try {
+      await this.preferences.hydrate();
+      await this.notifications.registerDevice();
+      await this.notifications.loadPrefs();
+      await this.notifications.refreshInbox();
+    } catch {
+      // API optional for account chrome
+    }
+    if (this.isAdmin()) await this.reloadQueue();
   }
 
   async continueAsGuest(): Promise<void> {

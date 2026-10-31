@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { JobsModule } from './jobs/jobs.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PreferencesModule } from './preferences/preferences.module';
 
@@ -17,6 +18,7 @@ import { PreferencesModule } from './preferences/preferences.module';
     IngestionModule,
     PaymentsModule,
     PreferencesModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
   providers: [

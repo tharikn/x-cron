@@ -2,8 +2,19 @@
   padding: 12px 12px 28px;
 }
 
-.lead {
+.lead,
+.sync-meta {
   color: #333;
+}
+
+.sync-meta {
+  font-size: 0.85rem;
+  margin-top: -4px;
+}
+
+.section-title {
+  margin: 20px 0 8px;
+  font-size: 1.05rem;
 }
 
 .form {

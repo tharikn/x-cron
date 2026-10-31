@@ -45,6 +45,29 @@
         </ion-button>
       }
 
+      <section class="moderation">
+        <div class="moderation__head">
+          <h2>Notifications</h2>
+          <ion-button size="small" fill="outline" color="dark" (click)="refreshInbox()">
+            Refresh
+          </ion-button>
+        </div>
+        @for (item of inbox(); track item.id) {
+          <div class="mod-card">
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.body }}</p>
+            <p class="hint">{{ item.status }} · {{ item.createdAt | date: 'short' }}</p>
+            @if (item.status !== 'read') {
+              <ion-button size="small" fill="outline" color="dark" (click)="markRead(item.id)">
+                Mark read
+              </ion-button>
+            }
+          </div>
+        } @empty {
+          <p class="empty">No in-app notifications yet.</p>
+        }
+      </section>
+
       @if (isAdmin()) {
         <section class="moderation">
           <div class="moderation__head">

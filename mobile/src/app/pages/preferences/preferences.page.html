@@ -7,7 +7,18 @@
 <ion-content>
   <div class="page">
     <p class="lead">
-      Guest preferences stay on this device. Sign-in later can sync them across devices.
+      @if (isSignedIn()) {
+        Signed-in preferences sync across devices. Job alerts use your FCM device registration.
+      } @else {
+        Guest preferences sync to this device id. Sign in to keep them across devices.
+      }
+    </p>
+    <p class="sync-meta">
+      Sync:
+      <strong>{{ syncScope() }}</strong>
+      @if (deviceRegistered()) {
+        · Push device registered
+      }
     </p>
 
     <ion-list lines="full" class="form">
@@ -70,5 +81,25 @@
 
     <ion-button expand="block" color="dark" (click)="save()">Save preferences</ion-button>
     <ion-button expand="block" fill="outline" color="dark" (click)="clear()">Clear</ion-button>
+
+    <h2 class="section-title">Notifications</h2>
+    <ion-list lines="full" class="form">
+      <ion-item>
+        <ion-toggle
+          [ngModel]="notifPrefs().jobAlertsEnabled"
+          (ngModelChange)="toggleJobAlerts($event)"
+          labelPlacement="start"
+          justify="space-between"
+          [disabled]="!isSignedIn()"
+        >
+          Job match alerts
+        </ion-toggle>
+      </ion-item>
+      @if (!isSignedIn()) {
+        <ion-item>
+          <ion-note>Sign in to enable push / in-app job alerts.</ion-note>
+        </ion-item>
+      }
+    </ion-list>
   </div>
 </ion-content>

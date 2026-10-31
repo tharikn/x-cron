@@ -48,6 +48,14 @@ npm start
 
 OCR for images/PDF is a stub provider (`OCR_PROVIDER`) — no invented facts; records require review.
 
+### Preferences + notifications demo (Step 6)
+
+1. Guest: save Preferences → stored by `deviceId` on API (+ local cache).
+2. Sign in → mobile claims device prefs into `/v1/me/preferences`.
+3. Enable **Job match alerts** (signed-in). Device registers a stub FCM token via `POST /v1/devices`.
+4. Admin approve a matching job → in-app notification + FCM stub send; inbox on Account.
+5. Quiet hours / daily cap suppress or limit pushes (`NOTIFICATION_MODE=stub`).
+
 ### Contact unlock demo (Step 5)
 
 1. Sign in as seeker (OTP).

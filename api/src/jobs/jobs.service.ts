@@ -1,10 +1,14 @@
 import {
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
+  Optional,
+  forwardRef,
 } from '@nestjs/common';
 import { AuthStore } from '../auth/auth.store';
 import { AuthUser } from '../auth/auth.types';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateJobDto, PasteJobDto } from './dto/create-job.dto';
 import { ModerateJobDto, ReportJobDto } from './dto/moderation.dto';
 import { SearchJobsDto } from './dto/search-jobs.dto';
@@ -17,6 +21,9 @@ export class JobsService {
   constructor(
     private readonly store: JobsMemoryStore,
     private readonly authStore: AuthStore,
+    @Optional()
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notifications?: NotificationsService,
   ) {}
 
   search(query: SearchJobsDto) {
@@ -108,6 +115,7 @@ export class JobsService {
   approve(id: string, dto: ModerateJobDto) {
     const job = this.store.setStatus(id, 'published', dto.note);
     if (!job) throw new NotFoundException('Job not found');
+    void this.notifications?.onJobPublished(job.id);
     return toPublicJob(job);
   }
 
