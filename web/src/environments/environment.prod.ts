@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.xcron.jobs/v1',
-  siteUrl: 'https://xcron.jobs',
+  apiUrl: 'https://x-cron-api.onrender.com/v1',
+  siteUrl: 'https://x-cron.onrender.com',
   siteName: 'X Cron',
   /** Set at build time to your Google OAuth Web client ID. */
   googleClientId:

@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/v1',
+  apiUrl: 'https://x-cron-api.onrender.com/v1',
   siteUrl: 'http://localhost:4000',
   siteName: 'X Cron',
   /** Google OAuth Web client ID. Empty = local email stub on Sign in → Google. */
