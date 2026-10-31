@@ -89,12 +89,55 @@ export class PaymentsService {
     );
   }
 
-  listEntitlements(): Promise<EntitlementDto[]> {
+  listEntitlements(): Promise<{
+    items: EntitlementDto[];
+    subscription: EntitlementDto | null;
+  }> {
     return firstValueFrom(
-      this.http.get<{ items: EntitlementDto[] }>(
+      this.http.get<{ items: EntitlementDto[]; subscription: EntitlementDto | null }>(
         `${environment.apiUrl}/me/entitlements`,
         { headers: this.auth.authHeaders() },
       ),
-    ).then((response) => response.items);
+    );
+  }
+
+  listSubscriptionPlans(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string;
+      pricePaise: number;
+      durationDays: number;
+    }>
+  > {
+    return firstValueFrom(
+      this.http.get<{
+        items: Array<{
+          id: string;
+          name: string;
+          description: string;
+          pricePaise: number;
+          durationDays: number;
+        }>;
+      }>(`${environment.apiUrl}/subscriptions/plans`),
+    ).then((r) => r.items);
+  }
+
+  async checkoutSubscription(planId: string): Promise<EntitlementDto | null> {
+    const orderResult = await firstValueFrom(
+      this.http.post<{
+        order: PaymentOrderDto;
+        checkout: { checkoutMode: 'stub' | 'razorpay' };
+      }>(
+        `${environment.apiUrl}/subscriptions/checkout`,
+        { planId },
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+    if (orderResult.checkout.checkoutMode === 'stub') {
+      const paid = await this.confirmDevPayment(orderResult.order.id);
+      return paid.entitlement;
+    }
+    return null;
   }
 }

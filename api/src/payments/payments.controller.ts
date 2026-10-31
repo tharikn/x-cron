@@ -12,12 +12,30 @@ import {
 import type { Request } from 'express';
 import { CurrentUser, Public } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
-import { DevConfirmPaymentDto, RazorpayWebhookDto } from './dto/payments.dto';
+import {
+  DevConfirmPaymentDto,
+  RazorpayWebhookDto,
+  SubscriptionCheckoutDto,
+} from './dto/payments.dto';
 import { PaymentsService } from './payments.service';
 
 @Controller('v1')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
+
+  @Public()
+  @Get('subscriptions/plans')
+  plans() {
+    return this.paymentsService.listSubscriptionPlans();
+  }
+
+  @Post('subscriptions/checkout')
+  checkout(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: SubscriptionCheckoutDto,
+  ) {
+    return this.paymentsService.createSubscriptionCheckout(user, dto.planId);
+  }
 
   @Post('jobs/:id/contact-orders')
   createContactOrder(

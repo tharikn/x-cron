@@ -21,6 +21,7 @@ import { AdsService, type AdCreative } from '../../core/services/ads.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { PaymentsService } from '../../core/services/payments.service';
+import { SeekerService } from '../../core/services/seeker.service';
 import {
   formatJobType,
   formatLocation,
@@ -56,6 +57,7 @@ export class JobDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly jobsService = inject(JobsService);
   private readonly payments = inject(PaymentsService);
+  private readonly seeker = inject(SeekerService);
   private readonly ads = inject(AdsService);
   private readonly auth = inject(AuthService);
   private readonly alertController = inject(AlertController);
@@ -65,6 +67,7 @@ export class JobDetailPage implements OnInit {
   readonly related = signal<Job[]>([]);
   readonly footerAd = signal<AdCreative | null>(null);
   readonly unlocking = signal(false);
+  readonly saved = signal(false);
   readonly revealed = signal<{
     phone: string | null;
     email: string | null;
@@ -87,7 +90,35 @@ export class JobDetailPage implements OnInit {
       this.footerAd.set(await this.ads.loadSlot('job_detail_footer'));
       if (this.auth.isSignedIn()) {
         await this.tryLoadEntitledContact(job.id);
+        try {
+          const saved = await this.seeker.loadSaved();
+          this.saved.set(saved.some((item) => item.id === job.id));
+        } catch {
+          this.saved.set(false);
+        }
       }
+    }
+  }
+
+  async toggleSave(): Promise<void> {
+    const job = this.job();
+    if (!job) return;
+    if (!this.auth.isSignedIn()) {
+      await this.showToast('Sign in to save jobs.');
+      return;
+    }
+    try {
+      if (this.saved()) {
+        await this.seeker.unsave(job.id);
+        this.saved.set(false);
+        await this.showToast('Removed from saved jobs.');
+      } else {
+        await this.seeker.save(job.id);
+        this.saved.set(true);
+        await this.showToast('Job saved.');
+      }
+    } catch {
+      await this.showToast('Could not update saved jobs.');
     }
   }
 

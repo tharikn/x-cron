@@ -6,6 +6,11 @@ export class DevConfirmPaymentDto {
   orderId!: string;
 }
 
+export class SubscriptionCheckoutDto {
+  @IsIn(['seeker_weekly', 'seeker_monthly'])
+  planId!: 'seeker_weekly' | 'seeker_monthly';
+}
+
 export class RazorpayWebhookDto {
   @IsOptional()
   @IsString()

@@ -148,6 +148,9 @@
       }
 
       <div class="actions">
+        <ion-button expand="block" fill="outline" color="dark" (click)="toggleSave()">
+          {{ saved() ? 'Unsave job' : 'Save job' }}
+        </ion-button>
         <ion-button expand="block" fill="outline" color="dark" (click)="shareJob()">
           Share job
         </ion-button>

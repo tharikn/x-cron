@@ -9,7 +9,8 @@
 | 4 | R2 | Bulk ingestion, OCR adapters, Capacitor camera/files | Done |
 | 5 | R3 | Contact vault, ₹5 unlock, Razorpay webhooks, entitlements | Done |
 | 6 | R4 | Synced preferences, FCM notifications | Done |
-| 7 | R5 | Ads, promotions, scale/cost tuning | **Done** |
+| 7 | R5 | Ads, promotions, scale/cost tuning | Done |
+| — | MVP+ | Subscriptions, saved jobs, feed, account delete, quotas | **Done** |
 
 ## Step 7 acceptance
 

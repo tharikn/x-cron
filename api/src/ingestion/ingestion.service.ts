@@ -3,11 +3,13 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { AuthStore } from '../auth/auth.store';
 import type { AuthUser } from '../auth/auth.types';
 import { JobsMemoryStore } from '../jobs/jobs.memory-store';
 import { JobType } from '../jobs/job.types';
+import { OpsService } from '../ops/ops.service';
 import { ApproveRecordsDto, CreateImportBatchDto, TextUploadDto } from './dto/ingestion.dto';
 import { IngestionStore } from './ingestion.store';
 import { ImportBatch, ImportRecord } from './ingestion.types';
@@ -21,9 +23,11 @@ export class IngestionService {
     private readonly parsers: ParserRegistry,
     private readonly authStore: AuthStore,
     private readonly jobsStore: JobsMemoryStore,
+    @Optional() private readonly ops?: OpsService,
   ) {}
 
   createBatch(user: AuthUser, dto: CreateImportBatchDto) {
+    this.assertImportQuota();
     const employer = this.requireEmployer(user);
     const now = new Date().toISOString();
     const batch: ImportBatch = {
@@ -42,7 +46,9 @@ export class IngestionService {
       updatedAt: now,
       records: [],
     };
-    return this.toPublicBatch(this.store.create(batch));
+    const created = this.store.create(batch);
+    this.ops?.recordImport(0);
+    return this.toPublicBatch(created);
   }
 
   listMine(user: AuthUser) {
@@ -244,6 +250,15 @@ export class IngestionService {
       return 'image';
     }
     return 'unknown';
+  }
+
+  private assertImportQuota() {
+    if (!this.ops) return;
+    const quotas = this.ops.quotas().items;
+    const imports = quotas.find((q) => q.key === 'import_batches');
+    if (imports && imports.used >= imports.limit) {
+      throw new ForbiddenException('Daily import batch quota reached');
+    }
   }
 
   private requireEmployer(user: AuthUser) {

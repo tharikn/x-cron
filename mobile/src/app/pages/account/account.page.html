@@ -46,6 +46,60 @@
       }
 
       <section class="moderation">
+        <h2>Subscription</h2>
+        <p class="hint">Status: {{ subscriptionLabel() }}</p>
+        <ion-list lines="full" class="panel">
+          <ion-item>
+            <ion-select
+              label="Plan"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="selectedPlanId"
+            >
+              @for (plan of plans(); track plan.id) {
+                <ion-select-option [value]="plan.id">
+                  {{ plan.name }} — ₹{{ plan.pricePaise / 100 }}
+                </ion-select-option>
+              }
+            </ion-select>
+          </ion-item>
+        </ion-list>
+        <ion-button expand="block" color="dark" (click)="buySubscription()">
+          Subscribe (stub pay)
+        </ion-button>
+      </section>
+
+      <section class="moderation">
+        <h2>Your feed</h2>
+        @for (job of feedJobs(); track job.id) {
+          <div class="mod-card">
+            <strong>{{ job.title }}</strong>
+            <p>{{ job.employerName }}</p>
+            <ion-button size="small" fill="outline" color="dark" [routerLink]="['/tabs/jobs', job.id]">
+              Open
+            </ion-button>
+          </div>
+        } @empty {
+          <p class="empty">Save preferences to personalise this feed.</p>
+        }
+      </section>
+
+      <section class="moderation">
+        <h2>Saved jobs</h2>
+        @for (job of savedJobs(); track job.id) {
+          <div class="mod-card">
+            <strong>{{ job.title }}</strong>
+            <p>{{ job.employerName }}</p>
+            <ion-button size="small" fill="outline" color="dark" [routerLink]="['/tabs/jobs', job.id]">
+              Open
+            </ion-button>
+          </div>
+        } @empty {
+          <p class="empty">No saved jobs yet.</p>
+        }
+      </section>
+
+      <section class="moderation">
         <div class="moderation__head">
           <h2>Notifications</h2>
           <ion-button size="small" fill="outline" color="dark" (click)="refreshInbox()">
@@ -95,6 +149,9 @@
 
       <ion-button expand="block" fill="outline" color="dark" (click)="logout()">
         Sign out
+      </ion-button>
+      <ion-button expand="block" fill="clear" color="dark" (click)="deleteAccount()">
+        Delete account
       </ion-button>
     } @else {
       <ion-segment [(ngModel)]="channel">

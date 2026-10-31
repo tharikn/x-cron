@@ -73,4 +73,15 @@ export class AuthService {
         'Google sign-in is optional and will be enabled after Google Identity setup. Use phone/email OTP for now.',
     };
   }
+
+  requireUser(token?: string) {
+    const user = this.store.getUserByToken(token);
+    if (!user) throw new UnauthorizedException('Sign-in required');
+    return user;
+  }
+
+  purgeUserRecord(userId: string, token?: string) {
+    if (token) this.store.logout(token);
+    return this.store.deleteUser(userId);
+  }
 }

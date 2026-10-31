@@ -48,6 +48,14 @@ npm start
 
 OCR for images/PDF is a stub provider (`OCR_PROVIDER`) — no invented facts; records require review.
 
+### MVP+ (subscriptions, saved jobs, feed)
+
+1. Sign in as seeker → Account → pick weekly/monthly plan → stub subscribe.
+2. Save jobs from job detail; list under Account → Saved jobs.
+3. Set Preferences → Account → Your feed (matched listings).
+4. `DELETE /v1/me` deletes account + entitlements (Account → Delete account).
+5. See [docs/MVP_COMPLETE.md](docs/MVP_COMPLETE.md) for what is still post-MVP.
+
 ### Ads, promotions & cost (Step 7)
 
 1. Discover / web home show **labelled** ad slots (`Advertisement`) — never disguised as jobs.

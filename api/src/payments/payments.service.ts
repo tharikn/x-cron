@@ -11,6 +11,7 @@ import { JobsMemoryStore } from '../jobs/jobs.memory-store';
 import { OpsService } from '../ops/ops.service';
 import { PaymentsStore } from './payments.store';
 import { RazorpayStubProvider } from './providers/razorpay.stub';
+import type { Entitlement, PaymentOrder } from './payments.types';
 
 @Injectable()
 export class PaymentsService {
@@ -22,6 +23,57 @@ export class PaymentsService {
     @Optional() private readonly ops?: OpsService,
   ) {}
 
+  listSubscriptionPlans() {
+    return { items: this.store.listPlans() };
+  }
+
+  async createSubscriptionCheckout(user: AuthUser, planId: string) {
+    const plan = this.store.getPlan(planId);
+    if (!plan) throw new NotFoundException('Plan not found');
+
+    const existing = this.store.findActiveSubscription(user.id);
+    const gateway = await this.provider.createOrder({
+      amountPaise: plan.pricePaise,
+      currency: 'INR',
+      receipt: `sub_${plan.id}_${user.id}`.slice(0, 40),
+      notes: { userId: user.id, product: 'subscription', planId: plan.id },
+    });
+
+    const order = this.store.createOrder({
+      userId: user.id,
+      planId: plan.id,
+      gateway: 'razorpay',
+      gatewayOrderId: gateway.gatewayOrderId,
+      amountPaise: plan.pricePaise,
+      currency: 'INR',
+      product: 'subscription',
+    });
+
+    this.store.addAudit({
+      actorId: user.id,
+      action: 'subscription_order_created',
+      entityType: 'payment',
+      entityId: order.id,
+      metadata: { planId: plan.id, amountPaise: plan.pricePaise },
+    });
+
+    return {
+      alreadySubscribed: !!existing,
+      currentSubscription: existing ? this.toEntitlementDto(existing) : null,
+      order: this.toOrderDto(order),
+      checkout: {
+        gateway: 'razorpay' as const,
+        keyId: gateway.keyId,
+        gatewayOrderId: gateway.gatewayOrderId,
+        amountPaise: plan.pricePaise,
+        currency: 'INR' as const,
+        checkoutMode: gateway.checkoutMode,
+        description: `${plan.name} – ₹${(plan.pricePaise / 100).toFixed(0)}`,
+        plan,
+      },
+    };
+  }
+
   async createContactOrder(user: AuthUser, jobId: string) {
     const job = this.jobs.findById(jobId);
     if (!job || job.status !== 'published') {
@@ -31,7 +83,7 @@ export class PaymentsService {
       throw new BadRequestException('Job has no contact methods to unlock');
     }
 
-    const existing = this.store.findActiveJobEntitlement(user.id, jobId);
+    const existing = this.store.findContactAccess(user.id, jobId);
     if (existing) {
       return {
         alreadyEntitled: true,
@@ -40,6 +92,8 @@ export class PaymentsService {
         checkout: null,
       };
     }
+
+    this.assertUnlockQuota();
 
     const amountPaise = job.contact.unlockPricePaise || 500;
     const gateway = await this.provider.createOrder({
@@ -93,10 +147,9 @@ export class PaymentsService {
       throw new ForbiddenException('Order belongs to another user');
     }
     if (order.status === 'paid') {
-      const entitlement = this.store.findActiveJobEntitlement(user.id, order.jobId);
       return {
         order: this.toOrderDto(order),
-        entitlement: entitlement ? this.toEntitlementDto(entitlement) : null,
+        entitlement: this.entitlementForPaidOrder(order),
       };
     }
 
@@ -119,14 +172,11 @@ export class PaymentsService {
 
     if (!this.store.markWebhookProcessed(eventId)) {
       const order = this.store.findOrderByGatewayId(parsed.gatewayOrderId);
-      const entitlement = order
-        ? this.store.findActiveJobEntitlement(order.userId, order.jobId)
-        : undefined;
       return {
         ok: true,
         duplicate: true,
         order: order ? this.toOrderDto(order) : null,
-        entitlement: entitlement ? this.toEntitlementDto(entitlement) : null,
+        entitlement: order ? this.entitlementForPaidOrder(order) : null,
       };
     }
 
@@ -155,7 +205,7 @@ export class PaymentsService {
       throw new NotFoundException('Job not found');
     }
 
-    const entitlement = this.store.findActiveJobEntitlement(user.id, jobId);
+    const entitlement = this.store.findContactAccess(user.id, jobId);
     if (!entitlement) {
       return {
         allowed: false as const,
@@ -171,13 +221,19 @@ export class PaymentsService {
       action: 'contact_revealed',
       entityType: 'job',
       entityId: jobId,
-      metadata: { entitlementId: entitlement.id },
+      metadata: {
+        entitlementId: entitlement.id,
+        scope: entitlement.scope,
+      },
     });
 
     return {
       allowed: true as const,
       reason: 'entitled' as const,
-      message: 'Contact access granted for this job.',
+      message:
+        entitlement.scope === 'subscription_contact'
+          ? 'Contact access granted via active subscription.'
+          : 'Contact access granted for this job.',
       entitlement: this.toEntitlementDto(entitlement),
       contact: {
         phone: job.privateContact?.phone ?? null,
@@ -189,11 +245,20 @@ export class PaymentsService {
 
   listEntitlements(user: AuthUser) {
     return {
-      items: this.store.listEntitlements(user.id).map((item) => this.toEntitlementDto(item)),
+      items: this.store
+        .listEntitlements(user.id)
+        .map((item) => this.toEntitlementDto(item)),
+      subscription: (() => {
+        const sub = this.store.findActiveSubscription(user.id);
+        return sub ? this.toEntitlementDto(sub) : null;
+      })(),
     };
   }
 
-  /** Helper for tests / docs: compute a valid stub webhook signature. */
+  wipeUser(userId: string) {
+    this.store.revokeUserData(userId);
+  }
+
   signWebhookBody(body: string): string {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET ?? 'dev_secret';
     return createHmac('sha256', secret).update(body).digest('hex');
@@ -210,13 +275,9 @@ export class PaymentsService {
     }
 
     if (order.status === 'paid') {
-      const entitlement = this.store.findActiveJobEntitlement(
-        order.userId,
-        order.jobId,
-      );
       return {
         order: this.toOrderDto(order),
-        entitlement: entitlement ? this.toEntitlementDto(entitlement) : null,
+        entitlement: this.entitlementForPaidOrder(order),
       };
     }
 
@@ -229,25 +290,46 @@ export class PaymentsService {
       gatewayPaymentId,
     })!;
 
-    const entitlement = this.store.grantJobContactEntitlement({
-      userId: order.userId,
-      jobId: order.jobId,
-      paymentId: updated.id,
-    });
-    this.ops?.recordUnlock();
-
-    this.store.addAudit({
-      actorId: order.userId,
-      action: 'contact_entitlement_granted',
-      entityType: 'entitlement',
-      entityId: entitlement.id,
-      metadata: {
+    let entitlement: Entitlement;
+    if (order.product === 'subscription' && order.planId) {
+      const plan = this.store.getPlan(order.planId);
+      if (!plan) throw new NotFoundException('Subscription plan missing');
+      entitlement = this.store.grantSubscriptionEntitlement({
+        userId: order.userId,
+        planId: plan.id,
+        paymentId: updated.id,
+        durationDays: plan.durationDays,
+      });
+      this.store.addAudit({
+        actorId: order.userId,
+        action: 'subscription_entitlement_granted',
+        entityType: 'entitlement',
+        entityId: entitlement.id,
+        metadata: { planId: plan.id, paymentId: updated.id, eventId },
+      });
+    } else {
+      if (!order.jobId) {
+        throw new BadRequestException('Contact unlock order missing jobId');
+      }
+      entitlement = this.store.grantJobContactEntitlement({
+        userId: order.userId,
         jobId: order.jobId,
         paymentId: updated.id,
-        gatewayPaymentId,
-        eventId,
-      },
-    });
+      });
+      this.ops?.recordUnlock();
+      this.store.addAudit({
+        actorId: order.userId,
+        action: 'contact_entitlement_granted',
+        entityType: 'entitlement',
+        entityId: entitlement.id,
+        metadata: {
+          jobId: order.jobId,
+          paymentId: updated.id,
+          gatewayPaymentId,
+          eventId,
+        },
+      });
+    }
 
     return {
       order: this.toOrderDto(updated),
@@ -255,23 +337,30 @@ export class PaymentsService {
     };
   }
 
-  private toOrderDto(order: {
-    id: string;
-    userId: string;
-    jobId: string;
-    gateway: string;
-    gatewayOrderId: string;
-    gatewayPaymentId?: string;
-    amountPaise: number;
-    currency: string;
-    status: string;
-    product: string;
-    createdAt: string;
-    updatedAt: string;
-  }) {
+  private entitlementForPaidOrder(order: PaymentOrder) {
+    if (order.product === 'subscription') {
+      const sub = this.store.findActiveSubscription(order.userId);
+      return sub ? this.toEntitlementDto(sub) : null;
+    }
+    if (!order.jobId) return null;
+    const ent = this.store.findActiveJobEntitlement(order.userId, order.jobId);
+    return ent ? this.toEntitlementDto(ent) : null;
+  }
+
+  private assertUnlockQuota() {
+    if (!this.ops) return;
+    const quotas = this.ops.quotas().items;
+    const unlock = quotas.find((q) => q.key === 'contact_unlocks');
+    if (unlock && unlock.used >= unlock.limit) {
+      throw new ForbiddenException('Daily contact unlock quota reached');
+    }
+  }
+
+  private toOrderDto(order: PaymentOrder) {
     return {
       id: order.id,
-      jobId: order.jobId,
+      jobId: order.jobId ?? null,
+      planId: order.planId ?? null,
       gateway: order.gateway,
       gatewayOrderId: order.gatewayOrderId,
       gatewayPaymentId: order.gatewayPaymentId ?? null,
@@ -284,20 +373,11 @@ export class PaymentsService {
     };
   }
 
-  private toEntitlementDto(item: {
-    id: string;
-    userId: string;
-    jobId: string;
-    scope: string;
-    status: string;
-    paymentId?: string;
-    validFrom: string;
-    validUntil: string | null;
-    createdAt: string;
-  }) {
+  private toEntitlementDto(item: Entitlement) {
     return {
       id: item.id,
       jobId: item.jobId,
+      planId: item.planId ?? null,
       scope: item.scope,
       status: item.status,
       validFrom: item.validFrom,

@@ -6,11 +6,13 @@ import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { JobsModule } from './jobs/jobs.module';
+import { AccountModule } from './account/account.module';
 import { AdsModule } from './ads/ads.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OpsModule } from './ops/ops.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PreferencesModule } from './preferences/preferences.module';
+import { SeekerModule } from './seeker/seeker.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { PreferencesModule } from './preferences/preferences.module';
     NotificationsModule,
     AdsModule,
     OpsModule,
+    SeekerModule,
+    AccountModule,
   ],
   controllers: [HealthController],
   providers: [

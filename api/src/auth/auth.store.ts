@@ -110,6 +110,23 @@ export class AuthStore implements OnModuleInit {
     this.sessions.delete(token);
   }
 
+  /** Soft-delete account: remove sessions, identities, employer profile, user. */
+  deleteUser(userId: string): boolean {
+    const user = this.users.get(userId);
+    if (!user) return false;
+    for (const [token, session] of this.sessions) {
+      if (session.userId === userId) this.sessions.delete(token);
+    }
+    for (const [key, id] of this.identityIndex) {
+      if (id === userId) this.identityIndex.delete(key);
+    }
+    for (const [id, employer] of this.employers) {
+      if (employer.ownerUserId === userId) this.employers.delete(id);
+    }
+    this.users.delete(userId);
+    return true;
+  }
+
   createEmployer(ownerUserId: string, name: string): EmployerProfile {
     const existing = [...this.employers.values()].find((e) => e.ownerUserId === ownerUserId);
     if (existing) {

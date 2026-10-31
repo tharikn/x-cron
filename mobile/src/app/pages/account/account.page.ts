@@ -19,10 +19,13 @@ import {
   ToastController,
 } from '@ionic/angular';
 import type { Job } from '../../core/models/job.model';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { NotificationsService } from '../../core/services/notifications.service';
+import { PaymentsService } from '../../core/services/payments.service';
 import { PreferencesService } from '../../core/services/preferences.service';
+import { SeekerService } from '../../core/services/seeker.service';
 
 @Component({
   selector: 'app-account',
@@ -31,6 +34,7 @@ import { PreferencesService } from '../../core/services/preferences.service';
   imports: [
     DatePipe,
     FormsModule,
+    RouterLink,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -52,6 +56,8 @@ export class AccountPage implements OnInit {
   private readonly jobsService = inject(JobsService);
   private readonly preferences = inject(PreferencesService);
   private readonly notifications = inject(NotificationsService);
+  private readonly payments = inject(PaymentsService);
+  private readonly seeker = inject(SeekerService);
   private readonly toastController = inject(ToastController);
 
   readonly user = this.auth.user;
@@ -60,6 +66,12 @@ export class AccountPage implements OnInit {
   readonly isAdmin = this.auth.isAdmin;
   readonly queue = signal<Job[]>([]);
   readonly inbox = this.notifications.items;
+  readonly savedJobs = this.seeker.saved;
+  readonly feedJobs = this.seeker.feed;
+  readonly plans = signal<
+    Array<{ id: string; name: string; description: string; pricePaise: number }>
+  >([]);
+  readonly subscriptionLabel = signal<string>('None');
 
   channel: 'phone' | 'email' = 'email';
   destination = '';
@@ -68,6 +80,7 @@ export class AccountPage implements OnInit {
   code = '';
   devCode = '';
   employerName = '';
+  selectedPlanId = 'seeker_weekly';
 
   async ngOnInit(): Promise<void> {
     await this.auth.refreshMe();
@@ -137,7 +150,35 @@ export class AccountPage implements OnInit {
     await this.auth.logout();
     this.queue.set([]);
     this.notifications.items.set([]);
+    this.seeker.saved.set([]);
+    this.seeker.feed.set([]);
     await this.showToast('Signed out. Guest browsing still works.');
+  }
+
+  async buySubscription(): Promise<void> {
+    try {
+      const entitlement = await this.payments.checkoutSubscription(this.selectedPlanId);
+      this.subscriptionLabel.set(
+        entitlement?.validUntil
+          ? `Active until ${new Date(entitlement.validUntil).toLocaleDateString('en-IN')}`
+          : 'Active',
+      );
+      await this.showToast('Subscription activated (stub payment).');
+    } catch {
+      await this.showToast('Could not start subscription checkout.');
+    }
+  }
+
+  async deleteAccount(): Promise<void> {
+    try {
+      await this.seeker.deleteAccount();
+      await this.auth.logout();
+      this.queue.set([]);
+      this.seeker.saved.set([]);
+      await this.showToast('Account deleted.');
+    } catch {
+      await this.showToast('Could not delete account.');
+    }
   }
 
   async markRead(id: string): Promise<void> {
@@ -162,6 +203,15 @@ export class AccountPage implements OnInit {
       await this.notifications.registerDevice();
       await this.notifications.loadPrefs();
       await this.notifications.refreshInbox();
+      this.plans.set(await this.payments.listSubscriptionPlans());
+      const entitlements = await this.payments.listEntitlements();
+      this.subscriptionLabel.set(
+        entitlements.subscription?.validUntil
+          ? `Active until ${new Date(entitlements.subscription.validUntil).toLocaleDateString('en-IN')}`
+          : 'None',
+      );
+      await this.seeker.loadSaved();
+      await this.seeker.loadFeed();
     } catch {
       // API optional for account chrome
     }
