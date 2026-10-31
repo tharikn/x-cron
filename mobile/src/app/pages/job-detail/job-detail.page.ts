@@ -17,6 +17,7 @@ import {
   ToastController,
 } from '@ionic/angular';
 import type { Job } from '../../core/models/job.model';
+import { AdsService, type AdCreative } from '../../core/services/ads.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { PaymentsService } from '../../core/services/payments.service';
@@ -55,12 +56,14 @@ export class JobDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly jobsService = inject(JobsService);
   private readonly payments = inject(PaymentsService);
+  private readonly ads = inject(AdsService);
   private readonly auth = inject(AuthService);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
 
   readonly job = signal<Job | undefined>(undefined);
   readonly related = signal<Job[]>([]);
+  readonly footerAd = signal<AdCreative | null>(null);
   readonly unlocking = signal(false);
   readonly revealed = signal<{
     phone: string | null;
@@ -81,10 +84,17 @@ export class JobDetailPage implements OnInit {
     this.job.set(job);
     if (job) {
       this.related.set(await this.jobsService.related(job.id));
+      this.footerAd.set(await this.ads.loadSlot('job_detail_footer'));
       if (this.auth.isSignedIn()) {
         await this.tryLoadEntitledContact(job.id);
       }
     }
+  }
+
+  async onFooterAdClick(): Promise<void> {
+    const ad = this.footerAd();
+    if (!ad) return;
+    await this.ads.recordEvent(ad.id, 'job_detail_footer', 'click');
   }
 
   async unlockContact(): Promise<void> {

@@ -21,6 +21,7 @@ import { addIcons } from 'ionicons';
 import { locationOutline } from 'ionicons/icons';
 import type { Job, JobSearchQuery, JobType } from '../../core/models/job.model';
 import { JOB_TYPE_LABELS } from '../../core/models/job.model';
+import { AdsService } from '../../core/services/ads.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { PreferencesService } from '../../core/services/preferences.service';
 import { JobCardComponent } from '../../shared/job-card/job-card.component';
@@ -51,6 +52,7 @@ import { JobCardComponent } from '../../shared/job-card/job-card.component';
 export class DiscoverPage implements OnInit {
   private readonly jobsService = inject(JobsService);
   private readonly preferencesService = inject(PreferencesService);
+  private readonly ads = inject(AdsService);
   private readonly toastController = inject(ToastController);
 
   readonly jobTypeEntries = Object.entries(JOB_TYPE_LABELS) as Array<[JobType, string]>;
@@ -74,6 +76,7 @@ export class DiscoverPage implements OnInit {
     this.preferencesService.shouldShowPrompt(this.jobsService.searchCount()),
   );
   readonly savedPrefs = this.preferencesService.preferences;
+  readonly discoverAd = this.ads.discoverAd;
 
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -97,6 +100,13 @@ export class DiscoverPage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.categories.set(await this.jobsService.categories());
+    await this.ads.loadSlot('discover_feed');
+  }
+
+  async onAdClick(): Promise<void> {
+    const ad = this.discoverAd();
+    if (!ad) return;
+    await this.ads.recordEvent(ad.id, 'discover_feed', 'click');
   }
 
   onKeyword(value: string | null | undefined): void {
@@ -128,7 +138,7 @@ export class DiscoverPage implements OnInit {
     const location = current.locationText?.trim() ?? '';
     const category = current.category?.trim() ?? '';
     const language = current.language?.trim() ?? '';
-    this.preferencesService.save({
+    await this.preferencesService.save({
       locations: location ? [location] : [],
       jobTypes: current.jobType ? [current.jobType as JobType] : [],
       categories: category ? [category] : [],
@@ -136,7 +146,7 @@ export class DiscoverPage implements OnInit {
     });
     this.preferencesService.dismissPrompt();
     const toast = await this.toastController.create({
-      message: 'Preferences saved on this device.',
+      message: 'Preferences saved.',
       duration: 2000,
       position: 'bottom',
       color: 'dark',

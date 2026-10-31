@@ -58,6 +58,9 @@ export interface Job {
   expiresAt: string;
   status: JobStatus;
   contact: JobContactMask;
+  promoted?: boolean;
+  promotionBadge?: string | null;
+  promotionEndsAt?: string | null;
 }
 
 export interface JobSearchQuery {

@@ -111,6 +111,18 @@
       </div>
     }
 
+    @if (discoverAd(); as ad) {
+      <aside class="ad-slot" aria-label="Advertisement">
+        <p class="ad-slot__label">{{ ad.label }}</p>
+        <p class="ad-slot__advertiser">{{ ad.advertiser }}</p>
+        <strong>{{ ad.headline }}</strong>
+        <p>{{ ad.body }}</p>
+        <ion-button size="small" fill="outline" color="dark" (click)="onAdClick()">
+          {{ ad.ctaLabel }}
+        </ion-button>
+      </aside>
+    }
+
     <div class="results-head">
       <h2>Jobs</h2>
       <div class="results-head__right">

@@ -12,6 +12,12 @@
   margin-bottom: 8px;
 }
 
+.job-card__badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .job-card__line,
 .job-card__about {
   margin: 0 0 6px;

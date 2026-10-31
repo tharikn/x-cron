@@ -135,6 +135,18 @@
         }
       </section>
 
+      @if (footerAd(); as ad) {
+        <aside class="ad-slot" aria-label="Advertisement">
+          <p class="ad-slot__label">{{ ad.label }}</p>
+          <p class="ad-slot__advertiser">{{ ad.advertiser }}</p>
+          <strong>{{ ad.headline }}</strong>
+          <p>{{ ad.body }}</p>
+          <ion-button size="small" fill="outline" color="dark" (click)="onFooterAdClick()">
+            {{ ad.ctaLabel }}
+          </ion-button>
+        </aside>
+      }
+
       <div class="actions">
         <ion-button expand="block" fill="outline" color="dark" (click)="shareJob()">
           Share job

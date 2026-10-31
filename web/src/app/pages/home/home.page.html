@@ -27,36 +27,57 @@
   <button type="submit">Search</button>
 </form>
 
-@if (loading()) {
-  <p class="status">Loading jobs…</p>
-} @else if (error()) {
-  <p class="status">{{ error() }}</p>
-} @else {
-  <div class="results-head">
-    <h2>Open roles</h2>
-    <span>{{ jobs().length }}</span>
-  </div>
+<div class="layout">
+  <div class="layout__main">
+    @if (loading()) {
+      <p class="status">Loading jobs…</p>
+    } @else if (error()) {
+      <p class="status">{{ error() }}</p>
+    } @else {
+      <div class="results-head">
+        <h2>Open roles</h2>
+        <span>{{ jobs().length }}</span>
+      </div>
 
-  <div class="job-list">
-    @for (job of jobs(); track job.id) {
-      <a class="job-card" [routerLink]="jobPath(job)">
-        <div class="job-card__meta">
-          <span class="badge">{{ job.contentLanguage === 'ta' ? 'Tamil' : 'English' }}</span>
-          <time>{{ formatPostedDate(job.publishedAt) }}</time>
-        </div>
-        <h3>{{ job.title }}</h3>
-        <p class="employer">
-          {{ job.employerName }}
-          @if (job.verifiedEmployer) {
-            · Verified
-          }
-        </p>
-        <p>{{ formatLocation(job) }}</p>
-        <p>{{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}</p>
-        <p class="about">{{ job.description.about }}</p>
-      </a>
-    } @empty {
-      <p class="status">No jobs match these filters.</p>
+      <div class="job-list">
+        @for (job of jobs(); track job.id) {
+          <a class="job-card" [routerLink]="jobPath(job)">
+            <div class="job-card__meta">
+              <span class="badge">{{ job.contentLanguage === 'ta' ? 'Tamil' : 'English' }}</span>
+              @if (job.promoted) {
+                <span class="badge badge--promoted">{{ job.promotionBadge || 'Promoted' }}</span>
+              }
+              <time>{{ formatPostedDate(job.publishedAt) }}</time>
+            </div>
+            <h3>{{ job.title }}</h3>
+            <p class="employer">
+              {{ job.employerName }}
+              @if (job.verifiedEmployer) {
+                · Verified
+              }
+            </p>
+            <p>{{ formatLocation(job) }}</p>
+            <p>{{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}</p>
+            <p class="about">{{ job.description.about }}</p>
+          </a>
+        } @empty {
+          <p class="status">No jobs match these filters.</p>
+        }
+      </div>
     }
   </div>
-}
+
+  @if (railAds().length) {
+    <aside class="ad-rail" aria-label="Advertisements">
+      @for (ad of railAds(); track ad.id) {
+        <div class="ad-rail__item">
+          <p class="ad-rail__label">{{ ad.label }}</p>
+          <p class="ad-rail__advertiser">{{ ad.advertiser }}</p>
+          <strong>{{ ad.headline }}</strong>
+          <p>{{ ad.body }}</p>
+          <span class="ad-rail__cta">{{ ad.ctaLabel }}</span>
+        </div>
+      }
+    </aside>
+  }
+</div>

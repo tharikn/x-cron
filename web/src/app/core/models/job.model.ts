@@ -39,6 +39,8 @@ export interface Job {
   publishedAt: string;
   expiresAt: string;
   status: string;
+  promoted?: boolean;
+  promotionBadge?: string | null;
   contact: {
     hasPhone: boolean;
     hasEmail: boolean;

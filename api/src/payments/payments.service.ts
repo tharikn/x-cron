@@ -3,10 +3,12 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { AuthUser } from '../auth/auth.types';
 import { JobsMemoryStore } from '../jobs/jobs.memory-store';
+import { OpsService } from '../ops/ops.service';
 import { PaymentsStore } from './payments.store';
 import { RazorpayStubProvider } from './providers/razorpay.stub';
 
@@ -17,6 +19,7 @@ export class PaymentsService {
   constructor(
     private readonly store: PaymentsStore,
     private readonly jobs: JobsMemoryStore,
+    @Optional() private readonly ops?: OpsService,
   ) {}
 
   async createContactOrder(user: AuthUser, jobId: string) {
@@ -231,6 +234,7 @@ export class PaymentsService {
       jobId: order.jobId,
       paymentId: updated.id,
     });
+    this.ops?.recordUnlock();
 
     this.store.addAudit({
       actorId: order.userId,

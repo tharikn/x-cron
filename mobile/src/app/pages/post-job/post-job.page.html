@@ -127,5 +127,39 @@
       </ion-list>
       <ion-button expand="block" color="dark" (click)="submitPaste()">Extract and publish</ion-button>
     }
+
+    <section class="promo-panel">
+      <h2>Promote a job</h2>
+      <p class="lead">
+        Employer packages boost a listing near the top. Clearly badged — never disguised as organic results.
+      </p>
+      <ion-list lines="full" class="form">
+        <ion-item>
+          <ion-input
+            label="Job id"
+            labelPlacement="stacked"
+            [(ngModel)]="promoteJobId"
+            placeholder="job_001"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-select
+            label="Package"
+            labelPlacement="stacked"
+            interface="popover"
+            [(ngModel)]="promotePackageId"
+          >
+            @for (pkg of packages(); track pkg.id) {
+              <ion-select-option [value]="pkg.id">
+                {{ pkg.name }} — ₹{{ pkg.pricePaise / 100 }}
+              </ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+      </ion-list>
+      <ion-button expand="block" fill="outline" color="dark" (click)="purchasePromotion()">
+        Activate promotion (stub pay)
+      </ion-button>
+    </section>
   </div>
 </ion-content>

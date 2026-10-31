@@ -72,3 +72,24 @@
   border: 1px dashed var(--xcron-border);
   padding: 16px;
 }
+
+.ad-slot {
+  border: 1px dashed #666;
+  padding: 12px;
+  margin: 12px 0;
+  background: #f7f7f7;
+}
+
+.ad-slot__label {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #555;
+}
+
+.ad-slot__advertiser {
+  margin: 4px 0;
+  font-size: 0.85rem;
+  color: #333;
+}

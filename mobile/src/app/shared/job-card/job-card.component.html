@@ -1,7 +1,12 @@
 <ion-card [routerLink]="['/tabs/jobs', job.id]" button="true" class="job-card">
   <ion-card-header>
     <div class="job-card__meta">
-      <ion-badge color="medium">{{ languageLabel(job.contentLanguage) }}</ion-badge>
+      <div class="job-card__badges">
+        <ion-badge color="medium">{{ languageLabel(job.contentLanguage) }}</ion-badge>
+        @if (job.promoted) {
+          <ion-badge color="dark">{{ job.promotionBadge || 'Promoted' }}</ion-badge>
+        }
+      </div>
       <ion-text color="medium">
         <small>{{ formatPostedDate(job.publishedAt) }}</small>
       </ion-text>

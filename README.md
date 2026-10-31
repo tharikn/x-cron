@@ -48,6 +48,13 @@ npm start
 
 OCR for images/PDF is a stub provider (`OCR_PROVIDER`) — no invented facts; records require review.
 
+### Ads, promotions & cost (Step 7)
+
+1. Discover / web home show **labelled** ad slots (`Advertisement`) — never disguised as jobs.
+2. Employer → Post → **Promote a job** (stub packages) → search shows Featured/Promoted badge.
+3. Admin: `GET /v1/ops/cost-model|metrics|quotas|scale` (sign in as `admin@xcron.local`).
+4. Planning doc: [docs/COST_MODEL.md](docs/COST_MODEL.md).
+
 ### Preferences + notifications demo (Step 6)
 
 1. Guest: save Preferences → stored by `deviceId` on API (+ local cache).

@@ -6,9 +6,11 @@ import {
   Optional,
   forwardRef,
 } from '@nestjs/common';
+import { AdsService } from '../ads/ads.service';
 import { AuthStore } from '../auth/auth.store';
 import { AuthUser } from '../auth/auth.types';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OpsService } from '../ops/ops.service';
 import { CreateJobDto, PasteJobDto } from './dto/create-job.dto';
 import { ModerateJobDto, ReportJobDto } from './dto/moderation.dto';
 import { SearchJobsDto } from './dto/search-jobs.dto';
@@ -24,9 +26,14 @@ export class JobsService {
     @Optional()
     @Inject(forwardRef(() => NotificationsService))
     private readonly notifications?: NotificationsService,
+    @Optional()
+    @Inject(forwardRef(() => AdsService))
+    private readonly ads?: AdsService,
+    @Optional() private readonly ops?: OpsService,
   ) {}
 
   search(query: SearchJobsDto) {
+    this.ops?.recordSearch();
     const result = this.store.search({
       keyword: query.keyword,
       locationText: query.location,
@@ -39,8 +46,20 @@ export class JobsService {
       limit: query.limit,
     });
 
+    const boosts = this.ads?.activeBoosts() ?? new Map();
+    let items = result.items.map((job) =>
+      toPublicJob(job, boosts.get(job.id) ?? null),
+    );
+    if (query.sort === 'newest' || query.sort === 'relevance' || !query.sort) {
+      items = [
+        ...items.filter((j) => j.promoted),
+        ...items.filter((j) => !j.promoted),
+      ];
+    }
+
     return {
-      items: result.items.map(toPublicJob),
+      items,
+      sponsored: items.filter((j) => j.promoted),
       nextCursor: result.nextCursor,
     };
   }
@@ -50,7 +69,7 @@ export class JobsService {
     if (!job || job.status !== 'published') {
       throw new NotFoundException('Job not found');
     }
-    return toPublicJob(job);
+    return toPublicJob(job, this.ads?.activeBoosts().get(job.id) ?? null);
   }
 
   getBySlug(slug: string) {
@@ -58,7 +77,7 @@ export class JobsService {
     if (!job || job.status !== 'published') {
       throw new NotFoundException('Job not found');
     }
-    return toPublicJob(job);
+    return toPublicJob(job, this.ads?.activeBoosts().get(job.id) ?? null);
   }
 
   related(id: string) {
@@ -66,7 +85,10 @@ export class JobsService {
     if (!job) {
       throw new NotFoundException('Job not found');
     }
-    return this.store.related(job).map(toPublicJob);
+    const boosts = this.ads?.activeBoosts() ?? new Map();
+    return this.store
+      .related(job)
+      .map((item) => toPublicJob(item, boosts.get(item.id) ?? null));
   }
 
   categories() {
@@ -97,7 +119,7 @@ export class JobsService {
 
   myJobs(user: AuthUser) {
     return {
-      items: this.store.listByOwner(user.id).map(toPublicJob),
+      items: this.store.listByOwner(user.id).map((job) => toPublicJob(job)),
     };
   }
 
@@ -115,8 +137,9 @@ export class JobsService {
   approve(id: string, dto: ModerateJobDto) {
     const job = this.store.setStatus(id, 'published', dto.note);
     if (!job) throw new NotFoundException('Job not found');
+    this.ops?.recordPublish();
     void this.notifications?.onJobPublished(job.id);
-    return toPublicJob(job);
+    return toPublicJob(job, this.ads?.activeBoosts().get(job.id) ?? null);
   }
 
   reject(id: string, dto: ModerateJobDto) {

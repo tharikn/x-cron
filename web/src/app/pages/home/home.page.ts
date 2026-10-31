@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import type { Job } from '../../core/models/job.model';
+import { AdsService, type AdCreative } from '../../core/services/ads.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { SeoService } from '../../core/services/seo.service';
 import {
@@ -20,9 +21,11 @@ import {
 })
 export class HomePage implements OnInit {
   private readonly jobsService = inject(JobsService);
+  private readonly ads = inject(AdsService);
   private readonly seo = inject(SeoService);
 
   readonly jobs = signal<Job[]>([]);
+  readonly railAds = signal<AdCreative[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
@@ -43,6 +46,7 @@ export class HomePage implements OnInit {
         'X Cron Jobs — local-first, multilingual job discovery for India. Browse without signing in.',
       path: '/',
     });
+    this.railAds.set(await this.ads.loadHomeRail());
     await this.search();
   }
 

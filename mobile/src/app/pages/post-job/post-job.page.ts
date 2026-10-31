@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -20,6 +20,7 @@ import {
 } from '@ionic/angular';
 import type { JobType } from '../../core/models/job.model';
 import { JOB_TYPE_LABELS } from '../../core/models/job.model';
+import { AdsService } from '../../core/services/ads.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 
@@ -48,8 +49,9 @@ type PostMode = 'quick' | 'paste';
     IonButton,
   ],
 })
-export class PostJobPage {
+export class PostJobPage implements OnInit {
   private readonly jobsService = inject(JobsService);
+  private readonly ads = inject(AdsService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toastController = inject(ToastController);
@@ -57,6 +59,7 @@ export class PostJobPage {
   readonly mode = signal<PostMode>('quick');
   readonly isSignedIn = this.auth.isSignedIn;
   readonly employer = this.auth.employer;
+  readonly packages = this.ads.packages;
   readonly jobTypeEntries = Object.entries(JOB_TYPE_LABELS) as Array<[JobType, string]>;
 
   title = '';
@@ -68,6 +71,16 @@ export class PostJobPage {
   contentLanguage = 'en';
   contactPhone = '';
   pasteText = '';
+  promoteJobId = 'job_001';
+  promotePackageId = 'featured_7d';
+
+  async ngOnInit(): Promise<void> {
+    try {
+      await this.ads.loadPackages();
+    } catch {
+      // packages optional offline
+    }
+  }
 
   setMode(value: string | number | undefined): void {
     if (value === 'quick' || value === 'paste') {
@@ -114,6 +127,25 @@ export class PostJobPage {
       await this.router.navigate(['/tabs/account']);
     } catch {
       await this.showToast('Paste publish failed. Sign in as employer first.');
+    }
+  }
+
+  async purchasePromotion(): Promise<void> {
+    if (!(await this.ensureEmployerReady())) return;
+    if (!this.promoteJobId.trim() || !this.promotePackageId) {
+      await this.showToast('Pick a job id and package.');
+      return;
+    }
+    try {
+      const result = await this.ads.purchase(
+        this.promoteJobId.trim(),
+        this.promotePackageId,
+      );
+      await this.showToast(
+        `${result.promotion.badge} until ${new Date(result.promotion.endsAt).toLocaleDateString('en-IN')} (stub checkout).`,
+      );
+    } catch {
+      await this.showToast('Promotion failed. Job must be yours and published/pending.');
     }
   }
 
