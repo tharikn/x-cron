@@ -1,0 +1,27 @@
+<div class="loc">
+  <input
+    type="text"
+    autocomplete="off"
+    role="combobox"
+    [attr.aria-expanded]="open()"
+    aria-autocomplete="list"
+    aria-controls="location-suggest-list"
+    [name]="name()"
+    [placeholder]="placeholder()"
+    [value]="value()"
+    (input)="onInput($any($event.target).value)"
+    (focus)="onFocus()"
+  />
+  @if (open() && suggestions().length) {
+    <ul id="location-suggest-list" class="loc__list" role="listbox">
+      @for (item of suggestions(); track item.id) {
+        <li role="option">
+          <button type="button" class="loc__option" (mousedown)="pick(item)">
+            <span class="loc__name">{{ item.name }}</span>
+            <span class="loc__meta">{{ item.label }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

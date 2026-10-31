@@ -1,6 +1,6 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>Preferences</ion-title>
+    <ion-title>{{ 'prefs.title' | t }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -8,9 +8,9 @@
   <div class="page">
     <p class="lead">
       @if (isSignedIn()) {
-        Signed-in preferences sync across devices. Job alerts use your FCM device registration.
+        {{ 'prefs.leadSignedIn' | t }}
       } @else {
-        Guest preferences sync to this device id. Sign in to keep them across devices.
+        {{ 'prefs.leadGuest' | t }}
       }
     </p>
     <p class="sync-meta">
@@ -22,21 +22,18 @@
     </p>
 
     <ion-list lines="full" class="form">
-      <ion-item>
-        <ion-input
-          label="Preferred location"
-          labelPlacement="stacked"
-          [(ngModel)]="location"
-        ></ion-input>
+      <ion-item lines="none" class="loc-item">
+        <ion-label position="stacked">{{ 'prefs.location' | t }}</ion-label>
+        <app-location-typeahead [(value)]="location" />
       </ion-item>
       <ion-item>
         <ion-select
-          label="Preferred job type"
+          [label]="'prefs.jobType' | t"
           labelPlacement="stacked"
           interface="popover"
           [(ngModel)]="jobType"
         >
-          <ion-select-option value="">Any</ion-select-option>
+          <ion-select-option value="">{{ 'common.any' | t }}</ion-select-option>
           @for (entry of jobTypeEntries; track entry[0]) {
             <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
           }
@@ -44,29 +41,32 @@
       </ion-item>
       <ion-item>
         <ion-select
-          label="Preferred job language"
+          [label]="'prefs.jobLanguage' | t"
           labelPlacement="stacked"
           interface="popover"
           [(ngModel)]="language"
         >
-          <ion-select-option value="en">English</ion-select-option>
-          <ion-select-option value="ta">Tamil</ion-select-option>
+          @for (lang of languages(); track lang.code) {
+            <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
+          }
         </ion-select>
       </ion-item>
       <ion-item>
         <ion-select
-          label="App language"
+          [label]="'prefs.appLanguage' | t"
           labelPlacement="stacked"
           interface="popover"
           [(ngModel)]="interfaceLocale"
+          (ngModelChange)="onAppLanguage($event)"
         >
-          <ion-select-option value="en">English</ion-select-option>
-          <ion-select-option value="ta">Tamil</ion-select-option>
+          @for (lang of languages(); track lang.code) {
+            <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
+          }
         </ion-select>
       </ion-item>
       <ion-item>
         <ion-input
-          label="Minimum salary (optional)"
+          [label]="'prefs.salaryMin' | t"
           labelPlacement="stacked"
           type="number"
           [(ngModel)]="salaryMin"
@@ -74,15 +74,15 @@
       </ion-item>
       <ion-item>
         <ion-toggle [(ngModel)]="remotePreferred" labelPlacement="start" justify="space-between">
-          Prefer remote / WFH
+          {{ 'prefs.remote' | t }}
         </ion-toggle>
       </ion-item>
     </ion-list>
 
-    <ion-button expand="block" color="dark" (click)="save()">Save preferences</ion-button>
-    <ion-button expand="block" fill="outline" color="dark" (click)="clear()">Clear</ion-button>
+    <ion-button expand="block" color="dark" (click)="save()">{{ 'prefs.save' | t }}</ion-button>
+    <ion-button expand="block" fill="outline" color="dark" (click)="clear()">{{ 'prefs.clear' | t }}</ion-button>
 
-    <h2 class="section-title">Notifications</h2>
+    <h2 class="section-title">{{ 'prefs.notifications' | t }}</h2>
     <ion-list lines="full" class="form">
       <ion-item>
         <ion-toggle
@@ -92,12 +92,12 @@
           justify="space-between"
           [disabled]="!isSignedIn()"
         >
-          Job match alerts
+          {{ 'prefs.jobAlerts' | t }}
         </ion-toggle>
       </ion-item>
       @if (!isSignedIn()) {
         <ion-item>
-          <ion-note>Sign in to enable push / in-app job alerts.</ion-note>
+          <ion-note>{{ 'prefs.signInForAlerts' | t }}</ion-note>
         </ion-item>
       }
     </ion-list>

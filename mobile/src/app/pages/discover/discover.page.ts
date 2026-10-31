@@ -1,11 +1,12 @@
 import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  IonBadge,
   IonButton,
   IonContent,
   IonHeader,
   IonIcon,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
   IonItem,
   IonList,
   IonSearchbar,
@@ -21,10 +22,15 @@ import { addIcons } from 'ionicons';
 import { locationOutline } from 'ionicons/icons';
 import type { Job, JobSearchQuery, JobType } from '../../core/models/job.model';
 import { JOB_TYPE_LABELS } from '../../core/models/job.model';
+import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AdsService } from '../../core/services/ads.service';
 import { JobsService } from '../../core/services/jobs.service';
+import { LocaleService } from '../../core/services/locale.service';
 import { PreferencesService } from '../../core/services/preferences.service';
 import { JobCardComponent } from '../../shared/job-card/job-card.component';
+import { LocationTypeaheadComponent } from '../../shared/location-typeahead/location-typeahead.component';
+
+const PAGE_SIZE = 8;
 
 @Component({
   selector: 'app-discover',
@@ -43,10 +49,13 @@ import { JobCardComponent } from '../../shared/job-card/job-card.component';
     IonItem,
     IonSelect,
     IonSelectOption,
-    IonBadge,
     IonSpinner,
     IonText,
+    IonInfiniteScroll,
+    IonInfiniteScrollContent,
     JobCardComponent,
+    LocationTypeaheadComponent,
+    TranslatePipe,
   ],
 })
 export class DiscoverPage implements OnInit {
@@ -54,10 +63,15 @@ export class DiscoverPage implements OnInit {
   private readonly preferencesService = inject(PreferencesService);
   private readonly ads = inject(AdsService);
   private readonly toastController = inject(ToastController);
+  private readonly locale = inject(LocaleService);
+
+  readonly languages = this.locale.languages;
 
   readonly jobTypeEntries = Object.entries(JOB_TYPE_LABELS) as Array<[JobType, string]>;
   readonly categories = signal<string[]>([]);
   readonly results = signal<Job[]>([]);
+  readonly nextCursor = signal<string | undefined>(undefined);
+  readonly loadingMore = signal(false);
   readonly loading = this.jobsService.loading;
   readonly usingApi = this.jobsService.usingApi;
   readonly lastError = this.jobsService.lastError;
@@ -77,8 +91,10 @@ export class DiscoverPage implements OnInit {
   );
   readonly savedPrefs = this.preferencesService.preferences;
   readonly discoverAd = this.ads.discoverAd;
+  readonly staggerIndex = (index: number) => index % PAGE_SIZE;
 
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private refreshToken = 0;
 
   constructor() {
     addIcons({ locationOutline });
@@ -158,8 +174,37 @@ export class DiscoverPage implements OnInit {
     this.preferencesService.dismissPrompt();
   }
 
+  async loadMore(event: Event): Promise<void> {
+    const target = event.target as HTMLIonInfiniteScrollElement | null;
+    const cursor = this.nextCursor();
+    if (!cursor || this.loading() || this.loadingMore()) {
+      await target?.complete();
+      return;
+    }
+
+    const token = this.refreshToken;
+    this.loadingMore.set(true);
+    try {
+      const res = await this.jobsService.search(
+        { ...this.query(), cursor, limit: PAGE_SIZE },
+        { silent: true },
+      );
+      if (token !== this.refreshToken) return;
+      this.results.update((current) => [...current, ...res.items]);
+      this.nextCursor.set(res.nextCursor);
+    } finally {
+      this.loadingMore.set(false);
+      await target?.complete();
+    }
+  }
+
   private async refresh(query: JobSearchQuery): Promise<void> {
-    const items = await this.jobsService.search(query);
-    this.results.set(items);
+    const token = ++this.refreshToken;
+    this.nextCursor.set(undefined);
+    this.loadingMore.set(false);
+    const res = await this.jobsService.search({ ...query, limit: PAGE_SIZE });
+    if (token !== this.refreshToken) return;
+    this.results.set(res.items);
+    this.nextCursor.set(res.nextCursor);
   }
 }

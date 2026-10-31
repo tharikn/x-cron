@@ -1,20 +1,196 @@
 <div class="shell">
   <header class="top">
-    <a class="logo" routerLink="/">
+    <a class="logo" routerLink="/" (click)="closeMenu()">
       <span class="logo__x">X Cron</span>
       <span class="logo__jobs">Jobs</span>
     </a>
-    <nav>
-      <a routerLink="/">Discover</a>
-      <a routerLink="/locations/tamil-nadu/palani">Palani</a>
-    </nav>
+
+    <button
+      type="button"
+      class="menu-btn"
+      [attr.aria-expanded]="menuOpen()"
+      aria-controls="side-nav"
+      [attr.aria-label]="'menu.open' | t"
+      (click)="toggleMenu()"
+    >
+      <span class="menu-btn__line"></span>
+      <span class="menu-btn__line"></span>
+      <span class="menu-btn__line"></span>
+    </button>
   </header>
+
+  @if (navigating() || apiBusy()) {
+    <div
+      class="api-loading"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      [attr.aria-label]="'common.loading' | t"
+    >
+      <div class="api-loading__brand">
+        <p class="api-loading__name">X Cron</p>
+        <p class="api-loading__jobs">Jobs</p>
+      </div>
+    </div>
+  }
+
+  <div
+    class="backdrop"
+    [class.backdrop--open]="menuOpen()"
+    (click)="closeMenu()"
+    aria-hidden="true"
+  ></div>
+
+  <aside
+    id="side-nav"
+    class="drawer"
+    [class.drawer--open]="menuOpen()"
+    [attr.aria-hidden]="!menuOpen()"
+  >
+    <div class="drawer__head">
+      <p class="drawer__brand">X Cron</p>
+      <button type="button" class="drawer__close" [attr.aria-label]="'menu.close' | t" (click)="closeMenu()">
+        ×
+      </button>
+    </div>
+    <nav class="drawer__nav">
+      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
+        {{ 'nav.home' | t }}
+      </a>
+      <a routerLink="/post" routerLinkActive="is-active" (click)="closeMenu()">
+        {{ 'nav.post' | t }}
+      </a>
+      @if (isAdmin()) {
+        <a routerLink="/admin" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.admin' | t }}
+        </a>
+        <a routerLink="/import" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.import' | t }}
+        </a>
+        <a routerLink="/my-jobs" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.myJobs' | t }}
+        </a>
+        <a routerLink="/blog-approval" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.blogApproval' | t }}
+        </a>
+        <a routerLink="/settings" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.settings' | t }}
+        </a>
+      }
+      <a routerLink="/preferences" routerLinkActive="is-active" (click)="closeMenu()">
+        {{ 'nav.preferences' | t }}
+      </a>
+      <a routerLink="/language" routerLinkActive="is-active" (click)="closeMenu()">
+        {{ 'nav.language' | t }}
+        <span class="drawer__meta">{{ languageLabel() }}</span>
+      </a>
+      <a routerLink="/sign-in" routerLinkActive="is-active" (click)="closeMenu()">
+        {{ isSignedIn() ? ('nav.account' | t) : ('nav.signIn' | t) }}
+      </a>
+    </nav>
+  </aside>
 
   <main>
     <router-outlet />
   </main>
 
-  <footer class="foot">
-    <p>X Cron Jobs · local-first · black &amp; white · guest browsing supported</p>
+  <footer class="foot" aria-label="Site footer">
+    @if (footer(); as foot) {
+      <div class="foot__grid">
+        <div class="foot__brand">
+          <p class="foot__logo">
+            <span class="foot__logo-x">{{ foot.brand.name }}</span>
+            <span class="foot__logo-jobs">{{ foot.brand.productLabel }}</span>
+          </p>
+          <p class="foot__blurb">{{ footerText('footer.blurb', foot.brand.blurb) }}</p>
+        </div>
+
+        <nav class="foot__col" [attr.aria-label]="footerText('footer.headings.quickLinks', foot.headings.quickLinks)">
+          <h2 class="foot__heading">{{ footerText('footer.headings.quickLinks', foot.headings.quickLinks) }}</h2>
+          <ul class="foot__list">
+            @for (link of foot.quickLinks; track link.id) {
+              <li>
+                @if (isInternalHref(link.href)) {
+                  <a [routerLink]="link.href" (click)="closeMenu()">{{ footerItemLabel(link.id, link.label) }}</a>
+                } @else {
+                  <a [href]="link.href" rel="noopener noreferrer" target="_blank">{{ footerItemLabel(link.id, link.label) }}</a>
+                }
+              </li>
+            }
+          </ul>
+        </nav>
+
+        <div class="foot__col">
+          <h2 class="foot__heading">{{ footerText('footer.headings.address', foot.headings.address) }}</h2>
+          <ul class="foot__list foot__list--address">
+            @for (addr of foot.addresses; track addr.id) {
+              <li>
+                <p class="foot__addr-label">{{ footerItemLabel(addr.id, addr.label) }}</p>
+                @for (line of addr.lines; track line) {
+                  <p class="foot__addr-line">{{ line }}</p>
+                }
+                @if (addr.mapUrl) {
+                  <a class="foot__map" [href]="addr.mapUrl" rel="noopener noreferrer" target="_blank">
+                    {{ 'footer.map' | t }}
+                  </a>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+
+        <div class="foot__col">
+          <h2 class="foot__heading">{{ footerText('footer.headings.social', foot.headings.social) }}</h2>
+          <ul class="foot__social">
+            @for (soc of foot.socialLinks; track soc.id) {
+              <li>
+                <a
+                  class="foot__social-link"
+                  [href]="soc.url"
+                  [attr.aria-label]="soc.label"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <span class="foot__social-icon" [attr.data-network]="soc.network" aria-hidden="true"></span>
+                  <span>{{ soc.label }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+
+      <div class="foot__bar">
+        <p class="foot__copy">{{ footerText('footer.copyright', foot.copyright) }}</p>
+        @if (foot.legalLinks.length) {
+          <ul class="foot__legal">
+            @for (link of foot.legalLinks; track link.id) {
+              <li>
+                @if (isInternalHref(link.href)) {
+                  <a [routerLink]="link.href">{{ footerItemLabel(link.id, link.label) }}</a>
+                } @else {
+                  <a [href]="link.href" rel="noopener noreferrer" target="_blank">{{ footerItemLabel(link.id, link.label) }}</a>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
   </footer>
 </div>
+
+@if (toasts().length) {
+  <div class="toast-stack" aria-live="polite" aria-relevant="additions">
+    @for (toast of toasts(); track toast.id) {
+      <button
+        type="button"
+        class="toast"
+        [class.toast--error]="toast.tone === 'error'"
+        (click)="dismissToast(toast.id)"
+      >
+        {{ toast.text }}
+      </button>
+    }
+  </div>
+}

@@ -2,9 +2,9 @@
   <ion-card-header>
     <div class="job-card__meta">
       <div class="job-card__badges">
-        <ion-badge color="medium">{{ languageLabel(job.contentLanguage) }}</ion-badge>
+        <ion-badge color="dark">{{ languageLabel(job.contentLanguage) }}</ion-badge>
         @if (job.promoted) {
-          <ion-badge color="dark">{{ job.promotionBadge || 'Promoted' }}</ion-badge>
+          <ion-badge color="medium">{{ job.promotionBadge || 'Promoted' }}</ion-badge>
         }
       </div>
       <ion-text color="medium">
@@ -15,13 +15,18 @@
     <ion-card-subtitle>
       {{ job.employerName }}
       @if (job.verifiedEmployer) {
-        · Verified
+        <span class="verified">Verified</span>
       }
     </ion-card-subtitle>
   </ion-card-header>
   <ion-card-content>
-    <p class="job-card__line">{{ formatLocation(job) }}</p>
-    <p class="job-card__line">{{ formatJobType(job) }} · {{ formatSalary(job.salary) }}</p>
-    <p class="job-card__about">{{ job.description.about }}</p>
+    <p class="job-card__line">
+      {{ formatLocation(job) }}
+      <span class="job-card__sep" aria-hidden="true">·</span>
+      {{ formatJobType(job) }}
+      <span class="job-card__sep" aria-hidden="true">·</span>
+      {{ formatSalary(job.salary) }}
+    </p>
+    <span class="job-card__cta" aria-hidden="true">View role</span>
   </ion-card-content>
 </ion-card>

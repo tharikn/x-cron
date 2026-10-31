@@ -1,0 +1,256 @@
+.page {
+  padding: 1.75rem 0 2.5rem;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
+}
+
+h1 {
+  margin: 0 0 0.4rem;
+  font-family: var(--xcron-font-display);
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  letter-spacing: -0.045em;
+}
+
+.lead {
+  margin: 0 0 1.5rem;
+  color: var(--xcron-muted);
+  max-width: 36rem;
+}
+
+.gate {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 28rem;
+  margin-bottom: 1.25rem;
+  padding: 1.15rem;
+  background: var(--xcron-wash);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+}
+
+.gate p {
+  margin: 0;
+  color: var(--xcron-ink-soft);
+}
+
+.btn {
+  display: inline-flex;
+  width: fit-content;
+  text-decoration: none;
+  border: 0;
+  background: #0a0a0a;
+  color: #fff;
+  padding: 0.75rem 1.05rem;
+  font-weight: 700;
+  border-radius: var(--xcron-radius-sm);
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.file-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1.05rem;
+  background: #0a0a0a;
+  color: #fff;
+  font-weight: 700;
+  border-radius: var(--xcron-radius-sm);
+  cursor: pointer;
+}
+
+.file-btn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.link-btn {
+  display: inline-flex;
+  padding: 0.75rem 1.05rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  background: #fff;
+  color: var(--xcron-ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+  max-width: 28rem;
+  padding: 1.15rem;
+  margin-bottom: 1.25rem;
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+}
+
+.form label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.form span {
+  font-size: 0.82rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.form textarea {
+  width: 100%;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  padding: 0.75rem 0.85rem;
+  background: var(--xcron-wash);
+  font: inherit;
+}
+
+.form button {
+  border: 0;
+  background: #0a0a0a;
+  color: #fff;
+  padding: 0.85rem 1.1rem;
+  font-weight: 700;
+  border-radius: var(--xcron-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.form button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.batch {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  background: var(--xcron-wash);
+  border-radius: var(--xcron-radius-sm);
+  border: 1px solid var(--xcron-line);
+}
+
+.batch p {
+  margin: 0;
+}
+
+.warn {
+  margin-top: 0.45rem !important;
+  color: var(--xcron-muted);
+  font-size: 0.92rem;
+}
+
+.review-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.review-head h2 {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+}
+
+.records {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+  max-width: 36rem;
+}
+
+.record {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+  transition: transform 180ms var(--xcron-ease), box-shadow 180ms var(--xcron-ease);
+}
+
+.record:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--xcron-shadow-hover, var(--xcron-shadow));
+}
+
+.record__check {
+  padding-top: 0.2rem;
+}
+
+.record h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.record p {
+  margin: 0;
+  color: var(--xcron-ink-soft);
+  font-size: 0.92rem;
+}
+
+.muted {
+  color: var(--xcron-muted) !important;
+  font-size: 0.86rem !important;
+}
+
+.ok {
+  margin-top: 1rem;
+  color: var(--xcron-ink-soft);
+}
+
+.ok-link {
+  margin-left: 0.5rem;
+  color: inherit;
+  font-weight: 700;
+}
+
+.error {
+  margin-top: 1rem;
+  color: #222;
+  font-weight: 600;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .record {
+    animation: none;
+    transition: none;
+  }
+
+  .record:hover {
+    transform: none;
+  }
+}

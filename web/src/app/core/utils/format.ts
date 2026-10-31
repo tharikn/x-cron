@@ -34,3 +34,7 @@ export function formatPostedDate(iso: string): string {
 export function jobPath(job: Job): string {
   return `/jobs/${job.slug}`;
 }
+
+export function formatUnlockPrice(paise: number): string {
+  return `₹${(paise / 100).toFixed(0)}`;
+}

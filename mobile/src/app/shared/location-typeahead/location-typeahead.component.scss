@@ -1,0 +1,28 @@
+.loc {
+  position: relative;
+}
+
+.loc__list {
+  margin: 0.15rem 0 0.5rem;
+  border: 1px solid var(--xcron-line, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--xcron-bg-elevated, #fff);
+  box-shadow: var(--xcron-shadow, 0 8px 24px rgba(0, 0, 0, 0.08));
+}
+
+.loc__list ion-item {
+  --min-height: 48px;
+}
+
+.loc__list h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.loc__list p {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--xcron-muted, #666);
+}

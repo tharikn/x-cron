@@ -1,3 +1,17 @@
+@if (busy()) {
+  <div
+    class="api-loading"
+    role="status"
+    aria-live="polite"
+    aria-busy="true"
+    aria-label="Loading"
+  >
+    <div class="api-loading__brand">
+      <p class="api-loading__name">X Cron</p>
+      <p class="api-loading__jobs">Jobs</p>
+    </div>
+  </div>
+}
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
 </ion-app>

@@ -1,0 +1,55 @@
+.page {
+  padding: 16px 16px 36px;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
+}
+
+.lead,
+.empty {
+  color: var(--xcron-muted);
+}
+
+.block {
+  margin: 22px 0;
+}
+
+.block__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.block h2 {
+  margin: 0 0 12px;
+  font-family: var(--xcron-display);
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+
+.panel {
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+  margin-bottom: 12px;
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+  overflow: hidden;
+}
+
+.card {
+  border: 1px solid var(--xcron-line);
+  padding: 14px;
+  margin-bottom: 10px;
+  background: var(--xcron-bg-elevated);
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+}
+
+.card p {
+  margin: 4px 0 8px;
+  color: var(--xcron-muted);
+  font-size: 0.9rem;
+}
+
+.card strong {
+  font-family: var(--xcron-display);
+  letter-spacing: -0.02em;
+}

@@ -36,12 +36,21 @@ API dependency: `environment.apiUrl` (default `http://localhost:3000/v1`). Start
 - Home may show a **labelled** ad rail (`ads.service` → `web_home_rail`); never disguise ads as jobs
 - Promoted jobs may show a badge when API returns `promoted` / `promotionBadge`
 
+## UI / UX (follow monorepo standards)
+
+Full standards: [../CLAUDE.md](../CLAUDE.md) § **UI / UX standards**. Web specifics:
+
+- Fonts loaded in `src/index.html` (Syne + DM Sans + Noto Sans Tamil)
+- Design tokens + motion in `src/styles.scss`; shell in `src/app/app.scss`
+- Home: oversized brand hero, floating search panel, elevated job cards with stagger/hover
+- Stay visually aligned with mobile (`:4200`); do not regress to sharp boxes / system fonts / flat white-only chrome
+
 ## When changing code
 
 - Prefer SSR-safe code (no `window` without guards)
 - Job list/detail must tolerate API down (clear error, empty state)
 - After route or SEO changes, verify sitemap still lists published jobs when API is up
-- Do not add colorful UI themes; stay black/white/grayscale
+- Do not add colorful UI themes; stay black/white/grayscale per UI standards
 - Keep changes scoped — no drive-by refactors
 
 ## Out of scope for this package

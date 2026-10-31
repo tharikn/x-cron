@@ -25,6 +25,14 @@ export class TextParser implements DocumentParser {
       const joined = lines.join(' ');
       const phone = joined.match(/(?:\+91[-\s]?)?[6-9]\d{9}/)?.[0];
       const email = joined.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
+      const websiteRaw =
+        joined.match(/https?:\/\/[^\s<>"']+/i)?.[0] ??
+        joined.match(/(?:www\.)[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(?:\/[^\s<>"']*)?/i)?.[0];
+      const website = websiteRaw
+        ? /^https?:\/\//i.test(websiteRaw)
+          ? websiteRaw.replace(/[.,);]+$/, '')
+          : `https://${websiteRaw.replace(/[.,);]+$/, '')}`
+        : undefined;
       const title =
         lines.find((line) => /hiring|wanted|job|வேலை|வேண்டும்/i.test(line)) ??
         lines[0] ??
@@ -52,6 +60,7 @@ export class TextParser implements DocumentParser {
         contentLanguage: /[\u0B80-\u0BFF]/.test(block) ? 'ta' : 'en',
         contactPhone: phone,
         contactEmail: email,
+        contactWebsite: website,
         confidence: phone || salary || city ? 0.72 : 0.55,
         sourceLocator: `${input.filename}#block-${index + 1}`,
         notes: ['Parsed from pasted/plain text. Employer must confirm before publish.'],

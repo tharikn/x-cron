@@ -22,31 +22,31 @@ import { IngestionService } from './ingestion.service';
 export class IngestionController {
   constructor(private readonly ingestionService: IngestionService) {}
 
-  @Roles('employer', 'admin')
+  @Roles('admin')
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateImportBatchDto) {
     return this.ingestionService.createBatch(user, dto);
   }
 
-  @Roles('employer', 'admin')
+  @Roles('admin')
   @Get()
   list(@CurrentUser() user: AuthUser) {
     return this.ingestionService.listMine(user);
   }
 
-  @Roles('employer', 'admin')
+  @Roles('admin')
   @Get(':id')
   get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.ingestionService.getBatch(user, id);
   }
 
-  @Roles('employer', 'admin')
+  @Roles('admin')
   @Get(':id/records')
   records(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.ingestionService.getRecords(user, id);
   }
 
-  @Roles('employer', 'admin')
+  @Roles('admin')
   @Post(':id/uploads/text')
   uploadText(
     @CurrentUser() user: AuthUser,
@@ -56,7 +56,7 @@ export class IngestionController {
     return this.ingestionService.uploadText(user, id, dto);
   }
 
-  @Roles('employer', 'admin')
+  @Roles('admin')
   @Post(':id/uploads')
   @UseInterceptors(FileInterceptor('file'))
   uploadFile(
@@ -68,7 +68,7 @@ export class IngestionController {
     return this.ingestionService.uploadFile(user, id, file, sourceType);
   }
 
-  @Roles('employer', 'admin')
+  @Roles('admin')
   @Post(':id/approve')
   approve(
     @CurrentUser() user: AuthUser,

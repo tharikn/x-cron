@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { randomInt, randomUUID } from 'crypto';
+import { randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from 'crypto';
 import {
   AuthUser,
   EmployerProfile,
@@ -8,6 +8,11 @@ import {
   UserRole,
 } from './auth.types';
 
+export interface SignInEvent {
+  userId: string;
+  at: string;
+}
+
 @Injectable()
 export class AuthStore implements OnModuleInit {
   private readonly users = new Map<string, AuthUser>();
@@ -15,14 +20,80 @@ export class AuthStore implements OnModuleInit {
   private readonly otps = new Map<string, OtpChallenge>();
   private readonly employers = new Map<string, EmployerProfile>();
   private readonly identityIndex = new Map<string, string>(); // phone:x / email:x -> userId
+  private readonly signInEvents: SignInEvent[] = [];
+  private readonly adminLoginAttempts = new Map<
+    string,
+    { count: number; lockedUntil?: number }
+  >();
+  private passwordSalt: Buffer | null = null;
+  private passwordHash: Buffer | null = null;
+  private superAdminEmail: string | null = null;
 
   onModuleInit() {
+    const email = this.resolveSuperAdminEmail();
+    const password = process.env.SUPER_ADMIN_PASSWORD?.trim();
+    this.superAdminEmail = email;
+
+    if (password) {
+      this.passwordSalt = randomBytes(16);
+      this.passwordHash = scryptSync(password, this.passwordSalt, 64);
+    } else if (this.isProd()) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[auth] SUPER_ADMIN_PASSWORD is not set — password admin login is disabled in production.',
+      );
+    }
+
     const admin = this.upsertUser({
-      email: 'admin@xcron.local',
-      displayName: 'X Cron Admin',
+      email,
+      displayName: 'X Cron Super Admin',
       roles: ['admin', 'employer', 'seeker'],
     });
     this.createEmployer(admin.id, 'X Cron Moderation Desk');
+  }
+
+  signInSuperAdmin(email: string, password: string): { user: AuthUser; token: string } {
+    const normalized = this.normalizeDestination('email', email);
+    this.assertAdminLoginAllowed(normalized);
+
+    if (!this.superAdminEmail || !this.passwordHash || !this.passwordSalt) {
+      this.recordAdminLoginFailure(normalized);
+      throw new Error('admin_login_disabled');
+    }
+    if (normalized !== this.superAdminEmail) {
+      this.recordAdminLoginFailure(normalized);
+      throw new Error('invalid_credentials');
+    }
+
+    const candidate = scryptSync(password, this.passwordSalt, 64);
+    if (!timingSafeEqual(candidate, this.passwordHash)) {
+      this.recordAdminLoginFailure(normalized);
+      throw new Error('invalid_credentials');
+    }
+
+    this.adminLoginAttempts.delete(normalized);
+    const key = `email:${normalized}`;
+    let userId = this.identityIndex.get(key);
+    let user = userId ? this.users.get(userId) : undefined;
+    if (!user) {
+      user = this.upsertUser({
+        email: normalized,
+        displayName: 'X Cron Super Admin',
+        roles: ['admin', 'employer', 'seeker'],
+      });
+    } else {
+      const roles = new Set<UserRole>(user.roles);
+      roles.add('admin');
+      roles.add('employer');
+      roles.add('seeker');
+      user.roles = [...roles];
+      this.users.set(user.id, user);
+    }
+    if (!this.getEmployerByOwner(user.id)) {
+      this.createEmployer(user.id, 'X Cron Moderation Desk');
+    }
+    const token = this.createSession(user.id);
+    return { user, token };
   }
 
   startOtp(input: {
@@ -47,6 +118,36 @@ export class AuthStore implements OnModuleInit {
       expiresAt: challenge.expiresAt,
       ...(this.isDev() ? { devCode: code } : {}),
     };
+  }
+
+  signInWithGoogle(input: {
+    email: string;
+    displayName?: string;
+  }): { user: AuthUser; token: string } {
+    const email = this.normalizeDestination('email', input.email);
+    if (!email.includes('@')) {
+      throw new Error('invalid_email');
+    }
+    const key = `email:${email}`;
+    let userId = this.identityIndex.get(key);
+    let user = userId ? this.users.get(userId) : undefined;
+    const roles = this.resolveRoles(email, 'seeker');
+
+    if (!user) {
+      user = this.upsertUser({
+        email,
+        displayName: input.displayName || email.split('@')[0],
+        roles,
+      });
+    } else {
+      // Google never grants admin — password login only for Dashboard / History.
+      user.roles = roles;
+      if (input.displayName) user.displayName = input.displayName;
+      this.users.set(user.id, user);
+    }
+
+    const token = this.createSession(user.id);
+    return { user, token };
   }
 
   verifyOtp(challengeId: string, code: string): { user: AuthUser; token: string } {
@@ -79,11 +180,8 @@ export class AuthStore implements OnModuleInit {
         roles: this.resolveRoles(challenge.destination, challenge.intendedRole),
       });
     } else {
-      const roles = new Set(user.roles);
-      for (const role of this.resolveRoles(challenge.destination, challenge.intendedRole)) {
-        roles.add(role);
-      }
-      user.roles = [...roles];
+      // OTP never grants admin — password login only for Dashboard / History.
+      user.roles = this.resolveRoles(challenge.destination, challenge.intendedRole);
       this.users.set(user.id, user);
     }
 
@@ -104,6 +202,23 @@ export class AuthStore implements OnModuleInit {
 
   getUser(id: string): AuthUser | undefined {
     return this.users.get(id);
+  }
+
+  listUsers(): AuthUser[] {
+    return [...this.users.values()];
+  }
+
+  listSignInEvents(): SignInEvent[] {
+    return [...this.signInEvents];
+  }
+
+  activeSessionCount(): number {
+    const now = Date.now();
+    let count = 0;
+    for (const session of this.sessions.values()) {
+      if (new Date(session.expiresAt).getTime() >= now) count += 1;
+    }
+    return count;
   }
 
   logout(token: string) {
@@ -201,27 +316,58 @@ export class AuthStore implements OnModuleInit {
 
   private createSession(userId: string): string {
     const token = randomUUID();
+    const createdAt = new Date().toISOString();
     this.sessions.set(token, {
       token,
       userId,
-      createdAt: new Date().toISOString(),
+      createdAt,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     });
+    this.signInEvents.push({ userId, at: createdAt });
     return token;
   }
 
-  private resolveRoles(destination: string, intended: UserRole): UserRole[] {
-    const adminIds = (process.env.ADMIN_IDENTITIES ?? 'admin@xcron.local')
+  private resolveRoles(_destination: string, intended: UserRole): UserRole[] {
+    const roles = new Set<UserRole>(['seeker']);
+    if (intended === 'employer') roles.add('employer');
+    // Admin role is only via SUPER_ADMIN email/password login.
+    return [...roles];
+  }
+
+  private resolveSuperAdminEmail(): string {
+    const fromEnv = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
+    if (fromEnv) return fromEnv;
+    const firstAdmin = this.adminIdentities()[0];
+    return firstAdmin || 'admin@xcron.local';
+  }
+
+  private adminIdentities(): string[] {
+    const configured = (process.env.ADMIN_IDENTITIES ?? 'admin@xcron.local')
       .split(',')
       .map((v) => v.trim().toLowerCase())
       .filter(Boolean);
-    const roles = new Set<UserRole>(['seeker']);
-    if (intended === 'employer') roles.add('employer');
-    if (adminIds.includes(destination.toLowerCase())) {
-      roles.add('admin');
-      roles.add('employer');
+    const superEmail = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
+    if (superEmail && !configured.includes(superEmail)) {
+      configured.push(superEmail);
     }
-    return [...roles];
+    return configured;
+  }
+
+  private assertAdminLoginAllowed(email: string) {
+    const state = this.adminLoginAttempts.get(email);
+    if (state?.lockedUntil && state.lockedUntil > Date.now()) {
+      throw new Error('too_many_attempts');
+    }
+  }
+
+  private recordAdminLoginFailure(email: string) {
+    const state = this.adminLoginAttempts.get(email) ?? { count: 0 };
+    state.count += 1;
+    if (state.count >= 5) {
+      state.lockedUntil = Date.now() + 15 * 60 * 1000;
+      state.count = 0;
+    }
+    this.adminLoginAttempts.set(email, state);
   }
 
   private normalizeDestination(channel: 'phone' | 'email', value: string): string {
@@ -240,6 +386,10 @@ export class AuthStore implements OnModuleInit {
   }
 
   private isDev(): boolean {
-    return (process.env.NODE_ENV ?? 'development') !== 'production';
+    return !this.isProd();
+  }
+
+  private isProd(): boolean {
+    return (process.env.NODE_ENV ?? 'development') === 'production';
   }
 }

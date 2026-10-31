@@ -3,7 +3,12 @@ import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MOCK_JOBS } from '../data/mock-jobs';
-import type { Job, JobSearchQuery, JobType } from '../models/job.model';
+import type {
+  Job,
+  JobSearchQuery,
+  JobSearchResult,
+  JobType,
+} from '../models/job.model';
 import { AuthService } from './auth.service';
 
 const SEARCH_COUNT_KEY = 'xcron.searchCount';
@@ -18,8 +23,11 @@ export class JobsService {
   readonly usingApi = signal(false);
   readonly lastError = signal<string | null>(null);
 
-  async search(query: JobSearchQuery): Promise<Job[]> {
-    this.loading.set(true);
+  async search(
+    query: JobSearchQuery,
+    options: { silent?: boolean } = {},
+  ): Promise<JobSearchResult> {
+    if (!options.silent) this.loading.set(true);
     this.lastError.set(null);
     try {
       let params = new HttpParams();
@@ -32,23 +40,33 @@ export class JobsService {
         params = params.set('salaryMin', String(query.salaryMin));
       }
       params = params.set('sort', query.sort || 'newest');
+      if (query.cursor) params = params.set('cursor', query.cursor);
+      if (query.limit != null) params = params.set('limit', String(query.limit));
 
       const response = await firstValueFrom(
-        this.http.get<{ items: Job[] }>(`${environment.apiUrl}/jobs`, { params }),
+        this.http.get<JobSearchResult>(`${environment.apiUrl}/jobs`, { params }),
       );
       this.usingApi.set(true);
-      this.cache.set(response.items);
-      this.bumpSearchCount(query);
-      return response.items;
-    } catch (error) {
+      this.cache.update((current) => {
+        const byId = new Map(current.map((job) => [job.id, job]));
+        for (const job of response.items) byId.set(job.id, job);
+        return [...byId.values()];
+      });
+      if (!query.cursor) this.bumpSearchCount(query);
+      return response;
+    } catch {
       this.usingApi.set(false);
-      this.lastError.set('API unavailable — showing local mock jobs.');
+      this.lastError.set('Server maintenance — please try again shortly.');
       const fallback = this.localSearch(query);
-      this.cache.set(fallback);
-      this.bumpSearchCount(query);
+      this.cache.update((current) => {
+        const byId = new Map(current.map((job) => [job.id, job]));
+        for (const job of fallback.items) byId.set(job.id, job);
+        return [...byId.values()];
+      });
+      if (!query.cursor) this.bumpSearchCount(query);
       return fallback;
     } finally {
-      this.loading.set(false);
+      if (!options.silent) this.loading.set(false);
     }
   }
 
@@ -104,6 +122,8 @@ export class JobsService {
     description: string;
     contentLanguage: string;
     contactPhone?: string;
+    contactEmail?: string;
+    contactWebsite?: string;
   }): Promise<Job> {
     const job = await firstValueFrom(
       this.http.post<Job>(`${environment.apiUrl}/employers/jobs`, input, {
@@ -162,10 +182,11 @@ export class JobsService {
     );
   }
 
-  private localSearch(query: JobSearchQuery): Job[] {
+  private localSearch(query: JobSearchQuery): JobSearchResult {
     const keyword = query.keyword?.trim().toLowerCase() ?? '';
     const locationText = query.locationText?.trim().toLowerCase() ?? '';
-    return MOCK_JOBS.filter((job) => {
+    const limit = Math.min(Math.max(query.limit ?? 8, 1), 50);
+    let results = MOCK_JOBS.filter((job) => {
       const haystack = [job.title, job.employerName, job.category, job.description.about]
         .join(' ')
         .toLowerCase();
@@ -180,6 +201,16 @@ export class JobsService {
         (!query.language || job.contentLanguage === query.language)
       );
     });
+
+    if (query.cursor) {
+      const index = results.findIndex((job) => job.id === query.cursor);
+      if (index >= 0) results = results.slice(index + 1);
+    }
+
+    const page = results.slice(0, limit);
+    const nextCursor =
+      results.length > limit ? page[page.length - 1]?.id : undefined;
+    return { items: page, nextCursor };
   }
 
   private createLocalDraft(input: {
@@ -191,6 +222,8 @@ export class JobsService {
     description: string;
     contentLanguage: string;
     contactPhone?: string;
+    contactEmail?: string;
+    contactWebsite?: string;
   }): Job {
     const id = `local_${Date.now()}`;
     return {
@@ -214,8 +247,9 @@ export class JobsService {
       status: 'published',
       contact: {
         hasPhone: !!input.contactPhone,
-        hasEmail: false,
+        hasEmail: !!input.contactEmail,
         hasWhatsapp: !!input.contactPhone,
+        hasWebsite: !!input.contactWebsite,
         unlockPricePaise: 500,
       },
     };

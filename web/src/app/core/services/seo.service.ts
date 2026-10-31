@@ -16,7 +16,10 @@ export class SeoService {
     path: string;
     robots?: string;
   }): void {
-    const fullTitle = `${input.title} | ${environment.siteName}`;
+    const fullTitle =
+      input.title && input.title !== environment.siteName
+        ? `${environment.siteName} · ${input.title}`
+        : environment.siteName;
     const url = `${environment.siteUrl}${input.path}`;
     this.title.setTitle(fullTitle);
     this.meta.updateTag({ name: 'description', content: input.description });

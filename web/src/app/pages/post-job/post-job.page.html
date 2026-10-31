@@ -1,0 +1,166 @@
+<section class="page">
+  <h1>Post a job</h1>
+  <p class="lead">
+    Admin-only posting. Use a quick form or paste a message. Contacts stay private by default.
+    New posts go to moderation before search.
+    Prefer CSV / image OCR?
+    <a routerLink="/import">Bulk import</a>
+    ·
+    <a routerLink="/my-jobs">Posted jobs history</a>
+  </p>
+
+  @if (!isSignedIn() || !isAdmin()) {
+    <div class="gate">
+      <p>
+        @if (!isSignedIn()) {
+          Admins must sign in with the admin email and password before posting.
+        } @else {
+          This account is not an admin. Use admin&#64;xcron.local.
+        }
+      </p>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+    </div>
+  }
+
+  <div class="modes" role="tablist" aria-label="Post mode">
+    <button
+      type="button"
+      role="tab"
+      [class.is-active]="mode() === 'quick'"
+      [attr.aria-selected]="mode() === 'quick'"
+      (click)="setMode('quick')"
+    >
+      Quick form
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [class.is-active]="mode() === 'paste'"
+      [attr.aria-selected]="mode() === 'paste'"
+      (click)="setMode('paste')"
+    >
+      Paste message
+    </button>
+  </div>
+
+  @if (mode() === 'quick') {
+    <form class="form" (ngSubmit)="submitQuick()">
+      <label>
+        <span>Job title</span>
+        <input [(ngModel)]="title" name="title" required />
+      </label>
+      <label>
+        <span>Employer / business name</span>
+        <input [(ngModel)]="employerName" name="employerName" required />
+      </label>
+      <label>
+        <span>Location (city)</span>
+        <input [(ngModel)]="locationCity" name="locationCity" />
+      </label>
+      <label>
+        <span>Job type</span>
+        <select [(ngModel)]="jobType" name="jobType">
+          @for (entry of jobTypeEntries; track entry[0]) {
+            <option [value]="entry[0]">{{ entry[1] }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Salary (optional)</span>
+        <input
+          [(ngModel)]="salaryText"
+          name="salaryText"
+          placeholder="e.g. 12000-15000 / month"
+        />
+      </label>
+      <label>
+        <span>Content language</span>
+        <select [(ngModel)]="contentLanguage" name="contentLanguage">
+          @for (lang of languages(); track lang.code) {
+            <option [value]="lang.code">{{ lang.nativeName || lang.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Description / duties</span>
+        <textarea [(ngModel)]="description" name="description" rows="5" required></textarea>
+      </label>
+      <label>
+        <span>Private contact phone</span>
+        <input [(ngModel)]="contactPhone" name="contactPhone" type="tel" />
+      </label>
+      <label>
+        <span>HR email</span>
+        <input [(ngModel)]="contactEmail" name="contactEmail" type="email" />
+      </label>
+      <label>
+        <span>Website to apply</span>
+        <input
+          [(ngModel)]="contactWebsite"
+          name="contactWebsite"
+          type="url"
+          placeholder="https://"
+        />
+      </label>
+      <label>
+        <span>Priority (higher first)</span>
+        <input [(ngModel)]="priority" name="priority" type="number" min="0" max="1000" />
+      </label>
+      <label>
+        <span>Effective from</span>
+        <input [(ngModel)]="effectiveFromLocal" name="effectiveFrom" type="datetime-local" />
+      </label>
+      <label>
+        <span>End date</span>
+        <input [(ngModel)]="expiresAtLocal" name="expiresAt" type="datetime-local" />
+      </label>
+      <button type="submit" [disabled]="busy()">
+        @if (busy()) {
+          <span class="spinner spinner--inline" aria-hidden="true"></span>
+          Submitting…
+        } @else {
+          Submit job
+        }
+      </button>
+    </form>
+  } @else {
+    <form class="form" (ngSubmit)="submitPaste()">
+      <label>
+        <span>Content language</span>
+        <select [(ngModel)]="contentLanguage" name="pasteLanguage">
+          @for (lang of languages(); track lang.code) {
+            <option [value]="lang.code">{{ lang.nativeName || lang.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Paste WhatsApp / Telegram text</span>
+        <textarea
+          [(ngModel)]="pasteText"
+          name="pasteText"
+          rows="10"
+          placeholder="Paste the full message. Phone numbers are extracted privately."
+          required
+        ></textarea>
+      </label>
+      <button type="submit" [disabled]="busy()">
+        @if (busy()) {
+          <span class="spinner spinner--inline" aria-hidden="true"></span>
+          Extracting…
+        } @else {
+          Extract and publish
+        }
+      </button>
+    </form>
+  }
+
+  @if (message()) {
+    <p class="ok">
+      {{ message() }}
+      <a class="ok-link" routerLink="/blog-approval">Open Blog Approval</a>
+    </p>
+  }
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</section>

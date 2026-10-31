@@ -90,6 +90,7 @@ Node **22.22.3+** required.
 | `ops/` | Cost model, metrics, quotas, scale hints (admin) |
 | `seeker/` | Saved jobs + feed |
 | `account/` | Account deletion orchestration |
+| `site/` | Public footer config (`GET /v1/site/footer`; admin PUT) |
 | `health/` | `GET /v1/health` |
 
 Global: `AuthGuard` via `APP_GUARD`; mark public routes with `@Public()`.
@@ -107,7 +108,8 @@ Default data store: **in-memory** (`JOBS_STORE=memory`). Prisma client/schema ex
 | `DATABASE_URL` | Present for future Postgres |
 | `CORS_ORIGINS` | Local mobile/web origins |
 | `UNLOCK_PRICE_PAISE` | `500` |
-| `ADMIN_IDENTITIES` | `admin@xcron.local` |
+| `ADMIN_IDENTITIES` | emails elevated to admin after OTP/Google |
+| `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` | password login via `POST /v1/auth/admin/login` |
 | `PAYMENT_MODE` | `stub` → use `/payments/dev/confirm` |
 | `RAZORPAY_WEBHOOK_SECRET` | `dev_secret` for HMAC tests |
 | `MONTHLY_BUDGET_INR` / quota caps | See ops + COST_MODEL |
@@ -135,7 +137,8 @@ docker compose up -d
 
 ### Demo accounts / flows
 - OTP: any email/phone; API returns `devCode` (`123456`) in development
-- Admin: `admin@xcron.local`
+- Super admin: `POST /v1/auth/admin/login` with `SUPER_ADMIN_EMAIL` + `SUPER_ADMIN_PASSWORD` (see `api/.env`)
+- Dev Google stub admin (non-prod only): emails listed in `ADMIN_IDENTITIES`
 - Seeker: Preferences → Account (subscribe / saved / feed) → unlock or save on job detail
 - Employer: OTP as employer → Post / Bulk import / Promote
 - Payments: stub confirm only unless real Razorpay keys + `PAYMENT_MODE=razorpay`

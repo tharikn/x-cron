@@ -34,11 +34,20 @@ Requires API running for live data (`../api`). Env: `src/environments/environmen
 
 ## Product / UI rules
 
-- **Monochrome only** (black/white/grayscale) — no purple/color accents
 - Guest browse is first-class; sign-in for post, unlock, sync, save, subscribe
 - Contacts stay masked until unlock/subscription; never display raw contacts from public job DTO
 - Ads must stay **labelled** (“Advertisement”), visually separate from job cards
 - Featured/promoted jobs show a badge — not disguised as organic-only
+
+## UI / UX (follow monorepo standards)
+
+Full standards: [../CLAUDE.md](../CLAUDE.md) § **UI / UX standards**. Mobile specifics:
+
+- Fonts loaded in `src/index.html` (Syne + DM Sans + Noto Sans Tamil)
+- Tokens in `src/theme/variables.scss`; Ionic chrome overrides in `src/global.scss`
+- Discover mirrors web hero + search panel; shared `job-card` uses radius, shadow, lift
+- Prefer existing Ionic components restyled to tokens — do not invent a second visual language
+- Stay visually aligned with web (`:4201`); do not regress to sharp boxes / IBM Plex / Space Grotesk / flat white-only chrome
 
 ## Key flows to preserve
 

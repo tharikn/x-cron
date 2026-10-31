@@ -1,17 +1,16 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
+  AlertController,
   IonButton,
   IonContent,
   IonHeader,
-  IonInput,
   IonItem,
   IonLabel,
   IonList,
   IonNote,
-  IonSegment,
-  IonSegmentButton,
   IonSelect,
   IonSelectOption,
   IonTitle,
@@ -19,8 +18,8 @@ import {
   ToastController,
 } from '@ionic/angular';
 import type { Job } from '../../core/models/job.model';
-import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { GoogleIdentityService } from '../../core/services/google-identity.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { PaymentsService } from '../../core/services/payments.service';
@@ -44,21 +43,22 @@ import { SeekerService } from '../../core/services/seeker.service';
     IonLabel,
     IonNote,
     IonButton,
-    IonInput,
-    IonSegment,
-    IonSegmentButton,
     IonSelect,
     IonSelectOption,
   ],
 })
 export class AccountPage implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly googleIdentity = inject(GoogleIdentityService);
   private readonly jobsService = inject(JobsService);
   private readonly preferences = inject(PreferencesService);
   private readonly notifications = inject(NotificationsService);
   private readonly payments = inject(PaymentsService);
   private readonly seeker = inject(SeekerService);
   private readonly toastController = inject(ToastController);
+  private readonly alertController = inject(AlertController);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly user = this.auth.user;
   readonly employer = this.auth.employer;
@@ -72,77 +72,155 @@ export class AccountPage implements OnInit {
     Array<{ id: string; name: string; description: string; pricePaise: number }>
   >([]);
   readonly subscriptionLabel = signal<string>('None');
+  readonly needsAdminLogin = computed(() => {
+    const modeParam = this.route.snapshot.queryParamMap.get('mode');
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '';
+    const wantsAdmin =
+      modeParam === 'admin' ||
+      returnUrl.startsWith('/tabs/post') ||
+      returnUrl.startsWith('/tabs/ads') ||
+      returnUrl.startsWith('/tabs/import');
+    return wantsAdmin && !this.isAdmin();
+  });
 
-  channel: 'phone' | 'email' = 'email';
-  destination = '';
-  intendedRole: 'seeker' | 'employer' = 'seeker';
-  challengeId = '';
-  code = '';
-  devCode = '';
-  employerName = '';
   selectedPlanId = 'seeker_weekly';
 
   async ngOnInit(): Promise<void> {
     await this.auth.refreshMe();
     if (this.isSignedIn()) {
       await this.afterSignIn();
+      await this.redirectIfNeeded();
+    }
+    if (this.needsAdminLogin()) {
+      await this.signInAsAdmin();
     }
   }
 
-  async startOtp(): Promise<void> {
-    if (!this.destination.trim()) {
-      await this.showToast('Enter phone or email first.');
-      return;
-    }
-    try {
-      const result = await this.auth.startOtp({
-        channel: this.channel,
-        destination: this.destination.trim(),
-        intendedRole: this.intendedRole,
-      });
-      this.challengeId = result.challengeId;
-      this.devCode = result.devCode ?? '';
-      this.code = result.devCode ?? '';
-      await this.showToast(
-        result.devCode
-          ? `OTP sent (dev code ${result.devCode}).`
-          : 'OTP sent. Check your phone/email.',
-      );
-    } catch {
-      await this.showToast('Could not start OTP. Is the API running?');
-    }
+  async signInAsAdmin(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Admin sign in',
+      message: 'Use the SUPER_ADMIN email and password for Post, Ads, and moderation.',
+      inputs: [
+        {
+          name: 'email',
+          type: 'email',
+          placeholder: 'superadmin@xcron.app',
+          value: '',
+        },
+        {
+          name: 'password',
+          type: 'password',
+          placeholder: 'Password',
+        },
+      ],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Sign in',
+          handler: (data) => {
+            void this.completeAdminLogin(data?.email, data?.password);
+            return false;
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
-  async verifyOtp(): Promise<void> {
-    if (!this.challengeId || !this.code.trim()) {
-      await this.showToast('Enter the OTP code.');
-      return;
-    }
-    try {
-      await this.auth.verifyOtp(this.challengeId, this.code.trim());
-      this.challengeId = '';
-      this.code = '';
-      this.devCode = '';
-      if (this.intendedRole === 'employer' && !this.auth.employer()) {
-        await this.auth.createEmployer(this.employerName || 'My Business');
+  async signInWithGoogle(): Promise<void> {
+    if (this.googleIdentity.isConfigured) {
+      try {
+        const idToken = await this.googleIdentity.requestIdToken();
+        await this.auth.signInWithGoogle({ idToken });
+        await this.afterSignIn();
+        await this.showToast(
+          this.isAdmin()
+            ? 'Signed in as admin. Post and Ads tabs unlocked.'
+            : 'Signed in with Google.',
+        );
+        await this.redirectIfNeeded();
+      } catch (err) {
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : 'Google sign-in failed.';
+        await this.showToast(message);
       }
-      await this.afterSignIn();
-      await this.showToast('Signed in. Preferences claimed for sync.');
-    } catch {
-      await this.showToast('Invalid or expired OTP.');
+      return;
     }
+
+    const alert = await this.alertController.create({
+      header: 'Continue with Google',
+      message:
+        'Local stub — enter the Google account email. Set googleClientId for real Google Identity.',
+      inputs: [
+        {
+          name: 'email',
+          type: 'email',
+          placeholder: 'you@gmail.com',
+          value: '',
+        },
+        {
+          name: 'displayName',
+          type: 'text',
+          placeholder: 'Display name (optional)',
+        },
+      ],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Sign in',
+          handler: (data) => {
+            void this.completeGoogleStub(data?.email, data?.displayName);
+            return false;
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
-  async createEmployer(): Promise<void> {
-    if (!this.employerName.trim()) {
-      await this.showToast('Enter a business name.');
+  private async completeAdminLogin(email?: string, password?: string): Promise<void> {
+    if (!email?.trim()?.includes('@') || !password || password.length < 8) {
+      await this.showToast('Enter admin email and password.');
       return;
     }
     try {
-      await this.auth.createEmployer(this.employerName.trim());
-      await this.showToast('Employer profile created.');
+      await this.auth.signInAsAdmin({
+        email: email.trim(),
+        password,
+      });
+      const top = await this.alertController.getTop();
+      await top?.dismiss();
+      await this.afterSignIn();
+      await this.showToast('Signed in as super admin.');
+      await this.redirectIfNeeded();
     } catch {
-      await this.showToast('Could not create employer profile.');
+      await this.showToast('Admin sign-in failed. Check credentials and API.');
+    }
+  }
+
+  private async completeGoogleStub(email?: string, displayName?: string): Promise<void> {
+    if (!email?.trim() || !email.includes('@')) {
+      await this.showToast('Enter a valid email.');
+      return;
+    }
+    try {
+      await this.auth.signInWithGoogle({
+        email: email.trim(),
+        displayName: displayName?.trim() || undefined,
+      });
+      const top = await this.alertController.getTop();
+      await top?.dismiss();
+      await this.afterSignIn();
+      await this.showToast(
+        this.isAdmin()
+          ? 'Signed in as admin. Post and Ads tabs unlocked.'
+          : 'Signed in with Google.',
+      );
+      await this.redirectIfNeeded();
+    } catch {
+      await this.showToast('Google sign-in failed. Is the API running?');
     }
   }
 
@@ -218,13 +296,11 @@ export class AccountPage implements OnInit {
     if (this.isAdmin()) await this.reloadQueue();
   }
 
-  async continueAsGuest(): Promise<void> {
-    await this.auth.logout();
-    await this.showToast('Browsing as guest. Sign-in is optional.');
-  }
-
-  async startGoogleStub(): Promise<void> {
-    await this.showToast('Google sign-in is optional and not required for browsing.');
+  private async redirectIfNeeded(): Promise<void> {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    if (!returnUrl?.startsWith('/') || returnUrl.startsWith('//')) return;
+    if (!this.isAdmin()) return;
+    await this.router.navigateByUrl(returnUrl);
   }
 
   async reloadQueue(): Promise<void> {

@@ -1,0 +1,19 @@
+<section class="page">
+  <h1>{{ 'language.title' | t }}</h1>
+  <p class="lead">{{ 'language.lead' | t }}</p>
+
+  <div class="choices">
+    @for (lang of languages(); track lang.code) {
+      <button
+        type="button"
+        class="choice"
+        [class.choice--active]="language() === lang.code"
+        (click)="select(lang.code)"
+      >
+        {{ lang.nativeName || lang.name }}
+      </button>
+    }
+  </div>
+
+  <p class="current">{{ 'language.current' | t }}: {{ label(language()) }}</p>
+</section>

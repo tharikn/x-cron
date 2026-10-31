@@ -162,7 +162,10 @@ export class PreferencesService {
       languages: (remote.languages as UserPreferences['languages']) ?? ['en', 'ta'],
       salaryMin: remote.salaryMin ?? null,
       remotePreferred: !!remote.remotePreferred,
-      interfaceLocale: remote.interfaceLocale === 'ta' ? 'ta' : 'en',
+      interfaceLocale:
+        typeof remote.interfaceLocale === 'string' && remote.interfaceLocale.trim()
+          ? remote.interfaceLocale.trim()
+          : 'en',
     };
     this.preferences.set(next);
     localStorage.setItem(PREFS_KEY, JSON.stringify(next));

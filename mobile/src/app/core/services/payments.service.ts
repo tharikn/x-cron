@@ -49,6 +49,7 @@ export interface ContactRevealResponse {
     phone: string | null;
     email: string | null;
     whatsapp: string | null;
+    website: string | null;
   } | null;
 }
 

@@ -1,0 +1,141 @@
+.sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(10, 10, 10, 0.42);
+  padding: 0;
+  animation: sheet-fade 220ms var(--xcron-ease) both;
+}
+
+.sheet {
+  width: min(100%, 28rem);
+  max-height: min(78vh, 34rem);
+  overflow: auto;
+  margin: 0;
+  padding: 0.65rem 1.25rem 1.4rem;
+  border-radius: var(--xcron-radius-lg) var(--xcron-radius-lg) 0 0;
+  background: var(--xcron-bg-elevated);
+  box-shadow: var(--xcron-shadow-hover);
+  animation: sheet-rise 280ms var(--xcron-ease) both;
+}
+
+.sheet__handle {
+  width: 2.5rem;
+  height: 0.28rem;
+  margin: 0.2rem auto 1rem;
+  border-radius: 999px;
+  background: var(--xcron-line-strong);
+}
+
+.brand {
+  margin: 0 0 0.55rem;
+  font-family: var(--xcron-font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.04em;
+}
+
+.sheet h2 {
+  margin: 0 0 0.45rem;
+  font-family: var(--xcron-font-display);
+  font-size: 1.45rem;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.body {
+  margin: 0 0 1.1rem;
+  color: var(--xcron-muted);
+}
+
+.form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+input {
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--xcron-radius-sm);
+}
+
+button {
+  width: 100%;
+  margin-top: 0.35rem;
+  border: 0;
+  border-radius: var(--xcron-radius-sm);
+  padding: 0.85rem 1rem;
+  background: #0a0a0a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #0a0a0a;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--xcron-ink);
+  border: 1px solid var(--xcron-line);
+}
+
+.google-btn-host {
+  min-height: 44px;
+  margin-bottom: 0.35rem;
+}
+
+.google-btn-host ::ng-deep div[role='button'] {
+  width: 100% !important;
+}
+
+.error {
+  margin: 0.75rem 0 0;
+  color: var(--xcron-ink);
+  font-size: 0.9rem;
+}
+
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-root,
+  .sheet {
+    animation: none;
+  }
+}

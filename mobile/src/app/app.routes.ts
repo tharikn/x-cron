@@ -1,4 +1,5 @@
 import type { Routes } from '@angular/router';
+import { adminGuard } from './core/guards/admin.guard';
 import { TabsPage } from './tabs/tabs.page';
 
 export const routes: Routes = [
@@ -13,13 +14,21 @@ export const routes: Routes = [
       },
       {
         path: 'post',
+        canActivate: [adminGuard],
         loadComponent: () =>
           import('./pages/post-job/post-job.page').then((m) => m.PostJobPage),
       },
       {
         path: 'import',
+        canActivate: [adminGuard],
         loadComponent: () =>
           import('./pages/import-batch/import-batch.page').then((m) => m.ImportBatchPage),
+      },
+      {
+        path: 'ads',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/ads-admin/ads-admin.page').then((m) => m.AdsAdminPage),
       },
       {
         path: 'preferences',

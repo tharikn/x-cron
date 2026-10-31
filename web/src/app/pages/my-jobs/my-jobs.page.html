@@ -1,0 +1,253 @@
+<section class="page" (click)="closeOptions()">
+  <h1>Posted jobs</h1>
+  <p class="lead">
+    History table of jobs you posted. Use Options for edit, activate / deactivate, or hide.
+  </p>
+
+  @if (!isSignedIn() || !isAdmin()) {
+    <div class="gate">
+      <p>
+        @if (!isSignedIn()) {
+          Admins must sign in to manage posted jobs.
+        } @else {
+          This account is not an admin. Use admin&#64;xcron.local.
+        }
+      </p>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <button type="button" class="btn secondary" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </button>
+      <a class="link-btn" routerLink="/admin">Dashboard</a>
+      <a class="link-btn" routerLink="/post">Post a job</a>
+      <a class="link-btn" routerLink="/import">Bulk import</a>
+    </div>
+
+    <div class="table-panel">
+      <div class="table-toolbar">
+        <p class="table-meta">
+          @if (total()) {
+            Showing {{ (page() - 1) * limit() + 1 }}–{{
+              page() * limit() > total() ? total() : page() * limit()
+            }}
+            of {{ total() }}
+          } @else {
+            No rows
+          }
+        </p>
+        <label class="page-size">
+          <span>Items per page</span>
+          <select
+            [ngModel]="limit()"
+            name="pageSize"
+            [disabled]="busy()"
+            (ngModelChange)="onPageSizeChange($event)"
+          >
+            @for (size of pageSizeOptions; track size) {
+              <option [ngValue]="size">{{ size }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      @if (!jobs().length && !busy()) {
+        <p class="empty">No posted jobs yet for this account.</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Employer</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Available</th>
+                <th>Options</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (job of jobs(); track job.id) {
+                <tr [class.is-editing]="editingId() === job.id">
+                  <td>
+                    <strong class="cell-title">{{ job.title }}</strong>
+                    <span class="cell-sub">{{ job.location.city }}</span>
+                  </td>
+                  <td>{{ job.employerName }}</td>
+                  <td>
+                    <span class="status" [attr.data-status]="job.status">{{ job.status }}</span>
+                  </td>
+                  <td>{{ job.priority ?? 0 }}</td>
+                  <td class="dates">
+                    {{ (job.effectiveFrom || job.publishedAt) | date: 'mediumDate' }}
+                    →
+                    {{ job.expiresAt | date: 'mediumDate' }}
+                  </td>
+                  <td class="options-cell" (click)="$event.stopPropagation()">
+                    <div class="options">
+                      <button
+                        type="button"
+                        class="btn secondary options__toggle"
+                        [disabled]="busy()"
+                        [attr.aria-expanded]="optionsOpenId() === job.id"
+                        (click)="toggleOptions(job.id, $event)"
+                      >
+                        Options
+                      </button>
+                      @if (optionsOpenId() === job.id) {
+                        <div class="options__menu" role="menu">
+                          <button type="button" role="menuitem" [disabled]="busy()" (click)="startEdit(job)">
+                            Edit
+                          </button>
+                          @if (isActive(job)) {
+                            <button
+                              type="button"
+                              role="menuitem"
+                              [disabled]="busy()"
+                              (click)="deactivate(job)"
+                            >
+                              Deactivate
+                            </button>
+                          } @else {
+                            <button
+                              type="button"
+                              role="menuitem"
+                              [disabled]="busy()"
+                              (click)="activate(job)"
+                            >
+                              Activate
+                            </button>
+                          }
+                          <button type="button" role="menuitem" [disabled]="busy()" (click)="hide(job)">
+                            Hide
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+                @if (editingId() === job.id) {
+                  <tr class="edit-row">
+                    <td colspan="6">
+                      <form class="form" (ngSubmit)="saveEdit()">
+                        <label>
+                          <span>Job title</span>
+                          <input [(ngModel)]="title" name="title" required />
+                        </label>
+                        <label>
+                          <span>Employer / business name</span>
+                          <input [(ngModel)]="employerName" name="employerName" required />
+                        </label>
+                        <label>
+                          <span>Location (city)</span>
+                          <app-location-typeahead
+                            name="locationCity"
+                            [(value)]="locationCity"
+                            placeholder="City or district"
+                          />
+                        </label>
+                        <label>
+                          <span>Job type</span>
+                          <select [(ngModel)]="jobType" name="jobType">
+                            @for (entry of jobTypeEntries; track entry[0]) {
+                              <option [value]="entry[0]">{{ entry[1] }}</option>
+                            }
+                          </select>
+                        </label>
+                        <label>
+                          <span>Salary (optional)</span>
+                          <input
+                            [(ngModel)]="salaryText"
+                            name="salaryText"
+                            placeholder="e.g. 12000-15000"
+                          />
+                        </label>
+                        <label>
+                          <span>Content language</span>
+                          <select [(ngModel)]="contentLanguage" name="contentLanguage">
+                            @for (lang of languages(); track lang.code) {
+                              <option [value]="lang.code">{{ lang.nativeName || lang.name }}</option>
+                            }
+                          </select>
+                        </label>
+                        <label>
+                          <span>Priority (higher first)</span>
+                          <input
+                            [(ngModel)]="priority"
+                            name="priority"
+                            type="number"
+                            min="0"
+                            max="1000"
+                          />
+                        </label>
+                        <label>
+                          <span>Effective from</span>
+                          <input
+                            [(ngModel)]="effectiveFromLocal"
+                            name="effectiveFrom"
+                            type="datetime-local"
+                          />
+                        </label>
+                        <label>
+                          <span>End date</span>
+                          <input
+                            [(ngModel)]="expiresAtLocal"
+                            name="expiresAt"
+                            type="datetime-local"
+                          />
+                        </label>
+                        <label class="form__wide">
+                          <span>Description / duties</span>
+                          <textarea
+                            [(ngModel)]="description"
+                            name="description"
+                            rows="4"
+                            required
+                          ></textarea>
+                        </label>
+                        <div class="form__actions">
+                          <button type="submit" [disabled]="busy()">Save changes</button>
+                          <button type="button" class="btn secondary" (click)="cancelEdit()">
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <div class="pager">
+        <button
+          type="button"
+          class="btn secondary"
+          [disabled]="busy() || page() <= 1"
+          (click)="goToPage(page() - 1)"
+        >
+          Previous
+        </button>
+        <span class="pager__label">Page {{ page() }} of {{ totalPages() }}</span>
+        <button
+          type="button"
+          class="btn secondary"
+          [disabled]="busy() || page() >= totalPages()"
+          (click)="goToPage(page() + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (message()) {
+    <p class="ok">{{ message() }}</p>
+  }
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</section>

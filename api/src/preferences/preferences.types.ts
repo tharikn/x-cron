@@ -5,7 +5,7 @@ export interface PreferenceRecord {
   languages: string[];
   salaryMin: number | null;
   remotePreferred: boolean;
-  interfaceLocale: 'en' | 'ta';
+  interfaceLocale: string;
   sort: string;
   updatedAt: string;
 }

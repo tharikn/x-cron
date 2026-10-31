@@ -9,7 +9,12 @@
 
 <ion-content>
   <div class="page">
-    <p class="lead">Local jobs near you. Browse as a guest — no sign-in required.</p>
+    <section class="hero">
+      <p class="hero__brand">X Cron</p>
+      <p class="hero__jobs">Jobs</p>
+      <h1>{{ 'home.headline' | t }}</h1>
+      <p class="lead">{{ 'home.lead' | t }}</p>
+    </section>
 
     @if (usingApi()) {
       <ion-text color="medium"><p class="source">Live API</p></ion-text>
@@ -24,78 +29,80 @@
       </div>
     }
 
-    <ion-searchbar
-      [value]="query().keyword"
-      placeholder="Search role, skill, employer"
-      debounce="250"
-      (ionInput)="onKeyword($event.detail.value)"
-    ></ion-searchbar>
+    <div class="search-panel">
+      <ion-searchbar
+        [value]="query().keyword"
+        placeholder="Search role, skill, employer"
+        debounce="250"
+        (ionInput)="onKeyword($event.detail.value)"
+      ></ion-searchbar>
 
-    <ion-searchbar
-      [value]="query().locationText"
-      placeholder="Location (city / district)"
-      debounce="250"
-      (ionInput)="onLocation($event.detail.value)"
-    ></ion-searchbar>
+      <app-location-typeahead
+        [value]="query().locationText ?? ''"
+        (valueChange)="onLocation($event)"
+        placeholder="Location (city / district)"
+      />
 
-    <ion-list lines="full" class="filters">
-      <ion-item>
-        <ion-select
-          label="Sort"
-          labelPlacement="stacked"
-          interface="popover"
-          [value]="query().sort"
-          (ionChange)="onSort($event.detail.value)"
-        >
-          <ion-select-option value="newest">Newest</ion-select-option>
-          <ion-select-option value="oldest">Oldest</ion-select-option>
-          <ion-select-option value="salary-desc">Salary high to low</ion-select-option>
-          <ion-select-option value="salary-asc">Salary low to high</ion-select-option>
-          <ion-select-option value="relevance">Relevance</ion-select-option>
-        </ion-select>
-      </ion-item>
-      <ion-item>
-        <ion-select
-          label="Job type"
-          labelPlacement="stacked"
-          interface="popover"
-          [value]="query().jobType"
-          (ionChange)="onJobType($event.detail.value)"
-        >
-          <ion-select-option value="">Any</ion-select-option>
-          @for (entry of jobTypeEntries; track entry[0]) {
-            <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
-          }
-        </ion-select>
-      </ion-item>
-      <ion-item>
-        <ion-select
-          label="Category"
-          labelPlacement="stacked"
-          interface="popover"
-          [value]="query().category"
-          (ionChange)="onCategory($event.detail.value)"
-        >
-          <ion-select-option value="">Any</ion-select-option>
-          @for (category of categories(); track category) {
-            <ion-select-option [value]="category">{{ category }}</ion-select-option>
-          }
-        </ion-select>
-      </ion-item>
-      <ion-item>
-        <ion-select
-          label="Language"
-          labelPlacement="stacked"
-          interface="popover"
-          [value]="query().language"
-          (ionChange)="onLanguage($event.detail.value)"
-        >
-          <ion-select-option value="">Any</ion-select-option>
-          <ion-select-option value="en">English</ion-select-option>
-          <ion-select-option value="ta">Tamil</ion-select-option>
-        </ion-select>
-      </ion-item>
-    </ion-list>
+      <ion-list lines="none" class="filters">
+        <ion-item>
+          <ion-select
+            label="Sort"
+            labelPlacement="stacked"
+            interface="popover"
+            [value]="query().sort"
+            (ionChange)="onSort($event.detail.value)"
+          >
+            <ion-select-option value="newest">{{ 'sort.newest' | t }}</ion-select-option>
+            <ion-select-option value="oldest">{{ 'sort.oldest' | t }}</ion-select-option>
+            <ion-select-option value="salary-desc">{{ 'sort.salaryDesc' | t }}</ion-select-option>
+            <ion-select-option value="salary-asc">{{ 'sort.salaryAsc' | t }}</ion-select-option>
+            <ion-select-option value="relevance">{{ 'sort.relevance' | t }}</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-select
+            label="Job type"
+            labelPlacement="stacked"
+            interface="popover"
+            [value]="query().jobType"
+            (ionChange)="onJobType($event.detail.value)"
+          >
+            <ion-select-option value="">{{ 'common.any' | t }}</ion-select-option>
+            @for (entry of jobTypeEntries; track entry[0]) {
+              <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-select
+            label="Category"
+            labelPlacement="stacked"
+            interface="popover"
+            [value]="query().category"
+            (ionChange)="onCategory($event.detail.value)"
+          >
+            <ion-select-option value="">{{ 'common.any' | t }}</ion-select-option>
+            @for (category of categories(); track category) {
+              <ion-select-option [value]="category">{{ category }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-select
+            [label]="'filter.language' | t"
+            labelPlacement="stacked"
+            interface="popover"
+            [value]="query().language"
+            (ionChange)="onLanguage($event.detail.value)"
+          >
+            <ion-select-option value="">{{ 'common.any' | t }}</ion-select-option>
+            @for (lang of languages(); track lang.code) {
+              <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+      </ion-list>
+    </div>
 
     @if (showPrefPrompt()) {
       <div class="pref-prompt">
@@ -124,19 +131,36 @@
     }
 
     <div class="results-head">
-      <h2>Jobs</h2>
+      <h2>Open roles</h2>
       <div class="results-head__right">
-        @if (loading()) {
+        @if (loading() || loadingMore()) {
           <ion-spinner name="crescent"></ion-spinner>
         }
-        <ion-badge color="medium">{{ results().length }}</ion-badge>
+        <span class="count">{{ results().length }}</span>
       </div>
     </div>
 
-    @for (job of results(); track job.id) {
-      <app-job-card [job]="job"></app-job-card>
-    } @empty {
-      <p class="empty">No jobs match these filters. Try another location or clear filters.</p>
+    @if (loading() && results().length === 0) {
+      <div class="status status--loading" role="status" aria-live="polite">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading jobs…</p>
+      </div>
+    } @else {
+      <div class="job-list">
+        @for (job of results(); track job.id; let i = $index) {
+          <app-job-card [job]="job" [style.--i]="staggerIndex(i)"></app-job-card>
+        } @empty {
+          <p class="empty">No jobs match these filters. Try another location or clear filters.</p>
+        }
+      </div>
     }
   </div>
+
+  <ion-infinite-scroll
+    threshold="160px"
+    (ionInfinite)="loadMore($event)"
+    [disabled]="!nextCursor() || loading()"
+  >
+    <ion-infinite-scroll-content loadingSpinner="crescent"></ion-infinite-scroll-content>
+  </ion-infinite-scroll>
 </ion-content>

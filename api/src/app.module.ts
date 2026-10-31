@@ -4,15 +4,18 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
+import { I18nModule } from './i18n/i18n.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { JobsModule } from './jobs/jobs.module';
 import { AccountModule } from './account/account.module';
 import { AdsModule } from './ads/ads.module';
+import { LocationsModule } from './locations/locations.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OpsModule } from './ops/ops.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { SeekerModule } from './seeker/seeker.module';
+import { SiteModule } from './site/site.module';
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { SeekerModule } from './seeker/seeker.module';
     OpsModule,
     SeekerModule,
     AccountModule,
+    I18nModule,
+    SiteModule,
+    LocationsModule,
   ],
   controllers: [HealthController],
   providers: [

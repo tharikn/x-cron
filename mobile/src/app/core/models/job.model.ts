@@ -30,6 +30,7 @@ export interface JobContactMask {
   hasPhone: boolean;
   hasEmail: boolean;
   hasWhatsapp: boolean;
+  hasWebsite: boolean;
   unlockPricePaise: number;
 }
 
@@ -76,6 +77,13 @@ export interface JobSearchQuery {
     | 'oldest'
     | 'salary-desc'
     | 'salary-asc';
+  cursor?: string;
+  limit?: number;
+}
+
+export interface JobSearchResult {
+  items: Job[];
+  nextCursor?: string;
 }
 
 export interface UserPreferences {
@@ -85,7 +93,7 @@ export interface UserPreferences {
   languages: string[];
   salaryMin?: number | null;
   remotePreferred: boolean;
-  interfaceLocale: 'en' | 'ta';
+  interfaceLocale: string;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {

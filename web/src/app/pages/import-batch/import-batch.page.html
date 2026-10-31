@@ -1,0 +1,117 @@
+<section class="page">
+  <h1>Bulk import</h1>
+  <p class="lead">
+    Import many jobs from CSV, pasted WhatsApp/Telegram text, PDF, or image.
+    Image/PDF uses the OCR stub — confirm facts before approve. Contacts stay private.
+  </p>
+
+  @if (!isSignedIn() || !isAdmin()) {
+    <div class="gate">
+      <p>
+        @if (!isSignedIn()) {
+          Admins must sign in before importing.
+        } @else {
+          This account is not an admin. Use admin&#64;xcron.local.
+        }
+      </p>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+    </div>
+  } @else {
+    <div class="actions">
+      <label class="file-btn">
+        Choose CSV / PDF / image
+        <input
+          type="file"
+          accept=".csv,.txt,.pdf,image/*"
+          (change)="onFilePicked($event)"
+          [disabled]="busy()"
+        />
+      </label>
+      <a class="link-btn" routerLink="/post">Quick post</a>
+      <a class="link-btn" routerLink="/my-jobs">Posted jobs</a>
+    </div>
+
+    <form class="form" (ngSubmit)="fromPasteBox()">
+      <label>
+        <span>Or paste message text</span>
+        <textarea
+          [(ngModel)]="pasteText"
+          name="pasteText"
+          rows="8"
+          placeholder="Paste WhatsApp / Telegram job messages."
+        ></textarea>
+      </label>
+      <button type="submit" [disabled]="busy()">
+        @if (busy()) {
+          <span class="spinner spinner--inline" aria-hidden="true"></span>
+          Extracting…
+        } @else {
+          Extract from pasted text
+        }
+      </button>
+    </form>
+
+    @if (batch(); as batch) {
+      <div class="batch">
+        <p>
+          Batch <strong>{{ batch.id }}</strong> · {{ batch.status }} ·
+          {{ batch.totalRecords }} records
+        </p>
+        @if (batch.warnings?.length) {
+          <p class="warn">{{ batch.warnings.join(' ') }}</p>
+        }
+      </div>
+    }
+
+    @if (records().length) {
+      <div class="review-head">
+        <h2>Review extracted records</h2>
+        <button type="button" class="btn" [disabled]="busy()" (click)="approveSelected()">
+          Approve selected
+        </button>
+      </div>
+
+      <ul class="records">
+        @for (record of records(); track record.id) {
+          <li class="record">
+            <label class="record__check">
+              <input
+                type="checkbox"
+                [checked]="!!selected()[record.id]"
+                (change)="toggle(record.id, $any($event.target).checked)"
+              />
+              <span class="visually-hidden">Select {{ record.extraction.title || 'record' }}</span>
+            </label>
+            <div class="record__body">
+              <h3>{{ record.extraction.title || 'Untitled' }}</h3>
+              <p>
+                {{ record.extraction.locationCity || 'Location n/a' }} ·
+                confidence {{ (record.confidence * 100) | number: '1.0-0' }}% ·
+                {{ record.dedupeStatus }} · {{ record.reviewStatus }}
+              </p>
+              <p class="muted">
+                Contact masked:
+                {{ record.extraction.hasPhone ? 'phone' : '' }}
+                {{ record.extraction.hasEmail ? 'email' : '' }}
+                {{ !record.extraction.hasPhone && !record.extraction.hasEmail ? 'none' : '' }}
+              </p>
+              @if (record.extraction.notes?.length) {
+                <p class="muted">{{ record.extraction.notes.join(' ') }}</p>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  }
+
+  @if (message()) {
+    <p class="ok">
+      {{ message() }}
+      <a class="ok-link" routerLink="/blog-approval">Open Blog Approval</a>
+    </p>
+  }
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</section>

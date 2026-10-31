@@ -56,7 +56,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 
 | Path | Purpose |
 | --- | --- |
-| `api/prisma/schema.prisma` | Postgres data model (User, Job, Payment, Entitlement, SavedJob, Subscription, …) — schema ready; runtime still memory |
+| `api/prisma/schema.prisma` | Postgres data model (User, Job, Payment, Entitlement, SavedJob, Subscription, SiteConfig, …) — schema ready; runtime still memory |
 
 ### `api/src/` — application code
 
@@ -188,6 +188,18 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `account.module.ts` | Account deletion |
 | `account.controller.ts` | `DELETE /v1/me`, `DELETE /v1/auth/me` |
 | `account.service.ts` | Wipe payments/prefs/seeker + auth user |
+
+#### `api/src/site/`
+
+| Path | Purpose |
+| --- | --- |
+| `site.module.ts` | Public site chrome (footer) |
+| `site.controller.ts` | `GET /v1/site/footer`, admin `PUT /v1/admin/site/footer` |
+| `site.service.ts` | Footer read/update use-cases |
+| `site.store.ts` | In-memory footer document (mirrors Prisma `SiteConfig`) |
+| `site.types.ts` | Footer DTO shapes |
+| `seed-footer.ts` | Default brand, addresses, social + quick links |
+| `dto/update-footer.dto.ts` | Admin upsert validation |
 
 ### `api/test/`
 
@@ -352,6 +364,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `core/services/jobs.service.ts` | Jobs API client |
 | `core/services/seo.service.ts` | Title/meta/canonical |
 | `core/services/ads.service.ts` | Home ad rail client |
+| `core/services/site.service.ts` | Public footer config client (`GET /site/footer`) |
+| `core/models/site.model.ts` | Footer config types |
 | `core/utils/format.ts` | Display helpers |
 | `pages/home/*` | SEO home + search + ad rail |
 | `pages/job-detail/*` | Public job page |

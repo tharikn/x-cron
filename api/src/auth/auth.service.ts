@@ -3,8 +3,10 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { OAuth2Client } from 'google-auth-library';
 import { AuthStore } from './auth.store';
 import {
+  AdminLoginDto,
   CreateEmployerDto,
   GoogleAuthDto,
   StartOtpDto,
@@ -13,6 +15,8 @@ import {
 
 @Injectable()
 export class AuthService {
+  private readonly googleClient = new OAuth2Client();
+
   constructor(private readonly store: AuthStore) {}
 
   startOtp(dto: StartOtpDto) {
@@ -66,12 +70,129 @@ export class AuthService {
     };
   }
 
-  googleStub(_dto: GoogleAuthDto) {
+  async google(dto: GoogleAuthDto) {
+    const identity = await this.resolveGoogleIdentity(dto);
+    try {
+      const { user, token } = this.store.signInWithGoogle(identity);
+      return {
+        token,
+        user: this.store.toPublicUser(user),
+        employer: this.store.getEmployerByOwner(user.id) ?? null,
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'google_auth_failed';
+      throw new UnauthorizedException(reason);
+    }
+  }
+
+  adminLogin(dto: AdminLoginDto) {
+    try {
+      const { user, token } = this.store.signInSuperAdmin(dto.email, dto.password);
+      return {
+        token,
+        user: this.store.toPublicUser(user),
+        employer: this.store.getEmployerByOwner(user.id) ?? null,
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'invalid_credentials';
+      throw new UnauthorizedException(reason);
+    }
+  }
+
+  private async resolveGoogleIdentity(dto: GoogleAuthDto): Promise<{
+    email: string;
+    displayName?: string;
+  }> {
+    if (dto.idToken?.trim()) {
+      const payload = await this.verifyGoogleIdToken(dto.idToken.trim());
+      if (!payload.email) {
+        throw new BadRequestException('Google token missing email');
+      }
+      return {
+        email: payload.email,
+        displayName: payload.name || dto.displayName,
+      };
+    }
+
+    const stubAllowed =
+      (process.env.AUTH_GOOGLE_STUB ?? '1') === '1' &&
+      (process.env.NODE_ENV ?? 'development') !== 'production';
+    if (!stubAllowed || !dto.email?.trim()) {
+      throw new BadRequestException(
+        'Google idToken required (or AUTH_GOOGLE_STUB email in development)',
+      );
+    }
     return {
-      supported: false,
-      message:
-        'Google sign-in is optional and will be enabled after Google Identity setup. Use phone/email OTP for now.',
+      email: dto.email.trim(),
+      displayName: dto.displayName,
     };
+  }
+
+  private async verifyGoogleIdToken(idToken: string): Promise<{
+    email?: string;
+    name?: string;
+  }> {
+    const audiences = this.googleAudiences();
+    if (!audiences.length) {
+      // Local/dev without GOOGLE_CLIENT_ID: decode only (never use in production).
+      if ((process.env.NODE_ENV ?? 'development') === 'production') {
+        throw new UnauthorizedException('GOOGLE_CLIENT_ID not configured');
+      }
+      return this.decodeGoogleIdToken(idToken);
+    }
+
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken,
+        audience: audiences.length === 1 ? audiences[0] : audiences,
+      });
+      const payload = ticket.getPayload();
+      if (!payload) {
+        throw new UnauthorizedException('invalid_google_token');
+      }
+      if (payload.email_verified === false) {
+        throw new UnauthorizedException('google_email_unverified');
+      }
+      return {
+        email: payload.email,
+        name: payload.name,
+      };
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new UnauthorizedException('invalid_google_token');
+    }
+  }
+
+  private googleAudiences(): string[] {
+    const raw =
+      process.env.GOOGLE_CLIENT_IDS?.trim() ||
+      process.env.GOOGLE_CLIENT_ID?.trim() ||
+      '';
+    return raw
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+
+  private decodeGoogleIdToken(idToken: string): {
+    email?: string;
+    name?: string;
+  } {
+    const parts = idToken.split('.');
+    if (parts.length < 2) {
+      throw new BadRequestException('Malformed Google idToken');
+    }
+    try {
+      const json = Buffer.from(parts[1], 'base64url').toString('utf8');
+      return JSON.parse(json) as { email?: string; name?: string };
+    } catch {
+      throw new BadRequestException('Could not decode Google idToken');
+    }
   }
 
   requireUser(token?: string) {

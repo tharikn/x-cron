@@ -17,7 +17,15 @@ export class JobsMemoryStore implements OnModuleInit {
   }
 
   listPublished(): JobRecord[] {
-    return this.jobs.filter((job) => job.status === 'published');
+    const now = Date.now();
+    return this.jobs.filter((job) => {
+      if (job.status !== 'published') return false;
+      const from = Date.parse(job.effectiveFrom || job.publishedAt);
+      const until = Date.parse(job.expiresAt);
+      if (Number.isFinite(from) && now < from) return false;
+      if (Number.isFinite(until) && now > until) return false;
+      return true;
+    });
   }
 
   findById(id: string): JobRecord | undefined {
@@ -98,17 +106,35 @@ export class JobsMemoryStore implements OnModuleInit {
     return [...new Set(this.listPublished().map((job) => job.category))].sort();
   }
 
+  /** Title + city fingerprint for active (non-rejected/removed) jobs. */
+  dedupeKey(title: string, city: string): string {
+    return `${title.trim().toLowerCase()}|${city.trim().toLowerCase()}`;
+  }
+
+  findActiveDuplicate(title: string, city: string): JobRecord | undefined {
+    const key = this.dedupeKey(title || 'Untitled role', city || 'Palani');
+    return this.jobs.find((job) => {
+      if (job.status === 'rejected' || job.status === 'removed') return false;
+      return this.dedupeKey(job.title, job.location.city) === key;
+    });
+  }
+
   createAndPublish(input: CreateJobInput): JobRecord {
     const id = `job_${randomUUID().slice(0, 8)}`;
     const city = input.locationCity.trim() || 'Palani';
     const state = input.locationState?.trim() || 'Tamil Nadu';
     const district = input.locationDistrict?.trim() || city;
     const title = input.title.trim() || 'Untitled role';
+    if (this.findActiveDuplicate(title, city)) {
+      throw new Error('DUPLICATE_JOB');
+    }
     const salary = this.parseSalary(input.salaryText);
     const phone = input.contactPhone?.trim();
     const email = input.contactEmail?.trim();
+    const website = input.contactWebsite?.trim();
 
     const status = input.status ?? 'needs-review';
+    const nowIso = new Date().toISOString();
     const job: JobRecord = {
       id,
       slug: `tamil-nadu/${this.slugify(city)}/${this.slugify(title)}-${id}`,
@@ -134,20 +160,26 @@ export class JobsMemoryStore implements OnModuleInit {
       workSchedule: input.workSchedule,
       skills: input.skills,
       category: input.category?.trim() || 'General',
-      publishedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      publishedAt: nowIso,
+      effectiveFrom: input.effectiveFrom || nowIso,
+      expiresAt:
+        input.expiresAt ||
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: input.priority ?? 0,
       status,
       reportCount: 0,
       contact: {
         hasPhone: !!phone,
         hasEmail: !!email,
         hasWhatsapp: !!phone,
+        hasWebsite: !!website,
         unlockPricePaise: Number(process.env.UNLOCK_PRICE_PAISE ?? 500),
       },
       privateContact: {
         phone,
         email,
         whatsapp: phone,
+        website,
       },
     };
 
@@ -195,6 +227,30 @@ export class JobsMemoryStore implements OnModuleInit {
     return this.jobs.filter((job) => job.ownerUserId === userId);
   }
 
+  listAll(): JobRecord[] {
+    return [...this.jobs];
+  }
+
+  listByOwnerPaged(
+    userId: string,
+    page = 1,
+    limit = 10,
+  ): { items: JobRecord[]; total: number; page: number; limit: number } {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(100, Math.max(1, limit));
+    const sorted = this.listByOwner(userId).sort(
+      (a, b) =>
+        b.publishedAt.localeCompare(a.publishedAt) || a.id.localeCompare(b.id),
+    );
+    const start = (safePage - 1) * safeLimit;
+    return {
+      items: sorted.slice(start, start + safeLimit),
+      total: sorted.length,
+      page: safePage,
+      limit: safeLimit,
+    };
+  }
+
   setStatus(
     id: string,
     status: JobRecord['status'],
@@ -208,6 +264,93 @@ export class JobsMemoryStore implements OnModuleInit {
       job.publishedAt = new Date().toISOString();
     }
     return job;
+  }
+
+  updateOwned(
+    id: string,
+    ownerUserId: string,
+    patch: Partial<CreateJobInput> & {
+      status?: JobRecord['status'];
+    },
+  ): JobRecord | undefined {
+    const job = this.findById(id);
+    if (!job || job.ownerUserId !== ownerUserId) return undefined;
+
+    if (patch.title?.trim()) job.title = patch.title.trim();
+    if (patch.employerName?.trim()) job.employerName = patch.employerName.trim();
+    if (patch.locationCity?.trim()) {
+      job.location.city = patch.locationCity.trim();
+      job.location.district =
+        patch.locationDistrict?.trim() || job.location.district;
+      job.location.state = patch.locationState?.trim() || job.location.state;
+    } else {
+      if (patch.locationDistrict?.trim()) {
+        job.location.district = patch.locationDistrict.trim();
+      }
+      if (patch.locationState?.trim()) {
+        job.location.state = patch.locationState.trim();
+      }
+    }
+    if (patch.jobType) job.jobType = patch.jobType;
+    if (patch.salaryText !== undefined) {
+      job.salary = this.parseSalary(patch.salaryText);
+    }
+    if (patch.description?.trim()) {
+      job.description = {
+        ...job.description,
+        about: patch.description.trim(),
+      };
+    }
+    if (patch.contentLanguage) job.contentLanguage = patch.contentLanguage;
+    if (patch.category?.trim()) job.category = patch.category.trim();
+    if (patch.experienceLabel !== undefined) {
+      job.experienceLabel = patch.experienceLabel;
+    }
+    if (patch.vacancies !== undefined) job.vacancies = patch.vacancies;
+    if (patch.workSchedule !== undefined) job.workSchedule = patch.workSchedule;
+    if (patch.skills !== undefined) job.skills = patch.skills;
+    if (patch.effectiveFrom) job.effectiveFrom = patch.effectiveFrom;
+    if (patch.expiresAt) job.expiresAt = patch.expiresAt;
+    if (patch.priority !== undefined) job.priority = patch.priority;
+    if (patch.status) {
+      job.status = patch.status;
+      if (patch.status === 'published' && !job.publishedAt) {
+        job.publishedAt = new Date().toISOString();
+      }
+    }
+
+    const phone = patch.contactPhone?.trim();
+    const email = patch.contactEmail?.trim();
+    const website = patch.contactWebsite?.trim();
+    if (phone !== undefined || email !== undefined || website !== undefined) {
+      const nextPhone =
+        phone !== undefined ? phone || undefined : job.privateContact?.phone;
+      const nextEmail =
+        email !== undefined ? email || undefined : job.privateContact?.email;
+      const nextWebsite =
+        website !== undefined
+          ? website || undefined
+          : job.privateContact?.website;
+      job.privateContact = {
+        phone: nextPhone,
+        email: nextEmail,
+        whatsapp: nextPhone,
+        website: nextWebsite,
+      };
+      job.contact = {
+        ...job.contact,
+        hasPhone: !!nextPhone,
+        hasEmail: !!nextEmail,
+        hasWhatsapp: !!nextPhone,
+        hasWebsite: !!nextWebsite,
+      };
+    }
+
+    return job;
+  }
+
+  softRemoveOwned(id: string, ownerUserId: string): JobRecord | undefined {
+    return this.updateOwned(id, ownerUserId, { status: 'removed' });
   }
 
   report(id: string, reason: string): JobRecord | undefined {
@@ -227,32 +370,40 @@ export class JobsMemoryStore implements OnModuleInit {
     hasKeyword: boolean,
   ): JobRecord[] {
     const list = [...jobs];
+    const byPriority = (a: JobRecord, b: JobRecord) =>
+      (b.priority ?? 0) - (a.priority ?? 0);
     const effective = sort === 'relevance' && !hasKeyword ? 'newest' : sort;
     switch (effective) {
       case 'oldest':
         return list.sort(
           (a, b) =>
+            byPriority(a, b) ||
             a.publishedAt.localeCompare(b.publishedAt) ||
             a.id.localeCompare(b.id),
         );
       case 'salary-desc':
         return list.sort(
           (a, b) =>
+            byPriority(a, b) ||
             this.salaryValue(b) - this.salaryValue(a) ||
             a.id.localeCompare(b.id),
         );
       case 'salary-asc':
         return list.sort(
           (a, b) =>
+            byPriority(a, b) ||
             this.salaryValue(a) - this.salaryValue(b) ||
             a.id.localeCompare(b.id),
         );
       case 'relevance':
-        return list;
+        return list.sort(
+          (a, b) => byPriority(a, b) || a.id.localeCompare(b.id),
+        );
       case 'newest':
       default:
         return list.sort(
           (a, b) =>
+            byPriority(a, b) ||
             b.publishedAt.localeCompare(a.publishedAt) ||
             a.id.localeCompare(b.id),
         );

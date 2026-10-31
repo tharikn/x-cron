@@ -4,7 +4,10 @@ import { JobRecord } from './job.types';
 export function toPublicJob(
   job: JobRecord,
   boost?: { badge: string; endsAt: string } | null,
+  /** Global SiteConfig commerce price; falls back to per-job seed. */
+  unlockPricePaise?: number,
 ) {
+  const pricePaise = unlockPricePaise ?? job.contact.unlockPricePaise;
   return {
     id: job.id,
     slug: job.slug,
@@ -22,7 +25,9 @@ export function toPublicJob(
     skills: job.skills,
     category: job.category,
     publishedAt: job.publishedAt,
+    effectiveFrom: job.effectiveFrom,
     expiresAt: job.expiresAt,
+    priority: job.priority,
     status: job.status,
     promoted: !!boost,
     promotionBadge: boost?.badge ?? null,
@@ -31,9 +36,10 @@ export function toPublicJob(
       hasPhone: job.contact.hasPhone,
       hasEmail: job.contact.hasEmail,
       hasWhatsapp: job.contact.hasWhatsapp,
-      unlockPricePaise: job.contact.unlockPricePaise,
+      hasWebsite: job.contact.hasWebsite,
+      unlockPricePaise: pricePaise,
       masked: true,
-      unlockLabel: `Unlock employer contact – ₹${(job.contact.unlockPricePaise / 100).toFixed(0)}`,
+      unlockLabel: `Unlock employer contact – ₹${(pricePaise / 100).toFixed(0)}`,
     },
   };
 }

@@ -1,3 +1,22 @@
+export type JobType =
+  | 'full-time'
+  | 'part-time'
+  | 'contract'
+  | 'temporary'
+  | 'internship'
+  | 'apprenticeship'
+  | 'daily-wage';
+
+export const JOB_TYPE_LABELS: Record<JobType, string> = {
+  'full-time': 'Full-time',
+  'part-time': 'Part-time',
+  contract: 'Contract',
+  temporary: 'Temporary',
+  internship: 'Internship',
+  apprenticeship: 'Apprenticeship',
+  'daily-wage': 'Daily wage',
+};
+
 export interface JobLocation {
   country: string;
   state: string;
@@ -37,7 +56,9 @@ export interface Job {
   skills?: string[];
   category: string;
   publishedAt: string;
+  effectiveFrom?: string;
   expiresAt: string;
+  priority?: number;
   status: string;
   promoted?: boolean;
   promotionBadge?: string | null;
@@ -45,6 +66,7 @@ export interface Job {
     hasPhone: boolean;
     hasEmail: boolean;
     hasWhatsapp: boolean;
+    hasWebsite: boolean;
     unlockPricePaise: number;
     masked: boolean;
     unlockLabel: string;

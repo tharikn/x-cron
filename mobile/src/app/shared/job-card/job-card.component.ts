@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   IonBadge,
@@ -10,12 +10,12 @@ import {
   IonText,
 } from '@ionic/angular';
 import type { Job } from '../../core/models/job.model';
+import { LocaleService } from '../../core/services/locale.service';
 import {
   formatJobType,
   formatLocation,
   formatPostedDate,
   formatSalary,
-  languageLabel,
 } from '../../core/utils/format';
 
 @Component({
@@ -34,11 +34,13 @@ import {
   ],
 })
 export class JobCardComponent {
+  private readonly locale = inject(LocaleService);
+
   @Input({ required: true }) job!: Job;
 
   readonly formatLocation = formatLocation;
   readonly formatSalary = formatSalary;
   readonly formatJobType = formatJobType;
   readonly formatPostedDate = formatPostedDate;
-  readonly languageLabel = languageLabel;
+  readonly languageLabel = (code: string) => this.locale.label(code);
 }

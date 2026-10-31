@@ -1,0 +1,57 @@
+<ion-modal
+  [isOpen]="open()"
+  [initialBreakpoint]="0.42"
+  [breakpoints]="[0, 0.42, 0.65]"
+  handle="true"
+  (didDismiss)="dismiss()"
+>
+  <ng-template>
+    <ion-content class="sheet-content">
+      <div class="sheet">
+        <p class="brand">X Cron</p>
+        <h2>{{ copy().title }}</h2>
+        <p class="body">{{ copy().body }}</p>
+
+        @if (!googleReady) {
+          <ion-item lines="full" class="field">
+            <ion-input
+              label="Google email"
+              labelPlacement="stacked"
+              type="email"
+              [(ngModel)]="email"
+              placeholder="you@gmail.com"
+              autocomplete="username"
+            ></ion-input>
+          </ion-item>
+          <ion-item lines="full" class="field">
+            <ion-input
+              label="Display name (optional)"
+              labelPlacement="stacked"
+              type="text"
+              [(ngModel)]="displayName"
+              placeholder="Your name"
+            ></ion-input>
+          </ion-item>
+        }
+
+        <ion-button
+          expand="block"
+          color="dark"
+          class="google-btn"
+          [disabled]="busy()"
+          (click)="continueWithGoogle()"
+        >
+          {{ busy() ? 'Signing in…' : 'Continue with Google' }}
+        </ion-button>
+
+        <ion-button expand="block" fill="clear" color="dark" [disabled]="busy()" (click)="dismiss()">
+          Not now
+        </ion-button>
+
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="X Cron Jobs">
+  <rect width="512" height="512" rx="112" fill="#0a0a0a"/>
+  <text x="256" y="250" text-anchor="middle" font-family="Syne, Arial Black, sans-serif" font-size="118" font-weight="800" letter-spacing="-7" fill="#f4f4f2">X Cron</text>
+  <text x="256" y="310" text-anchor="middle" font-family="DM Sans, Arial, sans-serif" font-size="28" font-weight="600" letter-spacing="6" fill="#bdbdbd">JOBS</text>
+</svg>

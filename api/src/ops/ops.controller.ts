@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { Roles } from '../auth/decorators';
+import { DashboardQueryDto } from './dto/dashboard-query.dto';
 import { OpsService } from './ops.service';
 
 @Controller('v1/ops')
@@ -16,6 +17,12 @@ export class OpsController {
   @Get('metrics')
   metrics() {
     return this.opsService.metrics();
+  }
+
+  @Roles('admin')
+  @Get('dashboard')
+  dashboard(@Query() query: DashboardQueryDto) {
+    return this.opsService.dashboard(query);
   }
 
   @Roles('admin')

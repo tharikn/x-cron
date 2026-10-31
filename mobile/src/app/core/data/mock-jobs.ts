@@ -1,4 +1,4 @@
-import type { Job } from '../models/job.model';
+﻿import type { Job } from '../models/job.model';
 
 export const MOCK_JOBS: Job[] = [
   {
@@ -23,15 +23,15 @@ export const MOCK_JOBS: Job[] = [
       requirements: ['Basic Tamil and English', 'Retail experience preferred'],
       benefits: ['Weekly off', 'Staff discount'],
     },
-    experienceLabel: 'Fresher / 0–1 year',
+    experienceLabel: 'Fresher / 0â€“1 year',
     vacancies: 2,
-    workSchedule: 'Mon–Sat, 9:30 AM – 7:00 PM',
+    workSchedule: 'Monâ€“Sat, 9:30 AM â€“ 7:00 PM',
     skills: ['Customer service', 'Cash handling'],
     category: 'Retail',
     publishedAt: '2026-10-30T08:00:00.000Z',
     expiresAt: '2026-11-30T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: true, hasEmail: false, hasWhatsapp: true, unlockPricePaise: 500 },
+    contact: { hasPhone: true, hasEmail: false, hasWhatsapp: true, hasWebsite: false, unlockPricePaise: 500 },
   },
   {
     id: 'job_002',
@@ -49,7 +49,7 @@ export const MOCK_JOBS: Job[] = [
     salary: { min: 500, max: 700, currency: 'INR', period: 'daily', negotiable: true },
     contentLanguage: 'ta',
     description: {
-      about: 'பாலனியில் உள்ள உள்ளூர் டெலிவரி ஆர்டர்களை எடுத்துச் செல்ல வேண்டும்.',
+      about: 'à®ªà®¾à®²à®©à®¿à®¯à®¿à®²à¯ à®‰à®³à¯à®³ à®‰à®³à¯à®³à¯‚à®°à¯ à®Ÿà¯†à®²à®¿à®µà®°à®¿ à®†à®°à¯à®Ÿà®°à¯à®•à®³à¯ˆ à®Žà®Ÿà¯à®¤à¯à®¤à¯à®šà¯ à®šà¯†à®²à¯à®² à®µà¯‡à®£à¯à®Ÿà¯à®®à¯.',
       responsibilities: ['Pick up parcels', 'Deliver within town', 'Update delivery status'],
       requirements: ['Two-wheeler with licence', 'Smartphone'],
     },
@@ -61,7 +61,7 @@ export const MOCK_JOBS: Job[] = [
     publishedAt: '2026-10-29T11:30:00.000Z',
     expiresAt: '2026-11-20T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: true, hasEmail: false, hasWhatsapp: true, unlockPricePaise: 500 },
+    contact: { hasPhone: true, hasEmail: false, hasWhatsapp: true, hasWebsite: false, unlockPricePaise: 500 },
   },
   {
     id: 'job_003',
@@ -89,7 +89,7 @@ export const MOCK_JOBS: Job[] = [
     publishedAt: '2026-10-28T05:15:00.000Z',
     expiresAt: '2026-12-15T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: false, hasEmail: true, hasWhatsapp: false, unlockPricePaise: 500 },
+    contact: { hasPhone: false, hasEmail: true, hasWhatsapp: false, hasWebsite: false, unlockPricePaise: 500 },
   },
   {
     id: 'job_004',
@@ -108,7 +108,7 @@ export const MOCK_JOBS: Job[] = [
     salary: { min: 10000, max: 12000, currency: 'INR', period: 'monthly' },
     contentLanguage: 'ta',
     description: {
-      about: 'உணவக சமையலறை உதவி வேலை. சுத்தம் மற்றும் தயாரிப்பு உதவி.',
+      about: 'à®‰à®£à®µà®• à®šà®®à¯ˆà®¯à®²à®±à¯ˆ à®‰à®¤à®µà®¿ à®µà¯‡à®²à¯ˆ. à®šà¯à®¤à¯à®¤à®®à¯ à®®à®±à¯à®±à¯à®®à¯ à®¤à®¯à®¾à®°à®¿à®ªà¯à®ªà¯ à®‰à®¤à®µà®¿.',
       requirements: ['Able to stand for long hours', 'Tamil speaking'],
     },
     experienceLabel: 'Any',
@@ -118,7 +118,7 @@ export const MOCK_JOBS: Job[] = [
     publishedAt: '2026-10-27T14:00:00.000Z',
     expiresAt: '2026-11-27T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: true, hasEmail: false, hasWhatsapp: true, unlockPricePaise: 500 },
+    contact: { hasPhone: true, hasEmail: false, hasWhatsapp: true, hasWebsite: false, unlockPricePaise: 500 },
   },
   {
     id: 'job_005',
@@ -145,6 +145,6 @@ export const MOCK_JOBS: Job[] = [
     publishedAt: '2026-10-26T09:45:00.000Z',
     expiresAt: '2026-11-26T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: true, hasEmail: true, hasWhatsapp: false, unlockPricePaise: 500 },
+    contact: { hasPhone: true, hasEmail: true, hasWhatsapp: false, hasWebsite: false, unlockPricePaise: 500 },
   },
 ];

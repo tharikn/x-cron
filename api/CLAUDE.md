@@ -18,7 +18,7 @@ npm run prisma:validate
 npm run prisma:generate
 ```
 
-Optional Postgres: from repo root `docker compose up -d` (schema ready; **runtime still memory** unless you implement `JOBS_STORE=prisma`).
+Optional Postgres: from repo root `docker compose up -d`, then `npm run prisma:migrate` (DDL in schema `xcron`, not `public`; **runtime still memory** unless `JOBS_STORE=prisma`).
 
 ## Architecture
 
@@ -30,7 +30,7 @@ Optional Postgres: from repo root `docker compose up -d` (schema ready; **runtim
 - Contact reveal: `GET /v1/jobs/:id/contact` requires auth + entitlement; `Cache-Control: no-store`
 - Payments: Razorpay **stub**; webhook HMAC; stub confirm `POST /v1/payments/dev/confirm` when `PAYMENT_MODE=stub`
 - Subscriptions grant `subscription_contact` (unlimited unlocks while valid)
-- Prisma: `prisma/schema.prisma` only — do not assume DB persistence in handlers today
+- Prisma: `prisma/schema.prisma` + versioned `prisma/migrations/*` (deploy with `npm run prisma:migrate`) — do not assume DB persistence in handlers today
 
 ## Important env (`../api/.env` / `.env.example`)
 

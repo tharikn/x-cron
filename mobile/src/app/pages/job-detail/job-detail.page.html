@@ -105,33 +105,66 @@
             }
             @if (contact.email) {
               <ion-item>
-                <ion-label>Email</ion-label>
+                <ion-label>HR email</ion-label>
                 <ion-note slot="end">{{ contact.email }}</ion-note>
+              </ion-item>
+            }
+            @if (contact.website) {
+              <ion-item [href]="contact.website" target="_blank" rel="noopener noreferrer">
+                <ion-label>
+                  Website to apply
+                  <p>{{ contact.website }}</p>
+                </ion-label>
               </ion-item>
             }
           </ion-list>
           <p class="hint">Unlocked for your account (life of this listing).</p>
         } @else {
-          <p class="masked">
-            @if (job.contact.hasPhone) {
-              Phone: ••••• •••••
-            }
-            @if (job.contact.hasWhatsapp) {
-              · WhatsApp: locked
-            }
-            @if (job.contact.hasEmail) {
-              · Email: locked
-            }
-          </p>
-          <p class="hint">Unlock employer contact – {{ formatUnlockPrice(job.contact.unlockPricePaise) }}</p>
-          <ion-button
-            expand="block"
-            color="dark"
-            [disabled]="unlocking()"
-            (click)="unlockContact()"
+          <button
+            type="button"
+            class="vault"
+            [class.vault--open]="priceRevealed()"
+            (click)="revealPrice()"
+            [attr.aria-expanded]="priceRevealed()"
           >
-            {{ unlocking() ? 'Unlocking…' : 'Unlock contact' }}
-          </ion-button>
+            <div class="vault__blur" aria-hidden="true">
+              @if (job.contact.hasPhone) {
+                <p class="vault__line">+91 98XXX XXXXX</p>
+              }
+              @if (job.contact.hasWhatsapp) {
+                <p class="vault__line">WhatsApp · ready to chat</p>
+              }
+              @if (job.contact.hasEmail) {
+                <p class="vault__line">hr@••••••••.com</p>
+              }
+              @if (job.contact.hasWebsite) {
+                <p class="vault__line">www.••••••••.com/apply</p>
+              }
+            </div>
+            @if (!priceRevealed()) {
+              <span class="vault__cue">
+                <span class="vault__cue-title">Locked — tap to peek</span>
+                <span class="vault__cue-sub">Employer details stay private until unlock</span>
+              </span>
+            } @else {
+              <div class="vault__offer">
+                <p class="vault__tease">Curious who to call?</p>
+                <p class="hint">
+                  Unlock employer contact – {{ formatUnlockPrice(job.contact.unlockPricePaise) }}
+                </p>
+              </div>
+            }
+          </button>
+          @if (priceRevealed()) {
+            <ion-button
+              expand="block"
+              color="dark"
+              [disabled]="unlocking()"
+              (click)="unlockContact()"
+            >
+              {{ unlocking() ? 'Unlocking…' : 'Unlock contact' }}
+            </ion-button>
+          }
         }
       </section>
 
@@ -177,4 +210,11 @@
       <ion-button routerLink="/tabs/discover" color="dark">Browse jobs</ion-button>
     </div>
   }
+
+  <app-google-sign-in-sheet
+    [open]="signInOpen()"
+    [reason]="signInReason()"
+    (openChange)="onSignInOpenChange($event)"
+    (signedIn)="onSignedIn()"
+  />
 </ion-content>

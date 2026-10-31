@@ -1,19 +1,19 @@
 @if (job(); as job) {
   <article class="job">
-    <p class="crumb"><a routerLink="/">Jobs</a> / {{ job.location.city }}</p>
+    <p class="crumb"><a routerLink="/">Jobs</a> <span>/</span> {{ job.location.city }}</p>
     <div class="meta">
-      <span class="badge">{{ job.contentLanguage === 'ta' ? 'Tamil' : 'English' }}</span>
+      <span class="badge">{{ languageLabel(job.contentLanguage) }}</span>
       <time>{{ formatPostedDate(job.publishedAt) }}</time>
     </div>
     <h1>{{ job.title }}</h1>
     <p class="employer">
       {{ job.employerName }}
       @if (job.verifiedEmployer) {
-        · Verified
+        <span class="verified">{{ 'common.verified' | t }}</span>
       }
     </p>
-    <p>{{ formatLocation(job) }}</p>
-    <p>{{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}</p>
+    <p class="facts">{{ formatLocation(job) }}</p>
+    <p class="facts facts--pay">{{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}</p>
 
     <section class="panel">
       <h2>Key details</h2>
@@ -64,23 +64,92 @@
 
     <section class="panel contact">
       <h2>Employer contact</h2>
-      <p class="masked">
-        @if (job.contact.hasPhone) {
-          Phone: ••••• •••••
+      @if (revealed(); as contact) {
+        <ul class="revealed">
+          @if (contact.phone) {
+            <li>Phone: {{ contact.phone }}</li>
+          }
+          @if (contact.whatsapp) {
+            <li>WhatsApp: {{ contact.whatsapp }}</li>
+          }
+          @if (contact.email) {
+            <li>HR email: {{ contact.email }}</li>
+          }
+          @if (contact.website) {
+            <li>
+              Website to apply:
+              <a [href]="contact.website" target="_blank" rel="noopener noreferrer">{{
+                contact.website
+              }}</a>
+            </li>
+          }
+        </ul>
+        <p class="note">Unlocked for your account (life of this listing).</p>
+      } @else {
+        <button
+          type="button"
+          class="vault"
+          [class.vault--open]="priceRevealed()"
+          (click)="revealPrice()"
+          [attr.aria-expanded]="priceRevealed()"
+        >
+          <div class="vault__blur" aria-hidden="true">
+            @if (job.contact.hasPhone) {
+              <p class="vault__line">+91 98XXX XXXXX</p>
+            }
+            @if (job.contact.hasWhatsapp) {
+              <p class="vault__line">WhatsApp · ready to chat</p>
+            }
+            @if (job.contact.hasEmail) {
+              <p class="vault__line">hr@••••••••.com</p>
+            }
+            @if (job.contact.hasWebsite) {
+              <p class="vault__line">www.••••••••.com/apply</p>
+            }
+            @if (
+              !job.contact.hasPhone &&
+              !job.contact.hasWhatsapp &&
+              !job.contact.hasEmail &&
+              !job.contact.hasWebsite
+            ) {
+              <p class="vault__line">No contact channels on this post.</p>
+            }
+          </div>
+
+          @if (!priceRevealed()) {
+            <span class="vault__cue">
+              <span class="vault__cue-title">Locked — tap to peek</span>
+              <span class="vault__cue-sub">Employer details stay private until unlock</span>
+            </span>
+          } @else {
+            <div class="vault__offer">
+              <p class="vault__tease">Curious who to call?</p>
+              <p class="unlock">{{ job.contact.unlockLabel }}</p>
+            </div>
+          }
+        </button>
+        @if (priceRevealed()) {
+          <button
+            type="button"
+            class="unlock-btn"
+            [disabled]="unlocking()"
+            (click)="unlockContact()"
+          >
+            {{ unlocking() ? 'Unlocking…' : 'Unlock contact' }}
+          </button>
         }
-        @if (job.contact.hasWhatsapp) {
-          · WhatsApp: locked
-        }
-        @if (job.contact.hasEmail) {
-          · Email: locked
-        }
-      </p>
-      <p class="unlock">{{ job.contact.unlockLabel }}</p>
-      <p class="note">Unlock is handled in the mobile app / account flow. Public pages never expose raw contact data.</p>
+      }
     </section>
 
+    <div class="actions">
+      <button type="button" class="action" (click)="toggleSave()">
+        {{ saved() ? 'Unsave job' : 'Save job' }}
+      </button>
+      <button type="button" class="action action--ghost" (click)="shareJob()">Share job</button>
+    </div>
+
     @if (related().length) {
-      <section>
+      <section class="related-block">
         <h2>Related jobs</h2>
         <div class="related">
           @for (item of related(); track item.id) {
@@ -94,8 +163,18 @@
   <section class="missing">
     <h1>Job not found</h1>
     <p>{{ error() }}</p>
-    <a routerLink="/">Back to jobs</a>
+    <a routerLink="/" class="back">Back to jobs</a>
   </section>
 } @else {
-  <p class="status">Loading…</p>
+  <div class="status status--loading" role="status">
+    <span class="spinner spinner--lg" aria-hidden="true"></span>
+    <p>Loading…</p>
+  </div>
 }
+
+<app-google-sign-in-sheet
+  [open]="signInOpen()"
+  [reason]="signInReason()"
+  (openChange)="onSignInOpenChange($event)"
+  (signedIn)="onSignedIn()"
+/>

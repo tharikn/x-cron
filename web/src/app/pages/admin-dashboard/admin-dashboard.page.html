@@ -1,0 +1,143 @@
+<section class="page">
+  <p class="brand">X Cron <span>Jobs</span></p>
+  <h1>Admin dashboard</h1>
+  <p class="lead">
+    Counts for sign-ins and posts uploaded. Filter the series by day, month, or year.
+  </p>
+
+  @if (!isSignedIn() || !isAdmin()) {
+    <div class="gate">
+      <p>
+        @if (!isSignedIn()) {
+          Admins must sign in to view analytics.
+        } @else {
+          This account is not an admin. Use admin&#64;xcron.local.
+        }
+      </p>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+    </div>
+  } @else {
+    <div class="filters">
+      <label>
+        <span>View</span>
+        <select
+          [ngModel]="granularity"
+          name="granularity"
+          [disabled]="busy()"
+          (ngModelChange)="onGranularityChange($event)"
+        >
+          <option value="day">Daily</option>
+          <option value="month">Monthly</option>
+          <option value="year">Yearly</option>
+        </select>
+      </label>
+      <label>
+        <span>From</span>
+        <input [(ngModel)]="fromDate" name="fromDate" type="date" [disabled]="busy()" />
+      </label>
+      <label>
+        <span>To</span>
+        <input [(ngModel)]="toDate" name="toDate" type="date" [disabled]="busy()" />
+      </label>
+      <button type="button" class="btn" [disabled]="busy()" (click)="reload()">Apply</button>
+      <a class="link-btn" routerLink="/my-jobs">Posted jobs</a>
+    </div>
+
+    @if (data(); as dash) {
+      <div class="cards">
+        <article class="stat">
+          <p class="stat__label">Users total</p>
+          <p class="stat__value">{{ dash.summary.usersTotal }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Sign-ins (period)</p>
+          <p class="stat__value">{{ dash.summary.signInsInPeriod }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">New users (period)</p>
+          <p class="stat__value">{{ dash.summary.usersSignedUpInPeriod }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Active sessions</p>
+          <p class="stat__value">{{ dash.summary.activeSessions }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Posts uploaded (period)</p>
+          <p class="stat__value">{{ dash.summary.postsUploadedInPeriod }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Posts total</p>
+          <p class="stat__value">{{ dash.summary.postsTotal }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Published</p>
+          <p class="stat__value">{{ dash.summary.publishedJobs }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Needs review</p>
+          <p class="stat__value">{{ dash.summary.needsReview }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Draft / hidden</p>
+          <p class="stat__value">{{ dash.summary.draftJobs }} / {{ dash.summary.removedJobs }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Searches</p>
+          <p class="stat__value">{{ dash.summary.searches }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Import batches</p>
+          <p class="stat__value">{{ dash.summary.importBatches }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Contact unlocks</p>
+          <p class="stat__value">{{ dash.summary.contactUnlocks }}</p>
+        </article>
+      </div>
+
+      <section class="chart-panel">
+        <div class="chart-panel__head">
+          <h2>Posts &amp; sign-ins by {{ dash.granularity }}</h2>
+          <p>
+            {{ dash.from | date: 'mediumDate' }}
+            –
+            {{ dash.to | date: 'mediumDate' }}
+          </p>
+        </div>
+
+        @if (!dash.series.length) {
+          <p class="empty">No data in this range.</p>
+        } @else {
+          <div class="chart" role="img" [attr.aria-label]="'Posts and sign-ins chart'">
+            @for (point of dash.series; track point.bucket) {
+              <div class="chart__col">
+                <div class="chart__bars">
+                  <div
+                    class="chart__bar chart__bar--posts"
+                    [style.height]="barHeight(point.posts)"
+                    [attr.title]="'Posts: ' + point.posts"
+                  ></div>
+                  <div
+                    class="chart__bar chart__bar--signins"
+                    [style.height]="barHeight(point.signIns)"
+                    [attr.title]="'Sign-ins: ' + point.signIns"
+                  ></div>
+                </div>
+                <span class="chart__label">{{ point.bucket }}</span>
+                <span class="chart__vals">{{ point.posts }} / {{ point.signIns }}</span>
+              </div>
+            }
+          </div>
+          <div class="legend">
+            <span><i class="swatch swatch--posts"></i> Posts</span>
+            <span><i class="swatch swatch--signins"></i> Sign-ins</span>
+          </div>
+        }
+      </section>
+    }
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</section>

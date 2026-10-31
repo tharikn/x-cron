@@ -9,6 +9,7 @@ import { createHmac } from 'crypto';
 import { AuthUser } from '../auth/auth.types';
 import { JobsMemoryStore } from '../jobs/jobs.memory-store';
 import { OpsService } from '../ops/ops.service';
+import { SiteService } from '../site/site.service';
 import { PaymentsStore } from './payments.store';
 import { RazorpayStubProvider } from './providers/razorpay.stub';
 import type { Entitlement, PaymentOrder } from './payments.types';
@@ -20,6 +21,7 @@ export class PaymentsService {
   constructor(
     private readonly store: PaymentsStore,
     private readonly jobs: JobsMemoryStore,
+    private readonly site: SiteService,
     @Optional() private readonly ops?: OpsService,
   ) {}
 
@@ -95,7 +97,8 @@ export class PaymentsService {
 
     this.assertUnlockQuota();
 
-    const amountPaise = job.contact.unlockPricePaise || 500;
+    const amountPaise =
+      this.site.getUnlockPricePaise() || job.contact.unlockPricePaise || 500;
     const gateway = await this.provider.createOrder({
       amountPaise,
       currency: 'INR',
@@ -239,6 +242,7 @@ export class PaymentsService {
         phone: job.privateContact?.phone ?? null,
         email: job.privateContact?.email ?? null,
         whatsapp: job.privateContact?.whatsapp ?? null,
+        website: job.privateContact?.website ?? null,
       },
     };
   }

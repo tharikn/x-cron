@@ -1,0 +1,92 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Advertisement setup</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="lead">Admin only. Configure house ads and slot placements. Seekers never see this screen.</p>
+
+    <section class="block">
+      <div class="block__head">
+        <h2>Placements</h2>
+        <ion-button size="small" fill="outline" color="dark" (click)="reload()">Refresh</ion-button>
+      </div>
+      @for (placement of placements(); track placement.slot) {
+        <div class="card">
+          <strong>{{ placement.slot }}</strong>
+          <p>{{ placement.label }} · cap {{ placement.frequencyCapPerDay }}/day</p>
+          <ion-button size="small" fill="outline" color="dark" (click)="togglePlacement(placement)">
+            {{ placement.enabled ? 'Disable' : 'Enable' }}
+          </ion-button>
+        </div>
+      } @empty {
+        <p class="empty">No placements loaded.</p>
+      }
+    </section>
+
+    <section class="block">
+      <h2>{{ editId ? 'Edit creative' : 'New creative' }}</h2>
+      <ion-list lines="full" class="panel">
+        <ion-item>
+          <ion-select label="Slot" labelPlacement="stacked" interface="popover" [(ngModel)]="slot">
+            <ion-select-option value="discover_feed">Discover feed</ion-select-option>
+            <ion-select-option value="job_detail_footer">Job detail</ion-select-option>
+            <ion-select-option value="web_home_rail">Web home</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-select label="Kind" labelPlacement="stacked" interface="popover" [(ngModel)]="kind">
+            <ion-select-option value="house">House</ion-select-option>
+            <ion-select-option value="third_party">Third party</ion-select-option>
+            <ion-select-option value="employer_promo">Employer promo</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-input label="Advertiser" labelPlacement="stacked" [(ngModel)]="advertiser"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input label="Headline" labelPlacement="stacked" [(ngModel)]="headline"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input label="Body" labelPlacement="stacked" [(ngModel)]="body"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input label="CTA label" labelPlacement="stacked" [(ngModel)]="ctaLabel"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input label="Target URL" labelPlacement="stacked" [(ngModel)]="targetUrl"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input
+            type="number"
+            label="Priority"
+            labelPlacement="stacked"
+            [(ngModel)]="priority"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-toggle [(ngModel)]="active">Active</ion-toggle>
+        </ion-item>
+      </ion-list>
+      <ion-button expand="block" color="dark" (click)="saveCreative()">Save creative</ion-button>
+      @if (editId) {
+        <ion-button expand="block" fill="clear" color="dark" (click)="resetForm()">Cancel edit</ion-button>
+      }
+    </section>
+
+    <section class="block">
+      <h2>Existing creatives</h2>
+      @for (creative of creatives(); track creative.id) {
+        <div class="card">
+          <strong>{{ creative.headline }}</strong>
+          <p>{{ creative.slot }} · {{ creative.advertiser }} · {{ creative.active ? 'active' : 'off' }}</p>
+          <ion-button size="small" fill="outline" color="dark" (click)="edit(creative)">Edit</ion-button>
+        </div>
+      } @empty {
+        <p class="empty">No creatives yet.</p>
+      }
+    </section>
+  </div>
+</ion-content>

@@ -8,6 +8,7 @@ import { JobsMemoryStore } from '../jobs/jobs.memory-store';
 import { toPublicJob } from '../jobs/jobs.mapper';
 import { AdsService } from '../ads/ads.service';
 import { PreferencesService } from '../preferences/preferences.service';
+import { SiteService } from '../site/site.service';
 import { SeekerStore } from './seeker.store';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class SeekerService {
     private readonly store: SeekerStore,
     private readonly jobs: JobsMemoryStore,
     private readonly preferences: PreferencesService,
+    private readonly site: SiteService,
     @Optional() private readonly ads?: AdsService,
   ) {}
 
@@ -26,7 +28,11 @@ export class SeekerService {
       .map((id) => this.jobs.findById(id))
       .filter((job): job is NonNullable<typeof job> => !!job && job.status === 'published')
       .map((job) => ({
-        ...toPublicJob(job, boosts.get(job.id) ?? null),
+        ...toPublicJob(
+          job,
+          boosts.get(job.id) ?? null,
+          this.site.getUnlockPricePaise(),
+        ),
         saved: true,
       }));
     return { items };
@@ -104,7 +110,11 @@ export class SeekerService {
         remotePreferred: prefs.remotePreferred,
       },
       items: items.slice(0, 30).map((job) => ({
-        ...toPublicJob(job, boosts.get(job.id) ?? null),
+        ...toPublicJob(
+          job,
+          boosts.get(job.id) ?? null,
+          this.site.getUnlockPricePaise(),
+        ),
         saved: saved.has(job.id),
       })),
     };

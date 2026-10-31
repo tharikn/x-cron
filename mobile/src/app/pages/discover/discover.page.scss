@@ -1,37 +1,98 @@
 .page {
-  padding: 12px 12px 24px;
+  padding: 8px 16px 32px;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
 }
 
 .brand {
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-family: var(--xcron-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .brand-sub {
   display: block;
-  font-size: 0.7rem;
-  font-weight: 400;
-  letter-spacing: 0.12em;
+  font-family: var(--xcron-sans);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.hero {
+  position: relative;
+  padding: 12px 0 18px;
+  margin-bottom: 4px;
+}
+
+.hero__brand {
+  margin: 0;
+  font-family: var(--xcron-display);
+  font-size: clamp(2.4rem, 10vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+}
+
+.hero__jobs {
+  margin: 0.45rem 0 1rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--xcron-muted);
+}
+
+.hero h1 {
+  margin: 0 0 0.55rem;
+  font-family: var(--xcron-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  max-width: 16ch;
 }
 
 .lead {
-  margin: 4px 0 12px;
-  color: #333;
+  margin: 0;
+  color: var(--xcron-ink-soft);
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.search-panel {
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-lg);
+  box-shadow: var(--xcron-shadow);
+  padding: 12px;
+  margin: 8px 0 14px;
+}
+
+.search-panel ion-searchbar {
+  margin-bottom: 8px;
 }
 
 .pref-summary,
 .pref-prompt {
-  border: 1px solid var(--xcron-border);
-  padding: 12px;
+  border: 1px solid var(--xcron-line);
+  padding: 12px 14px;
   margin-bottom: 12px;
-  background: #fff;
+  background: var(--xcron-bg-elevated);
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
 }
 
 .pref-summary {
   display: flex;
   gap: 8px;
   align-items: center;
+  color: var(--xcron-ink-soft);
+}
+
+.pref-prompt p {
+  margin: 0 0 10px;
+  color: var(--xcron-ink-soft);
 }
 
 .pref-prompt__actions {
@@ -40,20 +101,37 @@
 }
 
 .filters {
-  margin-bottom: 8px;
-  border: 1px solid var(--xcron-border);
+  margin: 4px 0 0;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  border-radius: var(--xcron-radius-sm);
+  overflow: hidden;
+}
+
+.filters ion-item {
+  --min-height: 52px;
+  --background: transparent;
+}
+
+@media (min-width: 420px) {
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .results-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 8px 0 12px;
+  margin: 14px 0 12px;
 }
 
 .results-head h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-family: var(--xcron-display);
+  font-size: 1.2rem;
+  letter-spacing: -0.03em;
 }
 
 .results-head__right {
@@ -62,34 +140,72 @@
   gap: 8px;
 }
 
+.count {
+  min-width: 2rem;
+  height: 2rem;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .source {
-  margin: 0 0 8px;
-  font-size: 0.85rem;
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+  font-weight: 600;
+}
+
+.job-list {
+  display: grid;
+  gap: 0.55rem;
 }
 
 .empty {
-  color: #555;
-  border: 1px dashed var(--xcron-border);
-  padding: 16px;
+  color: var(--xcron-muted);
+  border: 1px dashed var(--xcron-line-strong);
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: var(--xcron-radius);
+}
+
+.status--loading {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  padding: 1.25rem 0;
+  color: var(--xcron-muted);
+}
+
+.status--loading p {
+  margin: 0;
 }
 
 .ad-slot {
-  border: 1px dashed #666;
-  padding: 12px;
+  border: 1px dashed var(--xcron-line-strong);
+  padding: 14px;
   margin: 12px 0;
-  background: #f7f7f7;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: var(--xcron-radius);
 }
 
 .ad-slot__label {
   margin: 0;
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #555;
+  color: var(--xcron-muted);
+  font-weight: 700;
 }
 
 .ad-slot__advertiser {
   margin: 4px 0;
   font-size: 0.85rem;
-  color: #333;
+  color: var(--xcron-muted);
 }

@@ -1,33 +1,111 @@
+:host {
+  --i: 0;
+  display: block;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 118px;
+  animation: xcron-rise 360ms var(--xcron-ease) both;
+  animation-delay: calc(40ms + (var(--i) * 24ms));
+}
+
 .job-card {
-  margin: 0 0 12px;
-  border: 1px solid var(--xcron-border);
-  box-shadow: none;
-  border-radius: 0;
+  margin: 0;
+  border: 1px solid var(--xcron-line);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03), 0 6px 16px rgba(0, 0, 0, 0.04);
+  border-radius: var(--xcron-radius-sm);
+  background: var(--xcron-bg-elevated);
+  transition:
+    transform 160ms var(--xcron-ease),
+    box-shadow 160ms var(--xcron-ease),
+    border-color 160ms var(--xcron-ease);
+}
+
+.job-card:hover,
+.job-card:focus-within {
+  transform: translateY(-2px);
+  box-shadow: var(--xcron-shadow-hover);
+  border-color: var(--xcron-line-strong);
+}
+
+.job-card:hover .job-card__cta {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+ion-card-header {
+  padding: 12px 14px 4px;
+}
+
+ion-card-content {
+  padding: 0 14px 12px;
+}
+
+ion-card-title {
+  font-size: 1.02rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+ion-card-subtitle {
+  font-size: 0.88rem;
+  margin-top: 2px;
 }
 
 .job-card__meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  gap: 8px;
 }
 
 .job-card__badges {
   display: flex;
   gap: 6px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
-.job-card__line,
-.job-card__about {
-  margin: 0 0 6px;
-  color: var(--ion-color-dark);
+.verified {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+  border: 1px solid var(--xcron-line-strong);
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+  vertical-align: middle;
 }
 
-.job-card__about {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  color: #444;
+.job-card__line {
+  margin: 0;
+  color: var(--xcron-muted);
+  font-size: 0.84rem;
+  line-height: 1.35;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.3rem;
+  align-items: baseline;
+}
+
+.job-card__sep {
+  color: var(--xcron-faint);
+}
+
+.job-card__cta {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--xcron-ink);
+  opacity: 0.45;
+  transform: translateX(-3px);
+  transition:
+    opacity 160ms var(--xcron-ease),
+    transform 160ms var(--xcron-ease);
 }

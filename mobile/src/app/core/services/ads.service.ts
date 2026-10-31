@@ -97,4 +97,83 @@ export class AdsService {
       ),
     );
   }
+
+  async adminListCreatives() {
+    return firstValueFrom(
+      this.http.get<{ items: AdminCreative[] }>(
+        `${environment.apiUrl}/admin/ads/creatives`,
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+  }
+
+  async adminUpsertCreative(body: UpsertCreativeInput) {
+    return firstValueFrom(
+      this.http.post(
+        `${environment.apiUrl}/admin/ads/creatives`,
+        body,
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+  }
+
+  async adminListPlacements() {
+    return firstValueFrom(
+      this.http.get<{ items: AdminPlacement[] }>(
+        `${environment.apiUrl}/admin/ads/placements`,
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+  }
+
+  async adminUpsertPlacement(slot: string, body: UpsertPlacementInput) {
+    return firstValueFrom(
+      this.http.put(
+        `${environment.apiUrl}/admin/ads/placements/${slot}`,
+        body,
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+  }
+}
+
+export interface AdminCreative {
+  id: string;
+  slot: string;
+  kind: string;
+  advertiser: string;
+  headline: string;
+  body: string;
+  ctaLabel: string;
+  targetUrl: string;
+  active: boolean;
+  priority: number;
+}
+
+export interface AdminPlacement {
+  slot: string;
+  enabled: boolean;
+  maxPerSession: number;
+  frequencyCapPerDay: number;
+  label: string;
+}
+
+export interface UpsertCreativeInput {
+  id?: string;
+  slot: 'discover_feed' | 'job_detail_footer' | 'web_home_rail';
+  kind: 'house' | 'third_party' | 'employer_promo';
+  advertiser: string;
+  headline: string;
+  body: string;
+  ctaLabel: string;
+  targetUrl: string;
+  active: boolean;
+  priority: number;
+}
+
+export interface UpsertPlacementInput {
+  enabled: boolean;
+  maxPerSession: number;
+  frequencyCapPerDay: number;
+  label: string;
 }

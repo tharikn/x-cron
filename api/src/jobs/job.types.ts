@@ -36,6 +36,7 @@ export interface JobContactMask {
   hasPhone: boolean;
   hasEmail: boolean;
   hasWhatsapp: boolean;
+  hasWebsite: boolean;
   unlockPricePaise: number;
 }
 
@@ -63,7 +64,11 @@ export interface JobRecord {
   skills?: string[];
   category: string;
   publishedAt: string;
+  /** Public listing starts at this instant (ISO). */
+  effectiveFrom: string;
   expiresAt: string;
+  /** Higher values sort first in public search. */
+  priority: number;
   status: JobStatus;
   contact: JobContactMask;
   reportCount?: number;
@@ -73,6 +78,8 @@ export interface JobRecord {
     phone?: string;
     email?: string;
     whatsapp?: string;
+    /** Apply / careers website URL */
+    website?: string;
   };
 }
 
@@ -105,6 +112,7 @@ export interface CreateJobInput {
   contentLanguage: string;
   contactPhone?: string;
   contactEmail?: string;
+  contactWebsite?: string;
   category?: string;
   experienceLabel?: string;
   vacancies?: number;
@@ -113,4 +121,7 @@ export interface CreateJobInput {
   employerId?: string;
   ownerUserId?: string;
   status?: JobStatus;
+  effectiveFrom?: string;
+  expiresAt?: string;
+  priority?: number;
 }

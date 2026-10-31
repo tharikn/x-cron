@@ -1,30 +1,83 @@
 .page {
-  padding: 1.5rem 0 3rem;
+  padding: 1.75rem 0 3rem;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
 }
 
 .crumb {
-  color: #555;
+  color: var(--xcron-muted);
+  font-size: 0.88rem;
+  margin: 0 0 1rem;
+}
+
+.crumb span {
+  margin: 0 0.35rem;
+  color: var(--xcron-faint);
 }
 
 .crumb a {
   color: inherit;
+  text-decoration: none;
+}
+
+.crumb a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+h1 {
+  margin: 0 0 0.45rem;
+  font-family: var(--xcron-font-display);
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  letter-spacing: -0.045em;
+  line-height: 1.1;
 }
 
 .lead {
-  color: #333;
+  margin: 0;
+  color: var(--xcron-muted);
+  max-width: 36rem;
 }
 
 .list {
   display: grid;
   gap: 0.75rem;
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
 }
 
 .list a {
+  --i: 0;
   display: grid;
-  gap: 0.2rem;
-  border: 1px solid #d9d9d9;
-  padding: 0.9rem 1rem;
+  gap: 0.25rem;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+  padding: 1rem 1.1rem;
   text-decoration: none;
   color: inherit;
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+  transition:
+    transform 180ms var(--xcron-ease),
+    box-shadow 180ms var(--xcron-ease);
+  animation: xcron-rise 420ms var(--xcron-ease) both;
+  animation-delay: calc(80ms + (var(--i) * 40ms));
+}
+
+.list a:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--xcron-shadow-hover);
+}
+
+.list strong {
+  font-family: var(--xcron-font-display);
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+
+.list span {
+  color: var(--xcron-muted);
+  font-size: 0.92rem;
+}
+
+.empty {
+  color: var(--xcron-muted);
 }

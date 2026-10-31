@@ -7,14 +7,16 @@
 <ion-content>
   <div class="page">
     <p class="lead">
-      Mobile-first posting for non-technical employers. Use a quick form or paste a message.
-      Uploaded contacts stay private by default. New posts go to moderation before search.
+      Admin-only posting. Use a quick form, paste a message, or bulk import.
+      Contacts stay private by default. New posts go to moderation before search.
     </p>
 
     @if (!isSignedIn()) {
       <div class="auth-gate">
-        <p>Employers must sign in with OTP before posting.</p>
-        <ion-button expand="block" color="dark" routerLink="/tabs/account">Go to Account</ion-button>
+        <p>Admins must sign in with the admin email and password before posting.</p>
+        <ion-button expand="block" color="dark" routerLink="/tabs/account" [queryParams]="{ mode: 'admin' }">
+          Go to admin sign in
+        </ion-button>
       </div>
     }
 
@@ -45,12 +47,12 @@
             [(ngModel)]="employerName"
           ></ion-input>
         </ion-item>
-        <ion-item>
-          <ion-input
-            label="Location (city)"
-            labelPlacement="stacked"
-            [(ngModel)]="locationCity"
-          ></ion-input>
+        <ion-item lines="none" class="loc-item">
+          <ion-label position="stacked">Location (city)</ion-label>
+          <app-location-typeahead
+            [(value)]="locationCity"
+            placeholder="City or district"
+          />
         </ion-item>
         <ion-item>
           <ion-select
@@ -74,13 +76,14 @@
         </ion-item>
         <ion-item>
           <ion-select
-            label="Content language"
+            [label]="'post.contentLanguage' | t"
             labelPlacement="stacked"
             interface="popover"
             [(ngModel)]="contentLanguage"
           >
-            <ion-select-option value="en">English</ion-select-option>
-            <ion-select-option value="ta">Tamil</ion-select-option>
+            @for (lang of languages(); track lang.code) {
+              <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
+            }
           </ion-select>
         </ion-item>
         <ion-item>
@@ -99,19 +102,37 @@
             [(ngModel)]="contactPhone"
           ></ion-input>
         </ion-item>
+        <ion-item>
+          <ion-input
+            label="HR email"
+            labelPlacement="stacked"
+            type="email"
+            [(ngModel)]="contactEmail"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input
+            label="Website to apply"
+            labelPlacement="stacked"
+            type="url"
+            placeholder="https://"
+            [(ngModel)]="contactWebsite"
+          ></ion-input>
+        </ion-item>
       </ion-list>
       <ion-button expand="block" color="dark" (click)="submitQuick()">Submit job</ion-button>
     } @else {
       <ion-list lines="full" class="form">
         <ion-item>
           <ion-select
-            label="Content language"
+            [label]="'post.contentLanguage' | t"
             labelPlacement="stacked"
             interface="popover"
             [(ngModel)]="contentLanguage"
           >
-            <ion-select-option value="en">English</ion-select-option>
-            <ion-select-option value="ta">Tamil</ion-select-option>
+            @for (lang of languages(); track lang.code) {
+              <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
+            }
           </ion-select>
         </ion-item>
         <ion-item>

@@ -20,6 +20,7 @@ import type { Job } from '../../core/models/job.model';
 import { AdsService, type AdCreative } from '../../core/services/ads.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
+import { LocaleService } from '../../core/services/locale.service';
 import { PaymentsService } from '../../core/services/payments.service';
 import { SeekerService } from '../../core/services/seeker.service';
 import {
@@ -28,9 +29,14 @@ import {
   formatPostedDate,
   formatSalary,
   formatUnlockPrice,
-  languageLabel,
 } from '../../core/utils/format';
 import { JobCardComponent } from '../../shared/job-card/job-card.component';
+import {
+  GoogleSignInSheetComponent,
+  type GoogleSignInReason,
+} from '../../shared/google-sign-in-sheet/google-sign-in-sheet.component';
+
+type PendingAction = 'unlock' | 'save' | 'share';
 
 @Component({
   selector: 'app-job-detail',
@@ -51,6 +57,7 @@ import { JobCardComponent } from '../../shared/job-card/job-card.component';
     IonLabel,
     IonNote,
     JobCardComponent,
+    GoogleSignInSheetComponent,
   ],
 })
 export class JobDetailPage implements OnInit {
@@ -62,24 +69,31 @@ export class JobDetailPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
+  private readonly locale = inject(LocaleService);
 
   readonly job = signal<Job | undefined>(undefined);
   readonly related = signal<Job[]>([]);
   readonly footerAd = signal<AdCreative | null>(null);
   readonly unlocking = signal(false);
   readonly saved = signal(false);
+  readonly priceRevealed = signal(false);
+  readonly signInOpen = signal(false);
+  readonly signInReason = signal<GoogleSignInReason>('generic');
   readonly revealed = signal<{
     phone: string | null;
     email: string | null;
     whatsapp: string | null;
+    website: string | null;
   } | null>(null);
+
+  private pendingAction: PendingAction | null = null;
 
   readonly formatLocation = formatLocation;
   readonly formatSalary = formatSalary;
   readonly formatJobType = formatJobType;
   readonly formatPostedDate = formatPostedDate;
   readonly formatUnlockPrice = formatUnlockPrice;
-  readonly languageLabel = languageLabel;
+  readonly languageLabel = (code: string) => this.locale.label(code);
 
   async ngOnInit(): Promise<void> {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
@@ -100,11 +114,34 @@ export class JobDetailPage implements OnInit {
     }
   }
 
+  onSignInOpenChange(open: boolean): void {
+    this.signInOpen.set(open);
+    if (!open) this.pendingAction = null;
+  }
+
+  async onSignedIn(): Promise<void> {
+    const action = this.pendingAction;
+    this.pendingAction = null;
+    const job = this.job();
+    if (job) {
+      await this.tryLoadEntitledContact(job.id);
+      try {
+        const saved = await this.seeker.loadSaved();
+        this.saved.set(saved.some((item) => item.id === job.id));
+      } catch {
+        /* ignore */
+      }
+    }
+    if (action === 'unlock') await this.unlockContact();
+    else if (action === 'save') await this.toggleSave();
+    else if (action === 'share') await this.shareJob();
+  }
+
   async toggleSave(): Promise<void> {
     const job = this.job();
     if (!job) return;
     if (!this.auth.isSignedIn()) {
-      await this.showToast('Sign in to save jobs.');
+      this.openSignIn('save');
       return;
     }
     try {
@@ -128,6 +165,10 @@ export class JobDetailPage implements OnInit {
     await this.ads.recordEvent(ad.id, 'job_detail_footer', 'click');
   }
 
+  revealPrice(): void {
+    this.priceRevealed.set(true);
+  }
+
   async unlockContact(): Promise<void> {
     const job = this.job();
     if (!job || this.unlocking()) {
@@ -135,12 +176,7 @@ export class JobDetailPage implements OnInit {
     }
 
     if (!this.auth.isSignedIn()) {
-      const toast = await this.toastController.create({
-        message: 'Sign in to unlock employer contact.',
-        duration: 2500,
-        color: 'dark',
-      });
-      await toast.present();
+      this.openSignIn('unlock');
       return;
     }
 
@@ -166,18 +202,17 @@ export class JobDetailPage implements OnInit {
     if (!job) {
       return;
     }
+    if (!this.auth.isSignedIn()) {
+      this.openSignIn('share');
+      return;
+    }
     const url = `https://xcron.jobs/jobs/${job.slug}`;
     if (navigator.share) {
       await navigator.share({ title: job.title, text: `${job.title} at ${job.employerName}`, url });
       return;
     }
     await navigator.clipboard.writeText(url);
-    const toast = await this.toastController.create({
-      message: 'Share link copied.',
-      duration: 1800,
-      color: 'dark',
-    });
-    await toast.present();
+    await this.showToast('Share link copied.');
   }
 
   async reportJob(): Promise<void> {
@@ -185,20 +220,16 @@ export class JobDetailPage implements OnInit {
     if (!job) return;
     try {
       await this.jobsService.reportJob(job.id, 'Reported as suspicious or incorrect from mobile app');
-      const toast = await this.toastController.create({
-        message: 'Report submitted for moderation.',
-        duration: 2000,
-        color: 'dark',
-      });
-      await toast.present();
+      await this.showToast('Report submitted for moderation.');
     } catch {
-      const toast = await this.toastController.create({
-        message: 'Could not submit report.',
-        duration: 2000,
-        color: 'dark',
-      });
-      await toast.present();
+      await this.showToast('Could not submit report.');
     }
+  }
+
+  private openSignIn(action: PendingAction): void {
+    this.pendingAction = action;
+    this.signInReason.set(action);
+    this.signInOpen.set(true);
   }
 
   private async tryLoadEntitledContact(jobId: string): Promise<void> {

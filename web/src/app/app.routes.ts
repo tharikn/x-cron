@@ -1,9 +1,63 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/home/home.page').then((m) => m.HomePage),
+  },
+  {
+    path: 'preferences',
+    loadComponent: () =>
+      import('./pages/preferences/preferences.page').then((m) => m.PreferencesPage),
+  },
+  {
+    path: 'language',
+    loadComponent: () =>
+      import('./pages/language/language.page').then((m) => m.LanguagePage),
+  },
+  {
+    path: 'sign-in',
+    loadComponent: () =>
+      import('./pages/sign-in/sign-in.page').then((m) => m.SignInPage),
+  },
+  {
+    path: 'post',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/post-job/post-job.page').then((m) => m.PostJobPage),
+  },
+  {
+    path: 'import',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/import-batch/import-batch.page').then((m) => m.ImportBatchPage),
+  },
+  {
+    path: 'my-jobs',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/my-jobs/my-jobs.page').then((m) => m.MyJobsPage),
+  },
+  {
+    path: 'admin',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/admin-dashboard/admin-dashboard.page').then(
+        (m) => m.AdminDashboardPage,
+      ),
+  },
+  {
+    path: 'blog-approval',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/blog-approval/blog-approval.page').then((m) => m.BlogApprovalPage),
+  },
+  {
+    path: 'settings',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/settings/settings.page').then((m) => m.SettingsPage),
   },
   {
     path: 'locations/:state/:city',

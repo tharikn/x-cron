@@ -143,7 +143,7 @@ export class ImportBatchPage implements OnInit {
       const batch = await this.ensureBatch('image');
       this.batch.set(await this.ingestion.uploadFile(batch.id, file, 'image'));
       await this.refreshRecords();
-      await this.showToast('Image uploaded. OCR stub created a review record.');
+      await this.showToast('Image uploaded. Local OCR created a review record.');
     } catch {
       await this.showToast('Camera unavailable here. Use file picker for an image.');
     } finally {

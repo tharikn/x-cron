@@ -1,6 +1,23 @@
 ion-tab-bar {
-  border-top: 1px solid var(--xcron-border);
-  --background: #ffffff;
-  --color: #000000;
-  --color-selected: #000000;
+  border-top: 1px solid var(--xcron-line);
+  --background: rgba(255, 255, 255, 0.94);
+  --color: var(--xcron-muted);
+  --color-selected: var(--xcron-ink);
+  height: 60px;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+ion-tab-button {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+ion-tab-button.tab-selected {
+  font-weight: 700;
+}
+
+ion-icon {
+  font-size: 22px;
+  margin-bottom: 2px;
 }

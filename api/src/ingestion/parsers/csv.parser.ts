@@ -42,6 +42,12 @@ export class CsvParser implements DocumentParser {
         row['description'] || row['duties'] || row['about'] || 'Not provided';
       const phone = row['phone'] || row['contactphone'] || row['contact_phone'];
       const email = row['email'] || row['contactemail'] || row['contact_email'];
+      const website =
+        row['website'] ||
+        row['applyurl'] ||
+        row['apply_url'] ||
+        row['contactwebsite'] ||
+        row['contact_website'];
 
       const missingRequired = !row['title'] || !description || description === 'Not provided';
       return {
@@ -54,6 +60,7 @@ export class CsvParser implements DocumentParser {
         contentLanguage: row['language'] || row['contentlanguage'] || 'en',
         contactPhone: phone,
         contactEmail: email,
+        contactWebsite: website,
         confidence: missingRequired ? 0.4 : 0.85,
         sourceLocator: `${input.filename}#row-${index + 2}`,
         notes: missingRequired

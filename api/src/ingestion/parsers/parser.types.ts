@@ -18,6 +18,7 @@ export interface ExtractedJobDraft {
   contentLanguage?: string;
   contactPhone?: string;
   contactEmail?: string;
+  contactWebsite?: string;
   confidence: number;
   sourceLocator: string;
   notes?: string[];
@@ -36,6 +37,8 @@ export interface ParseResult {
   sourceType: SourceType;
   drafts: ExtractedJobDraft[];
   warnings: string[];
+  /** OCR pages counted toward OCR_MONTHLY_PAGE_CAP when present. */
+  pagesProcessed?: number;
 }
 
 export interface DocumentParser {

@@ -1,0 +1,58 @@
+:host {
+  display: contents;
+}
+
+.api-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  background: rgba(244, 244, 242, 0.58);
+  cursor: wait;
+  touch-action: none;
+  user-select: none;
+}
+
+.api-loading__brand {
+  text-align: center;
+  animation: api-loading-pulse 1.15s var(--xcron-ease) infinite;
+}
+
+.api-loading__name {
+  margin: 0;
+  font-family: var(--xcron-display);
+  font-size: clamp(2.2rem, 9vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+  color: var(--xcron-ink);
+}
+
+.api-loading__jobs {
+  margin: 0.45rem 0 0;
+  font-family: var(--xcron-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+@keyframes api-loading-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .api-loading__brand {
+    animation: none;
+  }
+}

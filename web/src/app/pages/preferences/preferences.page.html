@@ -1,0 +1,24 @@
+<section class="page">
+  <h1>Preferences</h1>
+  <p class="lead">Stored on this device. Sign in with Google to sync across phones.</p>
+
+  <form class="form" (ngSubmit)="save()">
+    <label>
+      <span>Preferred locations</span>
+      <input [(ngModel)]="locationsText" name="locations" placeholder="Palani, Coimbatore" />
+    </label>
+    <label>
+      <span>Categories</span>
+      <input [(ngModel)]="categoriesText" name="categories" placeholder="Retail, Delivery" />
+    </label>
+    <label class="check">
+      <input type="checkbox" [(ngModel)]="notifyEmail" name="notifyEmail" />
+      <span>Email me when matching jobs appear</span>
+    </label>
+    <button type="submit">Save preferences</button>
+  </form>
+
+  @if (saved) {
+    <p class="ok">Preferences saved.</p>
+  }
+</section>

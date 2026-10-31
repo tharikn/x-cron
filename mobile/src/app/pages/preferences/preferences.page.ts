@@ -6,6 +6,7 @@ import {
   IonHeader,
   IonInput,
   IonItem,
+  IonLabel,
   IonList,
   IonNote,
   IonSelect,
@@ -17,9 +18,12 @@ import {
 } from '@ionic/angular';
 import type { JobType } from '../../core/models/job.model';
 import { JOB_TYPE_LABELS } from '../../core/models/job.model';
+import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AuthService } from '../../core/services/auth.service';
+import { LocaleService } from '../../core/services/locale.service';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { PreferencesService } from '../../core/services/preferences.service';
+import { LocationTypeaheadComponent } from '../../shared/location-typeahead/location-typeahead.component';
 
 @Component({
   selector: 'app-preferences',
@@ -34,11 +38,14 @@ import { PreferencesService } from '../../core/services/preferences.service';
     IonList,
     IonItem,
     IonInput,
+    IonLabel,
     IonSelect,
     IonSelectOption,
     IonToggle,
     IonButton,
     IonNote,
+    LocationTypeaheadComponent,
+    TranslatePipe,
   ],
 })
 export class PreferencesPage implements OnInit {
@@ -46,12 +53,14 @@ export class PreferencesPage implements OnInit {
   private readonly notifications = inject(NotificationsService);
   private readonly auth = inject(AuthService);
   private readonly toastController = inject(ToastController);
+  private readonly locale = inject(LocaleService);
 
   readonly jobTypeEntries = Object.entries(JOB_TYPE_LABELS) as Array<[JobType, string]>;
   readonly syncScope = this.preferencesService.syncScope;
   readonly isSignedIn = this.auth.isSignedIn;
   readonly notifPrefs = this.notifications.prefs;
   readonly deviceRegistered = this.notifications.deviceRegistered;
+  readonly languages = this.locale.languages;
 
   location = this.preferencesService.preferences().locations[0] ?? 'Palani';
   jobType: JobType | '' = this.preferencesService.preferences().jobTypes[0] ?? '';
@@ -62,13 +71,17 @@ export class PreferencesPage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.preferencesService.hydrate();
+    if (!this.locale.ready()) {
+      await this.locale.hydrate(this.preferencesService.preferences().interfaceLocale);
+    }
     const prefs = this.preferencesService.preferences();
     this.location = prefs.locations[0] ?? '';
     this.jobType = prefs.jobTypes[0] ?? '';
     this.language = prefs.languages[0] ?? 'en';
     this.salaryMin = prefs.salaryMin ?? null;
     this.remotePreferred = prefs.remotePreferred;
-    this.interfaceLocale = prefs.interfaceLocale;
+    this.interfaceLocale = prefs.interfaceLocale || this.locale.language();
+    this.locale.setLanguage(this.interfaceLocale);
     await this.notifications.registerDevice();
     if (this.auth.isSignedIn()) {
       try {
@@ -79,8 +92,14 @@ export class PreferencesPage implements OnInit {
     }
   }
 
+  onAppLanguage(code: string): void {
+    this.interfaceLocale = code;
+    this.locale.setLanguage(code);
+  }
+
   async save(): Promise<void> {
     try {
+      this.locale.setLanguage(this.interfaceLocale);
       await this.preferencesService.save({
         locations: this.location.trim() ? [this.location.trim()] : [],
         jobTypes: this.jobType ? [this.jobType] : [],
@@ -110,6 +129,7 @@ export class PreferencesPage implements OnInit {
     this.salaryMin = null;
     this.remotePreferred = false;
     this.interfaceLocale = 'en';
+    this.locale.setLanguage('en');
     await this.showToast('Preferences cleared.');
   }
 

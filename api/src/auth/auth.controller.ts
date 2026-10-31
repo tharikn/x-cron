@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AccessToken, CurrentUser, Public, Roles } from './decorators';
 import {
+  AdminLoginDto,
   CreateEmployerDto,
   GoogleAuthDto,
   StartOtpDto,
@@ -28,7 +29,13 @@ export class AuthController {
   @Public()
   @Post('google')
   google(@Body() dto: GoogleAuthDto) {
-    return this.authService.googleStub(dto);
+    return this.authService.google(dto);
+  }
+
+  @Public()
+  @Post('admin/login')
+  adminLogin(@Body() dto: AdminLoginDto) {
+    return this.authService.adminLogin(dto);
   }
 
   @Get('me')

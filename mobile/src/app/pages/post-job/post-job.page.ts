@@ -20,9 +20,12 @@ import {
 } from '@ionic/angular';
 import type { JobType } from '../../core/models/job.model';
 import { JOB_TYPE_LABELS } from '../../core/models/job.model';
+import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AdsService } from '../../core/services/ads.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
+import { LocaleService } from '../../core/services/locale.service';
+import { LocationTypeaheadComponent } from '../../shared/location-typeahead/location-typeahead.component';
 
 type PostMode = 'quick' | 'paste';
 
@@ -47,6 +50,8 @@ type PostMode = 'quick' | 'paste';
     IonSelect,
     IonSelectOption,
     IonButton,
+    LocationTypeaheadComponent,
+    TranslatePipe,
   ],
 })
 export class PostJobPage implements OnInit {
@@ -55,11 +60,13 @@ export class PostJobPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toastController = inject(ToastController);
+  private readonly locale = inject(LocaleService);
 
   readonly mode = signal<PostMode>('quick');
   readonly isSignedIn = this.auth.isSignedIn;
   readonly employer = this.auth.employer;
   readonly packages = this.ads.packages;
+  readonly languages = this.locale.languages;
   readonly jobTypeEntries = Object.entries(JOB_TYPE_LABELS) as Array<[JobType, string]>;
 
   title = '';
@@ -70,11 +77,16 @@ export class PostJobPage implements OnInit {
   description = '';
   contentLanguage = 'en';
   contactPhone = '';
+  contactEmail = '';
+  contactWebsite = '';
   pasteText = '';
   promoteJobId = 'job_001';
   promotePackageId = 'featured_7d';
 
   async ngOnInit(): Promise<void> {
+    if (!this.locale.ready()) {
+      await this.locale.hydrate();
+    }
     try {
       await this.ads.loadPackages();
     } catch {
@@ -105,6 +117,8 @@ export class PostJobPage implements OnInit {
         description: this.description,
         contentLanguage: this.contentLanguage,
         contactPhone: this.contactPhone,
+        contactEmail: this.contactEmail.trim() || undefined,
+        contactWebsite: this.contactWebsite.trim() || undefined,
       });
       await this.showToast('Submitted for moderation. Admins must approve before it appears in search.');
       await this.router.navigate(['/tabs/account']);

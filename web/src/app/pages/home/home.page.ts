@@ -1,9 +1,21 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { LocationTypeaheadComponent } from '../../core/components/location-typeahead/location-typeahead.component';
 import type { Job } from '../../core/models/job.model';
+import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AdsService, type AdCreative } from '../../core/services/ads.service';
 import { JobsService } from '../../core/services/jobs.service';
+import { LocaleService } from '../../core/services/locale.service';
 import { SeoService } from '../../core/services/seo.service';
 import {
   formatJobType,
@@ -13,20 +25,39 @@ import {
   jobPath,
 } from '../../core/utils/format';
 
+const PAGE_SIZE = 8;
+
 @Component({
   selector: 'app-home',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TranslatePipe, LocationTypeaheadComponent],
   templateUrl: './home.page.html',
   styleUrl: './home.page.scss',
 })
-export class HomePage implements OnInit {
+export class HomePage implements OnInit, OnDestroy {
   private readonly jobsService = inject(JobsService);
   private readonly ads = inject(AdsService);
   private readonly seo = inject(SeoService);
+  private readonly locale = inject(LocaleService);
+
+  private readonly loadMoreSentinel =
+    viewChild<ElementRef<HTMLElement>>('loadMoreSentinel');
+  private readonly observer =
+    typeof IntersectionObserver === 'undefined'
+      ? null
+      : new IntersectionObserver(
+          (entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+              void this.loadMore();
+            }
+          },
+          { root: null, rootMargin: '240px 0px', threshold: 0 },
+        );
 
   readonly jobs = signal<Job[]>([]);
+  readonly nextCursor = signal<string | undefined>(undefined);
   readonly railAds = signal<AdCreative[]>([]);
   readonly loading = signal(true);
+  readonly loadingMore = signal(false);
   readonly error = signal<string | null>(null);
 
   keyword = '';
@@ -38,10 +69,22 @@ export class HomePage implements OnInit {
   readonly formatJobType = formatJobType;
   readonly formatPostedDate = formatPostedDate;
   readonly jobPath = jobPath;
+  readonly languageLabel = (code: string) => this.locale.label(code);
+  readonly staggerIndex = (index: number) => index % PAGE_SIZE;
+
+  constructor() {
+    effect(() => {
+      const el = this.loadMoreSentinel()?.nativeElement;
+      this.observer?.disconnect();
+      if (el && this.nextCursor()) {
+        this.observer?.observe(el);
+      }
+    });
+  }
 
   async ngOnInit(): Promise<void> {
     this.seo.setPage({
-      title: 'Local jobs near you',
+      title: 'X Cron',
       description:
         'X Cron Jobs — local-first, multilingual job discovery for India. Browse without signing in.',
       path: '/',
@@ -50,21 +93,52 @@ export class HomePage implements OnInit {
     await this.search();
   }
 
+  ngOnDestroy(): void {
+    this.observer?.disconnect();
+  }
+
   async search(): Promise<void> {
     this.loading.set(true);
+    this.loadingMore.set(false);
     this.error.set(null);
+    this.nextCursor.set(undefined);
     try {
-      const items = await this.jobsService.search({
+      const res = await this.jobsService.search({
         keyword: this.keyword.trim() || undefined,
         location: this.location.trim() || undefined,
         sort: this.sort,
+        limit: PAGE_SIZE,
       });
-      this.jobs.set(items);
+      this.jobs.set(res.items);
+      this.nextCursor.set(res.nextCursor);
     } catch {
-      this.error.set('Could not load jobs. Start the API on port 3000.');
+      this.error.set('maintenance');
       this.jobs.set([]);
+      this.nextCursor.set(undefined);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async loadMore(): Promise<void> {
+    const cursor = this.nextCursor();
+    if (!cursor || this.loading() || this.loadingMore()) return;
+
+    this.loadingMore.set(true);
+    try {
+      const res = await this.jobsService.search({
+        keyword: this.keyword.trim() || undefined,
+        location: this.location.trim() || undefined,
+        sort: this.sort,
+        cursor,
+        limit: PAGE_SIZE,
+      });
+      this.jobs.update((current) => [...current, ...res.items]);
+      this.nextCursor.set(res.nextCursor);
+    } catch {
+      // Keep existing items; user can scroll again to retry.
+    } finally {
+      this.loadingMore.set(false);
     }
   }
 }

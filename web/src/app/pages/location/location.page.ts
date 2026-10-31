@@ -37,7 +37,12 @@ export class LocationPage implements OnInit {
     });
 
     try {
-      this.jobs.set(await this.jobsService.search({ location: cityLabel, sort: 'newest' }));
+      const res = await this.jobsService.search({
+        location: cityLabel,
+        sort: 'newest',
+        limit: 20,
+      });
+      this.jobs.set(res.items);
     } catch {
       this.jobs.set([]);
     }

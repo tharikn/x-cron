@@ -46,3 +46,6 @@ mobile/android/captures/
 .turbo/
 .capacitor/
 *.tsbuildinfo
+
+# Tesseract OCR language packs (downloaded locally)
+*.traineddata

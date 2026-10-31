@@ -1,0 +1,21 @@
+<div class="loc">
+  <ion-searchbar
+    [value]="value()"
+    [placeholder]="placeholder()"
+    debounce="0"
+    (ionInput)="onInput($event.detail.value)"
+  ></ion-searchbar>
+
+  @if (open() && suggestions().length) {
+    <ion-list lines="full" class="loc__list">
+      @for (item of suggestions(); track item.id) {
+        <ion-item button detail="false" (click)="pick(item)">
+          <ion-label>
+            <h3>{{ item.name }}</h3>
+            <p>{{ item.label }}</p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+</div>

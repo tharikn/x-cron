@@ -1,16 +1,16 @@
 <section class="page">
-  <p class="crumb"><a routerLink="/">Jobs</a> / {{ state() }} / {{ city() }}</p>
+  <p class="crumb"><a routerLink="/">Jobs</a> <span>/</span> {{ state() }} <span>/</span> {{ city() }}</p>
   <h1>Jobs in {{ city() }}</h1>
   <p class="lead">Local listings for {{ city() }}, {{ state() }}.</p>
 
   <div class="list">
-    @for (job of jobs(); track job.id) {
-      <a [routerLink]="jobPath(job)">
+    @for (job of jobs(); track job.id; let i = $index) {
+      <a [routerLink]="jobPath(job)" [style.--i]="i">
         <strong>{{ job.title }}</strong>
         <span>{{ job.employerName }} · {{ formatSalary(job.salary) }}</span>
       </a>
     } @empty {
-      <p>No published jobs for this location right now.</p>
+      <p class="empty">No published jobs for this location right now.</p>
     }
   </div>
 </section>

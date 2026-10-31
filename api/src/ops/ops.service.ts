@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { AdsStore } from '../ads/ads.store';
+import { AuthStore } from '../auth/auth.store';
 import { JobsMemoryStore } from '../jobs/jobs.memory-store';
+import { DashboardQueryDto } from './dto/dashboard-query.dto';
 import { CostLineItem, QuotaPolicy } from './ops.types';
 import { OpsStore } from './ops.store';
 
@@ -10,6 +12,7 @@ export class OpsService {
     private readonly store: OpsStore,
     private readonly jobs: JobsMemoryStore,
     private readonly ads: AdsStore,
+    private readonly auth: AuthStore,
   ) {}
 
   costModel() {
@@ -114,6 +117,180 @@ export class OpsService {
     };
   }
 
+  dashboard(query: DashboardQueryDto) {
+    const granularity = query.granularity ?? 'day';
+    const { from, to } = this.resolveRange(granularity, query.from, query.to);
+    const fromMs = from.getTime();
+    const toMs = to.getTime();
+
+    const allJobs = this.jobs.listAll();
+    const users = this.auth.listUsers();
+    const signIns = this.auth.listSignInEvents();
+
+    const postsInRange = allJobs.filter((job) => {
+      const t = Date.parse(job.publishedAt);
+      return Number.isFinite(t) && t >= fromMs && t <= toMs;
+    });
+    const signInsInRange = signIns.filter((ev) => {
+      const t = Date.parse(ev.at);
+      return Number.isFinite(t) && t >= fromMs && t <= toMs;
+    });
+    const newUsersInRange = users.filter((user) => {
+      const t = Date.parse(user.createdAt);
+      return Number.isFinite(t) && t >= fromMs && t <= toMs;
+    });
+
+    const byStatus = {
+      published: 0,
+      draft: 0,
+      expired: 0,
+      'needs-review': 0,
+      rejected: 0,
+      removed: 0,
+    };
+    for (const job of allJobs) {
+      byStatus[job.status] = (byStatus[job.status] ?? 0) + 1;
+    }
+
+    const buckets = this.buildBuckets(from, to, granularity);
+    const postSeries = new Map(buckets.map((b) => [b, 0]));
+    const signInSeries = new Map(buckets.map((b) => [b, 0]));
+
+    for (const job of postsInRange) {
+      const key = this.bucketKey(job.publishedAt, granularity);
+      if (postSeries.has(key)) {
+        postSeries.set(key, (postSeries.get(key) ?? 0) + 1);
+      }
+    }
+    for (const ev of signInsInRange) {
+      const key = this.bucketKey(ev.at, granularity);
+      if (signInSeries.has(key)) {
+        signInSeries.set(key, (signInSeries.get(key) ?? 0) + 1);
+      }
+    }
+
+    return {
+      granularity,
+      from: from.toISOString(),
+      to: to.toISOString(),
+      summary: {
+        usersTotal: users.length,
+        usersSignedUpInPeriod: newUsersInRange.length,
+        signInsInPeriod: signInsInRange.length,
+        activeSessions: this.auth.activeSessionCount(),
+        postsUploadedInPeriod: postsInRange.length,
+        postsTotal: allJobs.length,
+        publishedJobs: byStatus.published,
+        needsReview: byStatus['needs-review'],
+        draftJobs: byStatus.draft,
+        removedJobs: byStatus.removed,
+        rejectedJobs: byStatus.rejected,
+        expiredJobs: byStatus.expired,
+        importBatches: this.store.snapshot().importBatches,
+        contactUnlocks: this.store.snapshot().contactUnlocks,
+        searches: this.store.snapshot().searches,
+      },
+      series: buckets.map((bucket) => ({
+        bucket,
+        posts: postSeries.get(bucket) ?? 0,
+        signIns: signInSeries.get(bucket) ?? 0,
+      })),
+      time: new Date().toISOString(),
+    };
+  }
+
+  private resolveRange(
+    granularity: 'day' | 'month' | 'year',
+    fromRaw?: string,
+    toRaw?: string,
+  ): { from: Date; to: Date } {
+    let to = toRaw ? new Date(toRaw) : new Date();
+    if (Number.isNaN(to.getTime())) {
+      to = new Date();
+    }
+    let from: Date;
+    if (fromRaw) {
+      from = new Date(fromRaw);
+      if (Number.isNaN(from.getTime())) {
+        from = this.defaultFrom(to, granularity);
+      }
+    } else {
+      from = this.defaultFrom(to, granularity);
+    }
+    if (from.getTime() > to.getTime()) {
+      const swap = from;
+      from = to;
+      to = swap;
+    }
+    return { from, to };
+  }
+
+  private defaultFrom(to: Date, granularity: 'day' | 'month' | 'year'): Date {
+    const from = new Date(to);
+    if (granularity === 'year') {
+      from.setUTCFullYear(from.getUTCFullYear() - 4);
+      from.setUTCMonth(0, 1);
+      from.setUTCHours(0, 0, 0, 0);
+      return from;
+    }
+    if (granularity === 'month') {
+      from.setUTCMonth(from.getUTCMonth() - 11, 1);
+      from.setUTCHours(0, 0, 0, 0);
+      return from;
+    }
+    from.setUTCDate(from.getUTCDate() - 13);
+    from.setUTCHours(0, 0, 0, 0);
+    return from;
+  }
+
+  private buildBuckets(
+    from: Date,
+    to: Date,
+    granularity: 'day' | 'month' | 'year',
+  ): string[] {
+    const keys: string[] = [];
+    const cursor = new Date(from);
+    if (granularity === 'year') {
+      cursor.setUTCMonth(0, 1);
+      cursor.setUTCHours(0, 0, 0, 0);
+      while (cursor.getTime() <= to.getTime()) {
+        keys.push(String(cursor.getUTCFullYear()));
+        cursor.setUTCFullYear(cursor.getUTCFullYear() + 1);
+      }
+      return keys;
+    }
+    if (granularity === 'month') {
+      cursor.setUTCDate(1);
+      cursor.setUTCHours(0, 0, 0, 0);
+      while (cursor.getTime() <= to.getTime()) {
+        keys.push(
+          `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}`,
+        );
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+      }
+      return keys;
+    }
+    cursor.setUTCHours(0, 0, 0, 0);
+    while (cursor.getTime() <= to.getTime()) {
+      keys.push(cursor.toISOString().slice(0, 10));
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return keys;
+  }
+
+  private bucketKey(
+    iso: string,
+    granularity: 'day' | 'month' | 'year',
+  ): string {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    if (granularity === 'year') return String(d.getUTCFullYear());
+    if (granularity === 'month') {
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    }
+    return d.toISOString().slice(0, 10);
+  }
+
   quotas(): { items: QuotaPolicy[] } {
     const ocrCap = Number(process.env.OCR_MONTHLY_PAGE_CAP ?? 5000);
     const importCap = Number(process.env.IMPORT_DAILY_BATCH_CAP ?? 50);
@@ -189,6 +366,10 @@ export class OpsService {
   recordImport(pages = 0) {
     this.store.bump('importBatches');
     if (pages) this.store.bump('ocrPages', pages);
+  }
+
+  recordOcrPages(pages = 1) {
+    if (pages > 0) this.store.bump('ocrPages', pages);
   }
 
   recordAd(type: 'impression' | 'click') {

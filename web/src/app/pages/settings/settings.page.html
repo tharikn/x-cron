@@ -1,0 +1,54 @@
+<section class="page">
+  <p class="brand">X Cron <span>Jobs</span></p>
+  <h1>Settings</h1>
+  <p class="lead">
+    Set the contact unlock price seekers see when they tap the blurred employer contact.
+  </p>
+
+  @if (!isSignedIn() || !isAdmin()) {
+    <div class="gate">
+      <p>
+        @if (!isSignedIn()) {
+          Admins must sign in to change commerce settings.
+        } @else {
+          This account is not an admin. Use admin&#64;xcron.local.
+        }
+      </p>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+    </div>
+  } @else {
+    <form class="form" (ngSubmit)="save()">
+      <label>
+        <span>Contact unlock price (₹)</span>
+        <div class="rupee">
+          <span class="rupee__mark" aria-hidden="true">₹</span>
+          <input
+            [(ngModel)]="unlockPriceInr"
+            name="unlockPriceInr"
+            type="number"
+            min="1"
+            max="9999"
+            step="1"
+            inputmode="numeric"
+            [disabled]="busy()"
+            required
+          />
+        </div>
+      </label>
+      <p class="hint">
+        Shown after a seeker taps the locked contact on a job page. Stored in SiteConfig
+        (<code>commerce</code>).
+      </p>
+      <button type="submit" [disabled]="busy()">
+        {{ busy() ? 'Saving…' : 'Save unlock price' }}
+      </button>
+    </form>
+
+    @if (error()) {
+      <p class="err">{{ error() }}</p>
+    }
+    @if (saved()) {
+      <p class="ok">Unlock price updated. Job pages will use ₹{{ unlockPriceInr }}.</p>
+    }
+  }
+</section>

@@ -1,5 +1,5 @@
 /*
- * X Cron Jobs — monochrome global styles (PRD §4.2)
+ * X Cron Jobs — monochrome global styles (aligned with web redesign)
  */
 
 @import '@ionic/angular/css/core.css';
@@ -13,38 +13,193 @@
 @import '@ionic/angular/css/text-transformation.css';
 @import '@ionic/angular/css/flex-utils.css';
 
-/* PRD: white background required; no dark theme in initial scope */
 html,
 body {
-  background: #ffffff;
-  color: #000000;
+  background:
+    radial-gradient(1200px 600px at 12% -10%, #ffffff 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #e8e8e6 0%, transparent 50%),
+    linear-gradient(180deg, #f7f7f5 0%, var(--xcron-bg) 40%, #efefed 100%);
+  background-attachment: fixed;
+  color: var(--xcron-ink);
+  font-family: var(--xcron-sans);
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.035) 0.6px, transparent 0.6px);
+  background-size: 3px 3px;
+}
+
+ion-app {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100%;
+  background: transparent;
+}
+
+@media (min-width: 520px) {
+  ion-app {
+    min-height: calc(100vh - 32px);
+    margin-top: 16px;
+    margin-bottom: 16px;
+    border-radius: var(--xcron-radius-lg);
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: var(--xcron-shadow-hover);
+    border: 1px solid var(--xcron-line);
+  }
 }
 
 ion-content {
-  --background: #ffffff;
-  --color: #000000;
+  --background: transparent;
+  --color: var(--xcron-ink);
+}
+
+ion-header {
+  box-shadow: none;
+}
+
+ion-toolbar {
+  --background: rgba(244, 244, 242, 0.86);
+  --border-width: 0;
+  --border-color: transparent;
+  --min-height: 56px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+ion-title {
+  font-family: var(--xcron-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+ion-back-button {
+  --color: var(--xcron-ink);
+  --icon-font-size: 22px;
 }
 
 ion-searchbar {
-  --background: #ffffff;
+  --background: var(--xcron-wash);
   --box-shadow: none;
-  --border-radius: 0;
-  padding: 0 0 8px;
+  --border-radius: var(--xcron-radius-sm);
+  --placeholder-color: var(--xcron-faint);
+  --icon-color: var(--xcron-muted);
+  padding: 0;
+  margin: 0 0 10px;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  overflow: hidden;
 }
 
 ion-badge {
   --background: #111111;
   --color: #ffffff;
-  border-radius: 0;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.55rem;
 }
 
 ion-button {
-  --border-radius: 0;
+  --border-radius: var(--xcron-radius-sm);
   text-transform: none;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.01em;
+  --box-shadow: none;
+}
+
+ion-button[fill='solid'] {
+  --background: #0a0a0a;
+  --background-activated: #222;
+  --background-hover: #222;
+  --color: #fff;
+}
+
+ion-button[fill='outline'] {
+  --border-width: 1px;
+  --border-color: var(--xcron-line-strong);
+  --color: var(--xcron-ink);
+  --background: #fff;
+}
+
+ion-item {
+  --padding-start: 14px;
+  --inner-padding-end: 14px;
+  --min-height: 54px;
+  --border-color: var(--xcron-line);
+  --background: transparent;
+}
+
+ion-list {
+  background: transparent;
+  padding: 0;
+}
+
+ion-card {
+  margin: 0 0 12px;
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
 }
 
 ion-card-title {
-  font-size: 1.05rem;
+  font-family: var(--xcron-display);
+  font-size: 1.2rem;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+ion-card-subtitle {
+  color: var(--xcron-ink-soft) !important;
+  font-weight: 600;
+}
+
+ion-tab-bar {
+  --background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--xcron-line);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.04);
+}
+
+ion-tab-button {
+  --color: var(--xcron-muted);
+  --color-selected: var(--xcron-ink);
+  font-weight: 600;
+}
+
+ion-spinner {
+  --color: #111;
+}
+
+@keyframes xcron-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

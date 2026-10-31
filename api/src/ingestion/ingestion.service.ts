@@ -80,6 +80,7 @@ export class IngestionService {
     });
 
     this.applyParseResult(batch, sourceType, filename, parsed.drafts, parsed.warnings);
+    if (parsed.pagesProcessed) this.ops?.recordOcrPages(parsed.pagesProcessed);
     return this.toPublicBatch(batch);
   }
 
@@ -117,6 +118,7 @@ export class IngestionService {
       parsed.drafts,
       parsed.warnings,
     );
+    if (parsed.pagesProcessed) this.ops?.recordOcrPages(parsed.pagesProcessed);
     return this.toPublicBatch(batch);
   }
 
@@ -150,18 +152,31 @@ export class IngestionService {
         continue;
       }
 
+      const title = record.extraction.title || 'Untitled role';
+      const locationCity = record.extraction.locationCity || 'Palani';
+      const existing = this.jobsStore.findActiveDuplicate(title, locationCity);
+      if (existing) {
+        record.jobId = existing.id;
+        record.dedupeStatus = 'duplicate';
+        record.reviewStatus = 'duplicate';
+        record.error = 'Duplicate of existing job';
+        failed += 1;
+        continue;
+      }
+
       try {
         const job = this.jobsStore.createAndPublish({
-          title: record.extraction.title || 'Untitled role',
+          title,
           employerName:
             record.extraction.employerName || batch.employerName || 'Employer',
-          locationCity: record.extraction.locationCity || 'Palani',
+          locationCity,
           jobType: (record.extraction.jobType as JobType) || 'full-time',
           salaryText: record.extraction.salaryText,
           description: record.extraction.description || 'Not provided',
           contentLanguage: record.extraction.contentLanguage || 'en',
           contactPhone: record.extraction.contactPhone,
           contactEmail: record.extraction.contactEmail,
+          contactWebsite: record.extraction.contactWebsite,
           employerId: batch.employerId,
           ownerUserId: batch.ownerUserId,
           status: 'needs-review',
@@ -170,7 +185,13 @@ export class IngestionService {
         record.reviewStatus = 'published';
         published += 1;
       } catch (error) {
-        record.error = error instanceof Error ? error.message : 'publish_failed';
+        if (error instanceof Error && error.message === 'DUPLICATE_JOB') {
+          record.dedupeStatus = 'duplicate';
+          record.reviewStatus = 'duplicate';
+          record.error = 'Duplicate of existing job';
+        } else {
+          record.error = error instanceof Error ? error.message : 'publish_failed';
+        }
         failed += 1;
       }
     }
@@ -205,11 +226,14 @@ export class IngestionService {
     const records: ImportRecord[] = [];
     for (const draft of drafts) {
       const probeBatch = { ...batch, records: [...batch.records, ...records] };
-      const duplicate = this.store.findDuplicate(
-        probeBatch,
-        draft.title || '',
-        draft.locationCity,
+      const title = draft.title || '';
+      const city = draft.locationCity;
+      const duplicateInBatch = this.store.findDuplicate(probeBatch, title, city);
+      const duplicateJob = this.jobsStore.findActiveDuplicate(
+        title || 'Untitled role',
+        city || 'Palani',
       );
+      const duplicate = duplicateInBatch || duplicateJob;
       records.push({
         id: this.store.newId('rec'),
         batchId: batch.id,
@@ -221,7 +245,13 @@ export class IngestionService {
         confidence: draft.confidence,
         dedupeStatus: duplicate ? 'duplicate' : 'unique',
         reviewStatus: duplicate ? 'duplicate' : 'needs_review',
+        jobId: duplicateJob?.id,
         createdAt: new Date().toISOString(),
+        ...(duplicateJob
+          ? { error: 'Duplicate of existing job' }
+          : duplicateInBatch
+            ? { error: 'Duplicate within batch' }
+            : {}),
       });
     }
 
@@ -317,6 +347,7 @@ export class IngestionService {
         contentLanguage: record.extraction.contentLanguage,
         hasPhone: !!record.extraction.contactPhone,
         hasEmail: !!record.extraction.contactEmail,
+        hasWebsite: !!record.extraction.contactWebsite,
         notes: record.extraction.notes,
         // raw contact values stay server-side only
       },

@@ -1,0 +1,235 @@
+<section class="page">
+  <h1>Blog Approval</h1>
+  <p class="lead">Review jobs waiting for approval before they appear in search.</p>
+
+  @if (!isSignedIn() || !isAdmin()) {
+    <div class="gate">
+      <p>
+        @if (!isSignedIn()) {
+          Admins must sign in before reviewing posts.
+        } @else {
+          This account is not an admin. Use admin&#64;xcron.local.
+        }
+      </p>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+    </div>
+  } @else {
+    <div class="layout" [class.layout--preview]="!!previewJob()">
+      <section class="queue">
+        <div class="queue__head">
+          <h2>Waiting for review</h2>
+          <button
+            type="button"
+            class="secondary"
+            [disabled]="queueBusy()"
+            (click)="reloadQueue(true)"
+          >
+            Refresh
+          </button>
+        </div>
+
+        @for (job of queue(); track job.id) {
+          <article class="mod-card" [class.mod-card--active]="previewJob()?.id === job.id">
+            <strong>{{ job.title }}</strong>
+            <p>{{ job.employerName }} · {{ job.status }}</p>
+            <div class="mod-card__actions">
+              <button
+                type="button"
+                class="secondary"
+                [disabled]="queueBusy()"
+                (click)="openPreview(job)"
+              >
+                Preview
+              </button>
+              <button type="button" [disabled]="queueBusy()" (click)="approve(job)">
+                Approve
+              </button>
+              <button
+                type="button"
+                class="secondary"
+                [disabled]="queueBusy()"
+                (click)="reject(job)"
+              >
+                Reject
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <p class="empty">
+            @if (queueBusy()) {
+              Loading queue…
+            } @else {
+              No jobs waiting for review.
+            }
+          </p>
+        }
+      </section>
+
+      @if (previewJob(); as job) {
+        <aside class="preview" aria-label="Public preview">
+          <div class="preview__banner">
+            <div>
+              <p class="preview__eyebrow">Preview mode</p>
+              <h2>How seekers will see this</h2>
+              <p class="preview__hint">
+                Not live yet · contacts stay masked · approve to publish into search
+              </p>
+            </div>
+            <button type="button" class="secondary" (click)="closePreview()">Close</button>
+          </div>
+
+          <section class="preview__block">
+            <h3 class="preview__label">In search</h3>
+            <div class="job-card" aria-hidden="true">
+              <div class="job-card__meta">
+                <span class="badge">{{ languageLabel(job.contentLanguage) }}</span>
+                @if (job.promoted) {
+                  <span class="badge badge--promoted">{{
+                    job.promotionBadge || ('common.promoted' | t)
+                  }}</span>
+                }
+                <time>{{ formatPostedDate(job.publishedAt) }}</time>
+              </div>
+              <h4>{{ job.title }}</h4>
+              <p class="employer">
+                {{ job.employerName }}
+                @if (job.verifiedEmployer) {
+                  <span class="verified">{{ 'common.verified' | t }}</span>
+                }
+              </p>
+              <p class="facts">{{ formatLocation(job) }}</p>
+              <p class="facts facts--pay">
+                {{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}
+              </p>
+              <p class="about">{{ job.description.about }}</p>
+              <span class="job-card__cta">{{ 'home.viewRole' | t }}</span>
+            </div>
+          </section>
+
+          <section class="preview__block">
+            <h3 class="preview__label">Job page</h3>
+            <article class="job">
+              <p class="crumb">
+                <span>Jobs</span> <span>/</span> {{ job.location.city }}
+              </p>
+              <div class="meta">
+                <span class="badge">{{ languageLabel(job.contentLanguage) }}</span>
+                <time>{{ formatPostedDate(job.publishedAt) }}</time>
+              </div>
+              <h3 class="job__title">{{ job.title }}</h3>
+              <p class="employer">
+                {{ job.employerName }}
+                @if (job.verifiedEmployer) {
+                  <span class="verified">{{ 'common.verified' | t }}</span>
+                }
+              </p>
+              <p class="facts">{{ formatLocation(job) }}</p>
+              <p class="facts facts--pay">
+                {{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}
+              </p>
+
+              <section class="panel">
+                <h4>Key details</h4>
+                <ul>
+                  @if (job.experienceLabel) {
+                    <li>Experience: {{ job.experienceLabel }}</li>
+                  }
+                  @if (job.vacancies) {
+                    <li>Vacancies: {{ job.vacancies }}</li>
+                  }
+                  @if (job.workSchedule) {
+                    <li>Schedule: {{ job.workSchedule }}</li>
+                  }
+                  @if (job.skills?.length) {
+                    <li>Skills: {{ job.skills.join(', ') }}</li>
+                  }
+                  @if (
+                    !job.experienceLabel &&
+                    !job.vacancies &&
+                    !job.workSchedule &&
+                    !job.skills?.length
+                  ) {
+                    <li>No extra key details provided.</li>
+                  }
+                </ul>
+              </section>
+
+              <section class="panel">
+                <h4>About the role</h4>
+                <p>{{ job.description.about }}</p>
+                @if (job.description.responsibilities?.length) {
+                  <h5>Responsibilities</h5>
+                  <ul>
+                    @for (item of job.description.responsibilities; track item) {
+                      <li>{{ item }}</li>
+                    }
+                  </ul>
+                }
+                @if (job.description.requirements?.length) {
+                  <h5>Requirements</h5>
+                  <ul>
+                    @for (item of job.description.requirements; track item) {
+                      <li>{{ item }}</li>
+                    }
+                  </ul>
+                }
+                @if (job.description.benefits?.length) {
+                  <h5>Benefits</h5>
+                  <ul>
+                    @for (item of job.description.benefits; track item) {
+                      <li>{{ item }}</li>
+                    }
+                  </ul>
+                }
+              </section>
+
+              <section class="panel contact">
+                <h4>Employer contact</h4>
+                <p class="masked">
+                  @if (job.contact.hasPhone) {
+                    Phone: ••••• •••••
+                  }
+                  @if (job.contact.hasWhatsapp) {
+                    · WhatsApp: locked
+                  }
+                  @if (job.contact.hasEmail) {
+                    · HR email: locked
+                  }
+                  @if (job.contact.hasWebsite) {
+                    · Website to apply: locked
+                  }
+                  @if (
+                    !job.contact.hasPhone &&
+                    !job.contact.hasWhatsapp &&
+                    !job.contact.hasEmail &&
+                    !job.contact.hasWebsite
+                  ) {
+                    No contact channels on this post.
+                  }
+                </p>
+                <p class="unlock">{{ job.contact.unlockLabel }}</p>
+                <p class="note">
+                  Public pages never expose raw contact data — same mask seekers will see.
+                </p>
+              </section>
+            </article>
+          </section>
+
+          <div class="preview__actions">
+            <button type="button" [disabled]="queueBusy()" (click)="approve(job)">
+              Approve &amp; publish
+            </button>
+            <button
+              type="button"
+              class="secondary"
+              [disabled]="queueBusy()"
+              (click)="reject(job)"
+            >
+              Reject
+            </button>
+          </div>
+        </aside>
+      }
+    </div>
+  }
+</section>

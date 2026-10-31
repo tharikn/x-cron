@@ -1,0 +1,146 @@
+<section class="page">
+  <h1>
+    @if (needsAdminLogin()) {
+      Admin sign in
+    } @else if (isSignedIn()) {
+      Account
+    } @else {
+      Sign in
+    }
+  </h1>
+  <p class="lead">
+    @if (needsAdminLogin()) {
+      Dashboard, History, Post, and settings need the admin email and password.
+    } @else if (isSignedIn()) {
+      Manage your session. Browse and search stay open without signing in.
+    } @else {
+      Browse jobs freely. Sign in with Google to save, share, unlock, and sync preferences.
+      Admin password unlocks Dashboard and History.
+    }
+  </p>
+
+  @if (isSignedIn() && isAdmin() && !needsAdminLogin()) {
+    <div class="panel">
+      <p>Signed in as {{ user()?.email || user()?.displayName }}</p>
+      <p class="role">Admin · Dashboard and History unlocked</p>
+      <a class="link" routerLink="/admin">Dashboard</a>
+      <a class="link" routerLink="/my-jobs">History</a>
+      <a class="link" routerLink="/post">Post a job</a>
+      <a class="link" routerLink="/blog-approval">Blog Approval</a>
+      <button type="button" class="secondary" (click)="logout()">Sign out</button>
+    </div>
+  } @else if (isSignedIn() && !needsAdminLogin()) {
+    <div class="panel">
+      <p>Signed in as {{ user()?.email || user()?.displayName }}</p>
+      <p class="role">Google · saved jobs, unlocks, and preferences sync here</p>
+      <button type="button" class="secondary" (click)="logout()">Sign out</button>
+    </div>
+  } @else {
+    @if (!needsAdminLogin()) {
+      <div class="mode-tabs" role="tablist" aria-label="Sign-in method">
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="mode() === 'google'"
+          [class.active]="mode() === 'google'"
+          (click)="setMode('google')"
+        >
+          Google
+        </button>
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="mode() === 'admin'"
+          [class.active]="mode() === 'admin'"
+          (click)="setMode('admin')"
+        >
+          Admin
+        </button>
+      </div>
+    }
+
+    @if (mode() === 'google' && !needsAdminLogin()) {
+      <div class="form google-panel">
+        @if (googleReady) {
+          <div #googleBtnHost class="google-btn-host" aria-label="Continue with Google"></div>
+          <button type="button" class="secondary" [disabled]="busy()" (click)="continueWithGoogle()">
+            @if (busy()) {
+              <span class="spinner spinner--inline" aria-hidden="true"></span>
+              Signing in…
+            } @else {
+              Continue with Google
+            }
+          </button>
+        } @else {
+          <form (ngSubmit)="signIn()">
+            <label>
+              <span>Google email</span>
+              <input
+                type="email"
+                [(ngModel)]="email"
+                name="email"
+                placeholder="you@gmail.com"
+                required
+                autocomplete="username"
+              />
+            </label>
+            <label>
+              <span>Display name (optional)</span>
+              <input [(ngModel)]="displayName" name="displayName" placeholder="Your name" />
+            </label>
+            <button type="submit" [disabled]="busy()">
+              @if (busy()) {
+                <span class="spinner spinner--inline" aria-hidden="true"></span>
+                Signing in…
+              } @else {
+                Continue with Google
+              }
+            </button>
+          </form>
+          <p class="hint inline">
+            Local stub — set <code>googleClientId</code> in web environment and
+            <code>GOOGLE_CLIENT_ID</code> on the API for real Google Identity.
+          </p>
+        }
+      </div>
+    } @else {
+      <form class="form" (ngSubmit)="signIn()">
+        <label>
+          <span>Admin email</span>
+          <input
+            type="email"
+            [(ngModel)]="email"
+            name="email"
+            placeholder="superadmin@xcron.app"
+            required
+            autocomplete="username"
+          />
+        </label>
+        <label>
+          <span>Password</span>
+          <input
+            type="password"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="••••••••"
+            required
+            minlength="8"
+            autocomplete="current-password"
+          />
+        </label>
+        <button type="submit" [disabled]="busy()">
+          @if (busy()) {
+            <span class="spinner spinner--inline" aria-hidden="true"></span>
+            Signing in…
+          } @else {
+            Sign in as admin
+          }
+        </button>
+      </form>
+    }
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+  }
+</section>

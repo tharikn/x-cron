@@ -1,7 +1,6 @@
 import {
   IsArray,
   IsBoolean,
-  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -38,8 +37,9 @@ export class PreferenceFieldsDto {
   remotePreferred?: boolean;
 
   @IsOptional()
-  @IsIn(['en', 'ta'])
-  interfaceLocale?: 'en' | 'ta';
+  @IsString()
+  @MinLength(2)
+  interfaceLocale?: string;
 
   @IsOptional()
   @IsString()

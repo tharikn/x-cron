@@ -1,7 +1,7 @@
 # X Cron Jobs (monorepo)
 
 Local-first, multilingual job discovery (India-first). PRD baseline v1.0.  
-**Brand:** X Cron / Jobs. **UI:** black / white / grayscale only — no colored accents.
+**Brand:** X Cron / Jobs. **Audience:** younger job seekers (Gen Z–first).
 
 ## Packages
 
@@ -12,11 +12,56 @@ Local-first, multilingual job discovery (India-first). PRD baseline v1.0.
 | `web/` | Angular SSR public SEO site | [web/CLAUDE.md](web/CLAUDE.md) |
 | `docs/` | Roadmap, FILE_MAP, DEVELOPER, MVP notes | — |
 
+## UI / UX standards (web + mobile)
+
+Keep **web (`:4201`)** and **mobile (`:4200`)** visually aligned. Prefer modern app feel over print/classifieds or raw-form HTML.
+
+### Brand & color
+
+- Brand name **X Cron** is a hero-level signal on Discover/home; **Jobs** is a small uppercase secondary label.
+- **Monochrome only:** black / white / grayscale. No colored accents (no purple, blue CTAs, green success, etc.).
+- Atmosphere via soft gray washes, grain/dot texture, and light surfaces — not flat pure-white pages or rainbow themes.
+- Light theme only for MVP (no dark-mode product theme).
+
+### Typography
+
+- Display / brand: **Syne** (`--xcron-display` / `--xcron-font-display`).
+- Body / UI: **DM Sans** (`--xcron-sans` / `--xcron-font-body`).
+- Tamil: **Noto Sans Tamil** as fallback alongside the pair above.
+- Do **not** use system defaults as the primary face (Segoe UI, Arial, Roboto, Inter).
+- Tight display tracking on brand/headlines; clear hierarchy (title → employer → facts → about).
+
+### Shape, depth, controls
+
+- Rounded corners: ~10–14px controls/cards, ~22px large panels (`--xcron-radius*`). Avoid sharp `border-radius: 0` chrome.
+- Soft elevation (`--xcron-shadow` / hover) instead of hairline-only boxes.
+- Primary actions: solid near-black fill, white label. Secondary: outline / white fill.
+- Badges/chips: compact uppercase, pill radius OK for meta only — do not overuse pill clusters.
+- Inputs sit on wash backgrounds with clear focus ring (grayscale).
+
+### Layout & content UX
+
+- Mobile-first density; thumb-friendly tap targets (~44px+).
+- First viewport: brand + one headline + one short lead + search/CTA — avoid clutter (no stat strips, promo stickers on hero media).
+- Job rows/cards are the interactive containers; hover/press lift + optional “View role” cue.
+- Guest browse is first-class; never show unmasked phone/email/WhatsApp on public surfaces.
+- Ads stay **labelled** and visually separate from organic jobs; promoted jobs use an explicit badge.
+- Respect `prefers-reduced-motion`; keep motion intentional (enter rise, hover lift, drawer/tab transitions) — 2–3 motions, not noise.
+
+### Tokens & files of record
+
+| Surface | Tokens / globals |
+| --- | --- |
+| Web | `web/src/styles.scss`, page SCSS under `web/src/app/` |
+| Mobile | `mobile/src/theme/variables.scss`, `mobile/src/global.scss`, page/shared SCSS |
+
+When changing UI, update **both** clients unless the change is package-specific (SEO/SSR vs Capacitor/Ionic).
+
 ## Shared rules for agents
 
 - Prefer **small, focused changes**; do not drive-by refactor or fix unrelated lint.
 - Contacts are **private by default** — never put phone/email/WhatsApp in public DTOs, HTML, SEO, or caches.
-- Payments / FCM / OCR are largely **stubs** (`PAYMENT_MODE=stub`). Do not assume live Razorpay/Firebase.
+- Payments / FCM are largely **stubs** (`PAYMENT_MODE=stub`). Image OCR uses free local Tesseract (`OCR_PROVIDER=tesseract`; `stub` to disable). Do not assume live Razorpay/Firebase.
 - Default data store is **in-memory**; Prisma schema exists but is not the live path yet.
 - Node **22.22.3+**. Install API with `npm install --legacy-peer-deps` if peers complain.
 - After substantive API/mobile/web work: `npm run build` in that package.

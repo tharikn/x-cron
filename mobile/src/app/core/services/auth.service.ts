@@ -50,26 +50,28 @@ export class AuthService {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-  async startOtp(input: {
-    channel: 'phone' | 'email';
-    destination: string;
-    intendedRole: 'seeker' | 'employer';
-  }): Promise<{ challengeId: string; expiresAt: string; devCode?: string }> {
-    return firstValueFrom(
-      this.http.post<{ challengeId: string; expiresAt: string; devCode?: string }>(
-        `${environment.apiUrl}/auth/otp/start`,
-        input,
-      ),
-    );
-  }
-
-  async verifyOtp(challengeId: string, code: string): Promise<void> {
+  async signInWithGoogle(input: {
+    idToken?: string;
+    email?: string;
+    displayName?: string;
+  }): Promise<void> {
     const response = await firstValueFrom(
       this.http.post<{
         token: string;
         user: AuthUser;
         employer: EmployerProfile | null;
-      }>(`${environment.apiUrl}/auth/otp/verify`, { challengeId, code }),
+      }>(`${environment.apiUrl}/auth/google`, input),
+    );
+    this.persist(response.token, response.user, response.employer);
+  }
+
+  async signInAsAdmin(input: { email: string; password: string }): Promise<void> {
+    const response = await firstValueFrom(
+      this.http.post<{
+        token: string;
+        user: AuthUser;
+        employer: EmployerProfile | null;
+      }>(`${environment.apiUrl}/auth/admin/login`, input),
     );
     this.persist(response.token, response.user, response.employer);
   }

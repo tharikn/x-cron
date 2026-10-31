@@ -1,49 +1,90 @@
 .page {
-  padding: 12px 12px 28px;
+  padding: 16px 16px 36px;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
 }
 
-.brand-block h1 {
+.brand-block {
+  margin-bottom: 22px;
+}
+
+.brand-mark {
   margin: 0;
-  font-size: 2rem;
-  letter-spacing: 0.02em;
+  font-family: var(--xcron-display);
+  font-size: clamp(2.4rem, 10vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.95;
 }
 
 .descriptor {
-  margin: 0 0 8px;
-  letter-spacing: 0.18em;
+  margin: 0.5rem 0 1rem;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--xcron-muted);
 }
 
 .lead,
 .hint,
 .empty {
-  color: #333;
+  color: var(--xcron-muted);
+}
+
+.admin-hint {
+  margin: 22px 0 8px;
 }
 
 .panel {
-  border: 1px solid var(--xcron-border);
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
   margin: 16px 0;
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+  overflow: hidden;
+}
+
+.admin-links {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .moderation {
-  margin: 16px 0;
+  margin: 22px 0;
+}
+
+.moderation h2 {
+  margin: 0 0 10px;
+  font-family: var(--xcron-display);
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
 }
 
 .moderation__head {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 8px;
 }
 
 .mod-card {
-  border: 1px solid var(--xcron-border);
-  padding: 12px;
-  margin-bottom: 8px;
+  border: 1px solid var(--xcron-line);
+  padding: 14px;
+  margin-bottom: 10px;
+  background: var(--xcron-bg-elevated);
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+}
+
+.mod-card strong {
+  font-family: var(--xcron-display);
+  letter-spacing: -0.02em;
 }
 
 .mod-card p {
   margin: 4px 0 8px;
+  color: var(--xcron-muted);
 }
 
 .mod-card__actions {
@@ -54,4 +95,13 @@
 .hint {
   font-size: 0.85rem;
   margin-top: 12px;
+  line-height: 1.45;
+}
+
+.google-btn {
+  margin-top: 8px;
+}
+
+code {
+  font-size: 0.85em;
 }
