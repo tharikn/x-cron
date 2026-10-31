@@ -48,6 +48,14 @@ npm start
 
 OCR for images/PDF is a stub provider (`OCR_PROVIDER`) — no invented facts; records require review.
 
+### Contact unlock demo (Step 5)
+
+1. Sign in as seeker (OTP).
+2. Open a published job → **Unlock contact** (₹5 / 500 paise).
+3. Default `PAYMENT_MODE=stub` confirms via `POST /v1/payments/dev/confirm` (no real Razorpay charge).
+4. `GET /v1/jobs/{id}/contact` returns phone/email/WhatsApp only after entitlement; responses are `no-store`.
+5. Webhook path: `POST /v1/payments/webhooks/razorpay` with `x-razorpay-signature` HMAC-SHA256 (`RAZORPAY_WEBHOOK_SECRET`, default `dev_secret`).
+
 ### Auth demo (Step 2)
 
 - Guest browse/search stays public.

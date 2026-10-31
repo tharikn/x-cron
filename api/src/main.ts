@@ -4,7 +4,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody required for Razorpay webhook HMAC verification
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   const origins = (process.env.CORS_ORIGINS ?? 'http://localhost:4200')
     .split(',')

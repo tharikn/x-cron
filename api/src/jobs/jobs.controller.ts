@@ -35,12 +35,6 @@ export class JobsController {
   }
 
   @Public()
-  @Get('jobs/:id/contact')
-  contact(@Param('id') id: string) {
-    return this.jobsService.getContact(id);
-  }
-
-  @Public()
   @Post('jobs/:id/report')
   report(@Param('id') id: string, @Body() dto: ReportJobDto) {
     return this.jobsService.report(id, dto);

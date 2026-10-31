@@ -89,21 +89,50 @@
 
       <section class="panel contact-panel">
         <h2>Employer contact</h2>
-        <p class="masked">
-          @if (job.contact.hasPhone) {
-            Phone: ••••• •••••
-          }
-          @if (job.contact.hasWhatsapp) {
-            · WhatsApp: locked
-          }
-          @if (job.contact.hasEmail) {
-            · Email: locked
-          }
-        </p>
-        <p class="hint">Unlock employer contact – {{ formatUnlockPrice(job.contact.unlockPricePaise) }}</p>
-        <ion-button expand="block" color="dark" (click)="unlockContact()">
-          Unlock contact
-        </ion-button>
+        @if (revealed(); as contact) {
+          <ion-list lines="full">
+            @if (contact.phone) {
+              <ion-item>
+                <ion-label>Phone</ion-label>
+                <ion-note slot="end">{{ contact.phone }}</ion-note>
+              </ion-item>
+            }
+            @if (contact.whatsapp) {
+              <ion-item>
+                <ion-label>WhatsApp</ion-label>
+                <ion-note slot="end">{{ contact.whatsapp }}</ion-note>
+              </ion-item>
+            }
+            @if (contact.email) {
+              <ion-item>
+                <ion-label>Email</ion-label>
+                <ion-note slot="end">{{ contact.email }}</ion-note>
+              </ion-item>
+            }
+          </ion-list>
+          <p class="hint">Unlocked for your account (life of this listing).</p>
+        } @else {
+          <p class="masked">
+            @if (job.contact.hasPhone) {
+              Phone: ••••• •••••
+            }
+            @if (job.contact.hasWhatsapp) {
+              · WhatsApp: locked
+            }
+            @if (job.contact.hasEmail) {
+              · Email: locked
+            }
+          </p>
+          <p class="hint">Unlock employer contact – {{ formatUnlockPrice(job.contact.unlockPricePaise) }}</p>
+          <ion-button
+            expand="block"
+            color="dark"
+            [disabled]="unlocking()"
+            (click)="unlockContact()"
+          >
+            {{ unlocking() ? 'Unlocking…' : 'Unlock contact' }}
+          </ion-button>
+        }
       </section>
 
       <div class="actions">

@@ -17,7 +17,9 @@ import {
   ToastController,
 } from '@ionic/angular';
 import type { Job } from '../../core/models/job.model';
+import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
+import { PaymentsService } from '../../core/services/payments.service';
 import {
   formatJobType,
   formatLocation,
@@ -52,11 +54,19 @@ import { JobCardComponent } from '../../shared/job-card/job-card.component';
 export class JobDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly jobsService = inject(JobsService);
+  private readonly payments = inject(PaymentsService);
+  private readonly auth = inject(AuthService);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
 
   readonly job = signal<Job | undefined>(undefined);
   readonly related = signal<Job[]>([]);
+  readonly unlocking = signal(false);
+  readonly revealed = signal<{
+    phone: string | null;
+    email: string | null;
+    whatsapp: string | null;
+  } | null>(null);
 
   readonly formatLocation = formatLocation;
   readonly formatSalary = formatSalary;
@@ -71,29 +81,38 @@ export class JobDetailPage implements OnInit {
     this.job.set(job);
     if (job) {
       this.related.set(await this.jobsService.related(job.id));
+      if (this.auth.isSignedIn()) {
+        await this.tryLoadEntitledContact(job.id);
+      }
     }
   }
 
   async unlockContact(): Promise<void> {
     const job = this.job();
-    if (!job) {
+    if (!job || this.unlocking()) {
       return;
     }
 
+    if (!this.auth.isSignedIn()) {
+      const toast = await this.toastController.create({
+        message: 'Sign in to unlock employer contact.',
+        duration: 2500,
+        color: 'dark',
+      });
+      await toast.present();
+      return;
+    }
+
+    const price = formatUnlockPrice(job.contact.unlockPricePaise);
     const alert = await this.alertController.create({
       header: 'Unlock employer contact',
-      message: `Contact details stay private until purchase. Proposed price ${formatUnlockPrice(job.contact.unlockPricePaise)}. Payments land in a later PRD release.`,
+      message: `Pay ${price} once to reveal contact for this job (life of listing). Stub checkout confirms locally until Razorpay keys are configured.`,
       buttons: [
-        { text: 'Close', role: 'cancel' },
+        { text: 'Cancel', role: 'cancel' },
         {
-          text: 'Check entitlement',
-          handler: async () => {
-            const toast = await this.toastController.create({
-              message: 'API denied contact reveal — entitlement required.',
-              duration: 2500,
-              color: 'dark',
-            });
-            await toast.present();
+          text: `Pay ${price}`,
+          handler: () => {
+            void this.runUnlock(job.id);
           },
         },
       ],
@@ -139,5 +158,63 @@ export class JobDetailPage implements OnInit {
       });
       await toast.present();
     }
+  }
+
+  private async tryLoadEntitledContact(jobId: string): Promise<void> {
+    try {
+      const result = await this.payments.getContact(jobId);
+      if (result.allowed && result.contact) {
+        this.revealed.set(result.contact);
+      }
+    } catch {
+      // Guest or no entitlement — keep masked.
+    }
+  }
+
+  private async runUnlock(jobId: string): Promise<void> {
+    this.unlocking.set(true);
+    try {
+      const orderResult = await this.payments.createContactOrder(jobId);
+      if (orderResult.alreadyEntitled) {
+        await this.tryLoadEntitledContact(jobId);
+        await this.showToast('Contact already unlocked for your account.');
+        return;
+      }
+
+      if (!orderResult.order || !orderResult.checkout) {
+        await this.showToast('Could not create unlock order.');
+        return;
+      }
+
+      if (orderResult.checkout.checkoutMode === 'stub') {
+        await this.payments.confirmDevPayment(orderResult.order.id);
+      } else {
+        await this.showToast(
+          'Razorpay checkout not wired in this build — set PAYMENT_MODE=stub for local unlocks.',
+        );
+        return;
+      }
+
+      const reveal = await this.payments.getContact(jobId);
+      if (!reveal.allowed || !reveal.contact) {
+        await this.showToast(reveal.message || 'Unlock succeeded but contact unavailable.');
+        return;
+      }
+      this.revealed.set(reveal.contact);
+      await this.showToast('Contact unlocked.');
+    } catch {
+      await this.showToast('Unlock failed. Sign in and try again.');
+    } finally {
+      this.unlocking.set(false);
+    }
+  }
+
+  private async showToast(message: string): Promise<void> {
+    const toast = await this.toastController.create({
+      message,
+      duration: 2500,
+      color: 'dark',
+    });
+    await toast.present();
   }
 }

@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { JobsModule } from './jobs/jobs.module';
+import { PaymentsModule } from './payments/payments.module';
 import { PreferencesModule } from './preferences/preferences.module';
 
 @Module({
@@ -14,6 +15,7 @@ import { PreferencesModule } from './preferences/preferences.module';
     AuthModule,
     JobsModule,
     IngestionModule,
+    PaymentsModule,
     PreferencesModule,
   ],
   controllers: [HealthController],

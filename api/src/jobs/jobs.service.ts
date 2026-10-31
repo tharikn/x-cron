@@ -127,15 +127,6 @@ export class JobsService {
     };
   }
 
-  getContact(_id: string) {
-    return {
-      allowed: false,
-      reason: 'entitlement_required',
-      message:
-        'Contact details are private. A verified unlock or active subscription is required.',
-    };
-  }
-
   private requireEmployer(user: AuthUser) {
     let employer = this.authStore.getEmployerByOwner(user.id);
     if (!employer) {

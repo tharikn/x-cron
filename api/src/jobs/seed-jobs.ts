@@ -42,7 +42,7 @@ export const SEED_JOBS: JobRecord[] = [
       hasWhatsapp: true,
       unlockPricePaise: 500,
     },
-    privateContact: { phone: '+91**********', whatsapp: '+91**********' },
+    privateContact: { phone: '+919876543210', whatsapp: '+919876543210' },
   },
   {
     id: 'job_002',
@@ -89,7 +89,7 @@ export const SEED_JOBS: JobRecord[] = [
       hasWhatsapp: true,
       unlockPricePaise: 500,
     },
-    privateContact: { phone: '+91**********' },
+    privateContact: { phone: '+919811122233', whatsapp: '+919811122233' },
   },
   {
     id: 'job_003',
@@ -124,7 +124,7 @@ export const SEED_JOBS: JobRecord[] = [
       hasWhatsapp: false,
       unlockPricePaise: 500,
     },
-    privateContact: { email: 'h***@example.com' },
+    privateContact: { email: 'hiring@nilgirisoft.example' },
   },
   {
     id: 'job_004',
@@ -160,7 +160,7 @@ export const SEED_JOBS: JobRecord[] = [
       hasWhatsapp: true,
       unlockPricePaise: 500,
     },
-    privateContact: { phone: '+91**********' },
+    privateContact: { phone: '+919900112233', whatsapp: '+919900112233' },
   },
   {
     id: 'job_005',
@@ -194,6 +194,9 @@ export const SEED_JOBS: JobRecord[] = [
       hasWhatsapp: false,
       unlockPricePaise: 500,
     },
-    privateContact: { phone: '+91**********', email: 'a***@example.com' },
+    privateContact: {
+      phone: '+919944556677',
+      email: 'accounts@srimurugan.example',
+    },
   },
 ];
