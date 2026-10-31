@@ -56,6 +56,17 @@
   font-size: 1.1rem;
 }
 
+.results-head__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+}
+
 .empty {
   color: #555;
   border: 1px dashed var(--xcron-border);

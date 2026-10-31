@@ -1,0 +1,247 @@
+// X Cron Jobs — initial data model (PRD §16)
+// Target: PostgreSQL. Local Step-1 runtime uses an in-memory repository;
+// switch JobsModule to Prisma when DATABASE_URL is available.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  DRAFT
+  NEEDS_REVIEW
+  PUBLISHED
+  EXPIRED
+  REJECTED
+  REMOVED
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  TEMPORARY
+  INTERNSHIP
+  APPRENTICESHIP
+  DAILY_WAGE
+}
+
+enum PayPeriod {
+  MONTHLY
+  DAILY
+  HOURLY
+}
+
+enum UserStatus {
+  GUEST
+  ACTIVE
+  DISABLED
+}
+
+model User {
+  id              String           @id @default(uuid())
+  status          UserStatus       @default(ACTIVE)
+  preferredLocale String           @default("en")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  identities      UserIdentity[]
+  preferences     UserPreference?
+  entitlements    Entitlement[]
+  payments        Payment[]
+  ownedEmployers  Employer[]       @relation("EmployerOwner")
+  memberships     EmployerMember[]
+  auditEvents     AuditEvent[]
+}
+
+model UserIdentity {
+  id             String    @id @default(uuid())
+  userId         String
+  provider       String
+  providerSubject String
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+}
+
+model UserPreference {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  locationsJson    Json     @default("[]")
+  radiusKm         Int?
+  jobTypesJson     Json     @default("[]")
+  salaryMinPaise   Int?
+  salaryMaxPaise   Int?
+  languagesJson    Json     @default("[\"en\",\"ta\"]")
+  categoriesJson   Json     @default("[]")
+  remotePreferred  Boolean  @default(false)
+  sort             String   @default("newest")
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Employer {
+  id                 String           @id @default(uuid())
+  name               String
+  verificationStatus String           @default("unverified")
+  ownerUserId        String
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  owner              User             @relation("EmployerOwner", fields: [ownerUserId], references: [id])
+  members            EmployerMember[]
+  jobs               Job[]
+  sources            JobSource[]
+  importBatches      ImportBatch[]
+}
+
+model EmployerMember {
+  id         String   @id @default(uuid())
+  employerId String
+  userId     String
+  role       String   @default("staff")
+  createdAt  DateTime @default(now())
+  employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([employerId, userId])
+}
+
+model Job {
+  id               String            @id @default(uuid())
+  employerId       String
+  slug             String            @unique
+  status           JobStatus         @default(DRAFT)
+  contentLanguage  String
+  title            String
+  category         String
+  jobType          JobType
+  country          String            @default("India")
+  state            String
+  district         String
+  city             String
+  locality         String?
+  remote           Boolean           @default(false)
+  salaryMinPaise   Int?
+  salaryMaxPaise   Int?
+  salaryCurrency   String            @default("INR")
+  salaryPeriod     PayPeriod?
+  salaryNegotiable Boolean           @default(false)
+  experienceLabel  String?
+  vacancies        Int?
+  workSchedule     String?
+  skillsJson       Json              @default("[]")
+  about            String
+  responsibilitiesJson Json          @default("[]")
+  requirementsJson Json              @default("[]")
+  benefitsJson     Json              @default("[]")
+  publishedAt      DateTime?
+  expiresAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  employer         Employer          @relation(fields: [employerId], references: [id])
+  contactSecret    JobContactSecret?
+  entitlements     Entitlement[]
+  importRecords    ImportRecord[]
+
+  @@index([status, publishedAt])
+  @@index([city, district, state])
+  @@index([jobType, category, contentLanguage])
+}
+
+model JobContactSecret {
+  id              String   @id @default(uuid())
+  jobId           String   @unique
+  encryptedPhone  String?
+  encryptedEmail  String?
+  encryptedLinks  String?
+  keyVersion      Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model JobSource {
+  id         String   @id @default(uuid())
+  employerId String
+  storageKey String
+  sourceType String
+  checksum   String?
+  uploadedAt DateTime @default(now())
+  employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+}
+
+model ImportBatch {
+  id               String         @id @default(uuid())
+  employerId       String
+  status           String         @default("queued")
+  totalRecords     Int            @default(0)
+  processedRecords Int            @default(0)
+  errorCount       Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  employer         Employer       @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  records          ImportRecord[]
+}
+
+model ImportRecord {
+  id             String      @id @default(uuid())
+  batchId        String
+  sourceLocator  String?
+  extractionJson Json?
+  confidence     Float?
+  dedupeStatus   String      @default("pending")
+  reviewStatus   String      @default("needs_review")
+  jobId          String?
+  createdAt      DateTime    @default(now())
+  batch          ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  job            Job?        @relation(fields: [jobId], references: [id])
+}
+
+model Payment {
+  id               String   @id @default(uuid())
+  userId           String
+  gateway          String
+  gatewayOrderId   String   @unique
+  gatewayPaymentId String?
+  amountPaise      Int
+  currency         String   @default("INR")
+  status           String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id])
+}
+
+model Entitlement {
+  id        String    @id @default(uuid())
+  userId    String
+  jobId     String?
+  planId    String?
+  scope     String
+  validFrom DateTime  @default(now())
+  validUntil DateTime?
+  status    String    @default("active")
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+  job       Job?      @relation(fields: [jobId], references: [id])
+
+  @@index([userId, jobId, status])
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+}

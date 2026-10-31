@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   IonBadge,
@@ -11,13 +11,15 @@ import {
   IonSearchbar,
   IonSelect,
   IonSelectOption,
+  IonSpinner,
+  IonText,
   IonTitle,
   IonToolbar,
   ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { locationOutline } from 'ionicons/icons';
-import type { JobSearchQuery, JobType } from '../../core/models/job.model';
+import type { Job, JobSearchQuery, JobType } from '../../core/models/job.model';
 import { JOB_TYPE_LABELS } from '../../core/models/job.model';
 import { JobsService } from '../../core/services/jobs.service';
 import { PreferencesService } from '../../core/services/preferences.service';
@@ -41,16 +43,22 @@ import { JobCardComponent } from '../../shared/job-card/job-card.component';
     IonSelect,
     IonSelectOption,
     IonBadge,
+    IonSpinner,
+    IonText,
     JobCardComponent,
   ],
 })
-export class DiscoverPage {
+export class DiscoverPage implements OnInit {
   private readonly jobsService = inject(JobsService);
   private readonly preferencesService = inject(PreferencesService);
   private readonly toastController = inject(ToastController);
 
   readonly jobTypeEntries = Object.entries(JOB_TYPE_LABELS) as Array<[JobType, string]>;
-  readonly categories = this.jobsService.categories();
+  readonly categories = signal<string[]>([]);
+  readonly results = signal<Job[]>([]);
+  readonly loading = this.jobsService.loading;
+  readonly usingApi = this.jobsService.usingApi;
+  readonly lastError = this.jobsService.lastError;
 
   readonly query = signal<JobSearchQuery>({
     keyword: '',
@@ -62,11 +70,12 @@ export class DiscoverPage {
     sort: 'newest',
   });
 
-  readonly results = computed(() => this.jobsService.search(this.query()));
   readonly showPrefPrompt = computed(() =>
     this.preferencesService.shouldShowPrompt(this.jobsService.searchCount()),
   );
   readonly savedPrefs = this.preferencesService.preferences;
+
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     addIcons({ locationOutline });
@@ -74,6 +83,20 @@ export class DiscoverPage {
     if (prefs.locations[0]) {
       this.query.update((q) => ({ ...q, locationText: prefs.locations[0] }));
     }
+
+    effect(() => {
+      const current = this.query();
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+      }
+      this.refreshTimer = setTimeout(() => {
+        void this.refresh(current);
+      }, 200);
+    });
+  }
+
+  async ngOnInit(): Promise<void> {
+    this.categories.set(await this.jobsService.categories());
   }
 
   onKeyword(value: string | null | undefined): void {
@@ -123,5 +146,10 @@ export class DiscoverPage {
 
   dismissPrompt(): void {
     this.preferencesService.dismissPrompt();
+  }
+
+  private async refresh(query: JobSearchQuery): Promise<void> {
+    const items = await this.jobsService.search(query);
+    this.results.set(items);
   }
 }

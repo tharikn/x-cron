@@ -11,6 +11,12 @@
   <div class="page">
     <p class="lead">Local jobs near you. Browse as a guest — no sign-in required.</p>
 
+    @if (usingApi()) {
+      <ion-text color="medium"><p class="source">Live API</p></ion-text>
+    } @else if (lastError()) {
+      <ion-text color="medium"><p class="source">{{ lastError() }}</p></ion-text>
+    }
+
     @if (savedPrefs().locations.length) {
       <div class="pref-summary">
         <ion-icon name="location-outline"></ion-icon>
@@ -71,7 +77,7 @@
           (ionChange)="onCategory($event.detail.value)"
         >
           <ion-select-option value="">Any</ion-select-option>
-          @for (category of categories; track category) {
+          @for (category of categories(); track category) {
             <ion-select-option [value]="category">{{ category }}</ion-select-option>
           }
         </ion-select>
@@ -107,7 +113,12 @@
 
     <div class="results-head">
       <h2>Jobs</h2>
-      <ion-badge color="medium">{{ results().length }}</ion-badge>
+      <div class="results-head__right">
+        @if (loading()) {
+          <ion-spinner name="crescent"></ion-spinner>
+        }
+        <ion-badge color="medium">{{ results().length }}</ion-badge>
+      </div>
     </div>
 
     @for (job of results(); track job.id) {

@@ -76,7 +76,7 @@ export class PostJobPage {
       return;
     }
 
-    const draft = this.jobsService.createDraftFromQuickPost({
+    const published = await this.jobsService.createQuickPost({
       title: this.title,
       employerName: this.employerName,
       locationCity: this.locationCity,
@@ -87,11 +87,12 @@ export class PostJobPage {
       contactPhone: this.contactPhone,
     });
 
-    const published = this.jobsService.publishDraft(draft.id);
-    await this.showToast('Job submitted for publication (local mock).');
-    if (published) {
-      await this.router.navigate(['/tabs/jobs', published.id]);
-    }
+    await this.showToast(
+      this.jobsService.usingApi()
+        ? 'Job published via API (contact stays private).'
+        : 'Job saved locally (API offline).',
+    );
+    await this.router.navigate(['/tabs/jobs', published.id]);
   }
 
   async submitPaste(): Promise<void> {
@@ -100,12 +101,12 @@ export class PostJobPage {
       return;
     }
 
-    const draft = this.jobsService.createDraftFromPaste(this.pasteText, this.contentLanguage);
-    const published = this.jobsService.publishDraft(draft.id);
-    await this.showToast('Extracted fields saved. Contact stays private.');
-    if (published) {
-      await this.router.navigate(['/tabs/jobs', published.id]);
-    }
+    const published = await this.jobsService.createFromPaste(
+      this.pasteText,
+      this.contentLanguage,
+    );
+    await this.showToast('Extracted and published. Contact stays private.');
+    await this.router.navigate(['/tabs/jobs', published.id]);
   }
 
   async onPickImageStub(): Promise<void> {

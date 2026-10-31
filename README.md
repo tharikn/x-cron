@@ -2,61 +2,52 @@
 
 Local-first, multilingual job discovery and publishing. India-first, mobile-first, monochrome (black & white).
 
-## Repository layout
+Product baseline: PRD v1.0 (31 Oct 2026). Build order follows [docs/ROADMAP.md](docs/ROADMAP.md).
 
-| Path | Status |
+## Monorepo
+
+| Path | Role |
 | --- | --- |
-| `mobile/` | Ionic + Capacitor + Angular Android client (**active**) |
-| `api/` | NestJS API — planned |
-| `web/` | Angular SSR/public SEO site — planned |
-| `docs/` | Product notes |
+| `mobile/` | Ionic + Capacitor + Angular Android client |
+| `api/` | NestJS modular monolith (`/v1/*`) |
+| `web/` | Angular SSR SEO site — planned |
+| `docker-compose.yml` | PostgreSQL for later Prisma runtime |
 
-Product baseline: `X_Cron_Jobs_Product_Requirements_and_Architecture.docx` (v1.0, 31 Oct 2026).
+## Quick start (Step 1)
 
-## Mobile app (start here)
-
-Requirements:
-
-- Node.js **22.22.3+**
-- npm 10+
+Requires **Node.js 22.22.3+**.
 
 ```bash
-cd mobile
+# API (memory store — no Postgres required yet)
+cd api
+npm install --legacy-peer-deps
+npm run start:dev
+# http://localhost:3000/v1/health
+# http://localhost:3000/docs
+
+# Mobile
+cd ../mobile
 npm install
-npm start          # http://localhost:4200
-npm run build      # production web build → mobile/www
+npm start
+# http://localhost:4200  → talks to http://localhost:3000/v1
 ```
 
-Capacitor (Android project sync):
-
 ```bash
-cd mobile
-npm run cap:sync
+# Optional Postgres (for upcoming Prisma store)
+docker compose up -d
 ```
 
-Native APK builds need Android Studio / SDK on the machine. CI currently verifies the TypeScript/web compile every push.
-
-### What works in this MVP
-
-- Guest discover / search / sort / filter (mock local jobs)
-- Job detail with **masked** employer contact (no raw contact in UI payloads)
-- Preference prompt after search activity + local preference storage
-- Employer quick-post and WhatsApp/Telegram paste extraction (local mock publish)
-- Strict black-and-white visual system and **X Cron** brand lockup
-
-### Daily push workflow
-
-1. Work in `mobile/`
-2. `npm run build` before commit
-3. Commit and push to `main` (or open a PR)
-4. GitHub Actions runs `mobile` production build
+## Daily compile + push
 
 ```bash
+cd api && npm run build
+cd ../mobile && npm run build
+cd ..
 git add .
-git commit -m "mobile: describe the change"
+git commit -m "describe the change"
 git push origin main
 ```
 
 ## Brand
 
-Primary wordmark: **X Cron** (uppercase X, title-case Cron). Descriptor: Jobs.
+**X Cron** (uppercase X, title-case Cron). Descriptor: Jobs. UI is black/white/grayscale only.
