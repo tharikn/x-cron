@@ -56,6 +56,9 @@ export class CsvParser implements DocumentParser {
         locationCity: row['location'] || row['city'] || row['locationcity'] || 'Palani',
         jobType: this.normalizeJobType(row['jobtype'] || row['job_type'] || row['type']),
         salaryText: row['salary'] || row['pay'] || row['salarytext'],
+        vacancies: this.parseVacancies(
+          row['vacancies'] || row['vacancy'] || row['posts'] || row['openings'],
+        ),
         description,
         contentLanguage: row['language'] || row['contentlanguage'] || 'en',
         contactPhone: phone,
@@ -101,6 +104,14 @@ export class CsvParser implements DocumentParser {
     }
     result.push(current);
     return result;
+  }
+
+  private parseVacancies(value?: string): number | undefined {
+    if (!value?.trim()) return undefined;
+    const n = Number(value.replace(/[^\d]/g, ''));
+    if (!Number.isFinite(n)) return undefined;
+    const floor = Math.floor(n);
+    return floor >= 1 && floor <= 100000 ? floor : undefined;
   }
 
   private normalizeJobType(value?: string): string {

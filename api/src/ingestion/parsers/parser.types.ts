@@ -14,6 +14,8 @@ export interface ExtractedJobDraft {
   locationCity?: string;
   jobType?: string;
   salaryText?: string;
+  /** Open headcount when extracted from source text. */
+  vacancies?: number;
   description?: string;
   contentLanguage?: string;
   contactPhone?: string;
@@ -22,6 +24,9 @@ export interface ExtractedJobDraft {
   confidence: number;
   sourceLocator: string;
   notes?: string[];
+  /** Set when AI enrich cleaned this draft. */
+  aiCleaned?: boolean;
+  aiNotes?: string[];
 }
 
 export interface ParseInput {

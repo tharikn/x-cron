@@ -126,6 +126,30 @@ function extractSalary(lines: string[], joined: string): string | undefined {
   return fallback?.trim();
 }
 
+function extractVacancies(lines: string[], joined: string): number | undefined {
+  const vacancyLine = lines.find((line) =>
+    /\b(?:vacancies?|posts?|openings?|no\.?\s*of\s*posts?|number\s*of\s*posts?)\b/i.test(
+      line,
+    ),
+  );
+  const fromLine = vacancyLine?.match(
+    /(?:vacancies?|posts?|openings?|no\.?\s*of\s*posts?|number\s*of\s*posts?)[:\s\-–]*(\d{1,5})/i,
+  )?.[1];
+  if (fromLine) {
+    const n = Number(fromLine);
+    if (Number.isFinite(n) && n >= 1 && n <= 100000) return Math.floor(n);
+  }
+
+  const fallback = joined.match(
+    /\b(\d{1,5})\s*(?:vacancies?|posts?|openings?)\b/i,
+  )?.[1];
+  if (fallback) {
+    const n = Number(fallback);
+    if (Number.isFinite(n) && n >= 1 && n <= 100000) return Math.floor(n);
+  }
+  return undefined;
+}
+
 function extractCity(joined: string, lines: string[]): string | undefined {
   const hit = CITY_HINTS.find((city) => new RegExp(`\\b${city}\\b`, 'i').test(joined));
   if (hit) return hit === 'Bangalore' ? 'Bengaluru' : hit === 'Gurgaon' ? 'Gurugram' : hit;
@@ -204,11 +228,14 @@ function buildDescription(lines: string[]): string {
   const body = lines
     .filter((line) => !isContactLine(line))
     .filter((line) => !/^bhaskarad\.com$/i.test(line))
+    .map((line) => line.replace(/^[-*•·]\s*/, '').trim())
+    .filter(Boolean)
+    .map((line) => `• ${line}`)
     .join('\n')
     .trim();
   return (
     body ||
-    'OCR extracted little readable text — confirm title, location, pay and duties from the original image.'
+    '• OCR extracted little readable text — confirm title, location, pay and duties from the original image.'
   );
 }
 
@@ -217,6 +244,7 @@ function scoreConfidence(input: {
   employerName?: string;
   locationCity?: string;
   salaryText?: string;
+  vacancies?: number;
   phone?: string;
   email?: string;
   ocrMean?: number;
@@ -227,6 +255,7 @@ function scoreConfidence(input: {
   if (input.employerName) score += 0.12;
   if (input.locationCity) score += 0.1;
   if (input.salaryText) score += 0.12;
+  if (input.vacancies) score += 0.04;
   if (input.phone || input.email) score += 0.08;
   if (input.lineCount >= 5) score += 0.05;
   if (typeof input.ocrMean === 'number') {
@@ -250,6 +279,7 @@ export function mapOcrTextToJobDraft(
   const email = extractEmail(joined);
   const website = extractWebsite(joined);
   const salaryText = extractSalary(lines, joined);
+  const vacancies = extractVacancies(lines, joined);
   const employerName = extractEmployer(lines);
   const locationCity = extractCity(joined, lines);
   const title = extractTitle(lines, filename);
@@ -260,6 +290,7 @@ export function mapOcrTextToJobDraft(
     employerName,
     locationCity,
     salaryText,
+    vacancies,
     phone,
     email,
     ocrMean: ocrMeanConfidence,
@@ -286,6 +317,7 @@ export function mapOcrTextToJobDraft(
     locationCity,
     jobType: extractJobType(joined),
     salaryText,
+    vacancies,
     description,
     contentLanguage,
     contactPhone: phone,

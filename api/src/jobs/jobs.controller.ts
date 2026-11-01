@@ -125,6 +125,12 @@ export class JobsController {
   }
 
   @Roles('admin')
+  @Patch('admin/jobs/:id')
+  updateForModeration(@Param('id') id: string, @Body() dto: UpdateJobDto) {
+    return this.jobsService.updateForModeration(id, dto);
+  }
+
+  @Roles('admin')
   @Post('admin/jobs/:id/approve')
   approve(@Param('id') id: string, @Body() dto: ModerateJobDto) {
     return this.jobsService.approve(id, dto);

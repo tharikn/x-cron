@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { AuthStore } from '../auth/auth.store';
 import { AuthUser } from '../auth/auth.types';
-import { JobsMemoryStore } from '../jobs/jobs.memory-store';
+import { JobsStore } from '../jobs/jobs.store';
 import { OpsService } from '../ops/ops.service';
 import { AdsStore } from './ads.store';
 import {
@@ -22,7 +22,7 @@ import { AdSlot, PromoPackageId } from './ads.types';
 export class AdsService {
   constructor(
     private readonly store: AdsStore,
-    private readonly jobs: JobsMemoryStore,
+    private readonly jobs: JobsStore,
     private readonly authStore: AuthStore,
     @Optional() private readonly ops?: OpsService,
   ) {}
@@ -74,11 +74,11 @@ export class AdsService {
     return { items: this.store.listPackages() };
   }
 
-  purchasePromotion(user: AuthUser, dto: PurchasePromotionDto) {
+  async purchasePromotion(user: AuthUser, dto: PurchasePromotionDto) {
     const pkg = this.store.getPackage(dto.packageId as PromoPackageId);
     if (!pkg) throw new NotFoundException('Package not found');
 
-    const job = this.jobs.findById(dto.jobId);
+    const job = await this.jobs.findById(dto.jobId);
     if (!job) throw new NotFoundException('Job not found');
     if (job.status !== 'published' && job.status !== 'needs-review') {
       throw new BadRequestException('Only active or pending jobs can be promoted');

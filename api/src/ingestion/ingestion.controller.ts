@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -14,7 +15,9 @@ import type { AuthUser } from '../auth/auth.types';
 import {
   ApproveRecordsDto,
   CreateImportBatchDto,
+  EnrichRecordDto,
   TextUploadDto,
+  UpdateImportRecordDto,
 } from './dto/ingestion.dto';
 import { IngestionService } from './ingestion.service';
 
@@ -66,6 +69,28 @@ export class IngestionController {
     @Query('sourceType') sourceType?: string,
   ) {
     return this.ingestionService.uploadFile(user, id, file, sourceType);
+  }
+
+  @Roles('admin')
+  @Post(':id/records/:recordId/enrich')
+  enrichRecord(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Param('recordId') recordId: string,
+    @Body() dto: EnrichRecordDto,
+  ) {
+    return this.ingestionService.enrichRecord(user, id, recordId, dto);
+  }
+
+  @Roles('admin')
+  @Patch(':id/records/:recordId')
+  updateRecord(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Param('recordId') recordId: string,
+    @Body() dto: UpdateImportRecordDto,
+  ) {
+    return this.ingestionService.updateRecord(user, id, recordId, dto);
   }
 
   @Roles('admin')

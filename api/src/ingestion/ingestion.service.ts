@@ -5,12 +5,19 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
+import { AiService } from '../ai/ai.service';
 import { AuthStore } from '../auth/auth.store';
 import type { AuthUser } from '../auth/auth.types';
-import { JobsMemoryStore } from '../jobs/jobs.memory-store';
+import { JobsStore } from '../jobs/jobs.store';
 import { JobType } from '../jobs/job.types';
 import { OpsService } from '../ops/ops.service';
-import { ApproveRecordsDto, CreateImportBatchDto, TextUploadDto } from './dto/ingestion.dto';
+import {
+  ApproveRecordsDto,
+  CreateImportBatchDto,
+  EnrichRecordDto,
+  TextUploadDto,
+  UpdateImportRecordDto,
+} from './dto/ingestion.dto';
 import { IngestionStore } from './ingestion.store';
 import { ImportBatch, ImportRecord } from './ingestion.types';
 import { ParserRegistry } from './parsers/parser.registry';
@@ -22,11 +29,12 @@ export class IngestionService {
     private readonly store: IngestionStore,
     private readonly parsers: ParserRegistry,
     private readonly authStore: AuthStore,
-    private readonly jobsStore: JobsMemoryStore,
+    private readonly jobsStore: JobsStore,
+    private readonly ai: AiService,
     @Optional() private readonly ops?: OpsService,
   ) {}
 
-  createBatch(user: AuthUser, dto: CreateImportBatchDto) {
+  async createBatch(user: AuthUser, dto: CreateImportBatchDto) {
     this.assertImportQuota();
     const employer = this.requireEmployer(user);
     const now = new Date().toISOString();
@@ -46,30 +54,164 @@ export class IngestionService {
       updatedAt: now,
       records: [],
     };
-    const created = this.store.create(batch);
+    const created = await this.store.create(batch);
     this.ops?.recordImport(0);
     return this.toPublicBatch(created);
   }
 
-  listMine(user: AuthUser) {
-    return { items: this.store.listByOwner(user.id).map((b) => this.toPublicBatch(b)) };
+  async listMine(user: AuthUser) {
+    const items = await this.store.listByOwner(user.id);
+    return { items: items.map((b) => this.toPublicBatch(b)) };
   }
 
-  getBatch(user: AuthUser, id: string) {
-    return this.toPublicBatch(this.requireOwnedBatch(user, id));
+  async getBatch(user: AuthUser, id: string) {
+    return this.toPublicBatch(await this.requireOwnedBatch(user, id));
   }
 
-  getRecords(user: AuthUser, id: string) {
-    const batch = this.requireOwnedBatch(user, id);
+  async getRecords(user: AuthUser, id: string) {
+    const batch = await this.requireOwnedBatch(user, id);
     return {
       items: batch.records.map((record) => this.toPublicRecord(record)),
     };
   }
 
+  /** Re-run AI cleanup on one noisy OCR/import row and persist fields. */
+  async enrichRecord(
+    user: AuthUser,
+    batchId: string,
+    recordId: string,
+    dto: EnrichRecordDto = {},
+  ) {
+    if (!this.ai.isEnabled()) {
+      throw new BadRequestException(
+        'AI enrich is disabled. Set AI_ENRICH_ENABLED=1 on the API.',
+      );
+    }
+    const batch = await this.requireOwnedBatch(user, batchId);
+    const record = batch.records.find((item) => item.id === recordId);
+    if (!record) throw new NotFoundException('Import record not found');
+    if (record.reviewStatus === 'published' || record.reviewStatus === 'approved') {
+      throw new BadRequestException('Record already approved/published');
+    }
+
+    const rawText = [
+      record.extraction.title,
+      record.extraction.employerName,
+      record.extraction.locationCity,
+      record.extraction.salaryText,
+      record.extraction.contactWebsite,
+      record.extraction.description,
+      ...(record.extraction.notes ?? []),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const enriched = await this.ai.enrichJob({
+      title: record.extraction.title,
+      employerName: record.extraction.employerName,
+      locationCity: record.extraction.locationCity,
+      jobType: record.extraction.jobType,
+      salaryText: record.extraction.salaryText,
+      vacancies: record.extraction.vacancies,
+      contactWebsite: record.extraction.contactWebsite,
+      description: record.extraction.description,
+      contentLanguage: record.extraction.contentLanguage,
+      rawText,
+      instruction: dto.instruction?.trim() || undefined,
+    });
+
+    const priorNotes = (record.extraction.notes ?? []).filter(
+      (n) => !n.toLowerCase().includes('original text kept'),
+    );
+    const notes = [
+      ...priorNotes,
+      ...(enriched.notes ?? []),
+      enriched.cleaned
+        ? 'AI autocorrect applied — confirm before approve.'
+        : 'AI autocorrect did not change this row.',
+    ];
+
+    record.extraction = {
+      ...record.extraction,
+      title: enriched.title || record.extraction.title,
+      employerName:
+        enriched.employerName ||
+        record.extraction.employerName ||
+        batch.employerName,
+      locationCity: enriched.locationCity || record.extraction.locationCity,
+      jobType: enriched.jobType || record.extraction.jobType,
+      salaryText: enriched.salaryText || record.extraction.salaryText,
+      vacancies: enriched.vacancies ?? record.extraction.vacancies,
+      contactWebsite:
+        enriched.contactWebsite || record.extraction.contactWebsite,
+      description: enriched.description || record.extraction.description,
+      contentLanguage:
+        enriched.contentLanguage || record.extraction.contentLanguage,
+      notes,
+      aiCleaned: enriched.cleaned,
+      aiNotes: enriched.notes,
+    };
+    if (enriched.cleaned && record.confidence < 0.7) {
+      record.confidence = Math.min(0.85, Math.max(record.confidence, 0.55));
+    }
+    batch.updatedAt = new Date().toISOString();
+    await this.store.update(batch);
+
+    return {
+      cleaned: enriched.cleaned,
+      provider: enriched.provider,
+      record: this.toPublicRecord(record),
+    };
+  }
+
+  /** Persist manual / AI-assisted field edits before approve. */
+  async updateRecord(
+    user: AuthUser,
+    batchId: string,
+    recordId: string,
+    dto: UpdateImportRecordDto,
+  ) {
+    const batch = await this.requireOwnedBatch(user, batchId);
+    const record = batch.records.find((item) => item.id === recordId);
+    if (!record) throw new NotFoundException('Import record not found');
+    if (record.reviewStatus === 'published' || record.reviewStatus === 'approved') {
+      throw new BadRequestException('Record already approved/published');
+    }
+
+    if (dto.title !== undefined) record.extraction.title = dto.title.trim();
+    if (dto.employerName !== undefined) {
+      record.extraction.employerName = dto.employerName.trim();
+    }
+    if (dto.locationCity !== undefined) {
+      record.extraction.locationCity = dto.locationCity.trim();
+    }
+    if (dto.jobType !== undefined) record.extraction.jobType = dto.jobType.trim();
+    if (dto.salaryText !== undefined) {
+      record.extraction.salaryText = dto.salaryText.trim() || undefined;
+    }
+    if (dto.vacancies !== undefined) {
+      record.extraction.vacancies = dto.vacancies;
+    }
+    if (dto.description !== undefined) {
+      record.extraction.description = dto.description.trim();
+    }
+    if (dto.contentLanguage !== undefined) {
+      record.extraction.contentLanguage = dto.contentLanguage.trim();
+    }
+    if (dto.contactWebsite !== undefined) {
+      record.extraction.contactWebsite =
+        dto.contactWebsite.trim() || undefined;
+    }
+
+    batch.updatedAt = new Date().toISOString();
+    await this.store.update(batch);
+    return this.toPublicRecord(record);
+  }
+
   async uploadText(user: AuthUser, id: string, dto: TextUploadDto) {
-    const batch = this.requireOwnedBatch(user, id);
+    const batch = await this.requireOwnedBatch(user, id);
     batch.status = 'processing';
-    this.store.update(batch);
+    await this.store.update(batch);
 
     const sourceType = dto.sourceType || 'whatsapp';
     const filename = dto.filename || 'paste.txt';
@@ -79,9 +221,122 @@ export class IngestionService {
       text: dto.text,
     });
 
-    this.applyParseResult(batch, sourceType, filename, parsed.drafts, parsed.warnings);
+    await this.applyParseResult(
+      batch,
+      sourceType,
+      filename,
+      parsed.drafts,
+      parsed.warnings,
+    );
     if (parsed.pagesProcessed) this.ops?.recordOcrPages(parsed.pagesProcessed);
     return this.toPublicBatch(batch);
+  }
+
+  /**
+   * Channel / Job Fare digest path: create a batch for an admin owner and parse
+   * concatenated posts without requiring a prior createBatch HTTP call.
+   */
+  async ingestDigestText(input: {
+    ownerUserId: string;
+    employerName?: string;
+    text: string;
+    sourceType?: SourceType;
+    filename?: string;
+  }) {
+    this.assertImportQuota();
+    const user = this.authStore.getUser(input.ownerUserId);
+    if (!user) {
+      throw new BadRequestException(
+        'Channel pull owner user missing. Sign in as admin once, or set CHANNEL_PULL_OWNER_USER_ID.',
+      );
+    }
+    const employer = this.requireEmployer(user);
+    const now = new Date().toISOString();
+    const sourceType = input.sourceType || 'telegram';
+    const filename = input.filename || 'channel-digest.txt';
+    const batch: ImportBatch = {
+      id: this.store.newId('batch'),
+      employerId: employer.id,
+      ownerUserId: user.id,
+      employerName: input.employerName || employer.name || 'Channel pull',
+      status: 'processing',
+      sourceType,
+      filename,
+      totalRecords: 0,
+      processedRecords: 0,
+      errorCount: 0,
+      warnings: ['Created from channel Job Fare pull.'],
+      createdAt: now,
+      updatedAt: now,
+      records: [],
+    };
+    await this.store.create(batch);
+    this.ops?.recordImport(0);
+
+    // Channel digests often pack many recruitments in one Telegram message.
+    // Prefer one AI split+map call; fall back to heuristic text parser.
+    if (this.ai.isEnabled()) {
+      const split = await this.ai.splitJobs({ rawText: input.text });
+      if (split.jobs.length > 0) {
+        const drafts = split.jobs.map((job, index) => ({
+          title: job.title || `Channel role ${index + 1}`,
+          employerName: job.employerName || batch.employerName,
+          locationCity: job.locationCity,
+          jobType: job.jobType,
+          salaryText: job.salaryText,
+          vacancies: job.vacancies,
+          contactWebsite: job.contactWebsite,
+          description: job.description,
+          contentLanguage: job.contentLanguage,
+          confidence: job.cleaned ? 0.78 : 0.6,
+          sourceLocator: `${filename}#ai-split-${index + 1}`,
+          notes: [
+            ...(job.notes ?? []),
+            ...(split.notes ?? []),
+            split.jobs.length > 1
+              ? `AI multi-job split (${index + 1}/${split.jobs.length}).`
+              : 'AI digest parse (single job).',
+          ],
+          aiCleaned: job.cleaned,
+          aiNotes: job.notes,
+        }));
+        const warnings = [
+          ...(split.notes ?? []),
+          split.jobs.length > 1
+            ? `AI split channel digest into ${split.jobs.length} job record(s).`
+            : 'AI parsed channel digest as one job.',
+        ];
+        await this.applyParseResult(
+          batch,
+          sourceType,
+          filename,
+          drafts,
+          warnings,
+          { skipEnrich: true },
+        );
+        return {
+          batch: this.toPublicBatch(batch),
+          recordIds: batch.records.map((r) => r.id),
+        };
+      }
+    }
+
+    const parsed = await this.parsers.parse({
+      sourceType,
+      filename,
+      text: input.text,
+    });
+    await this.applyParseResult(
+      batch,
+      sourceType,
+      filename,
+      parsed.drafts,
+      parsed.warnings,
+    );
+    return {
+      batch: this.toPublicBatch(batch),
+      recordIds: batch.records.map((r) => r.id),
+    };
   }
 
   async uploadFile(
@@ -93,9 +348,9 @@ export class IngestionService {
     if (!file) {
       throw new BadRequestException('file is required');
     }
-    const batch = this.requireOwnedBatch(user, id);
+    const batch = await this.requireOwnedBatch(user, id);
     batch.status = 'processing';
-    this.store.update(batch);
+    await this.store.update(batch);
 
     const sourceType = this.detectSourceType(file, sourceTypeHint);
     const text =
@@ -111,7 +366,7 @@ export class IngestionService {
       buffer: file.buffer,
     });
 
-    this.applyParseResult(
+    await this.applyParseResult(
       batch,
       sourceType,
       file.originalname || 'upload.bin',
@@ -122,14 +377,14 @@ export class IngestionService {
     return this.toPublicBatch(batch);
   }
 
-  approve(user: AuthUser, id: string, dto: ApproveRecordsDto) {
-    const batch = this.requireOwnedBatch(user, id);
+  async approve(user: AuthUser, id: string, dto: ApproveRecordsDto) {
+    const batch = await this.requireOwnedBatch(user, id);
     if (!dto.recordIds?.length) {
       throw new BadRequestException('recordIds required');
     }
 
     batch.status = 'publishing';
-    this.store.update(batch);
+    await this.store.update(batch);
 
     let published = 0;
     let failed = 0;
@@ -154,7 +409,10 @@ export class IngestionService {
 
       const title = record.extraction.title || 'Untitled role';
       const locationCity = record.extraction.locationCity || 'Palani';
-      const existing = this.jobsStore.findActiveDuplicate(title, locationCity);
+      const existing = await this.jobsStore.findActiveDuplicate(
+        title,
+        locationCity,
+      );
       if (existing) {
         record.jobId = existing.id;
         record.dedupeStatus = 'duplicate';
@@ -165,13 +423,14 @@ export class IngestionService {
       }
 
       try {
-        const job = this.jobsStore.createAndPublish({
+        const job = await this.jobsStore.createAndPublish({
           title,
           employerName:
             record.extraction.employerName || batch.employerName || 'Employer',
           locationCity,
           jobType: (record.extraction.jobType as JobType) || 'full-time',
           salaryText: record.extraction.salaryText,
+          vacancies: record.extraction.vacancies,
           description: record.extraction.description || 'Not provided',
           contentLanguage: record.extraction.contentLanguage || 'en',
           contactPhone: record.extraction.contactPhone,
@@ -203,7 +462,7 @@ export class IngestionService {
         : failed && !published
           ? 'failed'
           : 'completed';
-    this.store.update(batch);
+    await this.store.update(batch);
 
     return {
       batch: this.toPublicBatch(batch),
@@ -212,28 +471,48 @@ export class IngestionService {
     };
   }
 
-  private applyParseResult(
+  private async applyParseResult(
     batch: ImportBatch,
     sourceType: SourceType,
     filename: string,
     drafts: ImportRecord['extraction'][],
     warnings: string[],
+    opts?: { skipEnrich?: boolean },
   ) {
     batch.sourceType = sourceType;
     batch.filename = filename;
     batch.warnings = [...batch.warnings, ...warnings];
 
+    const enrichedDrafts = opts?.skipEnrich
+      ? drafts.map((d) => ({
+          ...d,
+          aiCleaned: d.aiCleaned ?? false,
+        }))
+      : await this.ai.enrichDrafts(drafts);
+    if (this.ai.isEnabled() && !opts?.skipEnrich) {
+      const cleaned = enrichedDrafts.filter((d) => d.aiCleaned).length;
+      batch.warnings.push(
+        cleaned
+          ? `AI enrich cleaned ${cleaned}/${enrichedDrafts.length} draft(s).`
+          : 'AI enrich enabled but no drafts were cleaned (stub/cap/error).',
+      );
+    }
+
     const records: ImportRecord[] = [];
-    for (const draft of drafts) {
+    for (const draft of enrichedDrafts) {
       const probeBatch = { ...batch, records: [...batch.records, ...records] };
       const title = draft.title || '';
       const city = draft.locationCity;
       const duplicateInBatch = this.store.findDuplicate(probeBatch, title, city);
-      const duplicateJob = this.jobsStore.findActiveDuplicate(
+      const duplicateJob = await this.jobsStore.findActiveDuplicate(
         title || 'Untitled role',
         city || 'Palani',
       );
       const duplicate = duplicateInBatch || duplicateJob;
+      const notes = [
+        ...(draft.notes ?? []),
+        ...(draft.aiNotes ?? []),
+      ];
       records.push({
         id: this.store.newId('rec'),
         batchId: batch.id,
@@ -241,6 +520,7 @@ export class IngestionService {
         extraction: {
           ...draft,
           employerName: draft.employerName || batch.employerName,
+          notes: notes.length ? notes : undefined,
         },
         confidence: draft.confidence,
         dedupeStatus: duplicate ? 'duplicate' : 'unique',
@@ -262,7 +542,7 @@ export class IngestionService {
     if (!batch.records.length) {
       batch.warnings.push('No job records extracted');
     }
-    this.store.update(batch);
+    await this.store.update(batch);
   }
 
   private detectSourceType(
@@ -302,8 +582,11 @@ export class IngestionService {
     return employer;
   }
 
-  private requireOwnedBatch(user: AuthUser, id: string): ImportBatch {
-    const batch = this.store.get(id);
+  private async requireOwnedBatch(
+    user: AuthUser,
+    id: string,
+  ): Promise<ImportBatch> {
+    const batch = await this.store.get(id);
     if (!batch) throw new NotFoundException('Batch not found');
     if (batch.ownerUserId !== user.id && !user.roles.includes('admin')) {
       throw new ForbiddenException('Not your import batch');
@@ -343,13 +626,16 @@ export class IngestionService {
         locationCity: record.extraction.locationCity,
         jobType: record.extraction.jobType,
         salaryText: record.extraction.salaryText,
+        vacancies: record.extraction.vacancies,
         description: record.extraction.description,
         contentLanguage: record.extraction.contentLanguage,
         hasPhone: !!record.extraction.contactPhone,
         hasEmail: !!record.extraction.contactEmail,
         hasWebsite: !!record.extraction.contactWebsite,
+        // Apply/info URL is editable for admin review (phones/emails stay private).
+        contactWebsite: record.extraction.contactWebsite,
         notes: record.extraction.notes,
-        // raw contact values stay server-side only
+        aiCleaned: !!record.extraction.aiCleaned,
       },
       createdAt: record.createdAt,
     };

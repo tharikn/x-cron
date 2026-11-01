@@ -4,8 +4,9 @@ import {
   Optional,
 } from '@nestjs/common';
 import { AuthUser } from '../auth/auth.types';
-import { JobsMemoryStore } from '../jobs/jobs.memory-store';
+import { JobsStore } from '../jobs/jobs.store';
 import { toPublicJob } from '../jobs/jobs.mapper';
+import { JobRecord } from '../jobs/job.types';
 import { AdsService } from '../ads/ads.service';
 import { PreferencesService } from '../preferences/preferences.service';
 import { SiteService } from '../site/site.service';
@@ -15,31 +16,33 @@ import { SeekerStore } from './seeker.store';
 export class SeekerService {
   constructor(
     private readonly store: SeekerStore,
-    private readonly jobs: JobsMemoryStore,
+    private readonly jobs: JobsStore,
     private readonly preferences: PreferencesService,
     private readonly site: SiteService,
     @Optional() private readonly ads?: AdsService,
   ) {}
 
-  listSaved(user: AuthUser) {
+  async listSaved(user: AuthUser) {
     const boosts = this.ads?.activeBoosts() ?? new Map();
-    const items = this.store
-      .listSaved(user.id)
-      .map((id) => this.jobs.findById(id))
-      .filter((job): job is NonNullable<typeof job> => !!job && job.status === 'published')
-      .map((job) => ({
-        ...toPublicJob(
-          job,
-          boosts.get(job.id) ?? null,
-          this.site.getUnlockPricePaise(),
-        ),
-        saved: true,
-      }));
+    const savedIds = this.store.listSaved(user.id);
+    const jobs: JobRecord[] = [];
+    for (const id of savedIds) {
+      const job = await this.jobs.findById(id);
+      if (job && job.status === 'published') jobs.push(job);
+    }
+    const items = jobs.map((job) => ({
+      ...toPublicJob(
+        job,
+        boosts.get(job.id) ?? null,
+        this.site.getUnlockPricePaise(),
+      ),
+      saved: true,
+    }));
     return { items };
   }
 
-  save(user: AuthUser, jobId: string) {
-    const job = this.jobs.findById(jobId);
+  async save(user: AuthUser, jobId: string) {
+    const job = await this.jobs.findById(jobId);
     if (!job || job.status !== 'published') {
       throw new NotFoundException('Job not found');
     }
@@ -52,10 +55,10 @@ export class SeekerService {
     return { ok: true, jobId, saved: false };
   }
 
-  feed(user: AuthUser) {
+  async feed(user: AuthUser) {
     const prefs = this.preferences.getForUser(user);
     const boosts = this.ads?.activeBoosts() ?? new Map();
-    let items = this.jobs.listPublished();
+    let items = await this.jobs.listPublished();
 
     if (prefs.locations.length) {
       items = items.filter((job) => {

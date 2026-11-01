@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PreferencesService } from '../preferences/preferences.service';
 import { SeekerService } from '../seeker/seeker.service';
@@ -11,6 +12,7 @@ export class AccountService {
     private readonly payments: PaymentsService,
     private readonly preferences: PreferencesService,
     private readonly seeker: SeekerService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   deleteAccount(token?: string) {
@@ -18,6 +20,7 @@ export class AccountService {
     this.payments.wipeUser(user.id);
     this.preferences.clearForUser(user);
     this.seeker.clearUser(user.id);
+    this.notifications.clearForUser(user);
     this.auth.purgeUserRecord(user.id, token);
     return {
       ok: true,

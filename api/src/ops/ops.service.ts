@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AdsStore } from '../ads/ads.store';
 import { AuthStore } from '../auth/auth.store';
-import { JobsMemoryStore } from '../jobs/jobs.memory-store';
+import { JobsStore } from '../jobs/jobs.store';
 import { DashboardQueryDto } from './dto/dashboard-query.dto';
 import { CostLineItem, QuotaPolicy } from './ops.types';
 import { OpsStore } from './ops.store';
@@ -10,12 +10,12 @@ import { OpsStore } from './ops.store';
 export class OpsService {
   constructor(
     private readonly store: OpsStore,
-    private readonly jobs: JobsMemoryStore,
+    private readonly jobs: JobsStore,
     private readonly ads: AdsStore,
     private readonly auth: AuthStore,
   ) {}
 
-  costModel() {
+  async costModel() {
     const monthlyBudgetInr = Number(process.env.MONTHLY_BUDGET_INR ?? 15000);
     const lines: CostLineItem[] = [
       {
@@ -77,7 +77,7 @@ export class OpsService {
       (sum, line) => sum + line.monthlyEstimateInr,
       0,
     );
-    const published = this.jobs.listPublished().length || 1;
+    const published = (await this.jobs.listPublished()).length || 1;
     const alertThresholdPct = Number(process.env.BUDGET_ALERT_PCT ?? 80);
 
     return {
@@ -101,7 +101,7 @@ export class OpsService {
     };
   }
 
-  metrics() {
+  async metrics() {
     const counters = this.store.snapshot();
     const adStats = this.ads.eventStats();
     return {
@@ -112,18 +112,18 @@ export class OpsService {
         counters.promotionsSold,
         this.ads.activePromotions().length,
       ),
-      publishedJobs: this.jobs.listPublished().length,
+      publishedJobs: (await this.jobs.listPublished()).length,
       time: new Date().toISOString(),
     };
   }
 
-  dashboard(query: DashboardQueryDto) {
+  async dashboard(query: DashboardQueryDto) {
     const granularity = query.granularity ?? 'day';
     const { from, to } = this.resolveRange(granularity, query.from, query.to);
     const fromMs = from.getTime();
     const toMs = to.getTime();
 
-    const allJobs = this.jobs.listAll();
+    const allJobs = await this.jobs.listAll();
     const users = this.auth.listUsers();
     const signIns = this.auth.listSignInEvents();
 
@@ -323,8 +323,8 @@ export class OpsService {
     };
   }
 
-  scaleHints() {
-    const m = this.metrics();
+  async scaleHints() {
+    const m = await this.metrics();
     const hints: string[] = [];
     if (m.searches > 10000) {
       hints.push('Add read replicas / search index before search p95 degrades.');

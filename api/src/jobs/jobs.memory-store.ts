@@ -6,17 +6,22 @@ import {
   JobSearchQuery,
   JobType,
 } from './job.types';
+import { JobsStore } from './jobs.store';
 import { SEED_JOBS } from './seed-jobs';
 
 @Injectable()
-export class JobsMemoryStore implements OnModuleInit {
+export class JobsMemoryStore extends JobsStore implements OnModuleInit {
   private jobs: JobRecord[] = [];
+
+  constructor() {
+    super();
+  }
 
   onModuleInit() {
     this.jobs = SEED_JOBS.map((job) => structuredClone(job));
   }
 
-  listPublished(): JobRecord[] {
+  async listPublished(): Promise<JobRecord[]> {
     const now = Date.now();
     return this.jobs.filter((job) => {
       if (job.status !== 'published') return false;
@@ -28,20 +33,22 @@ export class JobsMemoryStore implements OnModuleInit {
     });
   }
 
-  findById(id: string): JobRecord | undefined {
+  async findById(id: string): Promise<JobRecord | undefined> {
     return this.jobs.find((job) => job.id === id);
   }
 
-  findBySlug(slug: string): JobRecord | undefined {
+  async findBySlug(slug: string): Promise<JobRecord | undefined> {
     return this.jobs.find((job) => job.slug === slug);
   }
 
-  search(query: JobSearchQuery): { items: JobRecord[]; nextCursor?: string } {
+  async search(
+    query: JobSearchQuery,
+  ): Promise<{ items: JobRecord[]; nextCursor?: string }> {
     const keyword = query.keyword?.trim().toLowerCase() ?? '';
     const locationText = query.locationText?.trim().toLowerCase() ?? '';
     const limit = Math.min(Math.max(query.limit ?? 20, 1), 50);
 
-    let results = this.listPublished().filter((job) => {
+    let results = (await this.listPublished()).filter((job) => {
       const haystack = [
         job.title,
         job.employerName,
@@ -86,8 +93,8 @@ export class JobsMemoryStore implements OnModuleInit {
     return { items: page, nextCursor };
   }
 
-  related(job: JobRecord, limit = 3): JobRecord[] {
-    return this.listPublished()
+  async related(job: JobRecord, limit = 3): Promise<JobRecord[]> {
+    return (await this.listPublished())
       .filter((candidate) => candidate.id !== job.id)
       .map((candidate) => ({
         candidate,
@@ -102,8 +109,8 @@ export class JobsMemoryStore implements OnModuleInit {
       .map((item) => item.candidate);
   }
 
-  categories(): string[] {
-    return [...new Set(this.listPublished().map((job) => job.category))].sort();
+  async categories(): Promise<string[]> {
+    return [...new Set((await this.listPublished()).map((job) => job.category))].sort();
   }
 
   /** Title + city fingerprint for active (non-rejected/removed) jobs. */
@@ -111,7 +118,10 @@ export class JobsMemoryStore implements OnModuleInit {
     return `${title.trim().toLowerCase()}|${city.trim().toLowerCase()}`;
   }
 
-  findActiveDuplicate(title: string, city: string): JobRecord | undefined {
+  async findActiveDuplicate(
+    title: string,
+    city: string,
+  ): Promise<JobRecord | undefined> {
     const key = this.dedupeKey(title || 'Untitled role', city || 'Palani');
     return this.jobs.find((job) => {
       if (job.status === 'rejected' || job.status === 'removed') return false;
@@ -119,13 +129,13 @@ export class JobsMemoryStore implements OnModuleInit {
     });
   }
 
-  createAndPublish(input: CreateJobInput): JobRecord {
+  async createAndPublish(input: CreateJobInput): Promise<JobRecord> {
     const id = `job_${randomUUID().slice(0, 8)}`;
     const city = input.locationCity.trim() || 'Palani';
     const state = input.locationState?.trim() || 'Tamil Nadu';
     const district = input.locationDistrict?.trim() || city;
     const title = input.title.trim() || 'Untitled role';
-    if (this.findActiveDuplicate(title, city)) {
+    if (await this.findActiveDuplicate(title, city)) {
       throw new Error('DUPLICATE_JOB');
     }
     const salary = this.parseSalary(input.salaryText);
@@ -187,11 +197,11 @@ export class JobsMemoryStore implements OnModuleInit {
     return job;
   }
 
-  createFromPaste(
+  async createFromPaste(
     rawText: string,
     contentLanguage: string,
     meta?: { employerId?: string; ownerUserId?: string; employerName?: string },
-  ): JobRecord {
+  ): Promise<JobRecord> {
     const lines = rawText
       .split(/\r?\n/)
       .map((line) => line.trim())
@@ -218,27 +228,27 @@ export class JobsMemoryStore implements OnModuleInit {
     });
   }
 
-  listByStatus(status?: string): JobRecord[] {
+  async listByStatus(status?: string): Promise<JobRecord[]> {
     if (!status) return [...this.jobs];
     return this.jobs.filter((job) => job.status === status);
   }
 
-  listByOwner(userId: string): JobRecord[] {
+  async listByOwner(userId: string): Promise<JobRecord[]> {
     return this.jobs.filter((job) => job.ownerUserId === userId);
   }
 
-  listAll(): JobRecord[] {
+  async listAll(): Promise<JobRecord[]> {
     return [...this.jobs];
   }
 
-  listByOwnerPaged(
+  async listByOwnerPaged(
     userId: string,
     page = 1,
     limit = 10,
-  ): { items: JobRecord[]; total: number; page: number; limit: number } {
+  ): Promise<{ items: JobRecord[]; total: number; page: number; limit: number }> {
     const safePage = Math.max(1, page);
     const safeLimit = Math.min(100, Math.max(1, limit));
-    const sorted = this.listByOwner(userId).sort(
+    const sorted = (await this.listByOwner(userId)).sort(
       (a, b) =>
         b.publishedAt.localeCompare(a.publishedAt) || a.id.localeCompare(b.id),
     );
@@ -251,12 +261,12 @@ export class JobsMemoryStore implements OnModuleInit {
     };
   }
 
-  setStatus(
+  async setStatus(
     id: string,
     status: JobRecord['status'],
     note?: string,
-  ): JobRecord | undefined {
-    const job = this.findById(id);
+  ): Promise<JobRecord | undefined> {
+    const job = await this.findById(id);
     if (!job) return undefined;
     job.status = status;
     if (note) job.moderationNote = note;
@@ -266,14 +276,14 @@ export class JobsMemoryStore implements OnModuleInit {
     return job;
   }
 
-  updateOwned(
+  async updateOwned(
     id: string,
     ownerUserId: string,
     patch: Partial<CreateJobInput> & {
       status?: JobRecord['status'];
     },
-  ): JobRecord | undefined {
-    const job = this.findById(id);
+  ): Promise<JobRecord | undefined> {
+    const job = await this.findById(id);
     if (!job || job.ownerUserId !== ownerUserId) return undefined;
 
     if (patch.title?.trim()) job.title = patch.title.trim();
@@ -349,12 +359,15 @@ export class JobsMemoryStore implements OnModuleInit {
     return job;
   }
 
-  softRemoveOwned(id: string, ownerUserId: string): JobRecord | undefined {
+  async softRemoveOwned(
+    id: string,
+    ownerUserId: string,
+  ): Promise<JobRecord | undefined> {
     return this.updateOwned(id, ownerUserId, { status: 'removed' });
   }
 
-  report(id: string, reason: string): JobRecord | undefined {
-    const job = this.findById(id);
+  async report(id: string, reason: string): Promise<JobRecord | undefined> {
+    const job = await this.findById(id);
     if (!job) return undefined;
     job.reportCount = (job.reportCount ?? 0) + 1;
     job.moderationNote = reason.slice(0, 500);
