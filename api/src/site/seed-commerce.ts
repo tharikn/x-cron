@@ -1,6 +1,12 @@
 import type { SiteCommerceConfig } from './site.types';
 
-/** Default contact unlock pricing — mirrors Prisma SiteConfig key `commerce`. */
+/**
+ * First-boot default only — used when Prisma `SiteConfig` key `commerce` is missing.
+ * Runtime values come from DB (Settings UI → PUT /v1/admin/site/commerce).
+ */
 export const SEED_COMMERCE: Omit<SiteCommerceConfig, 'updatedAt'> = {
-  unlockPricePaise: Number(process.env.UNLOCK_PRICE_PAISE ?? 500),
+  unlockPricePaise: 500,
+  paymentsEnabled: true,
+  postJobPaymentMode: 'optional',
+  postJobPricePaise: 500,
 };

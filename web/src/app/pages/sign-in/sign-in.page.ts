@@ -63,12 +63,13 @@ export class SignInPage implements OnInit, AfterViewInit {
     });
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.seo.setPage({
       title: 'Sign in',
       description: 'Sign in to X Cron Jobs with Google, or admin password for ops.',
       path: '/sign-in',
     });
+    await this.auth.ensureSession();
     if (this.needsAdminLogin()) {
       this.mode.set('admin');
     }
@@ -116,8 +117,8 @@ export class SignInPage implements OnInit, AfterViewInit {
     }
   }
 
-  logout(): void {
-    this.auth.logout();
+  async logout(): Promise<void> {
+    await this.auth.logout();
   }
 
   private initialMode(): SignInMode {

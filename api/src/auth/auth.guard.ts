@@ -1,7 +1,6 @@
 import {
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -10,6 +9,11 @@ import { AuthStore } from './auth.store';
 import { IS_PUBLIC_KEY, ROLES_KEY } from './decorators';
 import { UserRole } from './auth.types';
 
+/**
+ * Authentication only. Attaches `request.user` from Bearer token.
+ * Role checks live in RolesGuard. Any `@Roles(...)` route requires a session
+ * even if `@Public()` is also present (Public never bypasses RBAC).
+ */
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
@@ -33,7 +37,8 @@ export class AuthGuard implements CanActivate {
       headers: Record<string, string>;
       user?: unknown;
     }>();
-    const header = request.headers['authorization'] || request.headers['Authorization'];
+    const header =
+      request.headers['authorization'] || request.headers['Authorization'];
     const token = header?.startsWith('Bearer ')
       ? header.slice('Bearer '.length).trim()
       : undefined;
@@ -43,17 +48,9 @@ export class AuthGuard implements CanActivate {
       request.user = user;
     }
 
-    if (isPublic && roles.length === 0) {
-      return true;
-    }
-
-    if (!user) {
-      if (isPublic) return true;
+    const requiresAuth = roles.length > 0 || !isPublic;
+    if (requiresAuth && !user) {
       throw new UnauthorizedException('Sign-in required');
-    }
-
-    if (roles.length && !roles.some((role) => user.roles.includes(role))) {
-      throw new ForbiddenException('Insufficient role');
     }
 
     return true;

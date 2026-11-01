@@ -29,7 +29,49 @@
       <a class="link" routerLink="/blog-approval">Blog Approval</a>
       <button type="button" class="secondary" (click)="logout()">Sign out</button>
     </div>
-  } @else if (isSignedIn() && !needsAdminLogin()) {
+  } @else if (isSignedIn() && needsAdminLogin()) {
+    <div class="panel">
+      <p>Signed in as {{ user()?.email || user()?.displayName }}</p>
+      <p class="role">This session is not admin. Enter the admin password below for Dashboard / History.</p>
+      <button type="button" class="secondary" (click)="logout()">Sign out</button>
+    </div>
+    <form class="form" (ngSubmit)="signIn()">
+      <label>
+        <span>Admin email</span>
+        <input
+          type="email"
+          [(ngModel)]="email"
+          name="email"
+          placeholder="superadmin@xcron.app"
+          required
+          autocomplete="username"
+        />
+      </label>
+      <label>
+        <span>Password</span>
+        <input
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="••••••••"
+          required
+          minlength="8"
+          autocomplete="current-password"
+        />
+      </label>
+      <button type="submit" [disabled]="busy()">
+        @if (busy()) {
+          <span class="spinner spinner--inline" aria-hidden="true"></span>
+          Signing in…
+        } @else {
+          Switch to admin
+        }
+      </button>
+    </form>
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+  } @else if (isSignedIn()) {
     <div class="panel">
       <p>Signed in as {{ user()?.email || user()?.displayName }}</p>
       <p class="role">Google · saved jobs, unlocks, and preferences sync here</p>

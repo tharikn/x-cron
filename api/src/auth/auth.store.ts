@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from 'crypto';
 import {
+  AuthTokens,
   AuthUser,
   EmployerProfile,
   OtpChallenge,
@@ -17,6 +18,8 @@ export interface SignInEvent {
 export class AuthStore implements OnModuleInit {
   private readonly users = new Map<string, AuthUser>();
   private readonly sessions = new Map<string, SessionRecord>();
+  /** refreshToken → accessToken */
+  private readonly refreshIndex = new Map<string, string>();
   private readonly otps = new Map<string, OtpChallenge>();
   private readonly employers = new Map<string, EmployerProfile>();
   private readonly identityIndex = new Map<string, string>(); // phone:x / email:x -> userId
@@ -28,6 +31,11 @@ export class AuthStore implements OnModuleInit {
   private passwordSalt: Buffer | null = null;
   private passwordHash: Buffer | null = null;
   private superAdminEmail: string | null = null;
+  /** Access token TTL (Bearer). Env AUTH_ACCESS_TTL_MINUTES, default 15. */
+  private accessTtlMs = this.resolveAccessTtlMs();
+  /** Refresh token TTL — synced from SiteConfig `auth` (defaults match seed). */
+  private sessionTtlMs = 30 * 24 * 60 * 60 * 1000;
+  private otpTtlMs = 10 * 60 * 1000;
 
   onModuleInit() {
     const email = this.resolveSuperAdminEmail();
@@ -52,7 +60,10 @@ export class AuthStore implements OnModuleInit {
     this.createEmployer(admin.id, 'X Cron Moderation Desk');
   }
 
-  signInSuperAdmin(email: string, password: string): { user: AuthUser; token: string } {
+  signInSuperAdmin(
+    email: string,
+    password: string,
+  ): { user: AuthUser } & AuthTokens {
     const normalized = this.normalizeDestination('email', email);
     this.assertAdminLoginAllowed(normalized);
 
@@ -92,8 +103,8 @@ export class AuthStore implements OnModuleInit {
     if (!this.getEmployerByOwner(user.id)) {
       this.createEmployer(user.id, 'X Cron Moderation Desk');
     }
-    const token = this.createSession(user.id);
-    return { user, token };
+    const tokens = this.createSession(user.id);
+    return { user, ...tokens };
   }
 
   startOtp(input: {
@@ -109,7 +120,7 @@ export class AuthStore implements OnModuleInit {
       destination,
       code,
       intendedRole: input.intendedRole === 'admin' ? 'seeker' : input.intendedRole,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      expiresAt: new Date(Date.now() + this.otpTtlMs).toISOString(),
       attempts: 0,
     };
     this.otps.set(challenge.id, challenge);
@@ -123,7 +134,7 @@ export class AuthStore implements OnModuleInit {
   signInWithGoogle(input: {
     email: string;
     displayName?: string;
-  }): { user: AuthUser; token: string } {
+  }): { user: AuthUser } & AuthTokens {
     const email = this.normalizeDestination('email', input.email);
     if (!email.includes('@')) {
       throw new Error('invalid_email');
@@ -146,11 +157,14 @@ export class AuthStore implements OnModuleInit {
       this.users.set(user.id, user);
     }
 
-    const token = this.createSession(user.id);
-    return { user, token };
+    const tokens = this.createSession(user.id);
+    return { user, ...tokens };
   }
 
-  verifyOtp(challengeId: string, code: string): { user: AuthUser; token: string } {
+  verifyOtp(
+    challengeId: string,
+    code: string,
+  ): { user: AuthUser } & AuthTokens {
     const challenge = this.otps.get(challengeId);
     if (!challenge) {
       throw new Error('invalid_challenge');
@@ -185,19 +199,48 @@ export class AuthStore implements OnModuleInit {
       this.users.set(user.id, user);
     }
 
-    const token = this.createSession(user.id);
-    return { user, token };
+    const tokens = this.createSession(user.id);
+    return { user, ...tokens };
   }
 
   getUserByToken(token?: string): AuthUser | undefined {
     if (!token) return undefined;
     const session = this.sessions.get(token);
     if (!session) return undefined;
-    if (new Date(session.expiresAt).getTime() < Date.now()) {
-      this.sessions.delete(token);
+    const now = Date.now();
+    // Refresh still valid → keep the pair so /auth/refresh can rotate.
+    if (new Date(session.refreshExpiresAt).getTime() < now) {
+      this.revokeSession(session);
+      return undefined;
+    }
+    if (new Date(session.expiresAt).getTime() < now) {
       return undefined;
     }
     return this.users.get(session.userId);
+  }
+
+  /** Rotate tokens; old refresh is invalidated. */
+  refreshSession(refreshToken: string): AuthTokens {
+    const accessToken = this.refreshIndex.get(refreshToken);
+    if (!accessToken) {
+      throw new Error('invalid_refresh_token');
+    }
+    const session = this.sessions.get(accessToken);
+    if (!session || session.refreshToken !== refreshToken) {
+      this.refreshIndex.delete(refreshToken);
+      throw new Error('invalid_refresh_token');
+    }
+    if (new Date(session.refreshExpiresAt).getTime() < Date.now()) {
+      this.revokeSession(session);
+      throw new Error('expired_refresh_token');
+    }
+    const user = this.users.get(session.userId);
+    if (!user || user.status !== 'active') {
+      this.revokeSession(session);
+      throw new Error('invalid_refresh_token');
+    }
+    this.revokeSession(session);
+    return this.issueTokens(user.id, { recordSignIn: false });
   }
 
   getUser(id: string): AuthUser | undefined {
@@ -216,21 +259,22 @@ export class AuthStore implements OnModuleInit {
     const now = Date.now();
     let count = 0;
     for (const session of this.sessions.values()) {
-      if (new Date(session.expiresAt).getTime() >= now) count += 1;
+      if (new Date(session.refreshExpiresAt).getTime() >= now) count += 1;
     }
     return count;
   }
 
   logout(token: string) {
-    this.sessions.delete(token);
+    const session = this.sessions.get(token);
+    if (session) this.revokeSession(session);
   }
 
   /** Soft-delete account: remove sessions, identities, employer profile, user. */
   deleteUser(userId: string): boolean {
     const user = this.users.get(userId);
     if (!user) return false;
-    for (const [token, session] of this.sessions) {
-      if (session.userId === userId) this.sessions.delete(token);
+    for (const session of [...this.sessions.values()]) {
+      if (session.userId === userId) this.revokeSession(session);
     }
     for (const [key, id] of this.identityIndex) {
       if (id === userId) this.identityIndex.delete(key);
@@ -314,17 +358,53 @@ export class AuthStore implements OnModuleInit {
     return user;
   }
 
-  private createSession(userId: string): string {
+  /** Apply SiteConfig `auth` TTLs (new refresh / OTP challenges only). */
+  setAuthTtls(input: { sessionTtlDays: number; otpTtlMinutes: number }) {
+    this.sessionTtlMs = input.sessionTtlDays * 24 * 60 * 60 * 1000;
+    this.otpTtlMs = input.otpTtlMinutes * 60 * 1000;
+  }
+
+  private createSession(userId: string): AuthTokens {
+    return this.issueTokens(userId, { recordSignIn: true });
+  }
+
+  private issueTokens(
+    userId: string,
+    options: { recordSignIn: boolean },
+  ): AuthTokens {
     const token = randomUUID();
+    const refreshToken = randomUUID();
     const createdAt = new Date().toISOString();
-    this.sessions.set(token, {
+    const expiresAt = new Date(Date.now() + this.accessTtlMs).toISOString();
+    const refreshExpiresAt = new Date(
+      Date.now() + this.sessionTtlMs,
+    ).toISOString();
+    const session: SessionRecord = {
       token,
+      refreshToken,
       userId,
       createdAt,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    });
-    this.signInEvents.push({ userId, at: createdAt });
-    return token;
+      expiresAt,
+      refreshExpiresAt,
+    };
+    this.sessions.set(token, session);
+    this.refreshIndex.set(refreshToken, token);
+    if (options.recordSignIn) {
+      this.signInEvents.push({ userId, at: createdAt });
+    }
+    return { token, refreshToken, expiresAt };
+  }
+
+  private revokeSession(session: SessionRecord) {
+    this.sessions.delete(session.token);
+    this.refreshIndex.delete(session.refreshToken);
+  }
+
+  private resolveAccessTtlMs(): number {
+    const raw = Number(process.env.AUTH_ACCESS_TTL_MINUTES ?? '15');
+    const minutes =
+      Number.isFinite(raw) && raw >= 1 && raw <= 24 * 60 ? raw : 15;
+    return minutes * 60 * 1000;
   }
 
   private resolveRoles(_destination: string, intended: UserRole): UserRole[] {

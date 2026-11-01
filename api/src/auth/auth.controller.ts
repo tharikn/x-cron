@@ -5,6 +5,7 @@ import {
   AdminLoginDto,
   CreateEmployerDto,
   GoogleAuthDto,
+  RefreshTokenDto,
   StartOtpDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
@@ -36,6 +37,12 @@ export class AuthController {
   @Post('admin/login')
   adminLogin(@Body() dto: AdminLoginDto) {
     return this.authService.adminLogin(dto);
+  }
+
+  @Public()
+  @Post('refresh')
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto);
   }
 
   @Get('me')

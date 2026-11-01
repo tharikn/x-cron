@@ -9,6 +9,7 @@ import {
   AdminLoginDto,
   CreateEmployerDto,
   GoogleAuthDto,
+  RefreshTokenDto,
   StartOtpDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
@@ -35,14 +36,29 @@ export class AuthService {
 
   verifyOtp(dto: VerifyOtpDto) {
     try {
-      const { user, token } = this.store.verifyOtp(dto.challengeId, dto.code);
+      const { user, token, refreshToken, expiresAt } = this.store.verifyOtp(
+        dto.challengeId,
+        dto.code,
+      );
       return {
         token,
+        refreshToken,
+        expiresAt,
         user: this.store.toPublicUser(user),
         employer: this.store.getEmployerByOwner(user.id) ?? null,
       };
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'invalid_code';
+      throw new UnauthorizedException(reason);
+    }
+  }
+
+  refresh(dto: RefreshTokenDto) {
+    try {
+      return this.store.refreshSession(dto.refreshToken.trim());
+    } catch (error) {
+      const reason =
+        error instanceof Error ? error.message : 'invalid_refresh_token';
       throw new UnauthorizedException(reason);
     }
   }
@@ -73,9 +89,12 @@ export class AuthService {
   async google(dto: GoogleAuthDto) {
     const identity = await this.resolveGoogleIdentity(dto);
     try {
-      const { user, token } = this.store.signInWithGoogle(identity);
+      const { user, token, refreshToken, expiresAt } =
+        this.store.signInWithGoogle(identity);
       return {
         token,
+        refreshToken,
+        expiresAt,
         user: this.store.toPublicUser(user),
         employer: this.store.getEmployerByOwner(user.id) ?? null,
       };
@@ -87,9 +106,12 @@ export class AuthService {
 
   adminLogin(dto: AdminLoginDto) {
     try {
-      const { user, token } = this.store.signInSuperAdmin(dto.email, dto.password);
+      const { user, token, refreshToken, expiresAt } =
+        this.store.signInSuperAdmin(dto.email, dto.password);
       return {
         token,
+        refreshToken,
+        expiresAt,
         user: this.store.toPublicUser(user),
         employer: this.store.getEmployerByOwner(user.id) ?? null,
       };

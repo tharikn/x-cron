@@ -55,3 +55,10 @@ export class AdminLoginDto {
   @MinLength(8)
   password!: string;
 }
+
+/** Rotate access + refresh tokens. */
+export class RefreshTokenDto {
+  @IsString()
+  @MinLength(16)
+  refreshToken!: string;
+}

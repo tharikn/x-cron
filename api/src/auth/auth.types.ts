@@ -20,9 +20,21 @@ export interface EmployerProfile {
 }
 
 export interface SessionRecord {
+  /** Short-lived access token (Bearer). */
   token: string;
+  /** Long-lived refresh token (POST /v1/auth/refresh only). */
+  refreshToken: string;
   userId: string;
   createdAt: string;
+  /** Access token expiry. */
+  expiresAt: string;
+  /** Refresh token expiry (SiteConfig sessionTtlDays). */
+  refreshExpiresAt: string;
+}
+
+export interface AuthTokens {
+  token: string;
+  refreshToken: string;
   expiresAt: string;
 }
 

@@ -2,14 +2,14 @@
   <p class="brand">X Cron <span>Jobs</span></p>
   <h1>Settings</h1>
   <p class="lead">
-    Set the contact unlock price seekers see when they tap the blurred employer contact.
+    Global payments switch, post-job fee mode, unlock pricing, and auth token TTLs.
   </p>
 
   @if (!isSignedIn() || !isAdmin()) {
     <div class="gate">
       <p>
         @if (!isSignedIn()) {
-          Admins must sign in to change commerce settings.
+          Admins must sign in to change site settings.
         } @else {
           This account is not an admin. Use admin&#64;xcron.local.
         }
@@ -17,7 +17,23 @@
       <a class="btn" routerLink="/sign-in">Go to Sign in</a>
     </div>
   } @else {
-    <form class="form" (ngSubmit)="save()">
+    <form class="form" (ngSubmit)="saveCommerce()">
+      <h2 class="form__title">Payments &amp; commerce</h2>
+
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [(ngModel)]="paymentsEnabled"
+          name="paymentsEnabled"
+          [disabled]="commerceBusy()"
+        />
+        <span>Enable payments (global)</span>
+      </label>
+      <p class="hint">
+        Off = no unlock/post checkout; contact unlock is granted free. On = collect via
+        stub/UPI/PSP per <code>PAYMENT_GATEWAY</code>.
+      </p>
+
       <label>
         <span>Contact unlock price (₹)</span>
         <div class="rupee">
@@ -30,25 +46,105 @@
             max="9999"
             step="1"
             inputmode="numeric"
-            [disabled]="busy()"
+            [disabled]="commerceBusy() || !paymentsEnabled"
             required
           />
         </div>
       </label>
+
+      <label>
+        <span>Post-job payment</span>
+        <select
+          class="plain"
+          [(ngModel)]="postJobPaymentMode"
+          name="postJobPaymentMode"
+          [disabled]="commerceBusy() || !paymentsEnabled"
+        >
+          <option value="mandatory">Mandatory — must pay after post</option>
+          <option value="optional">Optional — show pay, allow skip</option>
+          <option value="none">No payment — hide post fee</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Post-job fee (₹)</span>
+        <div class="rupee">
+          <span class="rupee__mark" aria-hidden="true">₹</span>
+          <input
+            [(ngModel)]="postJobPriceInr"
+            name="postJobPriceInr"
+            type="number"
+            min="0"
+            max="9999"
+            step="1"
+            inputmode="numeric"
+            [disabled]="commerceBusy() || !paymentsEnabled || postJobPaymentMode === 'none'"
+          />
+        </div>
+      </label>
+
       <p class="hint">
-        Shown after a seeker taps the locked contact on a job page. Stored in SiteConfig
-        (<code>commerce</code>).
+        Stored in SiteConfig <code>commerce</code>. See
+        <a routerLink="/admin/payments">Payment history</a>.
       </p>
-      <button type="submit" [disabled]="busy()">
-        {{ busy() ? 'Saving…' : 'Save unlock price' }}
+      <button type="submit" [disabled]="commerceBusy()">
+        {{ commerceBusy() ? 'Saving…' : 'Save commerce' }}
       </button>
+      @if (commerceError()) {
+        <p class="err">{{ commerceError() }}</p>
+      }
+      @if (commerceSaved()) {
+        <p class="ok">Commerce settings saved.</p>
+      }
     </form>
 
-    @if (error()) {
-      <p class="err">{{ error() }}</p>
-    }
-    @if (saved()) {
-      <p class="ok">Unlock price updated. Job pages will use ₹{{ unlockPriceInr }}.</p>
-    }
+    <form class="form form--spaced" (ngSubmit)="saveAuth()">
+      <h2 class="form__title">Auth tokens</h2>
+      <label>
+        <span>Session token expiry (days)</span>
+        <input
+          class="plain"
+          [(ngModel)]="sessionTtlDays"
+          name="sessionTtlDays"
+          type="number"
+          min="1"
+          max="365"
+          step="1"
+          inputmode="numeric"
+          [disabled]="authBusy()"
+          required
+        />
+      </label>
+      <label>
+        <span>OTP expiry (minutes)</span>
+        <input
+          class="plain"
+          [(ngModel)]="otpTtlMinutes"
+          name="otpTtlMinutes"
+          type="number"
+          min="1"
+          max="60"
+          step="1"
+          inputmode="numeric"
+          [disabled]="authBusy()"
+          required
+        />
+      </label>
+      <p class="hint">
+        Applies to new sessions and OTP challenges. Stored in SiteConfig <code>auth</code>.
+        Existing sessions keep their original expiry.
+      </p>
+      <button type="submit" [disabled]="authBusy()">
+        {{ authBusy() ? 'Saving…' : 'Save auth expiry' }}
+      </button>
+      @if (authError()) {
+        <p class="err">{{ authError() }}</p>
+      }
+      @if (authSaved()) {
+        <p class="ok">
+          New sessions last {{ sessionTtlDays }} day(s); OTP codes last {{ otpTtlMinutes }} minute(s).
+        </p>
+      }
+    </form>
   }
 </section>

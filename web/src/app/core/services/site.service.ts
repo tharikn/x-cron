@@ -2,7 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { SiteCommerceConfig, SiteFooterConfig } from '../models/site.model';
+import type {
+  SiteAuthConfig,
+  SiteCommerceConfig,
+  SiteFooterConfig,
+} from '../models/site.model';
 import { AuthService } from './auth.service';
 
 const FALLBACK_FOOTER: SiteFooterConfig = {
@@ -74,6 +78,16 @@ const FALLBACK_FOOTER: SiteFooterConfig = {
 const FALLBACK_COMMERCE: SiteCommerceConfig = {
   unlockPricePaise: 500,
   unlockPriceInr: 5,
+  paymentsEnabled: true,
+  postJobPaymentMode: 'optional',
+  postJobPricePaise: 500,
+  postJobPriceInr: 5,
+  updatedAt: new Date(0).toISOString(),
+};
+
+const FALLBACK_AUTH: SiteAuthConfig = {
+  sessionTtlDays: 30,
+  otpTtlMinutes: 10,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -84,6 +98,7 @@ export class SiteService {
 
   readonly footer = signal<SiteFooterConfig>(FALLBACK_FOOTER);
   readonly commerce = signal<SiteCommerceConfig>(FALLBACK_COMMERCE);
+  readonly authConfig = signal<SiteAuthConfig>(FALLBACK_AUTH);
 
   async hydrateFooter(): Promise<void> {
     try {
@@ -109,15 +124,48 @@ export class SiteService {
     }
   }
 
-  async updateCommerce(unlockPriceInr: number): Promise<SiteCommerceConfig> {
+  async updateCommerce(input: {
+    unlockPriceInr: number;
+    paymentsEnabled: boolean;
+    postJobPaymentMode: SiteCommerceConfig['postJobPaymentMode'];
+    postJobPriceInr: number;
+  }): Promise<SiteCommerceConfig> {
     const doc = await firstValueFrom(
       this.http.put<SiteCommerceConfig>(
         `${environment.apiUrl}/admin/site/commerce`,
-        { unlockPriceInr },
+        input,
         { headers: this.auth.authHeaders() },
       ),
     );
     this.commerce.set(doc);
+    return doc;
+  }
+
+  async hydrateAuth(): Promise<SiteAuthConfig> {
+    try {
+      const doc = await firstValueFrom(
+        this.http.get<SiteAuthConfig>(`${environment.apiUrl}/site/auth`),
+      );
+      this.authConfig.set(doc);
+      return doc;
+    } catch {
+      this.authConfig.set(FALLBACK_AUTH);
+      return FALLBACK_AUTH;
+    }
+  }
+
+  async updateAuth(input: {
+    sessionTtlDays: number;
+    otpTtlMinutes: number;
+  }): Promise<SiteAuthConfig> {
+    const doc = await firstValueFrom(
+      this.http.put<SiteAuthConfig>(
+        `${environment.apiUrl}/admin/site/auth`,
+        input,
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+    this.authConfig.set(doc);
     return doc;
   }
 

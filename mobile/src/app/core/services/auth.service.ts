@@ -22,19 +22,38 @@ export interface EmployerProfile {
   createdAt: string;
 }
 
+interface AuthSessionResponse {
+  token: string;
+  refreshToken: string;
+  expiresAt?: string;
+  user: AuthUser;
+  employer: EmployerProfile | null;
+}
+
+interface TokenPairResponse {
+  token: string;
+  refreshToken: string;
+  expiresAt?: string;
+}
+
 const TOKEN_KEY = 'xcron.authToken';
+const REFRESH_KEY = 'xcron.refreshToken';
 const USER_KEY = 'xcron.authUser';
 const EMPLOYER_KEY = 'xcron.employer';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private ensurePromise: Promise<void> | null = null;
+  private refreshPromise: Promise<boolean> | null = null;
 
   readonly token = signal<string | null>(localStorage.getItem(TOKEN_KEY));
+  readonly refreshToken = signal<string | null>(localStorage.getItem(REFRESH_KEY));
   readonly user = signal<AuthUser | null>(this.readJson<AuthUser>(USER_KEY));
   readonly employer = signal<EmployerProfile | null>(
     this.readJson<EmployerProfile>(EMPLOYER_KEY),
   );
+  readonly sessionValidated = signal(false);
 
   readonly isSignedIn = computed(() => !!this.token() && !!this.user());
   readonly isEmployer = computed(
@@ -43,11 +62,23 @@ export class AuthService {
       !!this.user()?.roles.includes('admin') ||
       !!this.employer(),
   );
-  readonly isAdmin = computed(() => !!this.user()?.roles.includes('admin'));
+  /** Admin tabs/routes — only after `/auth/me` confirms the role. */
+  readonly isAdmin = computed(
+    () =>
+      this.sessionValidated() && !!this.user()?.roles.includes('admin'),
+  );
 
   authHeaders(): Record<string, string> {
     const token = this.token();
     return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  ensureSession(): Promise<void> {
+    if (this.ensurePromise) return this.ensurePromise;
+    this.ensurePromise = this.runEnsureSession().finally(() => {
+      this.ensurePromise = null;
+    });
+    return this.ensurePromise;
   }
 
   async signInWithGoogle(input: {
@@ -56,39 +87,69 @@ export class AuthService {
     displayName?: string;
   }): Promise<void> {
     const response = await firstValueFrom(
-      this.http.post<{
-        token: string;
-        user: AuthUser;
-        employer: EmployerProfile | null;
-      }>(`${environment.apiUrl}/auth/google`, input),
+      this.http.post<AuthSessionResponse>(
+        `${environment.apiUrl}/auth/google`,
+        input,
+      ),
     );
-    this.persist(response.token, response.user, response.employer);
+    this.persist(
+      response.token,
+      response.refreshToken,
+      response.user,
+      response.employer,
+    );
+    this.sessionValidated.set(true);
   }
 
   async signInAsAdmin(input: { email: string; password: string }): Promise<void> {
     const response = await firstValueFrom(
-      this.http.post<{
-        token: string;
-        user: AuthUser;
-        employer: EmployerProfile | null;
-      }>(`${environment.apiUrl}/auth/admin/login`, input),
+      this.http.post<AuthSessionResponse>(
+        `${environment.apiUrl}/auth/admin/login`,
+        input,
+      ),
     );
-    this.persist(response.token, response.user, response.employer);
+    this.persist(
+      response.token,
+      response.refreshToken,
+      response.user,
+      response.employer,
+    );
+    this.sessionValidated.set(true);
   }
 
   async refreshMe(): Promise<void> {
-    if (!this.token()) return;
-    try {
-      const response = await firstValueFrom(
-        this.http.get<{ user: AuthUser; employer: EmployerProfile | null }>(
-          `${environment.apiUrl}/auth/me`,
-          { headers: this.authHeaders() },
-        ),
-      );
-      this.persist(this.token()!, response.user, response.employer);
-    } catch {
-      this.clear();
+    if (!this.token() && !this.refreshToken()) {
+      this.sessionValidated.set(true);
+      return;
     }
+    try {
+      await this.fetchMe();
+      this.sessionValidated.set(true);
+    } catch {
+      const refreshed = await this.refreshAccessToken();
+      if (!refreshed) {
+        this.clearSession();
+        return;
+      }
+      try {
+        await this.fetchMe();
+        this.sessionValidated.set(true);
+      } catch {
+        this.clearSession();
+      }
+    }
+  }
+
+  /**
+   * Rotate access token via refresh token. Shared promise avoids stampedes.
+   * Returns false when refresh is missing or rejected.
+   */
+  refreshAccessToken(): Promise<boolean> {
+    if (this.refreshPromise) return this.refreshPromise;
+    this.refreshPromise = this.runRefreshAccessToken().finally(() => {
+      this.refreshPromise = null;
+    });
+    return this.refreshPromise;
   }
 
   async createEmployer(name: string): Promise<void> {
@@ -99,7 +160,9 @@ export class AuthService {
         { headers: this.authHeaders() },
       ),
     );
-    this.persist(this.token()!, response.user, response.employer);
+    const refresh = this.refreshToken();
+    if (!this.token() || !refresh) return;
+    this.persist(this.token()!, refresh, response.user, response.employer);
   }
 
   async logout(): Promise<void> {
@@ -114,31 +177,89 @@ export class AuthService {
         );
       }
     } finally {
-      this.clear();
+      this.clearSession();
+    }
+  }
+
+  clearSession(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(EMPLOYER_KEY);
+    this.token.set(null);
+    this.refreshToken.set(null);
+    this.user.set(null);
+    this.employer.set(null);
+    this.sessionValidated.set(true);
+  }
+
+  private async runEnsureSession(): Promise<void> {
+    if (!this.token() && !this.refreshToken()) {
+      this.sessionValidated.set(true);
+      return;
+    }
+    await this.refreshMe();
+  }
+
+  private async fetchMe(): Promise<void> {
+    const token = this.token();
+    const refresh = this.refreshToken();
+    if (!token) throw new Error('no_access_token');
+    const response = await firstValueFrom(
+      this.http.get<{ user: AuthUser; employer: EmployerProfile | null }>(
+        `${environment.apiUrl}/auth/me`,
+        { headers: this.authHeaders() },
+      ),
+    );
+    if (refresh) {
+      this.persist(token, refresh, response.user, response.employer);
+    } else {
+      localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+      if (response.employer) {
+        localStorage.setItem(EMPLOYER_KEY, JSON.stringify(response.employer));
+      } else {
+        localStorage.removeItem(EMPLOYER_KEY);
+      }
+      this.user.set(response.user);
+      this.employer.set(response.employer);
+    }
+  }
+
+  private async runRefreshAccessToken(): Promise<boolean> {
+    const refreshToken = this.refreshToken();
+    if (!refreshToken) return false;
+    try {
+      const response = await firstValueFrom(
+        this.http.post<TokenPairResponse>(
+          `${environment.apiUrl}/auth/refresh`,
+          { refreshToken },
+        ),
+      );
+      localStorage.setItem(TOKEN_KEY, response.token);
+      localStorage.setItem(REFRESH_KEY, response.refreshToken);
+      this.token.set(response.token);
+      this.refreshToken.set(response.refreshToken);
+      return true;
+    } catch {
+      return false;
     }
   }
 
   private persist(
     token: string,
+    refreshToken: string,
     user: AuthUser,
     employer: EmployerProfile | null,
   ): void {
     localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(REFRESH_KEY, refreshToken);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     if (employer) localStorage.setItem(EMPLOYER_KEY, JSON.stringify(employer));
     else localStorage.removeItem(EMPLOYER_KEY);
     this.token.set(token);
+    this.refreshToken.set(refreshToken);
     this.user.set(user);
     this.employer.set(employer);
-  }
-
-  private clear(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(EMPLOYER_KEY);
-    this.token.set(null);
-    this.user.set(null);
-    this.employer.set(null);
   }
 
   private readJson<T>(key: string): T | null {

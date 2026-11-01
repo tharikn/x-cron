@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
 import { Public, Roles } from '../auth/decorators';
+import { UpdateAuthDto } from './dto/update-auth.dto';
 import { UpdateCommerceDto } from './dto/update-commerce.dto';
 import { UpdateFooterDto } from './dto/update-footer.dto';
 import { SiteService } from './site.service';
@@ -22,6 +23,13 @@ export class SiteController {
     return this.site.getCommerce();
   }
 
+  /** Auth TTL settings (session + OTP). Safe to expose; no secrets. */
+  @Public()
+  @Get('site/auth')
+  getAuth() {
+    return this.site.getAuth();
+  }
+
   @Roles('admin')
   @Put('admin/site/footer')
   updateFooter(@Body() dto: UpdateFooterDto) {
@@ -32,5 +40,11 @@ export class SiteController {
   @Put('admin/site/commerce')
   updateCommerce(@Body() dto: UpdateCommerceDto) {
     return this.site.updateCommerce(dto);
+  }
+
+  @Roles('admin')
+  @Put('admin/site/auth')
+  updateAuth(@Body() dto: UpdateAuthDto) {
+    return this.site.updateAuth(dto);
   }
 }

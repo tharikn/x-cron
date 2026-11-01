@@ -48,9 +48,22 @@ export interface SiteFooterConfig {
   updatedAt: string;
 }
 
+export type PostJobPaymentMode = 'mandatory' | 'optional' | 'none';
+
 /** Global commerce settings from SiteConfig key `commerce`. */
 export interface SiteCommerceConfig {
   unlockPricePaise: number;
   unlockPriceInr: number;
+  paymentsEnabled: boolean;
+  postJobPaymentMode: PostJobPaymentMode;
+  postJobPricePaise: number;
+  postJobPriceInr: number;
+  updatedAt: string;
+}
+
+/** Auth TTL settings from SiteConfig key `auth`. */
+export interface SiteAuthConfig {
+  sessionTtlDays: number;
+  otpTtlMinutes: number;
   updatedAt: string;
 }
