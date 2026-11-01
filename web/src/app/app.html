@@ -5,18 +5,54 @@
       <span class="logo__jobs">Jobs</span>
     </a>
 
-    <button
-      type="button"
-      class="menu-btn"
-      [attr.aria-expanded]="menuOpen()"
-      aria-controls="side-nav"
-      [attr.aria-label]="'menu.open' | t"
-      (click)="toggleMenu()"
-    >
-      <span class="menu-btn__line"></span>
-      <span class="menu-btn__line"></span>
-      <span class="menu-btn__line"></span>
-    </button>
+    <div class="top__actions">
+      <a
+        routerLink="/notifications"
+        class="notif-btn"
+        [class.notif-btn--hot]="notifUnread() > 0"
+        [attr.aria-label]="
+          notifUnread() > 0
+            ? ('nav.notifications' | t) + ', ' + notifUnread() + ' unread'
+            : ('nav.notifications' | t)
+        "
+        (click)="closeMenu()"
+      >
+        <svg class="notif-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M6.5 9.5a5.5 5.5 0 0 1 11 0c0 4.2 1.5 5.5 1.5 5.5H5s1.5-1.3 1.5-5.5Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M10 18.2a2 2 0 0 0 4 0"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+        @if (notifUnread() > 0) {
+          <span class="notif-btn__count" aria-hidden="true">
+            {{ notifUnread() > 99 ? '99+' : notifUnread() }}
+          </span>
+        }
+      </a>
+
+      <button
+        type="button"
+        class="menu-btn"
+        [attr.aria-expanded]="menuOpen()"
+        aria-controls="side-nav"
+        [attr.aria-label]="'menu.open' | t"
+        (click)="toggleMenu()"
+      >
+        <span class="menu-btn__line"></span>
+        <span class="menu-btn__line"></span>
+        <span class="menu-btn__line"></span>
+      </button>
+    </div>
   </header>
 
   @if (navigating() || apiBusy()) {
@@ -57,12 +93,21 @@
       <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
         {{ 'nav.home' | t }}
       </a>
-      <a routerLink="/post" routerLinkActive="is-active" (click)="closeMenu()">
-        {{ 'nav.post' | t }}
-      </a>
       @if (isAdmin()) {
+        <a routerLink="/post" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.post' | t }}
+        </a>
         <a routerLink="/admin" routerLinkActive="is-active" (click)="closeMenu()">
           {{ 'nav.admin' | t }}
+        </a>
+        <a routerLink="/admin/payments" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.payments' | t }}
+        </a>
+        <a routerLink="/admin/notifications" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.notifAdmin' | t }}
+        </a>
+        <a routerLink="/admin/job-fare" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.jobFare' | t }}
         </a>
         <a routerLink="/import" routerLinkActive="is-active" (click)="closeMenu()">
           {{ 'nav.import' | t }}
@@ -77,6 +122,20 @@
           {{ 'nav.settings' | t }}
         </a>
       }
+      <a
+        routerLink="/notifications"
+        routerLinkActive="is-active"
+        class="drawer__link--alerts"
+        [class.drawer__link--hot]="notifUnread() > 0"
+        (click)="closeMenu()"
+      >
+        {{ 'nav.notifications' | t }}
+        @if (notifUnread() > 0) {
+          <span class="notif-badge" [attr.aria-label]="notifUnread() + ' unread'">
+            {{ notifUnread() > 99 ? '99+' : notifUnread() }}
+          </span>
+        }
+      </a>
       <a routerLink="/preferences" routerLinkActive="is-active" (click)="closeMenu()">
         {{ 'nav.preferences' | t }}
       </a>
@@ -94,90 +153,94 @@
     <router-outlet />
   </main>
 
-  <footer class="foot" aria-label="Site footer">
-    @if (footer(); as foot) {
-      <div class="foot__grid">
-        <div class="foot__brand">
-          <p class="foot__logo">
-            <span class="foot__logo-x">{{ foot.brand.name }}</span>
-            <span class="foot__logo-jobs">{{ foot.brand.productLabel }}</span>
-          </p>
-          <p class="foot__blurb">{{ footerText('footer.blurb', foot.brand.blurb) }}</p>
-        </div>
+  @if (!isAdmin()) {
+    <footer class="foot" aria-label="Site footer">
+      @if (footer(); as foot) {
+        <div class="foot__grid">
+          <div class="foot__brand">
+            <p class="foot__logo">
+              <span class="foot__logo-x">{{ foot.brand.name }}</span>
+              <span class="foot__logo-jobs">{{ foot.brand.productLabel }}</span>
+            </p>
+            <p class="foot__blurb">{{ footerText('footer.blurb', foot.brand.blurb) }}</p>
+          </div>
 
-        <nav class="foot__col" [attr.aria-label]="footerText('footer.headings.quickLinks', foot.headings.quickLinks)">
-          <h2 class="foot__heading">{{ footerText('footer.headings.quickLinks', foot.headings.quickLinks) }}</h2>
-          <ul class="foot__list">
-            @for (link of foot.quickLinks; track link.id) {
-              <li>
-                @if (isInternalHref(link.href)) {
-                  <a [routerLink]="link.href" (click)="closeMenu()">{{ footerItemLabel(link.id, link.label) }}</a>
-                } @else {
-                  <a [href]="link.href" rel="noopener noreferrer" target="_blank">{{ footerItemLabel(link.id, link.label) }}</a>
+          <nav class="foot__col" [attr.aria-label]="footerText('footer.headings.quickLinks', foot.headings.quickLinks)">
+            <h2 class="foot__heading">{{ footerText('footer.headings.quickLinks', foot.headings.quickLinks) }}</h2>
+            <ul class="foot__list">
+              @for (link of foot.quickLinks; track link.id) {
+                @if (link.href !== '/post' || isAdmin()) {
+                  <li>
+                    @if (isInternalHref(link.href)) {
+                      <a [routerLink]="link.href" (click)="closeMenu()">{{ footerItemLabel(link.id, link.label) }}</a>
+                    } @else {
+                      <a [href]="link.href" rel="noopener noreferrer" target="_blank">{{ footerItemLabel(link.id, link.label) }}</a>
+                    }
+                  </li>
                 }
-              </li>
-            }
-          </ul>
-        </nav>
+              }
+            </ul>
+          </nav>
 
-        <div class="foot__col">
-          <h2 class="foot__heading">{{ footerText('footer.headings.address', foot.headings.address) }}</h2>
-          <ul class="foot__list foot__list--address">
-            @for (addr of foot.addresses; track addr.id) {
-              <li>
-                <p class="foot__addr-label">{{ footerItemLabel(addr.id, addr.label) }}</p>
-                @for (line of addr.lines; track line) {
-                  <p class="foot__addr-line">{{ line }}</p>
-                }
-                @if (addr.mapUrl) {
-                  <a class="foot__map" [href]="addr.mapUrl" rel="noopener noreferrer" target="_blank">
-                    {{ 'footer.map' | t }}
+          <div class="foot__col">
+            <h2 class="foot__heading">{{ footerText('footer.headings.address', foot.headings.address) }}</h2>
+            <ul class="foot__list foot__list--address">
+              @for (addr of foot.addresses; track addr.id) {
+                <li>
+                  <p class="foot__addr-label">{{ footerItemLabel(addr.id, addr.label) }}</p>
+                  @for (line of addr.lines; track line) {
+                    <p class="foot__addr-line">{{ line }}</p>
+                  }
+                  @if (addr.mapUrl) {
+                    <a class="foot__map" [href]="addr.mapUrl" rel="noopener noreferrer" target="_blank">
+                      {{ 'footer.map' | t }}
+                    </a>
+                  }
+                </li>
+              }
+            </ul>
+          </div>
+
+          <div class="foot__col">
+            <h2 class="foot__heading">{{ footerText('footer.headings.social', foot.headings.social) }}</h2>
+            <ul class="foot__social">
+              @for (soc of foot.socialLinks; track soc.id) {
+                <li>
+                  <a
+                    class="foot__social-link"
+                    [href]="soc.url"
+                    [attr.aria-label]="soc.label"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <span class="foot__social-icon" [attr.data-network]="soc.network" aria-hidden="true"></span>
+                    <span>{{ soc.label }}</span>
                   </a>
-                }
-              </li>
-            }
-          </ul>
+                </li>
+              }
+            </ul>
+          </div>
         </div>
 
-        <div class="foot__col">
-          <h2 class="foot__heading">{{ footerText('footer.headings.social', foot.headings.social) }}</h2>
-          <ul class="foot__social">
-            @for (soc of foot.socialLinks; track soc.id) {
-              <li>
-                <a
-                  class="foot__social-link"
-                  [href]="soc.url"
-                  [attr.aria-label]="soc.label"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <span class="foot__social-icon" [attr.data-network]="soc.network" aria-hidden="true"></span>
-                  <span>{{ soc.label }}</span>
-                </a>
-              </li>
-            }
-          </ul>
+        <div class="foot__bar">
+          <p class="foot__copy">{{ footerText('footer.copyright', foot.copyright) }}</p>
+          @if (foot.legalLinks.length) {
+            <ul class="foot__legal">
+              @for (link of foot.legalLinks; track link.id) {
+                <li>
+                  @if (isInternalHref(link.href)) {
+                    <a [routerLink]="link.href">{{ footerItemLabel(link.id, link.label) }}</a>
+                  } @else {
+                    <a [href]="link.href" rel="noopener noreferrer" target="_blank">{{ footerItemLabel(link.id, link.label) }}</a>
+                  }
+                </li>
+              }
+            </ul>
+          }
         </div>
-      </div>
-
-      <div class="foot__bar">
-        <p class="foot__copy">{{ footerText('footer.copyright', foot.copyright) }}</p>
-        @if (foot.legalLinks.length) {
-          <ul class="foot__legal">
-            @for (link of foot.legalLinks; track link.id) {
-              <li>
-                @if (isInternalHref(link.href)) {
-                  <a [routerLink]="link.href">{{ footerItemLabel(link.id, link.label) }}</a>
-                } @else {
-                  <a [href]="link.href" rel="noopener noreferrer" target="_blank">{{ footerItemLabel(link.id, link.label) }}</a>
-                }
-              </li>
-            }
-          </ul>
-        }
-      </div>
-    }
-  </footer>
+      }
+    </footer>
+  }
 </div>
 
 @if (toasts().length) {

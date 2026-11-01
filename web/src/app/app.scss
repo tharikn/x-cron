@@ -51,6 +51,77 @@
   color: var(--xcron-muted);
 }
 
+.top__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notif-btn {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #000;
+  text-decoration: none;
+  box-shadow: var(--xcron-shadow);
+  transition:
+    background 160ms var(--xcron-ease),
+    border-color 160ms var(--xcron-ease),
+    color 160ms var(--xcron-ease),
+    transform 160ms var(--xcron-ease);
+}
+
+.notif-btn:hover,
+.notif-btn--hot:hover {
+  border-color: #000;
+  background: #111;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.notif-btn--hot {
+  border-color: #111;
+}
+
+.notif-btn__icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.notif-btn__count {
+  position: absolute;
+  top: -0.32rem;
+  right: -0.32rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: #fff;
+  background: #e11d48;
+  border: 1.5px solid #fff;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.35);
+  animation: notif-count-pulse 1.8s var(--xcron-ease) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-btn__count {
+    animation: none;
+  }
+}
+
 .menu-btn {
   width: 44px;
   height: 44px;
@@ -246,6 +317,47 @@
   font-weight: 500;
   font-size: 0.8rem;
   color: #9a9a9a;
+}
+
+.drawer__link--hot {
+  background:
+    radial-gradient(120% 160% at 100% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 50%),
+    linear-gradient(135deg, #141414 0%, #0a0a0a 55%, #222 100%) !important;
+  border-color: #3a3a3a !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+
+.notif-badge {
+  min-width: 1.45rem;
+  height: 1.45rem;
+  padding: 0 0.38rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: #e11d48;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.35);
+  animation: notif-count-pulse 1.8s var(--xcron-ease) infinite;
+}
+
+@keyframes notif-count-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-badge {
+    animation: none;
+  }
 }
 
 .foot {

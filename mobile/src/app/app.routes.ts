@@ -25,6 +25,12 @@ export const routes: Routes = [
           import('./pages/import-batch/import-batch.page').then((m) => m.ImportBatchPage),
       },
       {
+        path: 'job-fare',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/job-fare/job-fare.page').then((m) => m.JobFarePage),
+      },
+      {
         path: 'ads',
         canActivate: [adminGuard],
         loadComponent: () =>
@@ -34,6 +40,13 @@ export const routes: Routes = [
         path: 'preferences',
         loadComponent: () =>
           import('./pages/preferences/preferences.page').then((m) => m.PreferencesPage),
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./pages/notifications/notifications.page').then(
+            (m) => m.NotificationsPage,
+          ),
       },
       {
         path: 'account',

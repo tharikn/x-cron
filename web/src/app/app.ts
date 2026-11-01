@@ -22,6 +22,7 @@ import { TranslatePipe } from './core/pipes/translate.pipe';
 import { ApiLoadingService } from './core/services/api-loading.service';
 import { AuthService } from './core/services/auth.service';
 import { LocaleService } from './core/services/locale.service';
+import { NotificationsService } from './core/services/notifications.service';
 import { SiteService } from './core/services/site.service';
 import { ToastService } from './core/services/toast.service';
 
@@ -50,7 +51,14 @@ export class App implements OnInit, OnDestroy {
   private readonly site = inject(SiteService);
   private readonly apiLoading = inject(ApiLoadingService);
   private readonly toastService = inject(ToastService);
+  private readonly notifications = inject(NotificationsService);
   private navSub?: Subscription;
+  private notifPollId: ReturnType<typeof setInterval> | null = null;
+  private readonly onVisChange = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      void this.pollNotifications();
+    }
+  };
 
   readonly menuOpen = signal(false);
   readonly navigating = signal(false);
@@ -60,10 +68,12 @@ export class App implements OnInit, OnDestroy {
   readonly isAdmin = this.auth.isAdmin;
   readonly languageLabel = this.locale.languageLabel;
   readonly footer = this.site.footer;
+  readonly notifUnread = this.notifications.unreadCount;
 
   ngOnInit(): void {
     void this.locale.hydrate();
     void this.site.hydrateFooter();
+    void this.hydrateNotifications();
     this.navSub = this.router.events
       .pipe(
         filter(
@@ -86,6 +96,7 @@ export class App implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.navSub?.unsubscribe();
+    this.stopNotifPolling();
     this.unlockBody();
   }
 
@@ -121,6 +132,50 @@ export class App implements OnInit, OnDestroy {
   footerItemLabel(id: string, fallback: string): string {
     const key = FOOTER_ITEM_KEYS[id];
     return key ? this.footerText(key, fallback) : fallback;
+  }
+
+  private async hydrateNotifications(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    await this.auth.ensureSession();
+    if (this.auth.isSignedIn()) {
+      try {
+        await this.notifications.registerDevice();
+        await this.notifications.refreshInbox();
+      } catch {
+        // inbox badge is best-effort
+      }
+    }
+    this.startNotifPolling();
+  }
+
+  private startNotifPolling(): void {
+    if (!isPlatformBrowser(this.platformId) || this.notifPollId != null) return;
+    this.notifPollId = setInterval(() => {
+      void this.pollNotifications();
+    }, 20_000);
+    document.addEventListener('visibilitychange', this.onVisChange);
+  }
+
+  private stopNotifPolling(): void {
+    if (this.notifPollId != null) {
+      clearInterval(this.notifPollId);
+      this.notifPollId = null;
+    }
+    if (isPlatformBrowser(this.platformId)) {
+      document.removeEventListener('visibilitychange', this.onVisChange);
+    }
+  }
+
+  private async pollNotifications(): Promise<void> {
+    if (!this.auth.isSignedIn()) return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      return;
+    }
+    try {
+      await this.notifications.refreshInbox();
+    } catch {
+      // live badge is best-effort
+    }
   }
 
   private lockBody(): void {

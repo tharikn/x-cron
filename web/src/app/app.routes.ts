@@ -12,6 +12,13 @@ export const routes: Routes = [
       import('./pages/preferences/preferences.page').then((m) => m.PreferencesPage),
   },
   {
+    path: 'notifications',
+    loadComponent: () =>
+      import('./pages/notifications/notifications.page').then(
+        (m) => m.NotificationsPage,
+      ),
+  },
+  {
     path: 'language',
     loadComponent: () =>
       import('./pages/language/language.page').then((m) => m.LanguagePage),
@@ -45,6 +52,30 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/admin-dashboard/admin-dashboard.page').then(
         (m) => m.AdminDashboardPage,
+      ),
+  },
+  {
+    path: 'admin/payments',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/admin-payments/admin-payments.page').then(
+        (m) => m.AdminPaymentsPage,
+      ),
+  },
+  {
+    path: 'admin/notifications',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/admin-notifications/admin-notifications.page').then(
+        (m) => m.AdminNotificationsPage,
+      ),
+  },
+  {
+    path: 'admin/job-fare',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/admin-job-fare/admin-job-fare.page').then(
+        (m) => m.AdminJobFarePage,
       ),
   },
   {

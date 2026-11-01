@@ -22,17 +22,21 @@ export class AppComponent implements OnInit {
   readonly busy = this.apiLoading.visible;
 
   async ngOnInit(): Promise<void> {
-    await this.auth.refreshMe();
+    await this.auth.ensureSession();
     await this.preferences.hydrate();
     await this.locale.hydrate(this.preferences.preferences().interfaceLocale);
     await this.notifications.registerDevice();
     if (this.auth.isSignedIn()) {
       try {
         await this.notifications.loadPrefs();
-        await this.notifications.refreshInbox();
+        await this.notifications.refreshInbox({ announce: false });
+        if (this.notifications.prefs().pushAlertsEnabled !== false) {
+          await this.notifications.ensurePushPermission();
+        }
       } catch {
         // optional until signed in with API
       }
     }
+    this.notifications.startPolling();
   }
 }
