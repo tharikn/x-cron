@@ -5,7 +5,10 @@ import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
-import { PaymentsService } from '../../core/services/payments.service';
+import {
+  PaymentsService,
+  type CheckoutDto,
+} from '../../core/services/payments.service';
 import { SeekerService } from '../../core/services/seeker.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -45,6 +48,7 @@ export class JobDetailPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly priceRevealed = signal(false);
   readonly unlocking = signal(false);
+  readonly confirmingPay = signal(false);
   readonly saved = signal(false);
   readonly signInOpen = signal(false);
   readonly signInReason = signal<GoogleSignInReason>('generic');
@@ -53,6 +57,11 @@ export class JobDetailPage implements OnInit {
     email: string | null;
     whatsapp: string | null;
     website: string | null;
+  } | null>(null);
+  readonly pendingCheckout = signal<{
+    orderId: string;
+    jobId: string;
+    checkout: CheckoutDto;
   } | null>(null);
 
   private pendingAction: PendingAction | null = null;
@@ -116,7 +125,7 @@ export class JobDetailPage implements OnInit {
 
   async unlockContact(): Promise<void> {
     const job = this.job();
-    if (!job || this.unlocking()) return;
+    if (!job || this.unlocking() || this.pendingCheckout()) return;
 
     if (!this.auth.isSignedIn()) {
       this.openSignIn('unlock');
@@ -135,26 +144,93 @@ export class JobDetailPage implements OnInit {
         this.toast.show('Could not create unlock order.', 'error');
         return;
       }
-      if (orderResult.checkout.checkoutMode === 'stub') {
-        await this.payments.confirmDevPayment(orderResult.order.id);
-      } else {
-        this.toast.show(
-          'Razorpay checkout not wired — set PAYMENT_MODE=stub for local unlocks.',
-          'error',
-        );
-        return;
+
+      this.pendingCheckout.set({
+        orderId: orderResult.order.id,
+        jobId: job.id,
+        checkout: orderResult.checkout,
+      });
+      if (typeof document !== 'undefined') {
+        queueMicrotask(() => {
+          document
+            .getElementById('payment-checkout')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
       }
-      const reveal = await this.payments.getContact(job.id);
-      if (!reveal.allowed || !reveal.contact) {
-        this.toast.show(reveal.message || 'Unlock succeeded but contact unavailable.', 'error');
-        return;
-      }
-      this.revealed.set(reveal.contact);
-      this.toast.show('Contact unlocked.');
     } catch {
       this.toast.show('Unlock failed. Sign in and try again.', 'error');
     } finally {
       this.unlocking.set(false);
+    }
+  }
+
+  cancelCheckout(): void {
+    this.pendingCheckout.set(null);
+  }
+
+  upiQrSrc(checkout: CheckoutDto): string | null {
+    const payload = checkout.upi?.qrPayload;
+    if (!payload) return null;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(payload)}`;
+  }
+
+  async copyUpiId(): Promise<void> {
+    const vpa = this.pendingCheckout()?.checkout.upi?.vpa;
+    if (!vpa) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(vpa);
+        this.toast.show('UPI ID copied.');
+        return;
+      }
+    } catch {
+      /* fall through */
+    }
+    this.toast.show(vpa);
+  }
+
+  openUpiApp(): void {
+    const uri = this.pendingCheckout()?.checkout.upi?.intentUri;
+    if (uri && typeof window !== 'undefined') {
+      window.location.href = uri;
+    }
+  }
+
+  async confirmCheckoutPayment(): Promise<void> {
+    const pending = this.pendingCheckout();
+    if (!pending || this.confirmingPay()) return;
+
+    this.confirmingPay.set(true);
+    try {
+      const mode = pending.checkout.checkoutMode;
+      if (mode === 'stub' || mode === 'upi') {
+        await this.payments.confirmDevPayment(pending.orderId);
+      } else {
+        this.toast.show(
+          'Hosted checkout not wired — use PAYMENT_GATEWAY=stub or upi.',
+          'error',
+        );
+        return;
+      }
+
+      const reveal = await this.payments.getContact(pending.jobId);
+      if (!reveal.allowed || !reveal.contact) {
+        this.toast.show(
+          reveal.message || 'Payment recorded but contact unavailable.',
+          'error',
+        );
+        return;
+      }
+      this.revealed.set(reveal.contact);
+      this.pendingCheckout.set(null);
+      this.toast.show('Contact unlocked.');
+    } catch {
+      this.toast.show(
+        'Payment not confirmed yet. For local UPI set PAYMENT_UPI_ALLOW_DEV_CONFIRM=1.',
+        'error',
+      );
+    } finally {
+      this.confirmingPay.set(false);
     }
   }
 
@@ -186,7 +262,13 @@ export class JobDetailPage implements OnInit {
     const slug = this.route.snapshot.url.map((part) => part.path).join('/');
 
     try {
-      const job = await this.jobsService.getBySlug(slug);
+      // Prefer SEO slug; fall back to job id (inbox / deep links).
+      let job: Job;
+      try {
+        job = await this.jobsService.getBySlug(slug);
+      } catch {
+        job = await this.jobsService.getById(slug);
+      }
       this.job.set(job);
       this.seo.setJob(job);
       this.related.set(await this.jobsService.related(job.id));

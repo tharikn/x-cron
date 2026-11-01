@@ -187,6 +187,26 @@ export class JobsService {
     ).then((res) => res.items);
   }
 
+  updateForModeration(
+    id: string,
+    input: {
+      title?: string;
+      employerName?: string;
+      locationCity?: string;
+      jobType?: string;
+      salaryText?: string;
+      description?: string;
+      contentLanguage?: string;
+      contactWebsite?: string;
+    },
+  ): Promise<Job> {
+    return firstValueFrom(
+      this.http.patch<Job>(`${environment.apiUrl}/admin/jobs/${id}`, input, {
+        headers: this.auth.authHeaders(),
+      }),
+    );
+  }
+
   approveJob(id: string, note?: string): Promise<Job> {
     return firstValueFrom(
       this.http.post<Job>(

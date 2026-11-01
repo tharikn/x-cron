@@ -63,29 +63,69 @@
     </section>
 
     <section class="panel contact">
-      <h2>Employer contact</h2>
+      <header class="contact__head">
+        <h2>Employer contact</h2>
+        <span class="contact__badge">{{ revealed() ? 'Unlocked' : 'Private' }}</span>
+      </header>
+
       @if (revealed(); as contact) {
         <ul class="revealed">
           @if (contact.phone) {
-            <li>Phone: {{ contact.phone }}</li>
+            <li>
+              <span class="revealed__label">Phone</span>
+              <a class="revealed__value" [href]="'tel:' + contact.phone">{{ contact.phone }}</a>
+            </li>
           }
           @if (contact.whatsapp) {
-            <li>WhatsApp: {{ contact.whatsapp }}</li>
+            <li>
+              <span class="revealed__label">WhatsApp</span>
+              <span class="revealed__value">{{ contact.whatsapp }}</span>
+            </li>
           }
           @if (contact.email) {
-            <li>HR email: {{ contact.email }}</li>
+            <li>
+              <span class="revealed__label">HR email</span>
+              <a class="revealed__value" [href]="'mailto:' + contact.email">{{ contact.email }}</a>
+            </li>
           }
           @if (contact.website) {
             <li>
-              Website to apply:
-              <a [href]="contact.website" target="_blank" rel="noopener noreferrer">{{
-                contact.website
-              }}</a>
+              <span class="revealed__label">Apply online</span>
+              <a
+                class="revealed__value"
+                [href]="contact.website"
+                target="_blank"
+                rel="noopener noreferrer"
+                >{{ contact.website }}</a
+              >
             </li>
           }
         </ul>
-        <p class="note">Unlocked for your account (life of this listing).</p>
+        <p class="note">Unlocked for your account · life of this listing</p>
       } @else {
+        <div class="contact__channels" aria-label="Available contact channels">
+          @if (job.contact.hasPhone) {
+            <span class="chip">Phone</span>
+          }
+          @if (job.contact.hasWhatsapp) {
+            <span class="chip">WhatsApp</span>
+          }
+          @if (job.contact.hasEmail) {
+            <span class="chip">Email</span>
+          }
+          @if (job.contact.hasWebsite) {
+            <span class="chip">Website</span>
+          }
+          @if (
+            !job.contact.hasPhone &&
+            !job.contact.hasWhatsapp &&
+            !job.contact.hasEmail &&
+            !job.contact.hasWebsite
+          ) {
+            <span class="chip chip--muted">No channels listed</span>
+          }
+        </div>
+
         <button
           type="button"
           class="vault"
@@ -118,34 +158,93 @@
 
           @if (!priceRevealed()) {
             <span class="vault__cue">
-              <span class="vault__cue-title">Locked — tap to peek</span>
-              <span class="vault__cue-sub">Employer details stay private until unlock</span>
+              <span class="vault__lock" aria-hidden="true"></span>
+              <span class="vault__cue-title">Tap to peek</span>
+              <span class="vault__cue-sub">Details stay private until you unlock</span>
             </span>
           } @else {
             <div class="vault__offer">
-              <p class="vault__tease">Curious who to call?</p>
+              <p class="vault__tease">Ready to reach them?</p>
               <p class="unlock">{{ job.contact.unlockLabel }}</p>
+              <p class="vault__cue-sub">One-time · stays unlocked on this listing</p>
             </div>
           }
         </button>
-        @if (priceRevealed()) {
+
+        @if (priceRevealed() && !pendingCheckout()) {
           <button
             type="button"
             class="unlock-btn"
             [disabled]="unlocking()"
             (click)="unlockContact()"
           >
-            {{ unlocking() ? 'Unlocking…' : 'Unlock contact' }}
+            <span>{{ unlocking() ? 'Preparing payment…' : 'Unlock contact' }}</span>
+            <span class="unlock-btn__arrow" aria-hidden="true">→</span>
           </button>
+        }
+
+        @if (pendingCheckout(); as pay) {
+          <section id="payment-checkout" class="pay-panel" aria-label="Payment">
+            <header class="pay-panel__head">
+              <h3>Pay to unlock</h3>
+              <p class="pay-panel__amount">
+                {{ formatUnlockPrice(pay.checkout.amountPaise) }}
+              </p>
+            </header>
+            <p class="pay-panel__desc">{{ pay.checkout.description }}</p>
+
+            @if (pay.checkout.upi; as upi) {
+              <div class="pay-panel__upi">
+                @if (upiQrSrc(pay.checkout); as qr) {
+                  <img
+                    class="pay-panel__qr"
+                    [src]="qr"
+                    width="220"
+                    height="220"
+                    alt="UPI payment QR code"
+                  />
+                }
+                <p class="pay-panel__vpa-label">UPI ID</p>
+                <button type="button" class="pay-panel__vpa" (click)="copyUpiId()">
+                  {{ upi.vpa }}
+                </button>
+                <p class="pay-panel__payee">{{ upi.payeeName }}</p>
+                <button type="button" class="unlock-btn" (click)="openUpiApp()">
+                  Open UPI app
+                </button>
+              </div>
+            } @else {
+              <p class="note">Complete payment below to reveal employer contact.</p>
+            }
+
+            <div class="pay-panel__actions">
+              <button
+                type="button"
+                class="unlock-btn"
+                [disabled]="confirmingPay()"
+                (click)="confirmCheckoutPayment()"
+              >
+                {{ confirmingPay() ? 'Confirming…' : 'I have paid' }}
+              </button>
+              <button
+                type="button"
+                class="action"
+                [disabled]="confirmingPay()"
+                (click)="cancelCheckout()"
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
         }
       }
     </section>
 
     <div class="actions">
-      <button type="button" class="action" (click)="toggleSave()">
-        {{ saved() ? 'Unsave job' : 'Save job' }}
+      <button type="button" class="action" [class.action--on]="saved()" (click)="toggleSave()">
+        {{ saved() ? 'Saved' : 'Save' }}
       </button>
-      <button type="button" class="action action--ghost" (click)="shareJob()">Share job</button>
+      <button type="button" class="action" (click)="shareJob()">Share</button>
     </div>
 
     @if (related().length) {

@@ -88,38 +88,61 @@
       </section>
 
       <section class="panel contact-panel">
-        <h2>Employer contact</h2>
+        <header class="contact__head">
+          <h2>Employer contact</h2>
+          <span class="contact__badge">{{ revealed() ? 'Unlocked' : 'Private' }}</span>
+        </header>
+
         @if (revealed(); as contact) {
-          <ion-list lines="full">
+          <ul class="revealed">
             @if (contact.phone) {
-              <ion-item>
-                <ion-label>Phone</ion-label>
-                <ion-note slot="end">{{ contact.phone }}</ion-note>
-              </ion-item>
+              <li>
+                <span class="revealed__label">Phone</span>
+                <a class="revealed__value" [href]="'tel:' + contact.phone">{{ contact.phone }}</a>
+              </li>
             }
             @if (contact.whatsapp) {
-              <ion-item>
-                <ion-label>WhatsApp</ion-label>
-                <ion-note slot="end">{{ contact.whatsapp }}</ion-note>
-              </ion-item>
+              <li>
+                <span class="revealed__label">WhatsApp</span>
+                <span class="revealed__value">{{ contact.whatsapp }}</span>
+              </li>
             }
             @if (contact.email) {
-              <ion-item>
-                <ion-label>HR email</ion-label>
-                <ion-note slot="end">{{ contact.email }}</ion-note>
-              </ion-item>
+              <li>
+                <span class="revealed__label">HR email</span>
+                <a class="revealed__value" [href]="'mailto:' + contact.email">{{ contact.email }}</a>
+              </li>
             }
             @if (contact.website) {
-              <ion-item [href]="contact.website" target="_blank" rel="noopener noreferrer">
-                <ion-label>
-                  Website to apply
-                  <p>{{ contact.website }}</p>
-                </ion-label>
-              </ion-item>
+              <li>
+                <span class="revealed__label">Apply online</span>
+                <a
+                  class="revealed__value"
+                  [href]="contact.website"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ contact.website }}</a
+                >
+              </li>
             }
-          </ion-list>
-          <p class="hint">Unlocked for your account (life of this listing).</p>
+          </ul>
+          <p class="hint hint--soft">Unlocked for your account · life of this listing</p>
         } @else {
+          <div class="contact__channels" aria-label="Available contact channels">
+            @if (job.contact.hasPhone) {
+              <span class="chip">Phone</span>
+            }
+            @if (job.contact.hasWhatsapp) {
+              <span class="chip">WhatsApp</span>
+            }
+            @if (job.contact.hasEmail) {
+              <span class="chip">Email</span>
+            }
+            @if (job.contact.hasWebsite) {
+              <span class="chip">Website</span>
+            }
+          </div>
+
           <button
             type="button"
             class="vault"
@@ -143,27 +166,100 @@
             </div>
             @if (!priceRevealed()) {
               <span class="vault__cue">
-                <span class="vault__cue-title">Locked — tap to peek</span>
-                <span class="vault__cue-sub">Employer details stay private until unlock</span>
+                <span class="vault__lock" aria-hidden="true"></span>
+                <span class="vault__cue-title">Tap to peek</span>
+                <span class="vault__cue-sub">Details stay private until you unlock</span>
               </span>
             } @else {
               <div class="vault__offer">
-                <p class="vault__tease">Curious who to call?</p>
+                <p class="vault__tease">Ready to reach them?</p>
                 <p class="hint">
                   Unlock employer contact – {{ formatUnlockPrice(job.contact.unlockPricePaise) }}
                 </p>
+                <p class="vault__cue-sub">One-time · stays unlocked on this listing</p>
               </div>
             }
           </button>
-          @if (priceRevealed()) {
+          @if (priceRevealed() && !pendingCheckout()) {
             <ion-button
+              class="unlock-btn"
               expand="block"
               color="dark"
               [disabled]="unlocking()"
               (click)="unlockContact()"
             >
-              {{ unlocking() ? 'Unlocking…' : 'Unlock contact' }}
+              {{ unlocking() ? 'Preparing payment…' : 'Unlock contact' }}
             </ion-button>
+          }
+
+          @if (pendingCheckout(); as pay) {
+            <section
+              id="payment-checkout"
+              class="pay-panel"
+              aria-label="Payment"
+            >
+              <header class="pay-panel__head">
+                <h3>Pay to unlock</h3>
+                <p class="pay-panel__amount">
+                  {{ formatUnlockPrice(pay.checkout.amountPaise) }}
+                </p>
+              </header>
+              <p class="pay-panel__desc">{{ pay.checkout.description }}</p>
+
+              @if (pay.checkout.upi; as upi) {
+                <div class="pay-panel__upi">
+                  @if (upiQrSrc(pay.checkout); as qr) {
+                    <img
+                      class="pay-panel__qr"
+                      [src]="qr"
+                      width="220"
+                      height="220"
+                      alt="UPI payment QR code"
+                    />
+                  }
+                  <p class="pay-panel__vpa-label">UPI ID</p>
+                  <button
+                    type="button"
+                    class="pay-panel__vpa"
+                    (click)="copyUpiId()"
+                  >
+                    {{ upi.vpa }}
+                  </button>
+                  <p class="pay-panel__payee">{{ upi.payeeName }}</p>
+                  <ion-button
+                    expand="block"
+                    color="dark"
+                    (click)="openUpiApp()"
+                  >
+                    Open UPI app
+                  </ion-button>
+                </div>
+              } @else {
+                <p class="hint">
+                  Complete payment below to reveal employer contact.
+                </p>
+              }
+
+              <div class="pay-panel__actions">
+                <ion-button
+                  expand="block"
+                  color="dark"
+                  [disabled]="confirmingPay()"
+                  (click)="confirmCheckoutPayment()"
+                >
+                  {{ confirmingPay() ? 'Confirming…' : 'I have paid' }}
+                </ion-button>
+                <ion-button
+                  expand="block"
+                  fill="outline"
+                  color="dark"
+                  [disabled]="confirmingPay()"
+                  (click)="cancelCheckout()"
+                >
+                  Cancel
+                </ion-button>
+              </div>
+            </section>
           }
         }
       </section>
@@ -181,12 +277,19 @@
       }
 
       <div class="actions">
-        <ion-button expand="block" fill="outline" color="dark" (click)="toggleSave()">
-          {{ saved() ? 'Unsave job' : 'Save job' }}
-        </ion-button>
-        <ion-button expand="block" fill="outline" color="dark" (click)="shareJob()">
-          Share job
-        </ion-button>
+        <div class="actions__row">
+          <ion-button
+            expand="block"
+            [fill]="saved() ? 'solid' : 'outline'"
+            color="dark"
+            (click)="toggleSave()"
+          >
+            {{ saved() ? 'Saved' : 'Save' }}
+          </ion-button>
+          <ion-button expand="block" fill="outline" color="dark" (click)="shareJob()">
+            Share
+          </ion-button>
+        </div>
         <ion-button expand="block" fill="outline" color="dark" (click)="reportJob()">
           Report job
         </ion-button>

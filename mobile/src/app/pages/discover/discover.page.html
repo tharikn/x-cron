@@ -26,6 +26,15 @@
       <div class="pref-summary">
         <ion-icon name="location-outline"></ion-icon>
         <span>Your preferences: {{ savedPrefs().locations.join(', ') }}</span>
+        <ion-button
+          fill="clear"
+          color="dark"
+          size="small"
+          class="pref-summary__clear"
+          (click)="clearPreferences()"
+        >
+          {{ 'home.clear' | t }}
+        </ion-button>
       </div>
     }
 
@@ -102,6 +111,16 @@
           </ion-select>
         </ion-item>
       </ion-list>
+
+      <ion-button
+        expand="block"
+        fill="outline"
+        color="dark"
+        class="search-clear"
+        (click)="clearPreferences()"
+      >
+        {{ 'home.clear' | t }}
+      </ion-button>
     </div>
 
     @if (showPrefPrompt()) {

@@ -90,6 +90,21 @@
   color: var(--xcron-ink-soft);
 }
 
+.pref-summary__clear {
+  margin-left: auto;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+}
+
+.search-clear {
+  margin: 10px 0 0;
+  font-weight: 700;
+}
+
 .pref-prompt p {
   margin: 0 0 10px;
   color: var(--xcron-ink-soft);

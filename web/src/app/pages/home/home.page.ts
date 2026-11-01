@@ -1,6 +1,7 @@
 import {
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   effect,
@@ -16,6 +17,7 @@ import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AdsService, type AdCreative } from '../../core/services/ads.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
+import { PreferencesService } from '../../core/services/preferences.service';
 import { SeoService } from '../../core/services/seo.service';
 import {
   formatJobType,
@@ -26,6 +28,14 @@ import {
 } from '../../core/utils/format';
 
 const PAGE_SIZE = 8;
+
+const SORT_OPTIONS = [
+  { value: 'newest', labelKey: 'sort.newest' },
+  { value: 'oldest', labelKey: 'sort.oldest' },
+  { value: 'salary-desc', labelKey: 'sort.salaryDesc' },
+  { value: 'salary-asc', labelKey: 'sort.salaryAsc' },
+  { value: 'relevance', labelKey: 'sort.relevance' },
+] as const;
 
 @Component({
   selector: 'app-home',
@@ -38,9 +48,12 @@ export class HomePage implements OnInit, OnDestroy {
   private readonly ads = inject(AdsService);
   private readonly seo = inject(SeoService);
   private readonly locale = inject(LocaleService);
+  private readonly preferences = inject(PreferencesService);
 
   private readonly loadMoreSentinel =
     viewChild<ElementRef<HTMLElement>>('loadMoreSentinel');
+  private readonly sortField =
+    viewChild<ElementRef<HTMLElement>>('sortField');
   private readonly observer =
     typeof IntersectionObserver === 'undefined'
       ? null
@@ -59,10 +72,12 @@ export class HomePage implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly loadingMore = signal(false);
   readonly error = signal<string | null>(null);
+  readonly sortOpen = signal(false);
+  readonly sortOptions = SORT_OPTIONS;
 
   keyword = '';
-  location = 'Palani';
-  sort = 'newest';
+  location = '';
+  sort: (typeof SORT_OPTIONS)[number]['value'] = 'newest';
 
   readonly formatLocation = formatLocation;
   readonly formatSalary = formatSalary;
@@ -82,6 +97,31 @@ export class HomePage implements OnInit, OnDestroy {
     });
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocClick(event: MouseEvent): void {
+    const root = this.sortField()?.nativeElement;
+    if (root && !root.contains(event.target as Node)) {
+      this.sortOpen.set(false);
+    }
+  }
+
+  sortLabelKey(): string {
+    return (
+      this.sortOptions.find((opt) => opt.value === this.sort)?.labelKey ??
+      'sort.newest'
+    );
+  }
+
+  toggleSort(event: MouseEvent): void {
+    event.stopPropagation();
+    this.sortOpen.update((open) => !open);
+  }
+
+  pickSort(value: (typeof SORT_OPTIONS)[number]['value']): void {
+    this.sort = value;
+    this.sortOpen.set(false);
+  }
+
   async ngOnInit(): Promise<void> {
     this.seo.setPage({
       title: 'X Cron',
@@ -89,7 +129,19 @@ export class HomePage implements OnInit, OnDestroy {
         'X Cron Jobs — local-first, multilingual job discovery for India. Browse without signing in.',
       path: '/',
     });
+    const savedLocation = this.preferences.prefs().locations[0]?.trim();
+    if (savedLocation) {
+      this.location = savedLocation;
+    }
     this.railAds.set(await this.ads.loadHomeRail());
+    await this.search();
+  }
+
+  async clearPreferences(): Promise<void> {
+    this.keyword = '';
+    this.location = '';
+    this.sort = 'newest';
+    this.preferences.clear();
     await this.search();
   }
 

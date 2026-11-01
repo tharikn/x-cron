@@ -71,4 +71,6 @@ export interface Job {
     masked: boolean;
     unlockLabel: string;
   };
+  /** Admin moderation only — apply/info URL for edit boxes. */
+  contactWebsite?: string | null;
 }

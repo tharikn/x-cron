@@ -23,17 +23,47 @@
       [placeholder]="'home.locationPlaceholder' | t"
     />
   </label>
-  <label class="search__field search__field--sort">
-    <span>{{ 'home.sort' | t }}</span>
-    <select [(ngModel)]="sort" name="sort">
-      <option value="newest">{{ 'sort.newest' | t }}</option>
-      <option value="oldest">{{ 'sort.oldest' | t }}</option>
-      <option value="salary-desc">{{ 'sort.salaryDesc' | t }}</option>
-      <option value="salary-asc">{{ 'sort.salaryAsc' | t }}</option>
-      <option value="relevance">{{ 'sort.relevance' | t }}</option>
-    </select>
-  </label>
-  <button type="submit" class="search__go">{{ 'home.search' | t }}</button>
+  <div class="search__field search__field--sort" #sortField>
+    <span id="home-sort-label">{{ 'home.sort' | t }}</span>
+    <button
+      type="button"
+      class="sort-trigger"
+      [attr.aria-expanded]="sortOpen()"
+      aria-haspopup="listbox"
+      aria-labelledby="home-sort-label"
+      (click)="toggleSort($event)"
+    >
+      {{ sortLabelKey() | t }}
+    </button>
+    @if (sortOpen()) {
+      <ul class="sort-menu" role="listbox" aria-labelledby="home-sort-label">
+        @for (opt of sortOptions; track opt.value) {
+          <li role="presentation">
+            <button
+              type="button"
+              class="sort-option"
+              role="option"
+              [attr.aria-selected]="sort === opt.value"
+              [class.sort-option--active]="sort === opt.value"
+              (click)="pickSort(opt.value)"
+            >
+              {{ opt.labelKey | t }}
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+  <div class="search__actions">
+    <button
+      type="button"
+      class="search__clear"
+      (click)="clearPreferences()"
+    >
+      {{ 'home.clear' | t }}
+    </button>
+    <button type="submit" class="search__go">{{ 'home.search' | t }}</button>
+  </div>
 </form>
 
 <div class="layout">

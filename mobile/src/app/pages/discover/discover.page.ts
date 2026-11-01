@@ -78,7 +78,7 @@ export class DiscoverPage implements OnInit {
 
   readonly query = signal<JobSearchQuery>({
     keyword: '',
-    locationText: 'Palani',
+    locationText: '',
     jobType: '',
     category: '',
     language: '',
@@ -172,6 +172,26 @@ export class DiscoverPage implements OnInit {
 
   dismissPrompt(): void {
     this.preferencesService.dismissPrompt();
+  }
+
+  async clearPreferences(): Promise<void> {
+    this.query.set({
+      keyword: '',
+      locationText: '',
+      jobType: '',
+      category: '',
+      language: '',
+      salaryMin: null,
+      sort: 'newest',
+    });
+    await this.preferencesService.clear();
+    const toast = await this.toastController.create({
+      message: 'Preferences cleared.',
+      duration: 2000,
+      position: 'bottom',
+      color: 'dark',
+    });
+    await toast.present();
   }
 
   async loadMore(event: Event): Promise<void> {

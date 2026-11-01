@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
-  AlertController,
   IonBackButton,
   IonBadge,
   IonButton,
@@ -21,7 +20,10 @@ import { AdsService, type AdCreative } from '../../core/services/ads.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
-import { PaymentsService } from '../../core/services/payments.service';
+import {
+  PaymentsService,
+  type CheckoutDto,
+} from '../../core/services/payments.service';
 import { SeekerService } from '../../core/services/seeker.service';
 import {
   formatJobType,
@@ -67,7 +69,6 @@ export class JobDetailPage implements OnInit {
   private readonly seeker = inject(SeekerService);
   private readonly ads = inject(AdsService);
   private readonly auth = inject(AuthService);
-  private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
   private readonly locale = inject(LocaleService);
 
@@ -75,6 +76,7 @@ export class JobDetailPage implements OnInit {
   readonly related = signal<Job[]>([]);
   readonly footerAd = signal<AdCreative | null>(null);
   readonly unlocking = signal(false);
+  readonly confirmingPay = signal(false);
   readonly saved = signal(false);
   readonly priceRevealed = signal(false);
   readonly signInOpen = signal(false);
@@ -84,6 +86,12 @@ export class JobDetailPage implements OnInit {
     email: string | null;
     whatsapp: string | null;
     website: string | null;
+  } | null>(null);
+  /** Active unlock checkout — payment section, not silent confirm. */
+  readonly pendingCheckout = signal<{
+    orderId: string;
+    jobId: string;
+    checkout: CheckoutDto;
   } | null>(null);
 
   private pendingAction: PendingAction | null = null;
@@ -171,7 +179,7 @@ export class JobDetailPage implements OnInit {
 
   async unlockContact(): Promise<void> {
     const job = this.job();
-    if (!job || this.unlocking()) {
+    if (!job || this.unlocking() || this.pendingCheckout()) {
       return;
     }
 
@@ -180,21 +188,97 @@ export class JobDetailPage implements OnInit {
       return;
     }
 
-    const price = formatUnlockPrice(job.contact.unlockPricePaise);
-    const alert = await this.alertController.create({
-      header: 'Unlock employer contact',
-      message: `Pay ${price} once to reveal contact for this job (life of listing). Stub checkout confirms locally until Razorpay keys are configured.`,
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: `Pay ${price}`,
-          handler: () => {
-            void this.runUnlock(job.id);
-          },
-        },
-      ],
-    });
-    await alert.present();
+    this.unlocking.set(true);
+    try {
+      const orderResult = await this.payments.createContactOrder(job.id);
+      if (orderResult.alreadyEntitled) {
+        await this.tryLoadEntitledContact(job.id);
+        await this.showToast('Contact already unlocked for your account.');
+        return;
+      }
+      if (!orderResult.order || !orderResult.checkout) {
+        await this.showToast('Could not create unlock order.');
+        return;
+      }
+
+      this.pendingCheckout.set({
+        orderId: orderResult.order.id,
+        jobId: job.id,
+        checkout: orderResult.checkout,
+      });
+      queueMicrotask(() => {
+        document
+          .getElementById('payment-checkout')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    } catch {
+      await this.showToast('Unlock failed. Sign in and try again.');
+    } finally {
+      this.unlocking.set(false);
+    }
+  }
+
+  cancelCheckout(): void {
+    this.pendingCheckout.set(null);
+  }
+
+  upiQrSrc(checkout: CheckoutDto): string | null {
+    const payload = checkout.upi?.qrPayload;
+    if (!payload) return null;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(payload)}`;
+  }
+
+  async copyUpiId(): Promise<void> {
+    const vpa = this.pendingCheckout()?.checkout.upi?.vpa;
+    if (!vpa) return;
+    try {
+      await navigator.clipboard.writeText(vpa);
+      await this.showToast('UPI ID copied.');
+    } catch {
+      await this.showToast(vpa);
+    }
+  }
+
+  openUpiApp(): void {
+    const uri = this.pendingCheckout()?.checkout.upi?.intentUri;
+    if (uri) {
+      window.location.href = uri;
+    }
+  }
+
+  async confirmCheckoutPayment(): Promise<void> {
+    const pending = this.pendingCheckout();
+    if (!pending || this.confirmingPay()) return;
+
+    this.confirmingPay.set(true);
+    try {
+      const mode = pending.checkout.checkoutMode;
+      if (mode === 'stub' || mode === 'upi') {
+        await this.payments.confirmDevPayment(pending.orderId);
+      } else {
+        await this.showToast(
+          'Hosted checkout not wired — use PAYMENT_GATEWAY=stub or upi.',
+        );
+        return;
+      }
+
+      const reveal = await this.payments.getContact(pending.jobId);
+      if (!reveal.allowed || !reveal.contact) {
+        await this.showToast(
+          reveal.message || 'Payment recorded but contact unavailable.',
+        );
+        return;
+      }
+      this.revealed.set(reveal.contact);
+      this.pendingCheckout.set(null);
+      await this.showToast('Contact unlocked.');
+    } catch {
+      await this.showToast(
+        'Payment not confirmed yet. For local UPI set PAYMENT_UPI_ALLOW_DEV_CONFIRM=1.',
+      );
+    } finally {
+      this.confirmingPay.set(false);
+    }
   }
 
   async shareJob(): Promise<void> {
@@ -240,44 +324,6 @@ export class JobDetailPage implements OnInit {
       }
     } catch {
       // Guest or no entitlement — keep masked.
-    }
-  }
-
-  private async runUnlock(jobId: string): Promise<void> {
-    this.unlocking.set(true);
-    try {
-      const orderResult = await this.payments.createContactOrder(jobId);
-      if (orderResult.alreadyEntitled) {
-        await this.tryLoadEntitledContact(jobId);
-        await this.showToast('Contact already unlocked for your account.');
-        return;
-      }
-
-      if (!orderResult.order || !orderResult.checkout) {
-        await this.showToast('Could not create unlock order.');
-        return;
-      }
-
-      if (orderResult.checkout.checkoutMode === 'stub') {
-        await this.payments.confirmDevPayment(orderResult.order.id);
-      } else {
-        await this.showToast(
-          'Razorpay checkout not wired in this build — set PAYMENT_MODE=stub for local unlocks.',
-        );
-        return;
-      }
-
-      const reveal = await this.payments.getContact(jobId);
-      if (!reveal.allowed || !reveal.contact) {
-        await this.showToast(reveal.message || 'Unlock succeeded but contact unavailable.');
-        return;
-      }
-      this.revealed.set(reveal.contact);
-      await this.showToast('Contact unlocked.');
-    } catch {
-      await this.showToast('Unlock failed. Sign in and try again.');
-    } finally {
-      this.unlocking.set(false);
     }
   }
 

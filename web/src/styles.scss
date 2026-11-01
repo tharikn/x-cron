@@ -1,5 +1,6 @@
 :root {
   color-scheme: light;
+  accent-color: #0a0a0a;
   --xcron-bg: #f4f4f2;
   --xcron-bg-elevated: #ffffff;
   --xcron-ink: #0a0a0a;
@@ -70,6 +71,40 @@ select,
 textarea {
   font: inherit;
   color: inherit;
+  accent-color: #0a0a0a;
+}
+
+/* Chromium native <select> list uses system blue; opt into styleable picker. */
+@supports (appearance: base-select) {
+  select,
+  select::picker(select) {
+    appearance: base-select;
+  }
+
+  select::picker(select) {
+    background: #fff;
+    color: var(--xcron-ink);
+    border: 1px solid var(--xcron-line);
+    border-radius: var(--xcron-radius-sm);
+    box-shadow: var(--xcron-shadow);
+  }
+
+  select option {
+    background: #fff;
+    color: var(--xcron-ink);
+    padding: 0.55rem 0.75rem;
+  }
+
+  select option:hover,
+  select option:focus,
+  select option:checked {
+    background: #0a0a0a;
+    color: #fff;
+  }
+
+  select option::checkmark {
+    color: #fff;
+  }
 }
 
 a {
@@ -125,6 +160,48 @@ a {
   }
   to {
     opacity: 1;
+  }
+}
+
+body.import-batch-modal-open {
+  overflow: hidden;
+}
+
+/* Portaled import-batch modal — viewport-centered (not page-scroll center) */
+.import-batch-modal.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100dvh;
+  height: 100vh;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  margin: 0;
+  background: rgba(10, 10, 10, 0.48);
+  box-sizing: border-box;
+}
+
+.import-batch-modal .modal__dialog {
+  width: min(760px, 100%);
+  max-height: min(90dvh, 90vh, 920px);
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .import-batch-modal.modal {
+    padding: 0;
+    place-items: stretch;
+  }
+
+  .import-batch-modal .modal__dialog {
+    width: 100%;
+    max-height: 100%;
+    border-radius: 0;
   }
 }
 
