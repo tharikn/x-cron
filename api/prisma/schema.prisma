@@ -68,6 +68,10 @@ model User {
   auditEvents     AuditEvent[]
   savedJobs       SavedJob[]
   subscriptions   Subscription[]
+  devices         DeviceRegistration[]
+  notificationPrefs NotificationPreference?
+  notifications   NotificationRecord[]
+  notificationDeliveries NotificationDelivery[]
 
   @@schema("xcron")
 }
@@ -164,7 +168,12 @@ model Job {
   requirementsJson     Json              @default("[]")
   benefitsJson         Json              @default("[]")
   publishedAt          DateTime?
+  effectiveFrom        DateTime?
   expiresAt            DateTime?
+  priority             Int               @default(0)
+  reportCount          Int               @default(0)
+  moderationNote       String?
+  ownerUserId          String?
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   employer             Employer          @relation(fields: [employerId], references: [id])
@@ -174,6 +183,7 @@ model Job {
   savedBy              SavedJob[]
 
   @@index([employerId])
+  @@index([ownerUserId])
   @@index([status, publishedAt])
   @@index([city, district, state])
   @@index([jobType, category, contentLanguage])
@@ -240,16 +250,22 @@ model JobSource {
 model ImportBatch {
   id               String         @id @default(uuid())
   employerId       String
+  ownerUserId      String
+  employerName     String         @default("")
   status           String         @default("queued")
+  sourceType       String         @default("unknown")
+  filename         String         @default("")
   totalRecords     Int            @default(0)
   processedRecords Int            @default(0)
   errorCount       Int            @default(0)
+  warningsJson     Json           @default("[]")
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   employer         Employer       @relation(fields: [employerId], references: [id], onDelete: Cascade)
   records          ImportRecord[]
 
   @@index([employerId])
+  @@index([ownerUserId])
   @@index([status])
   @@schema("xcron")
 }
@@ -263,6 +279,7 @@ model ImportRecord {
   dedupeStatus   String      @default("pending")
   reviewStatus   String      @default("needs_review")
   jobId          String?
+  error          String?
   createdAt      DateTime    @default(now())
   batch          ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
   job            Job?        @relation(fields: [jobId], references: [id])
@@ -349,12 +366,123 @@ model UiString {
   @@schema("xcron")
 }
 
-/// Public site chrome + commerce. Runtime seeds mirror `footer` / `commerce` keys.
+/// Public site chrome + commerce + auth TTLs. Runtime seeds mirror `footer` / `commerce` / `auth` keys.
 model SiteConfig {
   key       String   @id
   value     Json
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
+  @@schema("xcron")
+}
+
+/// Push device tokens (FCM / stub). Runtime store is in-memory until NOTIFICATIONS_STORE=prisma.
+model DeviceRegistration {
+  id         String   @id @default(uuid())
+  userId     String?
+  deviceId   String
+  fcmToken   String
+  platform   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastSeenAt DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([fcmToken])
+  @@index([userId])
+  @@index([deviceId])
+  @@schema("xcron")
+}
+
+/// Per-user alert channel toggles (in-app / push / mail).
+model NotificationPreference {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  jobAlertsEnabled    Boolean  @default(true)
+  inAppEnabled        Boolean  @default(true)
+  pushAlertsEnabled   Boolean  @default(true)
+  emailAlertsEnabled  Boolean  @default(true)
+  marketingEnabled    Boolean  @default(false)
+  quietHoursStart     Int?
+  quietHoursEnd       Int?
+  dailyCap            Int      @default(20)
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("xcron")
+}
+
+/// User-facing inbox rows + channel send records (in_app | push | mail).
+model NotificationRecord {
+  id                 String    @id @default(uuid())
+  userId             String
+  channel            String
+  template           String
+  title              String
+  body               String
+  dataJson           Json?
+  status             String    @default("queued")
+  dedupeKey          String
+  jobId              String?
+  dispatchId         String?
+  provider           String?
+  providerMessageId  String?
+  error              String?
+  readAt             DateTime?
+  createdAt          DateTime  @default(now())
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dispatch           NotificationDispatch? @relation(fields: [dispatchId], references: [id], onDelete: SetNull)
+
+  @@unique([dedupeKey])
+  @@index([userId, channel, createdAt])
+  @@index([jobId])
+  @@index([dispatchId])
+  @@schema("xcron")
+}
+
+/// One fan-out trigger (e.g. job_published). History table for ops.
+model NotificationDispatch {
+  id               String    @id @default(uuid())
+  triggerType      String
+  jobId            String?
+  status           String    @default("running")
+  matchedCount     Int       @default(0)
+  sentCount        Int       @default(0)
+  suppressedCount  Int       @default(0)
+  failedCount      Int       @default(0)
+  skippedReason    String?
+  metaJson         Json?
+  startedAt        DateTime  @default(now())
+  finishedAt       DateTime?
+  notifications    NotificationRecord[]
+  deliveries       NotificationDelivery[]
+
+  @@index([triggerType, startedAt])
+  @@index([jobId])
+  @@index([status])
+  @@schema("xcron")
+}
+
+/// Per user × channel attempt under a dispatch (audit / cost / debugging).
+model NotificationDelivery {
+  id                 String   @id @default(uuid())
+  dispatchId         String
+  userId             String
+  channel            String
+  status             String
+  provider           String?
+  providerMessageId  String?
+  title              String
+  body               String
+  dedupeKey          String
+  jobId              String?
+  error              String?
+  createdAt          DateTime @default(now())
+  dispatch           NotificationDispatch @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([dispatchId, createdAt])
+  @@index([userId, createdAt])
+  @@index([channel, status])
   @@schema("xcron")
 }

@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: xcron
       POSTGRES_DB: xcron
     ports:
-      - '5432:5432'
+      # Host 5433 avoids clashing with a local Windows Postgres on 5432
+      - '5433:5432'
     volumes:
       - xcron_pg:/var/lib/postgresql/data
 
