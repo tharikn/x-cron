@@ -1,0 +1,255 @@
+.page {
+  padding: 16px 16px 40px;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
+}
+
+.hero {
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--xcron-faint);
+}
+
+.hero h1 {
+  margin: 4px 0 8px;
+  font-family: var(--xcron-display);
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.lead,
+.hint,
+.muted,
+.empty,
+.warn {
+  color: var(--xcron-muted);
+}
+
+.lead,
+.hint {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0 14px;
+}
+
+.pipeline__step {
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  border-radius: var(--xcron-radius-sm);
+  padding: 10px 6px;
+  text-align: center;
+  transition: transform 220ms var(--xcron-ease), box-shadow 220ms var(--xcron-ease);
+}
+
+.pipeline__step.is-hot {
+  background: var(--xcron-bg-elevated);
+  box-shadow: var(--xcron-shadow);
+  transform: translateY(-1px);
+}
+
+.pipeline__count {
+  display: block;
+  font-family: var(--xcron-display);
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
+.pipeline__label {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.meta-row {
+  margin-bottom: 12px;
+}
+
+.meta-row p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--xcron-muted);
+}
+
+.meta-row__hint {
+  margin-top: 2px !important;
+  font-size: 0.8rem !important;
+}
+
+.cta-row {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tabs button {
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink);
+  border-radius: 999px;
+  padding: 10px 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tabs button.active {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: #fff;
+}
+
+.block {
+  margin: 8px 0 22px;
+}
+
+.block h2,
+.block__head h2 {
+  margin: 0 0 10px;
+  font-family: var(--xcron-display);
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+
+.block__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.panel,
+.card,
+.msg {
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+}
+
+.panel {
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.card,
+.msg {
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.card__top,
+.msg__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.card strong,
+.msg__author {
+  font-family: var(--xcron-display);
+  letter-spacing: -0.02em;
+}
+
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--xcron-line-strong);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.msg {
+  cursor: pointer;
+  transition: transform 200ms var(--xcron-ease), box-shadow 200ms var(--xcron-ease);
+}
+
+.msg:active {
+  transform: translateY(1px);
+}
+
+.msg--selected {
+  box-shadow: var(--xcron-shadow-hover);
+  outline: 2px solid #0a0a0a;
+}
+
+.msg__meta time {
+  font-size: 0.75rem;
+  color: var(--xcron-faint);
+}
+
+.msg__author {
+  margin: 6px 0 4px;
+  font-size: 0.9rem;
+}
+
+.msg__body {
+  margin: 8px 0 0;
+  padding: 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 9rem;
+  overflow: auto;
+  background: var(--xcron-wash);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  font-family: var(--xcron-sans);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.warn {
+  color: var(--xcron-ink-soft);
+  font-size: 0.86rem;
+}
+
+.empty {
+  padding: 18px 4px;
+}
+
+@media (max-width: 420px) {
+  .pipeline {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pipeline__step:nth-child(4),
+  .pipeline__step:nth-child(5) {
+    grid-column: span 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .pipeline__step,
+  .msg {
+    animation: none;
+    transition: none;
+  }
+}

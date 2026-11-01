@@ -1,0 +1,370 @@
+<section class="page">
+  <p class="brand">X Cron <span>Jobs</span></p>
+  <h1>Job Fare pull</h1>
+  <p class="lead">
+    Telegram Bot + WhatsApp paste bridge → digest batches → review. Free path only.
+  </p>
+
+  <div class="toolbar">
+    <button type="button" class="btn" [disabled]="busy()" (click)="pullNow('batch')">
+      {{ busy() ? 'Working…' : 'Pull now' }}
+    </button>
+    <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="reload()">
+      Refresh
+    </button>
+    <a class="link" routerLink="/import">Bulk import</a>
+    <a class="link" routerLink="/admin">Dashboard</a>
+  </div>
+
+  @if (workflow(); as flow) {
+    <section class="pipeline" aria-label="Workflow stages">
+      @for (stage of stages(); track stage.key) {
+        <div class="pipeline__step" [class.is-hot]="stage.count > 0">
+          <span class="pipeline__count">{{ stage.count }}</span>
+          <span class="pipeline__label">{{ stage.label }}</span>
+        </div>
+      }
+    </section>
+    <p class="meta">
+      {{ flow.activeSources }} active sources ·
+      {{ flow.telegramConfigured ? 'Telegram bot live' : 'Telegram idle (paste still works)' }}
+      @if (flow.nextPullHint) {
+        · Next: {{ flow.nextPullHint }}
+      }
+    </p>
+  }
+
+  @if (error()) {
+    <p class="err">{{ error() }}</p>
+  }
+  @if (notice()) {
+    <p class="ok">{{ notice() }}</p>
+  }
+  @if (lastBatchIds().length) {
+    <p class="meta">
+      Latest batch(es):
+      @for (id of lastBatchIds(); track id) {
+        <button type="button" class="chip-btn" (click)="openBatchId(id)">{{ id }}</button>
+      }
+    </p>
+  }
+
+  <nav class="tabs" aria-label="Job Fare panels">
+    <button type="button" [class.active]="panel() === 'status'" (click)="setPanel('status')">
+      Status
+    </button>
+    <button type="button" [class.active]="panel() === 'pull'" (click)="setPanel('pull')">
+      Pull
+    </button>
+    <button type="button" [class.active]="panel() === 'inbox'" (click)="setPanel('inbox')">
+      Inbox
+    </button>
+    <button type="button" [class.active]="panel() === 'sources'" (click)="setPanel('sources')">
+      Sources
+    </button>
+    <button type="button" [class.active]="panel() === 'schedule'" (click)="setPanel('schedule')">
+      Schedule
+    </button>
+    <button type="button" [class.active]="panel() === 'history'" (click)="setPanel('history')">
+      History
+    </button>
+  </nav>
+
+  @if (panel() === 'status') {
+    <section class="block">
+      <h2>Channel status</h2>
+      @if (status(); as st) {
+        <dl class="facts">
+          <div>
+            <dt>Telegram</dt>
+            <dd>
+              {{ st.telegramConfigured ? 'Configured' : 'Not configured' }}
+              · mode <code>{{ st.telegramMode }}</code>
+            </dd>
+          </div>
+          <div>
+            <dt>Pending inbox</dt>
+            <dd>{{ st.pendingMessages }}</dd>
+          </div>
+          <div>
+            <dt>Sources</dt>
+            <dd>{{ st.sources }}</dd>
+          </div>
+          <div>
+            <dt>Schedule</dt>
+            <dd>
+              Morning
+              {{ st.schedule.morningEnabled ? st.schedule.morningTime : 'off' }}
+              · Evening
+              {{ st.schedule.eveningEnabled ? st.schedule.eveningTime : 'off' }}
+              · {{ st.schedule.timezone }}
+            </dd>
+          </div>
+          @if (workflow()?.lastPull; as last) {
+            <div>
+              <dt>Last pull</dt>
+              <dd>
+                {{ last.trigger }} · <code>{{ last.status }}</code> ·
+                {{ last.startedAt | date: 'short' }}
+                @if (last.importBatchId) {
+                  ·
+                  <button type="button" class="chip-btn" (click)="openBatch(last)">
+                    Open batch
+                  </button>
+                }
+              </dd>
+            </div>
+          }
+        </dl>
+      } @else {
+        <p class="empty">No status yet.</p>
+      }
+      <p class="hint">
+        Set <code>TELEGRAM_BOT_TOKEN</code> on the API, add the bot to groups, then posts land in
+        Inbox automatically.
+      </p>
+    </section>
+  }
+
+  @if (panel() === 'pull') {
+    <section class="block">
+      <h2>Manual pull</h2>
+      <p class="hint">
+        {{ pendingCount() }} pending post(s). Split large digests into reviewable import batches.
+      </p>
+
+      <div class="form-grid">
+        <label>
+          <span>Posts per batch</span>
+          <input
+            type="number"
+            name="batchSize"
+            min="1"
+            max="200"
+            [(ngModel)]="batchSize"
+            [disabled]="busy()"
+          />
+        </label>
+        <label>
+          <span>Limit to source (optional)</span>
+          <select name="pullSourceFilter" [(ngModel)]="pullSourceFilter" [disabled]="busy()">
+            <option value="">All active sources</option>
+            @for (source of sources(); track source.id) {
+              <option [value]="source.id">
+                {{ source.label }} ({{ providerLabel(source.provider) }})
+              </option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn" [disabled]="busy()" (click)="pullNow('batch')">
+          Pull one batch
+        </button>
+        <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="pullAllInBatches()">
+          Pull all · split batches
+        </button>
+        <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="pullNow('all')">
+          Pull entire inbox (one batch)
+        </button>
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="busy() || !selected().size"
+          (click)="pullNow('selected')"
+        >
+          Pull selected ({{ selected().size }})
+        </button>
+      </div>
+    </section>
+  }
+
+  @if (panel() === 'inbox') {
+    <section class="block">
+      <h2>WhatsApp / paste bridge</h2>
+      <p class="hint">Forward or copy jobfare posts here. Telegram active sources land automatically.</p>
+      <label class="stack">
+        <span>Paste job posts</span>
+        <textarea
+          rows="6"
+          name="pasteText"
+          [(ngModel)]="pasteText"
+          placeholder="Hiring…&#10;&#10;Separate posts with a blank line."
+          [disabled]="busy()"
+        ></textarea>
+      </label>
+      <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="addPaste()">
+        Add to inbox
+      </button>
+
+      <div class="block__head">
+        <h2>Pending posts</h2>
+        <div class="actions actions--tight">
+          <button type="button" class="chip-btn" [disabled]="busy()" (click)="selectAllPending()">
+            Select all
+          </button>
+          <button type="button" class="chip-btn" [disabled]="busy()" (click)="clearSelection()">
+            Clear
+          </button>
+          <button
+            type="button"
+            class="chip-btn"
+            [disabled]="busy() || !selected().size"
+            (click)="skipSelected()"
+          >
+            Skip selected
+          </button>
+          <button
+            type="button"
+            class="chip-btn"
+            [disabled]="busy() || !selected().size"
+            (click)="pullNow('selected')"
+          >
+            Pull selected
+          </button>
+        </div>
+      </div>
+
+      @for (msg of messages(); track msg.id) {
+        <article
+          class="msg"
+          [class.msg--selected]="isSelected(msg.id)"
+          (click)="toggleSelect(msg.id)"
+        >
+          <div class="msg__meta">
+            <span class="chip">{{ providerLabel(msg.provider) }}</span>
+            <time>{{ msg.receivedAt | date: 'short' }}</time>
+          </div>
+          @if (msg.authorName) {
+            <p class="msg__author">{{ msg.authorName }}</p>
+          }
+          <pre class="msg__body">{{ msg.text }}</pre>
+        </article>
+      } @empty {
+        <p class="empty">Inbox clear. Paste WhatsApp posts or wait for Telegram.</p>
+      }
+    </section>
+  }
+
+  @if (panel() === 'sources') {
+    <section class="block">
+      <h2>Connected sources</h2>
+      @for (source of sources(); track source.id) {
+        <article class="card">
+          <div class="card__top">
+            <strong>{{ source.label }}</strong>
+            <span class="chip">{{ providerLabel(source.provider) }}</span>
+          </div>
+          <p class="muted">{{ source.externalId }} · {{ source.status }}</p>
+          @if (source.notes) {
+            <p class="muted">{{ source.notes }}</p>
+          }
+          <button type="button" class="btn btn--ghost btn--sm" (click)="toggleSource(source)">
+            {{ source.status === 'active' ? 'Pause' : 'Activate' }}
+          </button>
+        </article>
+      } @empty {
+        <p class="empty">No sources yet. Telegram auto-registers on first message, or add below.</p>
+      }
+
+      <h2>Add source</h2>
+      <div class="form-grid">
+        <label>
+          <span>Label</span>
+          <input name="newLabel" [(ngModel)]="newLabel" [disabled]="busy()" />
+        </label>
+        <label>
+          <span>External id (Telegram chat id or wa:key)</span>
+          <input name="newExternalId" [(ngModel)]="newExternalId" [disabled]="busy()" />
+        </label>
+        <label>
+          <span>Provider</span>
+          <select name="newProvider" [(ngModel)]="newProvider" [disabled]="busy()">
+            <option value="telegram">telegram</option>
+            <option value="whatsapp_manual">whatsapp_manual</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" class="btn" [disabled]="busy()" (click)="addSource()">
+        Save source
+      </button>
+    </section>
+  }
+
+  @if (panel() === 'schedule') {
+    <section class="block">
+      <h2>Morning / evening pull</h2>
+      <p class="hint">
+        Timezone Asia/Kolkata. Saving also sets you as digest owner for auto-pulls.
+      </p>
+      <div class="form-grid">
+        <label class="check">
+          <input type="checkbox" name="morningEnabled" [(ngModel)]="morningEnabled" />
+          <span>Morning pull</span>
+        </label>
+        <label>
+          <span>Morning time (HH:mm)</span>
+          <input name="morningTime" [(ngModel)]="morningTime" placeholder="07:30" />
+        </label>
+        <label class="check">
+          <input type="checkbox" name="eveningEnabled" [(ngModel)]="eveningEnabled" />
+          <span>Evening pull</span>
+        </label>
+        <label>
+          <span>Evening time (HH:mm)</span>
+          <input name="eveningTime" [(ngModel)]="eveningTime" placeholder="18:30" />
+        </label>
+      </div>
+      <button type="button" class="btn" [disabled]="busy()" (click)="saveSchedule()">
+        Save schedule
+      </button>
+    </section>
+  }
+
+  @if (panel() === 'history') {
+    <section class="block">
+      <h2>Pull runs</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Trigger</th>
+              <th>Status</th>
+              <th>Posts</th>
+              <th>Drafts</th>
+              <th>Batch</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (run of pulls(); track run.id) {
+              <tr [class.row--fail]="run.status === 'failed'">
+                <td>{{ run.startedAt | date: 'medium' }}</td>
+                <td><code>{{ run.trigger }}</code></td>
+                <td><code>{{ run.status }}</code></td>
+                <td>{{ run.messageCount }}</td>
+                <td>{{ run.recordCount }}</td>
+                <td>
+                  @if (run.importBatchId) {
+                    <button type="button" class="chip-btn" (click)="openBatch(run)">
+                      Open review
+                    </button>
+                  } @else if (run.error) {
+                    <span class="warn">{{ run.error }}</span>
+                  } @else {
+                    —
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6">No pulls yet.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</section>

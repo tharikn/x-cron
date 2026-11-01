@@ -1,0 +1,226 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Job Fare pull</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <header class="hero">
+      <p class="eyebrow">Admin workflow</p>
+      <h1>Job Fare</h1>
+      <p class="lead">
+        Pull Telegram + WhatsApp bridge posts into review digests. Free path only — no paid scrapers.
+      </p>
+    </header>
+
+    @if (workflow(); as flow) {
+      <section class="pipeline" aria-label="Workflow stages">
+        @for (stage of stages(); track stage.key) {
+          <div class="pipeline__step" [class.is-hot]="stage.count > 0">
+            <span class="pipeline__count">{{ stage.count }}</span>
+            <span class="pipeline__label">{{ stage.label }}</span>
+          </div>
+        }
+      </section>
+
+      <div class="meta-row">
+        <p>
+          {{ flow.activeSources }} active sources ·
+          {{ flow.telegramConfigured ? 'Telegram bot live' : 'Telegram idle (paste still works)' }}
+        </p>
+        <p class="meta-row__hint">{{ flow.nextPullHint }}</p>
+      </div>
+    }
+
+    <div class="cta-row">
+      <ion-button expand="block" color="dark" [disabled]="busy()" (click)="pullNow()">
+        Pull now
+      </ion-button>
+      <ion-button expand="block" fill="outline" color="dark" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </ion-button>
+    </div>
+
+    <nav class="tabs" aria-label="Job Fare panels">
+      <button type="button" [class.active]="panel() === 'inbox'" (click)="setPanel('inbox')">
+        Inbox
+      </button>
+      <button type="button" [class.active]="panel() === 'sources'" (click)="setPanel('sources')">
+        Sources
+      </button>
+      <button type="button" [class.active]="panel() === 'schedule'" (click)="setPanel('schedule')">
+        Schedule
+      </button>
+      <button type="button" [class.active]="panel() === 'history'" (click)="setPanel('history')">
+        History
+      </button>
+    </nav>
+
+    @if (panel() === 'inbox') {
+      <section class="block">
+        <h2>WhatsApp / paste bridge</h2>
+        <p class="hint">Forward or copy jobfare posts here. Telegram active sources land automatically.</p>
+        <ion-list lines="full" class="panel">
+          <ion-item>
+            <ion-textarea
+              label="Paste job posts"
+              labelPlacement="stacked"
+              autoGrow="true"
+              rows="5"
+              [(ngModel)]="pasteText"
+              placeholder="Hiring…&#10;&#10;Separate posts with a blank line."
+            ></ion-textarea>
+          </ion-item>
+        </ion-list>
+        <ion-button expand="block" fill="outline" color="dark" [disabled]="busy()" (click)="addPaste()">
+          Add to inbox
+        </ion-button>
+
+        <div class="block__head">
+          <h2>Pending posts</h2>
+          <ion-button
+            size="small"
+            fill="outline"
+            color="dark"
+            [disabled]="busy() || !selected().size"
+            (click)="skipSelected()"
+          >
+            Skip selected
+          </ion-button>
+        </div>
+
+        @for (msg of messages(); track msg.id) {
+          <article
+            class="msg"
+            [class.msg--selected]="isSelected(msg.id)"
+            (click)="toggleSelect(msg.id)"
+          >
+            <div class="msg__meta">
+              <span class="chip">{{ providerLabel(msg.provider) }}</span>
+              <time>{{ msg.receivedAt | date: 'short' }}</time>
+            </div>
+            @if (msg.authorName) {
+              <p class="msg__author">{{ msg.authorName }}</p>
+            }
+            <pre class="msg__body">{{ msg.text }}</pre>
+          </article>
+        } @empty {
+          <p class="empty">Inbox clear. Paste WhatsApp posts or wait for Telegram.</p>
+        }
+      </section>
+    }
+
+    @if (panel() === 'sources') {
+      <section class="block">
+        <h2>Connected sources</h2>
+        @for (source of sources(); track source.id) {
+          <article class="card">
+            <div class="card__top">
+              <strong>{{ source.label }}</strong>
+              <span class="chip">{{ providerLabel(source.provider) }}</span>
+            </div>
+            <p class="muted">{{ source.externalId }} · {{ source.status }}</p>
+            @if (source.notes) {
+              <p class="muted">{{ source.notes }}</p>
+            }
+            <ion-button size="small" fill="outline" color="dark" (click)="toggleSource(source)">
+              {{ source.status === 'active' ? 'Pause' : 'Activate' }}
+            </ion-button>
+          </article>
+        }
+
+        <h2>Add source</h2>
+        <ion-list lines="full" class="panel">
+          <ion-item>
+            <ion-input label="Label" labelPlacement="stacked" [(ngModel)]="newLabel"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="External id (Telegram chat id or wa:key)"
+              labelPlacement="stacked"
+              [(ngModel)]="newExternalId"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Provider (telegram | whatsapp_manual)"
+              labelPlacement="stacked"
+              [(ngModel)]="newProvider"
+            ></ion-input>
+          </ion-item>
+        </ion-list>
+        <ion-button expand="block" color="dark" [disabled]="busy()" (click)="addSource()">
+          Save source
+        </ion-button>
+      </section>
+    }
+
+    @if (panel() === 'schedule') {
+      <section class="block">
+        <h2>Morning / evening pull</h2>
+        <p class="hint">Timezone Asia/Kolkata. Saving also sets you as digest owner for auto-pulls.</p>
+        <ion-list lines="full" class="panel">
+          <ion-item>
+            <ion-toggle [(ngModel)]="morningEnabled">Morning pull</ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Morning time (HH:mm)"
+              labelPlacement="stacked"
+              [(ngModel)]="morningTime"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-toggle [(ngModel)]="eveningEnabled">Evening pull</ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Evening time (HH:mm)"
+              labelPlacement="stacked"
+              [(ngModel)]="eveningTime"
+            ></ion-input>
+          </ion-item>
+        </ion-list>
+        <ion-button expand="block" color="dark" [disabled]="busy()" (click)="saveSchedule()">
+          Save schedule
+        </ion-button>
+      </section>
+    }
+
+    @if (panel() === 'history') {
+      <section class="block">
+        <h2>Pull runs</h2>
+        @for (run of pulls(); track run.id) {
+          <article class="card">
+            <div class="card__top">
+              <strong>{{ run.trigger }}</strong>
+              <span class="chip">{{ run.status }}</span>
+            </div>
+            <p class="muted">
+              {{ run.messageCount }} posts · {{ run.recordCount }} drafts ·
+              {{ run.startedAt | date: 'short' }}
+            </p>
+            @if (run.error) {
+              <p class="warn">{{ run.error }}</p>
+            }
+            @if (run.importBatchId) {
+              <ion-button size="small" fill="outline" color="dark" (click)="openBatch(run)">
+                Open review batch
+              </ion-button>
+            }
+          </article>
+        } @empty {
+          <p class="empty">No pulls yet.</p>
+        }
+      </section>
+    }
+
+    <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/import">
+      Classic bulk import
+    </ion-button>
+    <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/account">
+      Back to account
+    </ion-button>
+  </div>
+</ion-content>
