@@ -14,7 +14,7 @@ export abstract class JobsStore {
   abstract findBySlug(slug: string): Promise<JobRecord | undefined>;
   abstract search(
     query: JobSearchQuery,
-  ): Promise<{ items: JobRecord[]; nextCursor?: string }>;
+  ): Promise<{ items: JobRecord[]; nextCursor?: string; total: number }>;
   abstract related(job: JobRecord, limit?: number): Promise<JobRecord[]>;
   abstract categories(): Promise<string[]>;
   abstract dedupeKey(title: string, city: string): string;

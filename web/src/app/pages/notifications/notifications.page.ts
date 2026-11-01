@@ -1,6 +1,5 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { LocaleService } from '../../core/services/locale.service';
@@ -10,7 +9,7 @@ import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-notifications',
-  imports: [DatePipe, FormsModule, RouterLink],
+  imports: [DatePipe, RouterLink],
   templateUrl: './notifications.page.html',
   styleUrl: './notifications.page.scss',
 })
@@ -25,7 +24,6 @@ export class NotificationsPage implements OnInit {
   readonly busy = signal(false);
   readonly isSignedIn = this.auth.isSignedIn;
   readonly items = this.notifications.items;
-  readonly prefs = this.notifications.prefs;
   readonly unread = this.notifications.unreadCount;
 
   async ngOnInit(): Promise<void> {
@@ -50,7 +48,6 @@ export class NotificationsPage implements OnInit {
     this.busy.set(true);
     try {
       await this.notifications.registerDevice();
-      await this.notifications.loadPrefs();
       await this.notifications.refreshInbox();
     } catch {
       this.toast.show('Could not load notifications', 'error');
@@ -64,22 +61,6 @@ export class NotificationsPage implements OnInit {
       await this.notifications.markRead(id);
     } catch {
       this.toast.show('Could not mark read', 'error');
-    }
-  }
-
-  async toggle(
-    key:
-      | 'jobAlertsEnabled'
-      | 'inAppEnabled'
-      | 'pushAlertsEnabled'
-      | 'emailAlertsEnabled',
-    value: boolean,
-  ): Promise<void> {
-    try {
-      await this.notifications.savePrefs({ [key]: value });
-      this.toast.show('Alert preference saved');
-    } catch {
-      this.toast.show('Could not save preference', 'error');
     }
   }
 

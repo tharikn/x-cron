@@ -36,8 +36,8 @@ export class NotificationsService {
     private readonly auth: AuthStore,
   ) {}
 
-  registerDevice(dto: RegisterDeviceDto, user?: AuthUser) {
-    const device = this.store.upsertDevice({
+  async registerDevice(dto: RegisterDeviceDto, user?: AuthUser) {
+    const device = await this.store.upsertDevice({
       userId: user?.id,
       deviceId: dto.deviceId,
       fcmToken: dto.fcmToken,
@@ -61,9 +61,10 @@ export class NotificationsService {
     return this.store.saveNotificationPrefs(user.id, dto);
   }
 
-  listInApp(user: AuthUser) {
+  async listInApp(user: AuthUser) {
+    const items = await this.store.listForUser(user.id);
     return {
-      items: this.store.listForUser(user.id).map((n) => ({
+      items: items.map((n) => ({
         id: n.id,
         title: n.title,
         body: n.body,
@@ -76,15 +77,15 @@ export class NotificationsService {
     };
   }
 
-  markRead(user: AuthUser, id: string) {
-    const n = this.store.findNotification(id);
+  async markRead(user: AuthUser, id: string) {
+    const n = await this.store.findNotification(id);
     if (!n || n.userId !== user.id) {
       throw new NotFoundException('Notification not found');
     }
-    const updated = this.store.updateNotification(id, {
+    const updated = (await this.store.updateNotification(id, {
       status: 'read',
       readAt: new Date().toISOString(),
-    })!;
+    }))!;
     return {
       id: updated.id,
       status: updated.status,
@@ -92,20 +93,20 @@ export class NotificationsService {
     };
   }
 
-  listDispatches(limit = 50) {
+  async listDispatches(limit = 50) {
     return {
       pushProvider: this.push.name,
       mailProvider: this.mail.name,
-      items: this.store.listDispatches(limit),
+      items: await this.store.listDispatches(limit),
     };
   }
 
-  getDispatch(id: string) {
-    const dispatch = this.store.findDispatch(id);
+  async getDispatch(id: string) {
+    const dispatch = await this.store.findDispatch(id);
     if (!dispatch) throw new NotFoundException('Dispatch not found');
     return {
       dispatch,
-      deliveries: this.store.listDeliveriesForDispatch(id),
+      deliveries: await this.store.listDeliveriesForDispatch(id),
     };
   }
 
@@ -115,7 +116,7 @@ export class NotificationsService {
    */
   async onJobPublished(jobId: string) {
     const job = await this.jobs.findById(jobId);
-    const dispatch = this.store.startDispatch({
+    const dispatch = await this.store.startDispatch({
       triggerType: 'job_published',
       jobId,
       meta: {
@@ -125,8 +126,8 @@ export class NotificationsService {
     });
 
     if (!job || job.status !== 'published') {
-      this.store.finishDispatch(dispatch.id, 'skipped');
-      this.store.updateDispatch(dispatch.id, {
+      await this.store.finishDispatch(dispatch.id, 'skipped');
+      await this.store.updateDispatch(dispatch.id, {
         skippedReason: !job ? 'job_not_found' : 'not_published',
       });
       return {
@@ -139,7 +140,7 @@ export class NotificationsService {
       };
     }
 
-    const candidates = this.collectSubscriberCandidates();
+    const candidates = await this.collectSubscriberCandidates();
     let matched = 0;
     let sent = 0;
     let suppressed = 0;
@@ -162,19 +163,18 @@ export class NotificationsService {
         else if (result.reason === 'failed') failed += 1;
         else suppressed += 1;
       }
-      // Yield between batches so large subscriber sets stay cheap on event loop.
       if (i + batchSize < candidates.length) {
         await new Promise((r) => setImmediate(r));
       }
     }
 
-    this.store.updateDispatch(dispatch.id, {
+    await this.store.updateDispatch(dispatch.id, {
       matchedCount: matched,
       sentCount: sent,
       suppressedCount: suppressed,
       failedCount: failed,
     });
-    this.store.finishDispatch(dispatch.id, 'completed');
+    await this.store.finishDispatch(dispatch.id, 'completed');
     this.logger.log(
       `Dispatch ${dispatch.id} job=${jobId} matched=${matched} sent=${sent} suppressed=${suppressed} failed=${failed}`,
     );
@@ -202,7 +202,7 @@ export class NotificationsService {
     const body = dto.body || 'Test notification from stub providers.';
     const job = dto.jobId ? await this.jobs.findById(dto.jobId) : undefined;
     if (job) {
-      const dispatch = this.store.startDispatch({
+      const dispatch = await this.store.startDispatch({
         triggerType: 'dev_test',
         jobId: job.id,
       });
@@ -210,45 +210,49 @@ export class NotificationsService {
         force: true,
         dispatchId: dispatch.id,
       });
-      this.store.updateDispatch(dispatch.id, {
+      await this.store.updateDispatch(dispatch.id, {
         matchedCount: 1,
         sentCount: result.sent ? 1 : 0,
         suppressedCount: result.sent ? 0 : 1,
       });
-      this.store.finishDispatch(dispatch.id, 'completed');
+      await this.store.finishDispatch(dispatch.id, 'completed');
       return { ...result, dispatchId: dispatch.id };
     }
     return this.deliverCustom(dto.userId, title, body);
   }
 
-  clearForUser(user: AuthUser) {
-    this.store.clearForUser(user.id);
+  async clearForUser(user: AuthUser) {
+    await this.store.clearForUser(user.id);
   }
 
   /**
    * Subscribers = users with job prefs and/or explicit notification prefs.
    * Empty job filters + jobAlertsEnabled ⇒ subscribed to all new jobs (capped).
    */
-  private collectSubscriberCandidates(): Array<{
-    userId: string;
-    preferences: PreferenceRecord;
-  }> {
+  private async collectSubscriberCandidates(): Promise<
+    Array<{
+      userId: string;
+      preferences: PreferenceRecord;
+    }>
+  > {
     const byUser = new Map<string, PreferenceRecord>();
     for (const row of this.preferences.listUserPreferences()) {
       byUser.set(row.userId, row.preferences);
     }
-    for (const userId of this.store.listNotificationPrefUserIds()) {
+    for (const userId of await this.store.listNotificationPrefUserIds()) {
       if (!byUser.has(userId)) {
-        byUser.set(userId, this.preferences.getForUser({
-          id: userId,
-        } as AuthUser));
+        byUser.set(
+          userId,
+          this.preferences.getForUser({
+            id: userId,
+          } as AuthUser),
+        );
       }
     }
-    // Include signed-in users who never touched prefs but may want defaults.
     for (const user of this.auth.listUsers()) {
       if (user.status !== 'active') continue;
       if (!byUser.has(user.id)) {
-        const prefs = this.store.getNotificationPrefs(user.id);
+        const prefs = await this.store.getNotificationPrefs(user.id);
         if (!prefs.jobAlertsEnabled) continue;
         byUser.set(user.id, this.preferences.getForUser(user));
       }
@@ -277,7 +281,6 @@ export class NotificationsService {
       preferences.salaryMin != null ||
       preferences.remotePreferred;
 
-    // No filters → all-job subscriber (still gated by jobAlertsEnabled + daily cap).
     if (!hasAnyFilter) return true;
 
     if (preferences.locations.length) {
@@ -329,8 +332,8 @@ export class NotificationsService {
     opts?: { force?: boolean; dispatchId?: string },
   ) {
     const dedupeKey = `job_published:${job.id}:${userId}`;
-    if (!opts?.force && this.store.hasDedupe(dedupeKey)) {
-      this.logDelivery(opts?.dispatchId, {
+    if (!opts?.force && (await this.store.hasDedupe(dedupeKey))) {
+      await this.logDelivery(opts?.dispatchId, {
         userId,
         channel: 'in_app',
         status: 'suppressed',
@@ -343,13 +346,13 @@ export class NotificationsService {
       return { sent: false, reason: 'duplicate' as const };
     }
 
-    const prefs = this.store.getNotificationPrefs(userId);
+    const prefs = await this.store.getNotificationPrefs(userId);
     const title = `New job: ${job.title}`;
     const body = `${job.employerName} · ${job.location.city}`;
     const data = { jobId: job.id, slug: job.slug };
 
     if (!prefs.jobAlertsEnabled) {
-      this.recordChannel({
+      await this.recordChannel({
         userId,
         channel: 'in_app',
         template: 'job_published',
@@ -365,8 +368,8 @@ export class NotificationsService {
       return { sent: false, reason: 'disabled' as const };
     }
 
-    if (this.store.getDailySendCount(userId) >= prefs.dailyCap) {
-      this.recordChannel({
+    if ((await this.store.getDailySendCount(userId)) >= prefs.dailyCap) {
+      await this.recordChannel({
         userId,
         channel: 'in_app',
         template: 'job_published',
@@ -386,9 +389,8 @@ export class NotificationsService {
     let anySent = false;
     let anyFailed = false;
 
-    // In-app is always free and is the primary inbox.
     if (prefs.inAppEnabled !== false) {
-      this.recordChannel({
+      await this.recordChannel({
         userId,
         channel: 'in_app',
         template: 'job_published',
@@ -404,7 +406,6 @@ export class NotificationsService {
       anySent = true;
     }
 
-    // Push / mail skipped during quiet hours (in-app still recorded above).
     if (!quiet) {
       if (prefs.pushAlertsEnabled !== false) {
         const pushResult = await this.deliverPush({
@@ -434,7 +435,7 @@ export class NotificationsService {
         if (mailResult.failed) anyFailed = true;
       }
     } else {
-      this.logDelivery(opts?.dispatchId, {
+      await this.logDelivery(opts?.dispatchId, {
         userId,
         channel: 'push',
         status: 'suppressed',
@@ -444,7 +445,7 @@ export class NotificationsService {
         jobId: job.id,
         error: 'quiet_hours',
       });
-      this.logDelivery(opts?.dispatchId, {
+      await this.logDelivery(opts?.dispatchId, {
         userId,
         channel: 'mail',
         status: 'suppressed',
@@ -457,7 +458,7 @@ export class NotificationsService {
     }
 
     if (anySent) {
-      this.store.incrementDailySend(userId);
+      await this.store.incrementDailySend(userId);
     }
 
     if (anySent) {
@@ -483,9 +484,9 @@ export class NotificationsService {
     baseDedupe: string;
     dispatchId?: string;
   }) {
-    const devices = this.store.listDevicesForUser(input.userId);
+    const devices = await this.store.listDevicesForUser(input.userId);
     if (!devices.length) {
-      this.logDelivery(input.dispatchId, {
+      await this.logDelivery(input.dispatchId, {
         userId: input.userId,
         channel: 'push',
         status: 'suppressed',
@@ -503,14 +504,14 @@ export class NotificationsService {
     let failed = false;
     for (const device of devices) {
       const pushDedupe = `${input.baseDedupe}:push:${device.id}`;
-      if (this.store.hasDedupe(pushDedupe)) continue;
+      if (await this.store.hasDedupe(pushDedupe)) continue;
       const result = await this.push.send({
         token: device.fcmToken,
         title: input.title,
         body: input.body,
         data: input.data,
       });
-      this.recordChannel({
+      await this.recordChannel({
         userId: input.userId,
         channel: 'push',
         template: 'job_published',
@@ -541,14 +542,14 @@ export class NotificationsService {
     dispatchId?: string;
   }) {
     const mailDedupe = `${input.baseDedupe}:mail`;
-    if (this.store.hasDedupe(mailDedupe)) {
+    if (await this.store.hasDedupe(mailDedupe)) {
       return { sent: false, failed: false };
     }
 
     const user = this.auth.getUser(input.userId);
     const to = user?.email?.trim();
     if (!to) {
-      this.recordChannel({
+      await this.recordChannel({
         userId: input.userId,
         channel: 'mail',
         template: 'job_published',
@@ -571,7 +572,7 @@ export class NotificationsService {
       text: `${input.body}\n\nJob: ${input.data.jobId}`,
       data: input.data,
     });
-    this.recordChannel({
+    await this.recordChannel({
       userId: input.userId,
       channel: 'mail',
       template: 'job_published',
@@ -590,9 +591,9 @@ export class NotificationsService {
   }
 
   private async deliverCustom(userId: string, title: string, body: string) {
-    const dispatch = this.store.startDispatch({ triggerType: 'dev_test' });
+    const dispatch = await this.store.startDispatch({ triggerType: 'dev_test' });
     const dedupeKey = `dev:${userId}:${Date.now()}`;
-    const inApp = this.recordChannel({
+    const inApp = await this.recordChannel({
       userId,
       channel: 'in_app',
       template: 'dev_test',
@@ -603,7 +604,7 @@ export class NotificationsService {
       status: 'sent',
       provider: 'in_app',
     });
-    const devices = this.store.listDevicesForUser(userId);
+    const devices = await this.store.listDevicesForUser(userId);
     const pushResults = [];
     for (const device of devices) {
       const result = await this.push.send({
@@ -611,7 +612,7 @@ export class NotificationsService {
         title,
         body,
       });
-      this.recordChannel({
+      await this.recordChannel({
         userId,
         channel: 'push',
         template: 'dev_test',
@@ -635,7 +636,7 @@ export class NotificationsService {
         subject: title,
         text: body,
       });
-      this.recordChannel({
+      await this.recordChannel({
         userId,
         channel: 'mail',
         template: 'dev_test',
@@ -651,11 +652,11 @@ export class NotificationsService {
       mailResult = result;
     }
 
-    this.store.updateDispatch(dispatch.id, {
+    await this.store.updateDispatch(dispatch.id, {
       matchedCount: 1,
       sentCount: 1,
     });
-    this.store.finishDispatch(dispatch.id, 'completed');
+    await this.store.finishDispatch(dispatch.id, 'completed');
     return {
       dispatchId: dispatch.id,
       inAppId: inApp.id,
@@ -664,7 +665,7 @@ export class NotificationsService {
     };
   }
 
-  private recordChannel(input: {
+  private async recordChannel(input: {
     userId: string;
     channel: NotificationChannel;
     template: string;
@@ -679,7 +680,7 @@ export class NotificationsService {
     provider?: string;
     providerMessageId?: string;
   }) {
-    const record = this.store.createNotification({
+    const record = await this.store.createNotification({
       userId: input.userId,
       channel: input.channel,
       template: input.template,
@@ -694,7 +695,7 @@ export class NotificationsService {
       provider: input.provider,
       providerMessageId: input.providerMessageId,
     });
-    this.logDelivery(input.dispatchId, {
+    await this.logDelivery(input.dispatchId, {
       userId: input.userId,
       channel: input.channel,
       status: input.status,
@@ -709,7 +710,7 @@ export class NotificationsService {
     return record;
   }
 
-  private logDelivery(
+  private async logDelivery(
     dispatchId: string | undefined,
     input: {
       userId: string;
@@ -725,7 +726,7 @@ export class NotificationsService {
     },
   ) {
     if (!dispatchId) return;
-    this.store.createDeliveryLog({
+    await this.store.createDeliveryLog({
       dispatchId,
       userId: input.userId,
       channel: input.channel,

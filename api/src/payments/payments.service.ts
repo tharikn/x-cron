@@ -34,11 +34,11 @@ export class PaymentsService {
     @Optional() private readonly ops?: OpsService,
   ) {}
 
-  listSubscriptionPlans() {
-    return { items: this.store.listPlans() };
+  async listSubscriptionPlans() {
+    return { items: await this.store.listPlans() };
   }
 
-  listAdminHistory(filter?: {
+  async listAdminHistory(filter?: {
     status?: PaymentHistoryStatus;
     orderId?: string;
     userId?: string;
@@ -46,36 +46,41 @@ export class PaymentsService {
     to?: string;
     limit?: number;
   }) {
-    const items = this.store.listHistory(filter);
+    const items = await this.store.listHistory(filter);
+    const orders = await this.store.listOrders();
     return {
       items,
-      orders: this.store.listOrders().slice(0, 200).map((o) => this.toOrderDto(o)),
+      orders: orders.slice(0, 200).map((o) => this.toOrderDto(o)),
       total: items.length,
     };
   }
 
-  exportHistoryExcel(filter?: {
+  async exportHistoryExcel(filter?: {
     status?: PaymentHistoryStatus;
     from?: string;
     to?: string;
-  }): Buffer {
-    return historyToExcelCsv(this.store.listHistory({ ...filter, limit: 5000 }));
+  }): Promise<Buffer> {
+    return historyToExcelCsv(
+      await this.store.listHistory({ ...filter, limit: 5000 }),
+    );
   }
 
-  exportHistoryPdf(filter?: {
+  async exportHistoryPdf(filter?: {
     status?: PaymentHistoryStatus;
     from?: string;
     to?: string;
-  }): Buffer {
-    return historyToPdf(this.store.listHistory({ ...filter, limit: 5000 }));
+  }): Promise<Buffer> {
+    return historyToPdf(
+      await this.store.listHistory({ ...filter, limit: 5000 }),
+    );
   }
 
   async createSubscriptionCheckout(user: AuthUser, planId: string) {
     this.assertPaymentsEnabled();
-    const plan = this.store.getPlan(planId);
+    const plan = await this.store.getPlan(planId);
     if (!plan) throw new NotFoundException('Plan not found');
 
-    const existing = this.store.findActiveSubscription(user.id);
+    const existing = await this.store.findActiveSubscription(user.id);
     const gateway = await this.provider.createOrder({
       amountPaise: plan.pricePaise,
       currency: 'INR',
@@ -83,7 +88,7 @@ export class PaymentsService {
       notes: { userId: user.id, product: 'subscription', planId: plan.id },
     });
 
-    const order = this.store.createOrder({
+    const order = await this.store.createOrder({
       userId: user.id,
       planId: plan.id,
       gateway: this.provider.name,
@@ -93,14 +98,14 @@ export class PaymentsService {
       product: 'subscription',
     });
 
-    this.store.addAudit({
+    await this.store.addAudit({
       actorId: user.id,
       action: 'subscription_order_created',
       entityType: 'payment',
       entityId: order.id,
       metadata: { planId: plan.id, amountPaise: plan.pricePaise },
     });
-    this.recordHistory({
+    await this.recordHistory({
       status: 'created',
       orderId: order.id,
       userId: user.id,
@@ -136,7 +141,7 @@ export class PaymentsService {
       throw new BadRequestException('Job has no contact methods to unlock');
     }
 
-    const existing = this.store.findContactAccess(user.id, jobId);
+    const existing = await this.store.findContactAccess(user.id, jobId);
     if (existing) {
       return {
         alreadyEntitled: true,
@@ -146,14 +151,13 @@ export class PaymentsService {
       };
     }
 
-    // Global payments off → free unlock grant (no client confirm).
     if (!this.site.paymentsEnabled()) {
-      const entitlement = this.store.grantJobContactEntitlement({
+      const entitlement = await this.store.grantJobContactEntitlement({
         userId: user.id,
         jobId,
         paymentId: `free_${jobId}`,
       });
-      this.recordHistory({
+      await this.recordHistory({
         status: 'free_grant',
         reason: 'payments_disabled',
         userId: user.id,
@@ -182,7 +186,7 @@ export class PaymentsService {
       notes: { jobId, userId: user.id, product: 'job_contact_unlock' },
     });
 
-    const order = this.store.createOrder({
+    const order = await this.store.createOrder({
       userId: user.id,
       jobId,
       gateway: this.provider.name,
@@ -192,14 +196,14 @@ export class PaymentsService {
       product: 'job_contact_unlock',
     });
 
-    this.store.addAudit({
+    await this.store.addAudit({
       actorId: user.id,
       action: 'contact_order_created',
       entityType: 'payment',
       entityId: order.id,
       metadata: { jobId, amountPaise, gatewayOrderId: order.gatewayOrderId },
     });
-    this.recordHistory({
+    await this.recordHistory({
       status: 'created',
       orderId: order.id,
       userId: user.id,
@@ -223,7 +227,6 @@ export class PaymentsService {
     };
   }
 
-  /** Employer post-job fee checkout (mandatory / optional modes). */
   async createPostJobOrder(user: AuthUser, jobId: string) {
     this.assertPaymentsEnabled();
     const commerce = this.site.getCommerce();
@@ -248,7 +251,7 @@ export class PaymentsService {
       notes: { jobId, userId: user.id, product: 'job_post' },
     });
 
-    const order = this.store.createOrder({
+    const order = await this.store.createOrder({
       userId: user.id,
       jobId,
       gateway: this.provider.name,
@@ -258,7 +261,7 @@ export class PaymentsService {
       product: 'job_post',
     });
 
-    this.recordHistory({
+    await this.recordHistory({
       status: 'created',
       orderId: order.id,
       userId: user.id,
@@ -287,9 +290,9 @@ export class PaymentsService {
     orderId: string,
     meta?: { ip?: string; userAgent?: string },
   ) {
-    const fail = (reason: string, status: number = 403): never => {
-      const order = this.store.findOrder(orderId);
-      this.recordHistory({
+    const fail = async (reason: string, status: number = 403): Promise<never> => {
+      const order = await this.store.findOrder(orderId);
+      await this.recordHistory({
         status: 'confirm_failed',
         reason,
         orderId,
@@ -310,27 +313,28 @@ export class PaymentsService {
     };
 
     if (process.env.NODE_ENV === 'production') {
-      fail('Client payment confirm is disabled in production');
+      await fail('Client payment confirm is disabled in production');
     }
     if (!this.site.paymentsEnabled()) {
-      fail('Payments are disabled in site settings');
+      await fail('Payments are disabled in site settings');
     }
     if (!this.allowDevConfirm()) {
-      fail(
+      await fail(
         'Client confirm only when PAYMENT_GATEWAY=stub or PAYMENT_UPI_ALLOW_DEV_CONFIRM=1',
       );
     }
 
-    const order = this.store.findOrder(orderId);
+    const order = await this.store.findOrder(orderId);
     if (!order) {
-      fail('Order not found', 404);
+      await fail('Order not found', 404);
       return;
     }
     if (order.userId !== user.id) {
-      fail('Order belongs to another user');
+      await fail('Order belongs to another user');
+      return;
     }
 
-    this.recordHistory({
+    await this.recordHistory({
       status: 'confirm_attempt',
       orderId: order.id,
       userId: user.id,
@@ -348,36 +352,36 @@ export class PaymentsService {
     if (order.status === 'paid') {
       return {
         order: this.toOrderDto(order),
-        entitlement: this.entitlementForPaidOrder(order),
+        entitlement: await this.entitlementForPaidOrder(order),
       };
     }
     if (order.status !== 'created') {
-      fail(`Order status ${order.status} cannot be confirmed`, 400);
+      await fail(`Order status ${order.status} cannot be confirmed`, 400);
     }
 
     const ageMs = Date.now() - new Date(order.createdAt).getTime();
     if (ageMs > CLIENT_CONFIRM_TTL_MS || ageMs < 0) {
-      this.store.updateOrder(order.id, { status: 'failed' });
-      fail('Order expired — create a new checkout', 400);
+      await this.store.updateOrder(order.id, { status: 'failed' });
+      await fail('Order expired — create a new checkout', 400);
     }
 
-    const attempts = this.store.bumpConfirmAttempt(order.id);
+    const attempts = await this.store.bumpConfirmAttempt(order.id);
     if (attempts > MAX_CLIENT_CONFIRM_ATTEMPTS) {
-      this.store.updateOrder(order.id, { status: 'failed' });
-      fail('Too many confirm attempts — order locked', 400);
+      await this.store.updateOrder(order.id, { status: 'failed' });
+      await fail('Too many confirm attempts — order locked', 400);
     }
 
     const paymentId = `pay_stub_${order.gatewayOrderId.slice(-8)}`;
-    const result = this.markPaid(
+    const result = await this.markPaid(
       order.gatewayOrderId,
       paymentId,
       `dev_${order.id}`,
     );
-    this.store.clearConfirmAttempts(order.id);
+    await this.store.clearConfirmAttempts(order.id);
     return result;
   }
 
-  handleWebhook(
+  async handleWebhook(
     gateway: string,
     body: Record<string, unknown>,
     signature?: string,
@@ -395,22 +399,22 @@ export class PaymentsService {
     const eventId =
       parsed.rawEventId || `${parsed.gatewayOrderId}:${parsed.gatewayPaymentId}`;
 
-    if (!this.store.markWebhookProcessed(eventId)) {
-      const order = this.store.findOrderByGatewayId(parsed.gatewayOrderId);
+    if (!(await this.store.markWebhookProcessed(eventId))) {
+      const order = await this.store.findOrderByGatewayId(parsed.gatewayOrderId);
       return {
         ok: true,
         duplicate: true,
         order: order ? this.toOrderDto(order) : null,
-        entitlement: order ? this.entitlementForPaidOrder(order) : null,
+        entitlement: order ? await this.entitlementForPaidOrder(order) : null,
       };
     }
 
     if (parsed.status !== 'paid') {
-      const order = this.store.findOrderByGatewayId(parsed.gatewayOrderId);
+      const order = await this.store.findOrderByGatewayId(parsed.gatewayOrderId);
       if (order && order.status === 'created') {
-        this.store.updateOrder(order.id, { status: 'failed' });
+        await this.store.updateOrder(order.id, { status: 'failed' });
       }
-      this.recordHistory({
+      await this.recordHistory({
         status: 'failed',
         reason: 'webhook_not_paid',
         orderId: order?.id,
@@ -429,11 +433,11 @@ export class PaymentsService {
     return {
       ok: true,
       duplicate: false,
-      ...this.markPaid(
+      ...(await this.markPaid(
         parsed.gatewayOrderId,
         parsed.gatewayPaymentId,
         eventId,
-      ),
+      )),
     };
   }
 
@@ -443,7 +447,7 @@ export class PaymentsService {
       throw new NotFoundException('Job not found');
     }
 
-    const entitlement = this.store.findContactAccess(user.id, jobId);
+    const entitlement = await this.store.findContactAccess(user.id, jobId);
     if (!entitlement) {
       return {
         allowed: false as const,
@@ -454,7 +458,7 @@ export class PaymentsService {
       };
     }
 
-    this.store.addAudit({
+    await this.store.addAudit({
       actorId: user.id,
       action: 'contact_revealed',
       entityType: 'job',
@@ -482,20 +486,17 @@ export class PaymentsService {
     };
   }
 
-  listEntitlements(user: AuthUser) {
+  async listEntitlements(user: AuthUser) {
+    const items = await this.store.listEntitlements(user.id);
+    const sub = await this.store.findActiveSubscription(user.id);
     return {
-      items: this.store
-        .listEntitlements(user.id)
-        .map((item) => this.toEntitlementDto(item)),
-      subscription: (() => {
-        const sub = this.store.findActiveSubscription(user.id);
-        return sub ? this.toEntitlementDto(sub) : null;
-      })(),
+      items: items.map((item) => this.toEntitlementDto(item)),
+      subscription: sub ? this.toEntitlementDto(sub) : null,
     };
   }
 
-  wipeUser(userId: string) {
-    this.store.revokeUserData(userId);
+  async wipeUser(userId: string) {
+    await this.store.revokeUserData(userId);
   }
 
   signWebhookBody(body: string): string {
@@ -503,12 +504,12 @@ export class PaymentsService {
     return createHmac('sha256', secret).update(body).digest('hex');
   }
 
-  private markPaid(
+  private async markPaid(
     gatewayOrderId: string,
     gatewayPaymentId: string,
     eventId: string,
   ) {
-    const order = this.store.findOrderByGatewayId(gatewayOrderId);
+    const order = await this.store.findOrderByGatewayId(gatewayOrderId);
     if (!order) {
       throw new NotFoundException('Payment order not found for webhook');
     }
@@ -516,7 +517,7 @@ export class PaymentsService {
     if (order.status === 'paid') {
       return {
         order: this.toOrderDto(order),
-        entitlement: this.entitlementForPaidOrder(order),
+        entitlement: await this.entitlementForPaidOrder(order),
       };
     }
 
@@ -524,22 +525,22 @@ export class PaymentsService {
       throw new BadRequestException(`Cannot mark order ${order.status} as paid`);
     }
 
-    const updated = this.store.updateOrder(order.id, {
+    const updated = (await this.store.updateOrder(order.id, {
       status: 'paid',
       gatewayPaymentId,
-    })!;
+    }))!;
 
     let entitlement: Entitlement | null = null;
     if (order.product === 'subscription' && order.planId) {
-      const plan = this.store.getPlan(order.planId);
+      const plan = await this.store.getPlan(order.planId);
       if (!plan) throw new NotFoundException('Subscription plan missing');
-      entitlement = this.store.grantSubscriptionEntitlement({
+      entitlement = await this.store.grantSubscriptionEntitlement({
         userId: order.userId,
         planId: plan.id,
         paymentId: updated.id,
         durationDays: plan.durationDays,
       });
-      this.store.addAudit({
+      await this.store.addAudit({
         actorId: order.userId,
         action: 'subscription_entitlement_granted',
         entityType: 'entitlement',
@@ -550,13 +551,13 @@ export class PaymentsService {
       if (!order.jobId) {
         throw new BadRequestException('Contact unlock order missing jobId');
       }
-      entitlement = this.store.grantJobContactEntitlement({
+      entitlement = await this.store.grantJobContactEntitlement({
         userId: order.userId,
         jobId: order.jobId,
         paymentId: updated.id,
       });
       this.ops?.recordUnlock();
-      this.store.addAudit({
+      await this.store.addAudit({
         actorId: order.userId,
         action: 'contact_entitlement_granted',
         entityType: 'entitlement',
@@ -569,7 +570,7 @@ export class PaymentsService {
         },
       });
     } else if (order.product === 'job_post') {
-      this.store.addAudit({
+      await this.store.addAudit({
         actorId: order.userId,
         action: 'job_post_payment_captured',
         entityType: 'payment',
@@ -578,8 +579,8 @@ export class PaymentsService {
       });
     }
 
-    this.store.clearConfirmAttempts(order.id);
-    this.recordHistory({
+    await this.store.clearConfirmAttempts(order.id);
+    await this.recordHistory({
       status: 'paid',
       orderId: updated.id,
       userId: order.userId,
@@ -604,13 +605,16 @@ export class PaymentsService {
     };
   }
 
-  private entitlementForPaidOrder(order: PaymentOrder) {
+  private async entitlementForPaidOrder(order: PaymentOrder) {
     if (order.product === 'subscription') {
-      const sub = this.store.findActiveSubscription(order.userId);
+      const sub = await this.store.findActiveSubscription(order.userId);
       return sub ? this.toEntitlementDto(sub) : null;
     }
     if (!order.jobId) return null;
-    const ent = this.store.findActiveJobEntitlement(order.userId, order.jobId);
+    const ent = await this.store.findActiveJobEntitlement(
+      order.userId,
+      order.jobId,
+    );
     return ent ? this.toEntitlementDto(ent) : null;
   }
 
@@ -640,10 +644,10 @@ export class PaymentsService {
     }
   }
 
-  private recordHistory(
+  private async recordHistory(
     event: Parameters<PaymentsStore['addHistory']>[0],
   ) {
-    this.store.addHistory(event);
+    await this.store.addHistory(event);
   }
 
   private toCheckoutDto(gateway: CreateGatewayOrderResult, description: string) {

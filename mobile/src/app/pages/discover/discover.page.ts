@@ -70,6 +70,7 @@ export class DiscoverPage implements OnInit {
   readonly jobTypeEntries = Object.entries(JOB_TYPE_LABELS) as Array<[JobType, string]>;
   readonly categories = signal<string[]>([]);
   readonly results = signal<Job[]>([]);
+  readonly total = signal(0);
   readonly nextCursor = signal<string | undefined>(undefined);
   readonly loadingMore = signal(false);
   readonly loading = this.jobsService.loading;
@@ -221,10 +222,12 @@ export class DiscoverPage implements OnInit {
   private async refresh(query: JobSearchQuery): Promise<void> {
     const token = ++this.refreshToken;
     this.nextCursor.set(undefined);
+    this.total.set(0);
     this.loadingMore.set(false);
     const res = await this.jobsService.search({ ...query, limit: PAGE_SIZE });
     if (token !== this.refreshToken) return;
     this.results.set(res.items);
+    this.total.set(res.total);
     this.nextCursor.set(res.nextCursor);
   }
 }

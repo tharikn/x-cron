@@ -84,6 +84,7 @@ export interface JobSearchQuery {
 export interface JobSearchResult {
   items: Job[];
   nextCursor?: string;
+  total: number;
 }
 
 export interface UserPreferences {

@@ -67,6 +67,7 @@ export class HomePage implements OnInit, OnDestroy {
         );
 
   readonly jobs = signal<Job[]>([]);
+  readonly total = signal(0);
   readonly nextCursor = signal<string | undefined>(undefined);
   readonly railAds = signal<AdCreative[]>([]);
   readonly loading = signal(true);
@@ -154,6 +155,7 @@ export class HomePage implements OnInit, OnDestroy {
     this.loadingMore.set(false);
     this.error.set(null);
     this.nextCursor.set(undefined);
+    this.total.set(0);
     try {
       const res = await this.jobsService.search({
         keyword: this.keyword.trim() || undefined,
@@ -162,10 +164,12 @@ export class HomePage implements OnInit, OnDestroy {
         limit: PAGE_SIZE,
       });
       this.jobs.set(res.items);
+      this.total.set(res.total);
       this.nextCursor.set(res.nextCursor);
     } catch {
       this.error.set('maintenance');
       this.jobs.set([]);
+      this.total.set(0);
       this.nextCursor.set(undefined);
     } finally {
       this.loading.set(false);

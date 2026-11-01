@@ -15,12 +15,12 @@ export class AccountService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  deleteAccount(token?: string) {
+  async deleteAccount(token?: string) {
     const user = this.auth.requireUser(token);
-    this.payments.wipeUser(user.id);
+    await this.payments.wipeUser(user.id);
     this.preferences.clearForUser(user);
     this.seeker.clearUser(user.id);
-    this.notifications.clearForUser(user);
+    await this.notifications.clearForUser(user);
     this.auth.purgeUserRecord(user.id, token);
     return {
       ok: true,

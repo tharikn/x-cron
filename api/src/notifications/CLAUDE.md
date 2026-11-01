@@ -5,11 +5,16 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 
 ## Pattern
 
-- Domain: `notifications.service.ts` + `notifications.store.ts` (devices, prefs, inbox, **dispatch** + **delivery** history)
+- Domain: `notifications.service.ts` + dual store (abstract `NotificationsStore`)
+  - `notifications.memory-store.ts` — in-memory Maps
+  - `notifications.prisma-store.ts` — Postgres via Prisma models
+- Factory in `notifications.module.ts` ← `NOTIFICATIONS_STORE` (falls back to `JOBS_STORE` when unset)
 - Push: `providers/push-provider.ts` + factory ← `PUSH_PROVIDER` (`stub` | `fcm`)
 - Mail: `providers/mail-provider.ts` + factory ← `MAIL_PROVIDER` (`stub` | `console` | `smtp`)
 - Legacy: `NOTIFICATION_MODE` still accepted as push fallback
-- Prisma models exist for future persistence; **runtime store is in-memory** today
+- Field map: domain `data` / `meta` → Prisma `dataJson` / `metaJson`; dates ISO ↔ `DateTime`
+- Daily cap: count distinct base `dedupeKey` among today's `sent`/`read` `NotificationRecord`s (UTC day)
+- User FKs: prisma store upserts `User` before prefs / records / deliveries
 
 ## Trigger flow
 
@@ -24,6 +29,7 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 
 | Key | Default | Notes |
 | --- | --- | --- |
+| `NOTIFICATIONS_STORE` | follow `JOBS_STORE` | `prisma` \| `memory` |
 | `PUSH_PROVIDER` | `stub` | Log-only FCM stub; `fcm` reserved for firebase-admin |
 | `MAIL_PROVIDER` | `stub` | Log-only; `console` alias; `smtp` → stub until `MAIL_SMTP_URL` |
 | `NOTIFICATION_FANOUT_BATCH` | `25` | Yield between batches for large user sets |
@@ -39,11 +45,13 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 
 ## UI
 
-- Web user inbox: `/notifications` (drawer → Notifications)
+- Web user inbox: `/notifications` — **list only** (Refresh + Inbox); no channel toggles
+- Web alert channels: `/preferences` (drawer → Preferences) — job/in-app/push/email
 - Web admin log: `/admin/notifications` (drawer → Alert log)
 - Mobile inbox: Notifications tab (`/tabs/notifications`) — list only
 - Mobile channel toggles: Prefs tab (`/tabs/preferences`) — job/in-app/push/email
 - Mobile OS tray: Web Notification API (browser) + `@capacitor/local-notifications` (native); client polls inbox ~8s + focus/resume with alert chime; server FCM still stub until Firebase credentials
+- Do not put Preferences / Alert channels back on the notifications inbox screen
 
 ## Agent rules
 

@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { PreferencesService } from '../../core/services/preferences.service';
 import { SeoService } from '../../core/services/seo.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-preferences',
@@ -17,13 +18,17 @@ export class PreferencesPage implements OnInit {
   private readonly notifications = inject(NotificationsService);
   private readonly auth = inject(AuthService);
   private readonly seo = inject(SeoService);
+  private readonly toast = inject(ToastService);
 
   locationsText = '';
   categoriesText = '';
   notifyEmail = false;
   saved = false;
 
-  ngOnInit(): void {
+  readonly isSignedIn = this.auth.isSignedIn;
+  readonly notifPrefs = this.notifications.prefs;
+
+  async ngOnInit(): Promise<void> {
     this.seo.setPage({
       title: 'Preferences',
       description: 'Save job search preferences on X Cron Jobs.',
@@ -33,6 +38,14 @@ export class PreferencesPage implements OnInit {
     this.locationsText = prefs.locations.join(', ');
     this.categoriesText = prefs.categories.join(', ');
     this.notifyEmail = prefs.notifyEmail;
+    await this.auth.ensureSession();
+    if (this.auth.isSignedIn()) {
+      try {
+        await this.notifications.loadPrefs();
+      } catch {
+        // local search prefs still usable
+      }
+    }
   }
 
   async save(): Promise<void> {
@@ -60,6 +73,27 @@ export class PreferencesPage implements OnInit {
     this.categoriesText = '';
     this.notifyEmail = false;
     this.saved = false;
+  }
+
+  async toggleAlert(
+    key:
+      | 'jobAlertsEnabled'
+      | 'inAppEnabled'
+      | 'pushAlertsEnabled'
+      | 'emailAlertsEnabled',
+    value: boolean,
+  ): Promise<void> {
+    try {
+      await this.notifications.savePrefs({ [key]: value });
+      if (key === 'emailAlertsEnabled') {
+        this.notifyEmail = value;
+        const current = this.preferences.prefs();
+        this.preferences.save({ ...current, notifyEmail: value });
+      }
+      this.toast.show('Alert preference saved');
+    } catch {
+      this.toast.show('Could not save preference', 'error');
+    }
   }
 
   private split(value: string): string[] {

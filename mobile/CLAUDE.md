@@ -83,4 +83,6 @@ Discover search location starts empty (applies saved prefs only when present) â€
 - FCM token is a local stub string until Capacitor Push + Firebase are wired
 - OS tray alerts: browser `Notification` API + `@capacitor/local-notifications` (poll inbox ~8s + focus/resume); chime via Web Audio + channel sound; true killed-app delivery still needs live FCM
 - Alert channel toggles live on Prefs; Notifications tab is inbox-only
+- Discover **Open roles** badge uses API search `total` (not loaded-page length)
+- Job cards show uploaded/published date + time via `formatPostedDate`
 - Google sign-in button is informational only

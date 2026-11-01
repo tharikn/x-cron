@@ -27,11 +27,13 @@ export function formatJobType(job: Job): string {
 }
 
 export function formatPostedDate(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleDateString('en-IN', {
+  return new Date(iso).toLocaleString('en-IN', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
   });
 }
 

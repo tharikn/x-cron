@@ -111,8 +111,43 @@ button:hover {
   background: var(--xcron-wash);
 }
 
+.channels {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1.5rem;
+  max-width: 28rem;
+  padding: 1.05rem 1.1rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+  box-shadow: var(--xcron-shadow);
+}
+
+.channels h2 {
+  margin: 0 0 0.25rem;
+  font-family: var(--xcron-font-display);
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
+.hint {
+  margin: 0;
+  color: var(--xcron-muted);
+  font-size: 0.95rem;
+}
+
+.link {
+  color: var(--xcron-ink);
+  font-weight: 600;
+  width: fit-content;
+}
+
 .ok {
   margin-top: 1rem;
   color: var(--xcron-ink-soft);
   font-weight: 600;
+}
+
+.channels .ok {
+  margin-top: 0.35rem;
 }

@@ -30,7 +30,7 @@ API dependency: `environment.apiUrl` — local (`npm start`) uses `http://localh
 - Bulk import (`/import`): tabbed **Import** (CSV/paste/OCR) vs **Review** (per-record Edit & publish; no bulk “Approve selected”). Job Fare pull opens Review directly
 - Admin Bulk import (`/import`): full-width review **table** with row actions **Edit & publish** / **Chat** / **Improve with AI**; Edit/Chat open a **popup modal** (not page footer) with form fields; save via `PATCH .../records/:id`, chat/AI via `POST .../records/:id/enrich` (`instruction` optional). Stacks to labeled rows under ~760px; modal goes fullscreen on small screens
 - Admin Blog Approval (`/blog-approval`): moderator desk for noisy Telegram/import jobs — big field boxes, Improve with AI + chat instructions (`AiService` → `/v1/ai/job-enrich`), save via `PATCH /v1/admin/jobs/:id`, web/mobile preview toggle before approve. Page host is `display: block`; long Telegram URLs in queue titles/fields must `overflow-wrap` so they do not blow out the shell width
-- User Notifications (`/notifications`): inbox + channel toggles (drawer nav + top-bar bell icon with unread count); shell polls inbox ~20s + on tab focus while signed in. Only the unread **count badge** uses red (`#e11d48`); inbox/new row chrome stays soft monochrome (light cards, left ink beam, quiet wash pills — no inverted black / sheen). **View role** uses notification `data.slug` (SEO path). Job detail also accepts `/jobs/:id` as a fallback.
+- User Notifications (`/notifications`): **inbox list only** (drawer nav + top-bar bell with unread count). Alert channel toggles live on `/preferences`. Shell polls inbox ~20s + on tab focus while signed in. Only the unread **count badge** uses red (`#e11d48`); inbox/new row chrome stays soft monochrome. **View role** uses notification `data.slug` (SEO path). Job detail also accepts `/jobs/:id` as a fallback.
 - Core: `jobs.service.ts`, `ai.service.ts`, `seo.service.ts`, `site.service.ts`, `ads.service.ts`, `models/job.model.ts`, `utils/format.ts`
 - Auth: `AuthService.ensureSession()` (`APP_INITIALIZER` + `adminGuard`) confirms `/auth/me` before admin nav/routes; stores access + refresh tokens; `authInterceptor` refreshes once on 401 then clears. Admin chrome only when `isAdmin()` (validated). Site footer (`app.html`) is hidden for admin sessions.
 - Env: `src/environments/environment*.ts` (`apiUrl`, `siteUrl`, `siteName`)
@@ -53,7 +53,9 @@ Full standards: [../CLAUDE.md](../CLAUDE.md) § **UI / UX standards**. Web speci
 - Design tokens + motion in `src/styles.scss`; shell in `src/app/app.scss`
 - Home: oversized brand hero, floating search panel, elevated job cards with stagger/hover
 - Home search starts with empty location (optional saved prefs only); **Clear preferences** resets filters + device prefs
-- Preferences page has Save + Clear preferences
+- Preferences page: search prefs (Save + Clear) + signed-in **Alert channels** (job/in-app/push/email); inbox link to `/notifications`
+- Home / Discover **Open roles** badge uses API search `total` (stable while infinite-scroll appends pages)
+- Job cards show uploaded/published **date + time** via `formatPostedDate`
 - Job detail contact: private/unlocked badge, channel chips, frosted vault peek, Unlock CTA → in-page **Pay to unlock** panel (UPI QR / UPI ID when `PAYMENT_GATEWAY=upi`); Save/Share sit as a secondary side-by-side pair
 - Stay visually aligned with mobile (`:4200`); do not regress to sharp boxes / system fonts / flat white-only chrome
 

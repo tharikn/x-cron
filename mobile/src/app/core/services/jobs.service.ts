@@ -207,10 +207,11 @@ export class JobsService {
       if (index >= 0) results = results.slice(index + 1);
     }
 
+    const total = results.length;
     const page = results.slice(0, limit);
     const nextCursor =
       results.length > limit ? page[page.length - 1]?.id : undefined;
-    return { items: page, nextCursor };
+    return { items: page, nextCursor, total };
   }
 
   private createLocalDraft(input: {

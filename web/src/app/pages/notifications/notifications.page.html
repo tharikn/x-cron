@@ -15,7 +15,7 @@
 
   @if (!isSignedIn()) {
     <div class="gate">
-      <p>Sign in to see your inbox and manage alert channels.</p>
+      <p>Sign in to see your inbox.</p>
       <button type="button" class="btn" (click)="goSignIn()">Sign in</button>
     </div>
   } @else {
@@ -23,44 +23,7 @@
       <button type="button" class="btn" [disabled]="busy()" (click)="reload()">
         {{ busy() ? 'Loading…' : 'Refresh' }}
       </button>
-      <a routerLink="/preferences" class="link">Preferences</a>
     </div>
-
-    <section class="prefs">
-      <h2>Alert channels</h2>
-      <label class="check">
-        <input
-          type="checkbox"
-          [ngModel]="prefs().jobAlertsEnabled"
-          (ngModelChange)="toggle('jobAlertsEnabled', $event)"
-        />
-        <span>Job match alerts</span>
-      </label>
-      <label class="check">
-        <input
-          type="checkbox"
-          [ngModel]="prefs().inAppEnabled"
-          (ngModelChange)="toggle('inAppEnabled', $event)"
-        />
-        <span>In-app inbox</span>
-      </label>
-      <label class="check">
-        <input
-          type="checkbox"
-          [ngModel]="prefs().pushAlertsEnabled"
-          (ngModelChange)="toggle('pushAlertsEnabled', $event)"
-        />
-        <span>Push (stub / FCM)</span>
-      </label>
-      <label class="check">
-        <input
-          type="checkbox"
-          [ngModel]="prefs().emailAlertsEnabled"
-          (ngModelChange)="toggle('emailAlertsEnabled', $event)"
-        />
-        <span>Email (stub / SMTP)</span>
-      </label>
-    </section>
 
     <section class="inbox">
       <div class="inbox__head">

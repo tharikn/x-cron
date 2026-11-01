@@ -165,7 +165,7 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
 
   async search(
     query: JobSearchQuery,
-  ): Promise<{ items: JobRecord[]; nextCursor?: string }> {
+  ): Promise<{ items: JobRecord[]; nextCursor?: string; total: number }> {
     const keyword = query.keyword?.trim().toLowerCase() ?? '';
     const locationText = query.locationText?.trim().toLowerCase() ?? '';
     const limit = Math.min(Math.max(query.limit ?? 20, 1), 50);
@@ -202,6 +202,8 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
 
     results = this.sortJobs(results, query.sort ?? 'newest', !!keyword);
 
+    const total = results.length;
+
     if (query.cursor) {
       const index = results.findIndex((job) => job.id === query.cursor);
       if (index >= 0) {
@@ -212,7 +214,7 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
     const page = results.slice(0, limit);
     const nextCursor =
       results.length > limit ? page[page.length - 1]?.id : undefined;
-    return { items: page, nextCursor };
+    return { items: page, nextCursor, total };
   }
 
   async related(job: JobRecord, limit = 3): Promise<JobRecord[]> {

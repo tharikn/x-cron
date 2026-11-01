@@ -75,8 +75,11 @@ export class PaymentsController {
 
   @Roles('admin')
   @Get('admin/payments/history/export.csv')
-  exportCsv(@Query() query: PaymentHistoryQueryDto, @Res() res: Response) {
-    const buf = this.paymentsService.exportHistoryExcel(query);
+  async exportCsv(
+    @Query() query: PaymentHistoryQueryDto,
+    @Res() res: Response,
+  ) {
+    const buf = await this.paymentsService.exportHistoryExcel(query);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',
@@ -87,8 +90,11 @@ export class PaymentsController {
 
   @Roles('admin')
   @Get('admin/payments/history/export.pdf')
-  exportPdf(@Query() query: PaymentHistoryQueryDto, @Res() res: Response) {
-    const buf = this.paymentsService.exportHistoryPdf(query);
+  async exportPdf(
+    @Query() query: PaymentHistoryQueryDto,
+    @Res() res: Response,
+  ) {
+    const buf = await this.paymentsService.exportHistoryPdf(query);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',

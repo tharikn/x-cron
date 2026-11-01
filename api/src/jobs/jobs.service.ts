@@ -78,6 +78,7 @@ export class JobsService {
       items,
       sponsored: items.filter((j) => j.promoted),
       nextCursor: result.nextCursor,
+      total: result.total,
     };
   }
 

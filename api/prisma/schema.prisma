@@ -292,6 +292,9 @@ model ImportRecord {
 model Payment {
   id               String   @id @default(uuid())
   userId           String
+  jobId            String?
+  planId           String?
+  product          String?
   gateway          String
   gatewayOrderId   String   @unique
   gatewayPaymentId String?
@@ -303,6 +306,8 @@ model Payment {
   user             User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([jobId])
+  @@index([status, createdAt])
   @@schema("xcron")
 }
 
@@ -311,6 +316,7 @@ model Entitlement {
   userId     String
   jobId      String?
   planId     String?
+  paymentId  String?
   scope      String
   validFrom  DateTime  @default(now())
   validUntil DateTime?
@@ -320,6 +326,35 @@ model Entitlement {
   job        Job?      @relation(fields: [jobId], references: [id])
 
   @@index([userId, jobId, status])
+  @@index([paymentId])
+  @@schema("xcron")
+}
+
+/// Admin payment history timeline (richer than Payment rows). Runtime: PAYMENTS_STORE=prisma.
+model PaymentHistory {
+  id               String   @id @default(uuid())
+  status           String
+  reason           String?
+  orderId          String?
+  userId           String?
+  actorId          String?
+  jobId            String?
+  planId           String?
+  product          String?
+  gateway          String?
+  gatewayOrderId   String?
+  gatewayPaymentId String?
+  amountPaise      Int?
+  currency         String?
+  ip               String?
+  userAgent        String?
+  metadataJson     Json?
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([orderId])
+  @@index([userId])
   @@schema("xcron")
 }
 
@@ -376,7 +411,7 @@ model SiteConfig {
   @@schema("xcron")
 }
 
-/// Push device tokens (FCM / stub). Runtime store is in-memory until NOTIFICATIONS_STORE=prisma.
+/// Push device tokens (FCM / stub). Live when NOTIFICATIONS_STORE=prisma (falls back to JOBS_STORE).
 model DeviceRegistration {
   id         String   @id @default(uuid())
   userId     String?

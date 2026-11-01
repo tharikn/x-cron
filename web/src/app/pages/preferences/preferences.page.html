@@ -21,10 +21,52 @@
     </div>
   </form>
 
-  <p class="ok">
-    Manage inbox and alert channels on
-    <a routerLink="/notifications">Notifications</a>.
-  </p>
+  <section class="channels">
+    <h2>Alert channels</h2>
+    @if (!isSignedIn()) {
+      <p class="hint">Sign in to manage job match, inbox, push, and email alerts.</p>
+      <a routerLink="/sign-in" [queryParams]="{ returnUrl: '/preferences' }" class="link">
+        Sign in
+      </a>
+    } @else {
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="notifPrefs().jobAlertsEnabled"
+          (ngModelChange)="toggleAlert('jobAlertsEnabled', $event)"
+        />
+        <span>Job match alerts</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="notifPrefs().inAppEnabled"
+          (ngModelChange)="toggleAlert('inAppEnabled', $event)"
+        />
+        <span>In-app inbox</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="notifPrefs().pushAlertsEnabled"
+          (ngModelChange)="toggleAlert('pushAlertsEnabled', $event)"
+        />
+        <span>Push (stub / FCM)</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="notifPrefs().emailAlertsEnabled"
+          (ngModelChange)="toggleAlert('emailAlertsEnabled', $event)"
+        />
+        <span>Email (stub / SMTP)</span>
+      </label>
+      <p class="ok">
+        Inbox stays on
+        <a routerLink="/notifications">Notifications</a>.
+      </p>
+    }
+  </section>
 
   @if (saved) {
     <p class="ok">Preferences saved.</p>

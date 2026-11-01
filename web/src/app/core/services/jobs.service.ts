@@ -19,14 +19,14 @@ export class JobsService {
     sort?: string;
     cursor?: string;
     limit?: number;
-  }): Promise<{ items: Job[]; nextCursor?: string }> {
+  }): Promise<{ items: Job[]; nextCursor?: string; total: number }> {
     let params = new HttpParams();
     for (const [key, value] of Object.entries(input)) {
       if (value == null || value === '') continue;
       params = params.set(key, String(value));
     }
     return firstValueFrom(
-      this.http.get<{ items: Job[]; nextCursor?: string }>(
+      this.http.get<{ items: Job[]; nextCursor?: string; total: number }>(
         `${environment.apiUrl}/jobs`,
         { params },
       ),
