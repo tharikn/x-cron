@@ -65,31 +65,81 @@
           </ion-button>
         </div>
 
-        <ion-list lines="full" class="panel">
-          @for (record of records(); track record.id) {
-            <ion-item>
-              <ion-checkbox
-                slot="start"
-                [checked]="!!selected()[record.id]"
-                (ionChange)="toggle(record.id, $event.detail.checked === true)"
-              ></ion-checkbox>
-              <ion-label>
-                <h3>{{ record.extraction.title || 'Untitled' }}</h3>
-                <p>
-                  {{ record.extraction.locationCity || 'Location n/a' }} ·
-                  confidence {{ (record.confidence * 100) | number: '1.0-0' }}% ·
-                  {{ record.dedupeStatus }} · {{ record.reviewStatus }}
-                </p>
-                <p>
-                  Contact masked:
-                  {{ record.extraction.hasPhone ? 'phone' : '' }}
-                  {{ record.extraction.hasEmail ? 'email' : '' }}
-                  {{ !record.extraction.hasPhone && !record.extraction.hasEmail ? 'none' : '' }}
-                </p>
-              </ion-label>
-            </ion-item>
-          }
-        </ion-list>
+        <div class="table-wrap" role="region" aria-label="Extracted records">
+          <div class="records-table records-table--mobile">
+            <div class="records-table__head" aria-hidden="true">
+              <span>Select</span>
+              <span>Title / status</span>
+              <span>Actions</span>
+            </div>
+            @for (record of records(); track record.id) {
+              <article
+                class="record-row"
+                [class.is-active]="activeRecordId() === record.id"
+                [class.is-duplicate]="record.dedupeStatus === 'duplicate'"
+              >
+                <div class="record-row__check">
+                  <ion-checkbox
+                    [checked]="!!selected()[record.id]"
+                    (ionChange)="toggle(record.id, $event.detail.checked === true)"
+                    [attr.aria-label]="'Select ' + (record.extraction.title || 'record')"
+                  ></ion-checkbox>
+                </div>
+                <div class="record-row__body">
+                  <h3>
+                    {{ record.extraction.title || 'Untitled' }}
+                    @if (record.extraction.aiCleaned) {
+                      <span class="ai-badge">AI cleaned</span>
+                    }
+                  </h3>
+                  <p class="meta-line">
+                    {{ record.extraction.employerName || 'Employer n/a' }} ·
+                    {{ record.extraction.locationCity || 'Location n/a' }} ·
+                    confidence {{ (record.confidence * 100) | number: '1.0-0' }}% ·
+                    {{ record.dedupeStatus }} · {{ record.reviewStatus }}
+                  </p>
+                  @if (record.extraction.description) {
+                    <p class="desc">{{ record.extraction.description }}</p>
+                  }
+                  <p class="meta-line meta-line--soft">
+                    Contact masked:
+                    {{ record.extraction.hasPhone ? 'phone' : '' }}
+                    {{ record.extraction.hasEmail ? 'email' : '' }}
+                    {{ !record.extraction.hasPhone && !record.extraction.hasEmail ? 'none' : '' }}
+                  </p>
+                </div>
+                <div class="record-row__actions">
+                  <button
+                    type="button"
+                    class="action-btn"
+                    [disabled]="busy()"
+                    (click)="openEdit(record)"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="action-btn"
+                    [disabled]="busy() || record.reviewStatus !== 'needs_review'"
+                    (click)="openChat(record)"
+                  >
+                    Chat
+                  </button>
+                  @if (record.reviewStatus === 'needs_review') {
+                    <button
+                      type="button"
+                      class="action-btn action-btn--primary"
+                      [disabled]="busy() || enrichingId() === record.id"
+                      (click)="improveWithAi(record)"
+                    >
+                      {{ enrichingId() === record.id ? 'AI…' : 'Improve with AI' }}
+                    </button>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        </div>
       }
     }
 
@@ -98,3 +148,178 @@
     </ion-button>
   </div>
 </ion-content>
+
+<ion-modal
+  class="import-record-modal"
+  [isOpen]="!!activePanel()"
+  [backdropDismiss]="true"
+  (didDismiss)="closePanel()"
+>
+  <ng-template>
+    @if (activeRecord(); as record) {
+      @if (draft(); as form) {
+        <div class="modal-sheet">
+          <div class="desk__banner">
+            <div>
+              <p class="desk__eyebrow">
+                {{ activePanel() === 'chat' ? 'AI assistant' : 'Edit record' }}
+              </p>
+              <h3>{{ record.extraction.title || 'Untitled' }}</h3>
+            </div>
+            <ion-button size="small" fill="outline" color="dark" (click)="closePanel()">
+              Close
+            </ion-button>
+          </div>
+
+          <div class="desk__tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="activePanel() === 'edit'"
+              [class.is-active]="activePanel() === 'edit'"
+              (click)="openEdit(record)"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="activePanel() === 'chat'"
+              [class.is-active]="activePanel() === 'chat'"
+              (click)="openChat(record)"
+            >
+              Chat
+            </button>
+          </div>
+
+          <div class="modal-sheet__body">
+            @if (activePanel() === 'edit') {
+              <div class="fields">
+                <label>
+                  <span>Title</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.title"
+                    (ngModelChange)="patchDraft({ title: $event })"
+                  ></textarea>
+                </label>
+                <label>
+                  <span>Employer</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.employerName"
+                    (ngModelChange)="patchDraft({ employerName: $event })"
+                  ></textarea>
+                </label>
+                <label>
+                  <span>City / location</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.locationCity"
+                    (ngModelChange)="patchDraft({ locationCity: $event })"
+                  ></textarea>
+                </label>
+                <label>
+                  <span>Job type</span>
+                  <input
+                    type="text"
+                    [ngModel]="form.jobType"
+                    (ngModelChange)="patchDraft({ jobType: $event })"
+                  />
+                </label>
+                <label>
+                  <span>Salary</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.salaryText"
+                    (ngModelChange)="patchDraft({ salaryText: $event })"
+                  ></textarea>
+                </label>
+                <label>
+                  <span>Vacancies</span>
+                  <input
+                    type="number"
+                    min="1"
+                    [ngModel]="form.vacancies"
+                    (ngModelChange)="patchDraft({ vacancies: $event })"
+                  />
+                </label>
+                <label>
+                  <span>Language</span>
+                  <input
+                    type="text"
+                    [ngModel]="form.contentLanguage"
+                    (ngModelChange)="patchDraft({ contentLanguage: $event })"
+                  />
+                </label>
+                <label class="fields__wide">
+                  <span>Apply / info link</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.contactWebsite"
+                    (ngModelChange)="patchDraft({ contactWebsite: $event })"
+                  ></textarea>
+                </label>
+                <label class="fields__wide">
+                  <span>Description</span>
+                  <textarea
+                    class="fields__about"
+                    rows="8"
+                    [ngModel]="form.description"
+                    (ngModelChange)="patchDraft({ description: $event })"
+                  ></textarea>
+                </label>
+              </div>
+              <div class="desk__actions">
+                <ion-button color="dark" [disabled]="saveBusy() || !dirty()" (click)="saveDraft()">
+                  {{ saveBusy() ? 'Saving…' : 'Save changes' }}
+                </ion-button>
+                <ion-button
+                  fill="outline"
+                  color="dark"
+                  [disabled]="busy() || enrichingId() === record.id"
+                  (click)="improveWithAi(record)"
+                >
+                  {{ enrichingId() === record.id ? 'Autocorrecting…' : 'Improve with AI' }}
+                </ion-button>
+              </div>
+            } @else {
+              <section class="chat" aria-label="AI assistant">
+                <p class="chat__hint">
+                  Tell it what you need — e.g. “remove Tamil, keep English only”, “fill salary”.
+                </p>
+                <div class="chat__log" role="log">
+                  @for (msg of chat(); track $index) {
+                    <p class="chat__bubble" [class.chat__bubble--user]="msg.role === 'user'">
+                      {{ msg.text }}
+                    </p>
+                  } @empty {
+                    <p class="chat__empty">No chat yet. Send a note or use Improve with AI.</p>
+                  }
+                </div>
+                <form class="chat__compose" (ngSubmit)="sendChat()">
+                  <textarea
+                    rows="3"
+                    [ngModel]="chatInput()"
+                    (ngModelChange)="chatInput.set($event)"
+                    name="chatInput"
+                    placeholder="Instruction for AI…"
+                    [disabled]="!!enrichingId()"
+                  ></textarea>
+                  <ion-button
+                    type="submit"
+                    expand="block"
+                    color="dark"
+                    [disabled]="!!enrichingId() || !chatInput().trim()"
+                  >
+                    Send
+                  </ion-button>
+                </form>
+              </section>
+            }
+          </div>
+        </div>
+      }
+    }
+  </ng-template>
+</ion-modal>

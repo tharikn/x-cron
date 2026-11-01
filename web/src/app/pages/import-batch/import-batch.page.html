@@ -1,8 +1,12 @@
 <section class="page">
-  <h1>Bulk import</h1>
+  <h1>{{ pageTitle() }}</h1>
   <p class="lead">
-    Import many jobs from CSV, pasted WhatsApp/Telegram text, PDF, or image.
-    Image/PDF uses the OCR stub — confirm facts before approve. Contacts stay private.
+    @if (activeTab() === 'review') {
+      Edit each draft, then publish it directly. Contacts stay private until unlock.
+    } @else {
+      Import many jobs from CSV, pasted WhatsApp/Telegram text, PDF, or image.
+      Image/PDF uses local OCR — confirm facts before publish. Contacts stay private.
+    }
   </p>
 
   @if (!isSignedIn() || !isAdmin()) {
@@ -17,91 +21,193 @@
       <a class="btn" routerLink="/sign-in">Go to Sign in</a>
     </div>
   } @else {
-    <div class="actions">
-      <label class="file-btn">
-        Choose CSV / PDF / image
-        <input
-          type="file"
-          accept=".csv,.txt,.pdf,image/*"
-          (change)="onFilePicked($event)"
-          [disabled]="busy()"
-        />
-      </label>
-      <a class="link-btn" routerLink="/post">Quick post</a>
-      <a class="link-btn" routerLink="/my-jobs">Posted jobs</a>
-    </div>
-
-    <form class="form" (ngSubmit)="fromPasteBox()">
-      <label>
-        <span>Or paste message text</span>
-        <textarea
-          [(ngModel)]="pasteText"
-          name="pasteText"
-          rows="8"
-          placeholder="Paste WhatsApp / Telegram job messages."
-        ></textarea>
-      </label>
-      <button type="submit" [disabled]="busy()">
-        @if (busy()) {
-          <span class="spinner spinner--inline" aria-hidden="true"></span>
-          Extracting…
-        } @else {
-          Extract from pasted text
+    <nav class="tabs" aria-label="Import panels">
+      <button
+        type="button"
+        class="tabs__btn"
+        [class.is-active]="activeTab() === 'import'"
+        (click)="setTab('import')"
+      >
+        Import
+      </button>
+      <button
+        type="button"
+        class="tabs__btn"
+        [class.is-active]="activeTab() === 'review'"
+        (click)="setTab('review')"
+      >
+        Review
+        @if (records().length) {
+          <span class="tabs__count">{{ records().length }}</span>
         }
       </button>
-    </form>
+      <a class="tabs__link" routerLink="/admin/job-fare">Job Fare pull</a>
+    </nav>
 
-    @if (batch(); as batch) {
-      <div class="batch">
-        <p>
-          Batch <strong>{{ batch.id }}</strong> · {{ batch.status }} ·
-          {{ batch.totalRecords }} records
-        </p>
-        @if (batch.warnings?.length) {
-          <p class="warn">{{ batch.warnings.join(' ') }}</p>
-        }
+    @if (activeTab() === 'import') {
+      <div class="actions">
+        <label class="file-btn">
+          Choose CSV / PDF / image
+          <input
+            type="file"
+            accept=".csv,.txt,.pdf,image/*"
+            (change)="onFilePicked($event)"
+            [disabled]="busy()"
+          />
+        </label>
+        <a class="link-btn" routerLink="/post">Quick post</a>
+        <a class="link-btn" routerLink="/my-jobs">Posted jobs</a>
       </div>
-    }
 
-    @if (records().length) {
-      <div class="review-head">
-        <h2>Review extracted records</h2>
-        <button type="button" class="btn" [disabled]="busy()" (click)="approveSelected()">
-          Approve selected
+      <form class="form" (ngSubmit)="fromPasteBox()">
+        <label>
+          <span>Or paste message text</span>
+          <textarea
+            [(ngModel)]="pasteText"
+            name="pasteText"
+            rows="8"
+            placeholder="Paste WhatsApp / Telegram job messages."
+          ></textarea>
+        </label>
+        <button type="submit" [disabled]="busy()">
+          @if (busy()) {
+            <span class="spinner spinner--inline" aria-hidden="true"></span>
+            Extracting…
+          } @else {
+            Extract from pasted text
+          }
         </button>
-      </div>
+      </form>
+    } @else {
+      @if (batch(); as batch) {
+        <div class="batch">
+          <p>
+            Batch <strong>{{ batch.id }}</strong> · {{ batch.status }} ·
+            {{ batch.totalRecords }} records
+          </p>
+          @if (batch.warnings?.length) {
+            <p class="warn">{{ batch.warnings.join(' ') }}</p>
+          }
+        </div>
+      } @else {
+        <div class="empty">
+          <p>No batch to review yet. Import a file or paste, or pull from Job Fare.</p>
+          <div class="empty__actions">
+            <button type="button" class="btn" (click)="setTab('import')">Go to Import</button>
+            <a class="link-btn" routerLink="/admin/job-fare">Open Job Fare</a>
+          </div>
+        </div>
+      }
 
-      <ul class="records">
-        @for (record of records(); track record.id) {
-          <li class="record">
-            <label class="record__check">
-              <input
-                type="checkbox"
-                [checked]="!!selected()[record.id]"
-                (change)="toggle(record.id, $any($event.target).checked)"
-              />
-              <span class="visually-hidden">Select {{ record.extraction.title || 'record' }}</span>
-            </label>
-            <div class="record__body">
-              <h3>{{ record.extraction.title || 'Untitled' }}</h3>
-              <p>
-                {{ record.extraction.locationCity || 'Location n/a' }} ·
-                confidence {{ (record.confidence * 100) | number: '1.0-0' }}% ·
-                {{ record.dedupeStatus }} · {{ record.reviewStatus }}
-              </p>
-              <p class="muted">
-                Contact masked:
-                {{ record.extraction.hasPhone ? 'phone' : '' }}
-                {{ record.extraction.hasEmail ? 'email' : '' }}
-                {{ !record.extraction.hasPhone && !record.extraction.hasEmail ? 'none' : '' }}
-              </p>
-              @if (record.extraction.notes?.length) {
-                <p class="muted">{{ record.extraction.notes.join(' ') }}</p>
+      @if (records().length) {
+        <div class="review-head">
+          <h2>Review extracted records</h2>
+          <p class="review-hint">Open a row → edit → publish that job.</p>
+        </div>
+
+        <div class="table-wrap" role="region" aria-label="Extracted records">
+          <table class="records-table">
+            <thead>
+              <tr>
+                <th class="col-title">Title</th>
+                <th class="col-meta">Status</th>
+                <th class="col-preview">Preview</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (record of records(); track record.id) {
+                <tr
+                  [class.is-active]="activeRecordId() === record.id"
+                  [class.is-duplicate]="record.dedupeStatus === 'duplicate'"
+                >
+                  <td class="col-title" data-label="Title">
+                    <div class="title-cell">
+                      <strong>{{ record.extraction.title || 'Untitled' }}</strong>
+                      @if (record.extraction.aiCleaned) {
+                        <span class="ai-badge">AI cleaned</span>
+                      }
+                    </div>
+                  </td>
+                  <td class="col-meta" data-label="Status">
+                    <p class="meta-line">
+                      {{ record.extraction.employerName || 'Employer n/a' }} ·
+                      {{ record.extraction.locationCity || 'Location n/a' }}
+                    </p>
+                    <p class="meta-line meta-line--soft">
+                      confidence {{ (record.confidence * 100) | number: '1.0-0' }}% ·
+                      {{ record.dedupeStatus }} · {{ record.reviewStatus }}
+                    </p>
+                    <p class="meta-line meta-line--soft">
+                      Contact masked:
+                      {{ record.extraction.hasPhone ? 'phone' : '' }}
+                      {{ record.extraction.hasEmail ? 'email' : '' }}
+                      {{ !record.extraction.hasPhone && !record.extraction.hasEmail ? 'none' : '' }}
+                    </p>
+                  </td>
+                  <td class="col-preview" data-label="Preview">
+                    @if (record.extraction.description) {
+                      <p class="desc">{{ record.extraction.description }}</p>
+                    } @else {
+                      <p class="muted">No description</p>
+                    }
+                    @if (record.extraction.notes?.length) {
+                      <p class="muted notes">{{ record.extraction.notes.join(' ') }}</p>
+                    }
+                  </td>
+                  <td class="col-actions" data-label="Actions">
+                    <div class="row-actions">
+                      @if (canPublish(record)) {
+                        <button
+                          type="button"
+                          class="action-btn action-btn--primary"
+                          [disabled]="busy() || publishingId() === record.id"
+                          (click)="openEdit(record)"
+                        >
+                          Edit &amp; publish
+                        </button>
+                      } @else {
+                        <button
+                          type="button"
+                          class="action-btn"
+                          [disabled]="busy()"
+                          (click)="openEdit(record)"
+                        >
+                          View
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="action-btn"
+                        [disabled]="busy() || record.reviewStatus !== 'needs_review'"
+                        (click)="openChat(record)"
+                      >
+                        Chat
+                      </button>
+                      @if (record.reviewStatus === 'needs_review') {
+                        <button
+                          type="button"
+                          class="action-btn"
+                          [disabled]="busy() || enrichingId() === record.id"
+                          (click)="improveWithAi(record)"
+                        >
+                          @if (enrichingId() === record.id) {
+                            <span class="spinner spinner--inline" aria-hidden="true"></span>
+                            AI…
+                          } @else {
+                            Improve with AI
+                          }
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
               }
-            </div>
-          </li>
-        }
-      </ul>
+            </tbody>
+          </table>
+        </div>
+
+      }
     }
   }
 
@@ -115,3 +221,199 @@
     <p class="error">{{ error() }}</p>
   }
 </section>
+
+@if (activeRecord(); as record) {
+  @if (draft(); as form) {
+    <div
+      #modalRoot
+      class="modal import-batch-modal"
+      role="presentation"
+      (click)="closePanel()"
+    >
+      <div
+        class="modal__dialog desk"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="activePanel() === 'chat' ? 'AI chat' : 'Edit & publish'"
+        (click)="$event.stopPropagation()"
+      >
+          <div class="desk__banner">
+            <div>
+              <p class="desk__eyebrow">
+                {{ activePanel() === 'chat' ? 'AI assistant' : 'Edit & publish' }}
+              </p>
+              <h3>{{ record.extraction.title || 'Untitled' }}</h3>
+            </div>
+            <button type="button" class="action-btn" (click)="closePanel()">Close</button>
+          </div>
+
+          <div class="desk__tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="activePanel() === 'edit'"
+              [class.is-active]="activePanel() === 'edit'"
+              (click)="openEdit(record)"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="activePanel() === 'chat'"
+              [class.is-active]="activePanel() === 'chat'"
+              (click)="openChat(record)"
+            >
+              Chat
+            </button>
+          </div>
+
+          <div class="modal__body">
+            @if (activePanel() === 'edit') {
+              <div class="fields">
+                <label>
+                  <span>Title</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.title"
+                    (ngModelChange)="patchDraft({ title: $event })"
+                  ></textarea>
+                </label>
+                <label>
+                  <span>Employer</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.employerName"
+                    (ngModelChange)="patchDraft({ employerName: $event })"
+                  ></textarea>
+                </label>
+                <label>
+                  <span>City / location</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.locationCity"
+                    (ngModelChange)="patchDraft({ locationCity: $event })"
+                  ></textarea>
+                </label>
+                <label>
+                  <span>Job type</span>
+                  <input
+                    type="text"
+                    [ngModel]="form.jobType"
+                    (ngModelChange)="patchDraft({ jobType: $event })"
+                  />
+                </label>
+                <label>
+                  <span>Salary</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.salaryText"
+                    (ngModelChange)="patchDraft({ salaryText: $event })"
+                  ></textarea>
+                </label>
+                <label>
+                  <span>Vacancies</span>
+                  <input
+                    type="number"
+                    min="1"
+                    [ngModel]="form.vacancies"
+                    (ngModelChange)="patchDraft({ vacancies: $event })"
+                  />
+                </label>
+                <label>
+                  <span>Language</span>
+                  <input
+                    type="text"
+                    [ngModel]="form.contentLanguage"
+                    (ngModelChange)="patchDraft({ contentLanguage: $event })"
+                  />
+                </label>
+                <label class="fields__wide">
+                  <span>Apply / info link</span>
+                  <textarea
+                    rows="2"
+                    [ngModel]="form.contactWebsite"
+                    (ngModelChange)="patchDraft({ contactWebsite: $event })"
+                  ></textarea>
+                </label>
+                <label class="fields__wide">
+                  <span>Description</span>
+                  <textarea
+                    class="fields__about"
+                    rows="10"
+                    [ngModel]="form.description"
+                    (ngModelChange)="patchDraft({ description: $event })"
+                  ></textarea>
+                </label>
+              </div>
+              <div class="desk__actions">
+                <button
+                  type="button"
+                  class="action-btn"
+                  [disabled]="saveBusy() || !dirty()"
+                  (click)="saveDraft()"
+                >
+                  {{ saveBusy() ? 'Saving…' : 'Save changes' }}
+                </button>
+                <button
+                  type="button"
+                  class="action-btn"
+                  [disabled]="busy() || enrichingId() === record.id"
+                  (click)="improveWithAi(record)"
+                >
+                  {{ enrichingId() === record.id ? 'Autocorrecting…' : 'Improve with AI' }}
+                </button>
+                @if (canPublish(record)) {
+                  <button
+                    type="button"
+                    class="btn"
+                    [disabled]="busy() || saveBusy() || publishingId() === record.id"
+                    (click)="publishRecord(record)"
+                  >
+                    @if (publishingId() === record.id) {
+                      Publishing…
+                    } @else {
+                      Publish
+                    }
+                  </button>
+                }
+              </div>
+            } @else {
+              <section class="chat" aria-label="AI assistant">
+                <p class="chat__hint">
+                  Tell it what you need — e.g. “remove Tamil, keep English only”, “fill salary”,
+                  “shorten the title”.
+                </p>
+                <div class="chat__log" role="log">
+                  @for (msg of chat(); track $index) {
+                    <p class="chat__bubble" [class.chat__bubble--user]="msg.role === 'user'">
+                      {{ msg.text }}
+                    </p>
+                  } @empty {
+                    <p class="chat__empty">No chat yet. Send a note or use Improve with AI.</p>
+                  }
+                </div>
+                <form class="chat__compose" (ngSubmit)="sendChat()">
+                  <textarea
+                    rows="3"
+                    [ngModel]="chatInput()"
+                    (ngModelChange)="chatInput.set($event)"
+                    name="chatInput"
+                    placeholder="Instruction for AI…"
+                    [disabled]="!!enrichingId()"
+                  ></textarea>
+                  <button
+                    type="submit"
+                    class="btn"
+                    [disabled]="!!enrichingId() || !chatInput().trim()"
+                  >
+                    Send
+                  </button>
+                </form>
+              </section>
+            }
+          </div>
+        </div>
+      </div>
+  }
+}

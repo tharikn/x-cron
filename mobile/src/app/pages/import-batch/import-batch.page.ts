@@ -1,7 +1,7 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Clipboard } from '@capacitor/clipboard';
 import {
@@ -12,6 +12,7 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonModal,
   IonTextarea,
   IonTitle,
   IonToolbar,
@@ -23,6 +24,23 @@ import {
   ImportRecord,
   IngestionService,
 } from '../../core/services/ingestion.service';
+
+interface EditDraft {
+  title: string;
+  employerName: string;
+  locationCity: string;
+  jobType: string;
+  salaryText: string;
+  vacancies: string;
+  contentLanguage: string;
+  contactWebsite: string;
+  description: string;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  text: string;
+}
 
 @Component({
   selector: 'app-import-batch',
@@ -42,12 +60,14 @@ import {
     IonLabel,
     IonTextarea,
     IonCheckbox,
+    IonModal,
   ],
 })
 export class ImportBatchPage implements OnInit {
   private readonly ingestion = inject(IngestionService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly toastController = inject(ToastController);
 
   readonly isSignedIn = this.auth.isSignedIn;
@@ -55,6 +75,21 @@ export class ImportBatchPage implements OnInit {
   readonly records = signal<ImportRecord[]>([]);
   readonly selected = signal<Record<string, boolean>>({});
   readonly busy = signal(false);
+  readonly enrichingId = signal<string | null>(null);
+
+  readonly activeRecordId = signal<string | null>(null);
+  readonly activePanel = signal<'edit' | 'chat' | null>(null);
+  readonly draft = signal<EditDraft | null>(null);
+  readonly dirty = signal(false);
+  readonly saveBusy = signal(false);
+  readonly chat = signal<ChatMessage[]>([]);
+  readonly chatInput = signal('');
+
+  readonly activeRecord = computed(() => {
+    const id = this.activeRecordId();
+    if (!id) return null;
+    return this.records().find((item) => item.id === id) ?? null;
+  });
 
   pasteText = '';
 
@@ -62,6 +97,16 @@ export class ImportBatchPage implements OnInit {
     if (!this.auth.isSignedIn()) {
       await this.showToast('Sign in as employer to import batches.');
       await this.router.navigate(['/tabs/account']);
+      return;
+    }
+    const batchId = this.route.snapshot.queryParamMap.get('batchId');
+    if (batchId) {
+      try {
+        this.batch.set(await this.ingestion.getBatch(batchId));
+        await this.refreshRecords();
+      } catch {
+        await this.showToast('Could not open that import batch.');
+      }
     }
   }
 
@@ -84,6 +129,14 @@ export class ImportBatchPage implements OnInit {
         item.reviewStatus === 'needs_review' && item.dedupeStatus !== 'duplicate';
     }
     this.selected.set(next);
+
+    const activeId = this.activeRecordId();
+    if (activeId && !items.some((item) => item.id === activeId)) {
+      this.closePanel();
+    } else if (activeId && !this.dirty()) {
+      const fresh = items.find((item) => item.id === activeId);
+      if (fresh) this.draft.set(this.recordToDraft(fresh));
+    }
   }
 
   async fromClipboard(): Promise<void> {
@@ -180,6 +233,150 @@ export class ImportBatchPage implements OnInit {
     this.selected.update((map) => ({ ...map, [id]: checked }));
   }
 
+  openEdit(record: ImportRecord): void {
+    if (this.activeRecordId() !== record.id || !this.draft()) {
+      this.draft.set(this.recordToDraft(record));
+      this.dirty.set(false);
+      this.chat.set([]);
+      this.chatInput.set('');
+    }
+    this.activeRecordId.set(record.id);
+    this.activePanel.set('edit');
+  }
+
+  openChat(record: ImportRecord): void {
+    if (this.activeRecordId() !== record.id || !this.draft()) {
+      this.draft.set(this.recordToDraft(record));
+      this.dirty.set(false);
+      this.chat.set([]);
+      this.chatInput.set('');
+    }
+    this.activeRecordId.set(record.id);
+    this.activePanel.set('chat');
+  }
+
+  closePanel(): void {
+    this.activeRecordId.set(null);
+    this.activePanel.set(null);
+    this.draft.set(null);
+    this.dirty.set(false);
+    this.chat.set([]);
+    this.chatInput.set('');
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.activePanel()) this.closePanel();
+  }
+
+  patchDraft(partial: Partial<EditDraft>): void {
+    const current = this.draft();
+    if (!current) return;
+    const next = { ...current, ...partial };
+    if (partial.vacancies !== undefined) {
+      next.vacancies = String(partial.vacancies ?? '');
+    }
+    this.draft.set(next);
+    this.dirty.set(true);
+  }
+
+  async saveDraft(): Promise<void> {
+    const batch = this.batch();
+    const record = this.activeRecord();
+    const draft = this.draft();
+    if (!batch || !record || !draft) return;
+    this.saveBusy.set(true);
+    try {
+      const vacanciesRaw = String(draft.vacancies ?? '').trim();
+      const vacancies = Number(vacanciesRaw);
+      const updated = await this.ingestion.updateRecord(batch.id, record.id, {
+        title: draft.title.trim(),
+        employerName: draft.employerName.trim(),
+        locationCity: draft.locationCity.trim(),
+        jobType: draft.jobType.trim(),
+        salaryText: draft.salaryText.trim() || undefined,
+        vacancies:
+          vacanciesRaw && Number.isFinite(vacancies) && vacancies >= 1
+            ? Math.floor(vacancies)
+            : undefined,
+        description: draft.description.trim(),
+        contentLanguage: draft.contentLanguage.trim() || 'en',
+        contactWebsite: draft.contactWebsite.trim() || undefined,
+      });
+      this.records.update((items) =>
+        items.map((item) => (item.id === record.id ? updated : item)),
+      );
+      this.draft.set(this.recordToDraft(updated));
+      this.dirty.set(false);
+      await this.showToast('Saved record edits.');
+    } catch {
+      await this.showToast('Could not save record edits.');
+    } finally {
+      this.saveBusy.set(false);
+    }
+  }
+
+  async improveWithAi(record: ImportRecord, instruction?: string): Promise<void> {
+    const batch = this.batch();
+    if (!batch) return;
+    const prompt = (instruction ?? '').trim();
+    if (prompt) {
+      this.chat.update((messages) => [...messages, { role: 'user', text: prompt }]);
+      this.chatInput.set('');
+    }
+    this.enrichingId.set(record.id);
+    try {
+      const result = await this.ingestion.enrichRecord(
+        batch.id,
+        record.id,
+        prompt || undefined,
+      );
+      this.records.update((items) =>
+        items.map((item) => (item.id === record.id ? result.record : item)),
+      );
+      if (this.activeRecordId() === record.id) {
+        this.draft.set(this.recordToDraft(result.record));
+        this.dirty.set(false);
+      }
+      const note =
+        result.record.extraction.notes?.filter(Boolean).slice(0, 3).join(' · ') ||
+        (result.cleaned
+          ? 'Cleaned and mapped into the record fields.'
+          : 'AI ran but kept most of the original text.');
+      if (this.activePanel() === 'chat' || prompt) {
+        this.chat.update((messages) => [
+          ...messages,
+          { role: 'assistant', text: note },
+        ]);
+      }
+      await this.showToast(
+        result.cleaned
+          ? 'AI autocorrected this record. Review then approve.'
+          : 'AI ran but kept the original text.',
+      );
+    } catch {
+      if (this.activePanel() === 'chat' || prompt) {
+        this.chat.update((messages) => [
+          ...messages,
+          {
+            role: 'assistant',
+            text: 'AI failed. Check AI_ENRICH_* on the API and try again.',
+          },
+        ]);
+      }
+      await this.showToast('AI autocorrect failed. Check AI_ENRICH_* on the API.');
+    } finally {
+      this.enrichingId.set(null);
+    }
+  }
+
+  async sendChat(): Promise<void> {
+    const record = this.activeRecord();
+    const text = this.chatInput().trim();
+    if (!record || !text || this.enrichingId()) return;
+    await this.improveWithAi(record, text);
+  }
+
   async approveSelected(): Promise<void> {
     const batch = this.batch();
     if (!batch) return;
@@ -203,6 +400,23 @@ export class ImportBatchPage implements OnInit {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  private recordToDraft(record: ImportRecord): EditDraft {
+    return {
+      title: record.extraction.title || '',
+      employerName: record.extraction.employerName || '',
+      locationCity: record.extraction.locationCity || '',
+      jobType: record.extraction.jobType || '',
+      salaryText: record.extraction.salaryText || '',
+      vacancies:
+        typeof record.extraction.vacancies === 'number'
+          ? String(record.extraction.vacancies)
+          : '',
+      contentLanguage: record.extraction.contentLanguage || 'en',
+      contactWebsite: record.extraction.contactWebsite || '',
+      description: record.extraction.description || '',
+    };
   }
 
   private async showToast(message: string): Promise<void> {

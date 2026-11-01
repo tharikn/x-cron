@@ -32,11 +32,15 @@ export interface ImportRecord {
     locationCity?: string;
     jobType?: string;
     salaryText?: string;
+    vacancies?: number;
     description?: string;
     contentLanguage?: string;
     hasPhone?: boolean;
     hasEmail?: boolean;
+    hasWebsite?: boolean;
+    contactWebsite?: string;
     notes?: string[];
+    aiCleaned?: boolean;
   };
 }
 
@@ -107,6 +111,44 @@ export class IngestionService {
       this.http.post<{ published: number; failed: number }>(
         `${environment.apiUrl}/import-batches/${batchId}/approve`,
         { recordIds },
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+  }
+
+  enrichRecord(
+    batchId: string,
+    recordId: string,
+    instruction?: string,
+  ): Promise<{ cleaned: boolean; provider: string; record: ImportRecord }> {
+    return firstValueFrom(
+      this.http.post<{ cleaned: boolean; provider: string; record: ImportRecord }>(
+        `${environment.apiUrl}/import-batches/${batchId}/records/${recordId}/enrich`,
+        instruction ? { instruction } : {},
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+  }
+
+  updateRecord(
+    batchId: string,
+    recordId: string,
+    patch: {
+      title?: string;
+      employerName?: string;
+      locationCity?: string;
+      jobType?: string;
+      salaryText?: string;
+      vacancies?: number;
+      description?: string;
+      contentLanguage?: string;
+      contactWebsite?: string;
+    },
+  ): Promise<ImportRecord> {
+    return firstValueFrom(
+      this.http.patch<ImportRecord>(
+        `${environment.apiUrl}/import-batches/${batchId}/records/${recordId}`,
+        patch,
         { headers: this.auth.authHeaders() },
       ),
     );

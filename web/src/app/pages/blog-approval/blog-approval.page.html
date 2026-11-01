@@ -1,6 +1,9 @@
 <section class="page">
   <h1>Blog Approval</h1>
-  <p class="lead">Review jobs waiting for approval before they appear in search.</p>
+  <p class="lead">
+    Clean noisy Telegram pulls, map fields, chat corrections with AI, then preview web or mobile before
+    publish.
+  </p>
 
   @if (!isSignedIn() || !isAdmin()) {
     <div class="gate">
@@ -39,7 +42,7 @@
                 [disabled]="queueBusy()"
                 (click)="openPreview(job)"
               >
-                Preview
+                Edit &amp; preview
               </button>
               <button type="button" [disabled]="queueBusy()" (click)="approve(job)">
                 Approve
@@ -66,169 +69,299 @@
       </section>
 
       @if (previewJob(); as job) {
-        <aside class="preview" aria-label="Public preview">
-          <div class="preview__banner">
-            <div>
-              <p class="preview__eyebrow">Preview mode</p>
-              <h2>How seekers will see this</h2>
-              <p class="preview__hint">
-                Not live yet · contacts stay masked · approve to publish into search
-              </p>
-            </div>
-            <button type="button" class="secondary" (click)="closePreview()">Close</button>
-          </div>
-
-          <section class="preview__block">
-            <h3 class="preview__label">In search</h3>
-            <div class="job-card" aria-hidden="true">
-              <div class="job-card__meta">
-                <span class="badge">{{ languageLabel(job.contentLanguage) }}</span>
-                @if (job.promoted) {
-                  <span class="badge badge--promoted">{{
-                    job.promotionBadge || ('common.promoted' | t)
-                  }}</span>
-                }
-                <time>{{ formatPostedDate(job.publishedAt) }}</time>
-              </div>
-              <h4>{{ job.title }}</h4>
-              <p class="employer">
-                {{ job.employerName }}
-                @if (job.verifiedEmployer) {
-                  <span class="verified">{{ 'common.verified' | t }}</span>
-                }
-              </p>
-              <p class="facts">{{ formatLocation(job) }}</p>
-              <p class="facts facts--pay">
-                {{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}
-              </p>
-              <p class="about">{{ job.description.about }}</p>
-              <span class="job-card__cta">{{ 'home.viewRole' | t }}</span>
-            </div>
-          </section>
-
-          <section class="preview__block">
-            <h3 class="preview__label">Job page</h3>
-            <article class="job">
-              <p class="crumb">
-                <span>Jobs</span> <span>/</span> {{ job.location.city }}
-              </p>
-              <div class="meta">
-                <span class="badge">{{ languageLabel(job.contentLanguage) }}</span>
-                <time>{{ formatPostedDate(job.publishedAt) }}</time>
-              </div>
-              <h3 class="job__title">{{ job.title }}</h3>
-              <p class="employer">
-                {{ job.employerName }}
-                @if (job.verifiedEmployer) {
-                  <span class="verified">{{ 'common.verified' | t }}</span>
-                }
-              </p>
-              <p class="facts">{{ formatLocation(job) }}</p>
-              <p class="facts facts--pay">
-                {{ formatJobType(job.jobType) }} · {{ formatSalary(job.salary) }}
-              </p>
-
-              <section class="panel">
-                <h4>Key details</h4>
-                <ul>
-                  @if (job.experienceLabel) {
-                    <li>Experience: {{ job.experienceLabel }}</li>
-                  }
-                  @if (job.vacancies) {
-                    <li>Vacancies: {{ job.vacancies }}</li>
-                  }
-                  @if (job.workSchedule) {
-                    <li>Schedule: {{ job.workSchedule }}</li>
-                  }
-                  @if (job.skills?.length) {
-                    <li>Skills: {{ job.skills.join(', ') }}</li>
-                  }
-                  @if (
-                    !job.experienceLabel &&
-                    !job.vacancies &&
-                    !job.workSchedule &&
-                    !job.skills?.length
-                  ) {
-                    <li>No extra key details provided.</li>
-                  }
-                </ul>
-              </section>
-
-              <section class="panel">
-                <h4>About the role</h4>
-                <p>{{ job.description.about }}</p>
-                @if (job.description.responsibilities?.length) {
-                  <h5>Responsibilities</h5>
-                  <ul>
-                    @for (item of job.description.responsibilities; track item) {
-                      <li>{{ item }}</li>
-                    }
-                  </ul>
-                }
-                @if (job.description.requirements?.length) {
-                  <h5>Requirements</h5>
-                  <ul>
-                    @for (item of job.description.requirements; track item) {
-                      <li>{{ item }}</li>
-                    }
-                  </ul>
-                }
-                @if (job.description.benefits?.length) {
-                  <h5>Benefits</h5>
-                  <ul>
-                    @for (item of job.description.benefits; track item) {
-                      <li>{{ item }}</li>
-                    }
-                  </ul>
-                }
-              </section>
-
-              <section class="panel contact">
-                <h4>Employer contact</h4>
-                <p class="masked">
-                  @if (job.contact.hasPhone) {
-                    Phone: ••••• •••••
-                  }
-                  @if (job.contact.hasWhatsapp) {
-                    · WhatsApp: locked
-                  }
-                  @if (job.contact.hasEmail) {
-                    · HR email: locked
-                  }
-                  @if (job.contact.hasWebsite) {
-                    · Website to apply: locked
-                  }
-                  @if (
-                    !job.contact.hasPhone &&
-                    !job.contact.hasWhatsapp &&
-                    !job.contact.hasEmail &&
-                    !job.contact.hasWebsite
-                  ) {
-                    No contact channels on this post.
-                  }
+        @if (draft(); as form) {
+          <aside class="desk" aria-label="Edit and preview">
+            <div class="desk__banner">
+              <div>
+                <p class="desk__eyebrow">Moderator desk</p>
+                <h2>Clean · map · preview</h2>
+                <p class="desk__hint">
+                  Big boxes for fields · AI chat for corrections · web/mobile preview · contacts stay
+                  masked for seekers
                 </p>
-                <p class="unlock">{{ job.contact.unlockLabel }}</p>
-                <p class="note">
-                  Public pages never expose raw contact data — same mask seekers will see.
-                </p>
-              </section>
-            </article>
-          </section>
+              </div>
+              <button type="button" class="secondary" (click)="closePreview()">Close</button>
+            </div>
 
-          <div class="preview__actions">
-            <button type="button" [disabled]="queueBusy()" (click)="approve(job)">
-              Approve &amp; publish
-            </button>
-            <button
-              type="button"
-              class="secondary"
-              [disabled]="queueBusy()"
-              (click)="reject(job)"
-            >
-              Reject
-            </button>
-          </div>
-        </aside>
+            <div class="desk__grid">
+              <section class="editor" aria-label="Editable fields">
+                <div class="editor__toolbar">
+                  <button
+                    type="button"
+                    [disabled]="aiBusy() || !aiEnabled()"
+                    (click)="improveWithAi()"
+                  >
+                    @if (aiBusy()) {
+                      Improving…
+                    } @else {
+                      Improve with AI
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary"
+                    [disabled]="saveBusy() || !dirty()"
+                    (click)="saveDraft()"
+                  >
+                    @if (saveBusy()) {
+                      Saving…
+                    } @else {
+                      Save draft
+                    }
+                  </button>
+                  @if (!aiEnabled()) {
+                    <span class="editor__warn">AI off on API</span>
+                  }
+                </div>
+
+                <div class="fields">
+                  <label>
+                    <span>Title</span>
+                    <textarea
+                      rows="2"
+                      [ngModel]="form.title"
+                      (ngModelChange)="patchDraft({ title: $event })"
+                      placeholder="Role / recruitment title"
+                    ></textarea>
+                  </label>
+                  <label>
+                    <span>Employer</span>
+                    <textarea
+                      rows="2"
+                      [ngModel]="form.employerName"
+                      (ngModelChange)="patchDraft({ employerName: $event })"
+                      placeholder="Organisation or hiring party"
+                    ></textarea>
+                  </label>
+                  <label>
+                    <span>City / location</span>
+                    <textarea
+                      rows="2"
+                      [ngModel]="form.locationCity"
+                      (ngModelChange)="patchDraft({ locationCity: $event })"
+                      placeholder="City or district"
+                    ></textarea>
+                  </label>
+                  <label>
+                    <span>Job type</span>
+                    <select
+                      [ngModel]="form.jobType"
+                      (ngModelChange)="patchDraft({ jobType: $event })"
+                    >
+                      <option value="full-time">Full-time</option>
+                      <option value="part-time">Part-time</option>
+                      <option value="contract">Contract</option>
+                      <option value="internship">Internship</option>
+                      <option value="daily-wage">Daily wage</option>
+                      <option value="temporary">Temporary</option>
+                      <option value="apprenticeship">Apprenticeship</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Salary</span>
+                    <textarea
+                      rows="2"
+                      [ngModel]="form.salaryText"
+                      (ngModelChange)="patchDraft({ salaryText: $event })"
+                      placeholder="e.g. ₹15,000 / month"
+                    ></textarea>
+                  </label>
+                  <label>
+                    <span>Language</span>
+                    <textarea
+                      rows="2"
+                      [ngModel]="form.contentLanguage"
+                      (ngModelChange)="patchDraft({ contentLanguage: $event })"
+                      placeholder="en / ta / hi"
+                    ></textarea>
+                  </label>
+                  <label class="fields__wide">
+                    <span>Apply / info link</span>
+                    <textarea
+                      rows="2"
+                      [ngModel]="form.contactWebsite"
+                      (ngModelChange)="patchDraft({ contactWebsite: $event })"
+                      placeholder="https://…"
+                    ></textarea>
+                  </label>
+                  <label class="fields__wide">
+                    <span>Description</span>
+                    <textarea
+                      class="fields__about"
+                      rows="14"
+                      [ngModel]="form.description"
+                      (ngModelChange)="patchDraft({ description: $event })"
+                      placeholder="Clean aligned job body"
+                    ></textarea>
+                  </label>
+                </div>
+
+                <section class="chat" aria-label="AI assistant">
+                  <h3>AI assistant</h3>
+                  <p class="chat__hint">
+                    Tell it what you need — e.g. “remove Tamil, keep English only”, “put last date in
+                    description”, “fix salary into the salary box”.
+                  </p>
+                  <div class="chat__log" role="log">
+                    @for (msg of chat(); track $index) {
+                      <p class="chat__bubble" [class.chat__bubble--user]="msg.role === 'user'">
+                        {{ msg.text }}
+                      </p>
+                    } @empty {
+                      <p class="chat__empty">No chat yet. Use Improve with AI or send a note.</p>
+                    }
+                  </div>
+                  <form class="chat__compose" (ngSubmit)="sendChat()">
+                    <textarea
+                      rows="3"
+                      [ngModel]="chatInput()"
+                      (ngModelChange)="chatInput.set($event)"
+                      name="chatInput"
+                      placeholder="Instruction for AI…"
+                      [disabled]="aiBusy() || !aiEnabled()"
+                    ></textarea>
+                    <button type="submit" [disabled]="aiBusy() || !aiEnabled() || !chatInput().trim()">
+                      Send
+                    </button>
+                  </form>
+                </section>
+              </section>
+
+              <section class="preview-pane" aria-label="Public preview">
+                <div class="preview-pane__tabs" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    [attr.aria-selected]="previewMode() === 'web'"
+                    [class.is-active]="previewMode() === 'web'"
+                    (click)="setPreviewMode('web')"
+                  >
+                    Web
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    [attr.aria-selected]="previewMode() === 'mobile'"
+                    [class.is-active]="previewMode() === 'mobile'"
+                    (click)="setPreviewMode('mobile')"
+                  >
+                    Mobile
+                  </button>
+                </div>
+
+                @if (previewAsJob(); as view) {
+                  <div
+                    class="preview-frame"
+                    [class.preview-frame--mobile]="previewMode() === 'mobile'"
+                  >
+                    <section class="preview__block">
+                      <h3 class="preview__label">In search</h3>
+                      <div class="job-card" aria-hidden="true">
+                        <div class="job-card__meta">
+                          <span class="badge">{{ languageLabel(view.contentLanguage) }}</span>
+                          @if (view.promoted) {
+                            <span class="badge badge--promoted">{{
+                              view.promotionBadge || ('common.promoted' | t)
+                            }}</span>
+                          }
+                          <time>{{ formatPostedDate(view.publishedAt) }}</time>
+                        </div>
+                        <h4>{{ view.title }}</h4>
+                        <p class="employer">
+                          {{ view.employerName }}
+                          @if (view.verifiedEmployer) {
+                            <span class="verified">{{ 'common.verified' | t }}</span>
+                          }
+                        </p>
+                        <p class="facts">{{ formatLocation(view) }}</p>
+                        <p class="facts facts--pay">
+                          {{ formatJobType(view.jobType) }} ·
+                          {{ form.salaryText || formatSalary(view.salary) }}
+                        </p>
+                        <p class="about">{{ view.description.about }}</p>
+                        <span class="job-card__cta">{{ 'home.viewRole' | t }}</span>
+                      </div>
+                    </section>
+
+                    <section class="preview__block">
+                      <h3 class="preview__label">Job page</h3>
+                      <article class="job">
+                        <p class="crumb">
+                          <span>Jobs</span> <span>/</span> {{ view.location.city }}
+                        </p>
+                        <div class="meta">
+                          <span class="badge">{{ languageLabel(view.contentLanguage) }}</span>
+                          <time>{{ formatPostedDate(view.publishedAt) }}</time>
+                        </div>
+                        <h3 class="job__title">{{ view.title }}</h3>
+                        <p class="employer">
+                          {{ view.employerName }}
+                          @if (view.verifiedEmployer) {
+                            <span class="verified">{{ 'common.verified' | t }}</span>
+                          }
+                        </p>
+                        <p class="facts">{{ formatLocation(view) }}</p>
+                        <p class="facts facts--pay">
+                          {{ formatJobType(view.jobType) }} ·
+                          {{ form.salaryText || formatSalary(view.salary) }}
+                        </p>
+
+                        <section class="panel">
+                          <h4>About the role</h4>
+                          <p class="panel__about">{{ view.description.about }}</p>
+                        </section>
+
+                        <section class="panel contact">
+                          <h4>Employer contact</h4>
+                          <p class="masked">
+                            @if (view.contact.hasPhone) {
+                              Phone: ••••• •••••
+                            }
+                            @if (view.contact.hasWhatsapp) {
+                              · WhatsApp: locked
+                            }
+                            @if (view.contact.hasEmail) {
+                              · HR email: locked
+                            }
+                            @if (view.contact.hasWebsite) {
+                              · Website to apply: locked
+                            }
+                            @if (
+                              !view.contact.hasPhone &&
+                              !view.contact.hasWhatsapp &&
+                              !view.contact.hasEmail &&
+                              !view.contact.hasWebsite
+                            ) {
+                              No contact channels on this post.
+                            }
+                          </p>
+                          <p class="unlock">{{ view.contact.unlockLabel }}</p>
+                          <p class="note">
+                            Public pages never expose raw contact data — same mask seekers will see.
+                          </p>
+                        </section>
+                      </article>
+                    </section>
+                  </div>
+                }
+
+                <div class="preview__actions">
+                  <button type="button" [disabled]="queueBusy() || saveBusy()" (click)="approve(job)">
+                    Approve &amp; publish
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary"
+                    [disabled]="queueBusy()"
+                    (click)="reject(job)"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </section>
+            </div>
+          </aside>
+        }
       }
     </div>
   }

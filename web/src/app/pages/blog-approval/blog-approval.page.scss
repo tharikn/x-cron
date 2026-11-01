@@ -1,6 +1,16 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .page {
   padding: 1.75rem 0 2.5rem;
   animation: xcron-rise 480ms var(--xcron-ease) both;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 h1 {
@@ -8,12 +18,13 @@ h1 {
   font-family: var(--xcron-font-display);
   font-size: clamp(1.7rem, 4vw, 2.3rem);
   letter-spacing: -0.045em;
+  overflow-wrap: anywhere;
 }
 
 .lead {
   margin: 0 0 1.5rem;
   color: var(--xcron-muted);
-  max-width: 32rem;
+  max-width: 40rem;
 }
 
 .gate {
@@ -47,17 +58,21 @@ h1 {
   display: grid;
   gap: 1.25rem;
   align-items: start;
+  width: 100%;
+  min-width: 0;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 1100px) {
   .layout--preview {
-    grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+    gap: 1.35rem;
   }
 }
 
 .queue {
-  max-width: 28rem;
+  width: 100%;
+  max-width: 40rem;
+  min-width: 0;
 }
 
 .layout--preview .queue {
@@ -106,7 +121,12 @@ h1 {
   background: var(--xcron-bg-elevated);
   border-radius: var(--xcron-radius);
   box-shadow: var(--xcron-shadow);
-  transition: border-color 160ms var(--xcron-ease), box-shadow 160ms var(--xcron-ease);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  transition:
+    border-color 160ms var(--xcron-ease),
+    box-shadow 160ms var(--xcron-ease);
 }
 
 .mod-card--active {
@@ -115,8 +135,11 @@ h1 {
 }
 
 .mod-card strong {
+  display: block;
   font-family: var(--xcron-font-display);
   letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .mod-card p {
@@ -131,7 +154,9 @@ h1 {
 }
 
 .mod-card__actions button,
-.preview__actions button {
+.preview__actions button,
+.editor__toolbar button,
+.chat__compose button {
   border: 0;
   background: #0a0a0a;
   color: #fff;
@@ -143,14 +168,17 @@ h1 {
 }
 
 .mod-card__actions button.secondary,
-.preview__actions button.secondary {
+.preview__actions button.secondary,
+.editor__toolbar button.secondary {
   background: #fff;
   color: #000;
   border: 1px solid var(--xcron-line-strong);
 }
 
 .mod-card__actions button:disabled,
-.preview__actions button:disabled {
+.preview__actions button:disabled,
+.editor__toolbar button:disabled,
+.chat__compose button:disabled {
   opacity: 0.7;
   cursor: wait;
 }
@@ -160,7 +188,7 @@ h1 {
   color: var(--xcron-muted);
 }
 
-.preview {
+.desk {
   border: 1px solid var(--xcron-line);
   background:
     radial-gradient(ellipse 80% 40% at 10% 0%, rgba(0, 0, 0, 0.04), transparent 55%),
@@ -169,10 +197,12 @@ h1 {
   padding: 1.1rem 1.15rem 1.25rem;
   box-shadow: var(--xcron-shadow);
   animation: xcron-rise 420ms var(--xcron-ease) both;
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
 }
 
-.preview__banner {
+.desk__banner {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -182,7 +212,7 @@ h1 {
   border-bottom: 1px solid var(--xcron-line);
 }
 
-.preview__eyebrow {
+.desk__eyebrow {
   margin: 0 0 0.25rem;
   font-size: 0.72rem;
   font-weight: 700;
@@ -191,18 +221,234 @@ h1 {
   color: var(--xcron-faint);
 }
 
-.preview__banner h2 {
+.desk__banner h2 {
   margin: 0;
   font-family: var(--xcron-font-display);
   font-size: 1.25rem;
   letter-spacing: -0.03em;
 }
 
-.preview__hint {
+.desk__hint {
   margin: 0.35rem 0 0;
   color: var(--xcron-muted);
   font-size: 0.9rem;
-  max-width: 28rem;
+  max-width: 36rem;
+}
+
+.desk__grid {
+  display: grid;
+  gap: 1.15rem;
+}
+
+@media (min-width: 980px) {
+  .desk__grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
+    align-items: start;
+  }
+}
+
+.editor {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.editor__warn {
+  font-size: 0.82rem;
+  color: var(--xcron-muted);
+  font-weight: 600;
+}
+
+.fields {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .fields__wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.fields label {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 0.4rem;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.fields span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.fields textarea,
+.fields select,
+.chat__compose textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  padding: 0.85rem 0.95rem;
+  background: #fff;
+  font: inherit;
+  color: var(--xcron-ink);
+  resize: vertical;
+  min-height: 3.25rem;
+  height: 100%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.fields select {
+  resize: none;
+}
+
+.fields textarea:focus,
+.fields select:focus,
+.chat__compose textarea:focus {
+  outline: 2px solid #111;
+  outline-offset: 1px;
+}
+
+.fields__about {
+  min-height: 18rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.chat {
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+  border-radius: var(--xcron-radius);
+  padding: 0.95rem 1rem 1.05rem;
+  box-shadow: var(--xcron-shadow);
+}
+
+.chat h3 {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.chat__hint {
+  margin: 0.35rem 0 0.75rem;
+  color: var(--xcron-muted);
+  font-size: 0.88rem;
+}
+
+.chat__log {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 12rem;
+  overflow: auto;
+  margin-bottom: 0.75rem;
+  padding: 0.55rem;
+  background: var(--xcron-wash);
+  border-radius: var(--xcron-radius-sm);
+  border: 1px solid var(--xcron-line);
+}
+
+.chat__bubble {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  font-size: 0.9rem;
+  color: var(--xcron-ink-soft);
+}
+
+.chat__bubble--user {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+  justify-self: end;
+  max-width: 92%;
+}
+
+.chat__empty {
+  margin: 0;
+  color: var(--xcron-muted);
+  font-size: 0.88rem;
+}
+
+.chat__compose {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.preview-pane {
+  min-width: 0;
+  position: sticky;
+  top: 0.75rem;
+}
+
+.preview-pane__tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-bottom: 0.85rem;
+  padding: 0.25rem;
+  background: #fff;
+  border: 1px solid var(--xcron-line);
+  border-radius: 999px;
+}
+
+.preview-pane__tabs button {
+  border: 0;
+  background: transparent;
+  color: var(--xcron-muted);
+  padding: 0.45rem 0.95rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.preview-pane__tabs button.is-active {
+  background: #111;
+  color: #fff;
+}
+
+.preview-frame {
+  border: 1px solid var(--xcron-line);
+  background: #fff;
+  border-radius: var(--xcron-radius);
+  padding: 1rem;
+  box-shadow: var(--xcron-shadow);
+  max-height: min(78vh, 56rem);
+  overflow: auto;
+}
+
+.preview-frame--mobile {
+  max-width: 24rem;
+  margin-inline: auto;
+  border-radius: 22px;
+  padding: 0.85rem;
+  box-shadow: var(--xcron-shadow-hover, var(--xcron-shadow));
 }
 
 .preview__block {
@@ -264,6 +510,8 @@ h1 {
   font-size: 1.25rem;
   letter-spacing: -0.03em;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .employer {
@@ -353,6 +601,8 @@ h1 {
   font-size: clamp(1.4rem, 3.5vw, 2rem);
   letter-spacing: -0.045em;
   line-height: 1.1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .job .employer {
@@ -375,19 +625,11 @@ h1 {
   letter-spacing: -0.02em;
 }
 
-.panel h5 {
-  margin: 1rem 0 0.4rem;
-  font-size: 0.92rem;
-}
-
-.panel p,
-.panel li {
-  color: var(--xcron-ink-soft);
-}
-
-.panel ul {
+.panel__about {
   margin: 0;
-  padding-left: 1.15rem;
+  white-space: pre-wrap;
+  color: var(--xcron-ink-soft);
+  line-height: 1.55;
 }
 
 .contact .unlock {
@@ -406,18 +648,18 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
-  margin-top: 0.35rem;
+  margin-top: 0.85rem;
   padding-top: 1rem;
   border-top: 1px solid var(--xcron-line);
   position: sticky;
-  bottom: 0.75rem;
+  bottom: 0.5rem;
   background: linear-gradient(to top, var(--xcron-wash) 70%, transparent);
   padding-bottom: 0.15rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .page,
-  .preview {
+  .desk {
     animation: none;
   }
 }
