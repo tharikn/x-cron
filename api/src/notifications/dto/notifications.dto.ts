@@ -29,6 +29,18 @@ export class NotificationPreferencesDto {
 
   @IsOptional()
   @IsBoolean()
+  inAppEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  pushAlertsEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  emailAlertsEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   marketingEnabled?: boolean;
 
   @IsOptional()
@@ -66,4 +78,12 @@ export class DevSendNotificationDto {
   @IsOptional()
   @IsString()
   jobId?: string;
+}
+
+export class ListDispatchesQueryDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }

@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import {
   IonButton,
   IonContent,
@@ -31,6 +32,7 @@ import { LocationTypeaheadComponent } from '../../shared/location-typeahead/loca
   styleUrls: ['./preferences.page.scss'],
   imports: [
     FormsModule,
+    RouterLink,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -62,7 +64,7 @@ export class PreferencesPage implements OnInit {
   readonly deviceRegistered = this.notifications.deviceRegistered;
   readonly languages = this.locale.languages;
 
-  location = this.preferencesService.preferences().locations[0] ?? 'Palani';
+  location = this.preferencesService.preferences().locations[0] ?? '';
   jobType: JobType | '' = this.preferencesService.preferences().jobTypes[0] ?? '';
   language = this.preferencesService.preferences().languages[0] ?? 'en';
   salaryMin: number | null = this.preferencesService.preferences().salaryMin ?? null;
@@ -133,14 +135,30 @@ export class PreferencesPage implements OnInit {
     await this.showToast('Preferences cleared.');
   }
 
-  async toggleJobAlerts(enabled: boolean): Promise<void> {
+  async toggleAlert(
+    key:
+      | 'jobAlertsEnabled'
+      | 'inAppEnabled'
+      | 'pushAlertsEnabled'
+      | 'emailAlertsEnabled',
+    enabled: boolean,
+  ): Promise<void> {
     if (!this.auth.isSignedIn()) {
       await this.showToast('Sign in to manage job alert notifications.');
       return;
     }
     try {
-      await this.notifications.savePrefs({ jobAlertsEnabled: enabled });
-      await this.showToast(enabled ? 'Job alerts on.' : 'Job alerts off.');
+      await this.notifications.savePrefs({ [key]: enabled });
+      if (key === 'pushAlertsEnabled' && enabled) {
+        const ok = await this.notifications.ensurePushPermission();
+        await this.showToast(
+          ok
+            ? 'Push alerts on — system notifications enabled.'
+            : 'Push preference saved, but notification permission was denied.',
+        );
+        return;
+      }
+      await this.showToast(enabled ? 'Alert preference saved.' : 'Alert preference off.');
     } catch {
       await this.showToast('Could not update notification preferences.');
     }

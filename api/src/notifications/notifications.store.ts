@@ -2,9 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import {
   DeviceRegistration,
+  NotificationDeliveryLog,
+  NotificationDispatch,
+  NotificationDispatchStatus,
   NotificationPreferences,
   NotificationRecord,
   NotificationStatus,
+  NotificationTriggerType,
   PushPlatform,
 } from './notifications.types';
 
@@ -14,6 +18,8 @@ export class NotificationsStore {
   private readonly devicesByToken = new Map<string, string>();
   private readonly prefs = new Map<string, NotificationPreferences>();
   private readonly notifications = new Map<string, NotificationRecord>();
+  private readonly dispatches = new Map<string, NotificationDispatch>();
+  private readonly deliveries = new Map<string, NotificationDeliveryLog>();
   private readonly dedupe = new Set<string>();
   private readonly sendsToday = new Map<string, { day: string; count: number }>();
 
@@ -81,6 +87,9 @@ export class NotificationsStore {
       this.prefs.get(userId) ?? {
         userId,
         jobAlertsEnabled: true,
+        inAppEnabled: true,
+        pushAlertsEnabled: true,
+        emailAlertsEnabled: true,
         marketingEnabled: false,
         quietHoursStart: null,
         quietHoursEnd: null,
@@ -105,6 +114,11 @@ export class NotificationsStore {
     };
     this.prefs.set(userId, next);
     return next;
+  }
+
+  /** User ids that have saved notification prefs (explicit subscribers / toggles). */
+  listNotificationPrefUserIds(): string[] {
+    return [...this.prefs.keys()];
   }
 
   hasDedupe(key: string): boolean {
@@ -132,6 +146,9 @@ export class NotificationsStore {
       data: input.data,
       dedupeKey: input.dedupeKey,
       jobId: input.jobId,
+      dispatchId: input.dispatchId,
+      provider: input.provider,
+      providerMessageId: input.providerMessageId,
       error: input.error,
       readAt: input.readAt,
     };
@@ -153,12 +170,99 @@ export class NotificationsStore {
 
   listForUser(userId: string): NotificationRecord[] {
     return [...this.notifications.values()]
-      .filter((n) => n.userId === userId && n.channel === 'in_app')
+      .filter(
+        (n) =>
+          n.userId === userId &&
+          n.channel === 'in_app' &&
+          n.status !== 'suppressed',
+      )
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   findNotification(id: string): NotificationRecord | undefined {
     return this.notifications.get(id);
+  }
+
+  startDispatch(input: {
+    triggerType: NotificationTriggerType;
+    jobId?: string;
+    meta?: NotificationDispatch['meta'];
+  }): NotificationDispatch {
+    const record: NotificationDispatch = {
+      id: `dsp_${uuidv4().slice(0, 8)}`,
+      triggerType: input.triggerType,
+      jobId: input.jobId,
+      status: 'running',
+      matchedCount: 0,
+      sentCount: 0,
+      suppressedCount: 0,
+      failedCount: 0,
+      meta: input.meta,
+      startedAt: new Date().toISOString(),
+    };
+    this.dispatches.set(record.id, record);
+    return record;
+  }
+
+  updateDispatch(
+    id: string,
+    patch: Partial<
+      Pick<
+        NotificationDispatch,
+        | 'status'
+        | 'matchedCount'
+        | 'sentCount'
+        | 'suppressedCount'
+        | 'failedCount'
+        | 'skippedReason'
+        | 'finishedAt'
+        | 'meta'
+      >
+    >,
+  ): NotificationDispatch | undefined {
+    const current = this.dispatches.get(id);
+    if (!current) return undefined;
+    const next = { ...current, ...patch };
+    this.dispatches.set(id, next);
+    return next;
+  }
+
+  finishDispatch(
+    id: string,
+    status: NotificationDispatchStatus = 'completed',
+  ): NotificationDispatch | undefined {
+    return this.updateDispatch(id, {
+      status,
+      finishedAt: new Date().toISOString(),
+    });
+  }
+
+  createDeliveryLog(
+    input: Omit<NotificationDeliveryLog, 'id' | 'createdAt'>,
+  ): NotificationDeliveryLog {
+    const record: NotificationDeliveryLog = {
+      id: `ndl_${uuidv4().slice(0, 8)}`,
+      createdAt: new Date().toISOString(),
+      ...input,
+    };
+    this.deliveries.set(record.id, record);
+    return record;
+  }
+
+  listDispatches(limit = 50): NotificationDispatch[] {
+    return [...this.dispatches.values()]
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+      .slice(0, limit);
+  }
+
+  findDispatch(id: string): NotificationDispatch | undefined {
+    return this.dispatches.get(id);
+  }
+
+  listDeliveriesForDispatch(dispatchId: string): NotificationDeliveryLog[] {
+    return [...this.deliveries.values()]
+      .filter((d) => d.dispatchId === dispatchId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   incrementDailySend(userId: string): number {
@@ -177,5 +281,19 @@ export class NotificationsStore {
     const current = this.sendsToday.get(userId);
     if (!current || current.day !== day) return 0;
     return current.count;
+  }
+
+  clearForUser(userId: string): void {
+    this.prefs.delete(userId);
+    this.sendsToday.delete(userId);
+    for (const [id, n] of this.notifications) {
+      if (n.userId === userId) this.notifications.delete(id);
+    }
+    for (const [id, d] of this.devices) {
+      if (d.userId === userId) {
+        this.devicesByToken.delete(d.fcmToken);
+        this.devices.delete(id);
+      }
+    }
   }
 }

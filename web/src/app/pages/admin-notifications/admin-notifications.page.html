@@ -1,0 +1,111 @@
+<section class="page">
+  <p class="brand">X Cron <span>Jobs</span></p>
+  <h1>Notification dispatches</h1>
+  <p class="lead">
+    Job-publish fan-out history. Providers stay free stubs until you swap in FCM / SMTP.
+  </p>
+
+  <div class="toolbar">
+    <button type="button" class="btn" [disabled]="busy()" (click)="reload()">
+      {{ busy() ? 'Loading…' : 'Refresh' }}
+    </button>
+    <a routerLink="/admin" class="link">Dashboard</a>
+    <a routerLink="/notifications" class="link">User inbox</a>
+  </div>
+
+  <p class="meta">
+    Push: <code>{{ pushProvider() }}</code> · Mail: <code>{{ mailProvider() }}</code>
+    · {{ rows().length }} dispatch(es)
+  </p>
+
+  @if (error()) {
+    <p class="err">{{ error() }}</p>
+  }
+
+  <div class="layout">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Trigger</th>
+            <th>Status</th>
+            <th>Job</th>
+            <th>Matched</th>
+            <th>Sent</th>
+            <th>Suppressed</th>
+            <th>Failed</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr
+              [class.row--active]="selectedId() === row.id"
+              [class.row--fail]="row.status === 'failed' || row.failedCount > 0"
+              (click)="openDispatch(row.id)"
+            >
+              <td>{{ row.startedAt | date: 'medium' }}</td>
+              <td><code>{{ row.triggerType }}</code></td>
+              <td><code>{{ row.status }}</code></td>
+              <td><code>{{ row.jobId || '—' }}</code></td>
+              <td>{{ row.matchedCount }}</td>
+              <td>{{ row.sentCount }}</td>
+              <td>{{ row.suppressedCount }}</td>
+              <td>{{ row.failedCount }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8">No dispatches yet. Publish or approve a job to trigger alerts.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <aside class="detail">
+      @if (selected(); as d) {
+        <h2>Dispatch detail</h2>
+        <p class="hint">
+          <code>{{ d.id }}</code> · finished
+          {{ d.finishedAt ? (d.finishedAt | date: 'short') : '—' }}
+        </p>
+        @if (d.skippedReason) {
+          <p class="hint">Skipped: {{ d.skippedReason }}</p>
+        }
+
+        <div class="table-wrap detail__table">
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>User</th>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Provider</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of deliveries(); track row.id) {
+                <tr [class.row--fail]="row.status === 'failed' || row.status === 'suppressed'">
+                  <td>{{ row.createdAt | date: 'short' }}</td>
+                  <td><code>{{ row.userId }}</code></td>
+                  <td>{{ row.channel }}</td>
+                  <td><code>{{ row.status }}</code></td>
+                  <td>{{ row.provider || '—' }}</td>
+                  <td>{{ row.error || '—' }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6">No delivery rows for this dispatch.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="hint">Select a dispatch row to inspect per-user delivery logs.</p>
+      }
+    </aside>
+  </div>
+</section>

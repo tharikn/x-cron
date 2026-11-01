@@ -1,0 +1,222 @@
+.page {
+  padding: 16px 16px 40px;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
+}
+
+.brand-block {
+  margin-bottom: 22px;
+}
+
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  margin: 0;
+  font-family: var(--xcron-display);
+  font-size: clamp(2.2rem, 9vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+}
+
+.count-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--xcron-ink);
+  background: var(--xcron-wash);
+  border: 1px solid var(--xcron-line);
+}
+
+.descriptor {
+  margin: 0.45rem 0 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--xcron-muted);
+}
+
+.lead {
+  margin: 0;
+  color: var(--xcron-ink-soft);
+  font-size: 0.98rem;
+  line-height: 1.45;
+  max-width: 36ch;
+}
+
+.hint,
+.empty {
+  color: var(--xcron-muted);
+}
+
+.inbox {
+  margin-top: 6px;
+}
+
+.inbox h2 {
+  margin: 0;
+  font-family: var(--xcron-display);
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.inbox__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.inbox__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.inbox__live {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+  background: var(--xcron-wash);
+  border: 1px solid var(--xcron-line);
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+}
+
+.hint a {
+  color: var(--xcron-ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hint {
+  margin-top: 18px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--xcron-line);
+  padding: 16px 16px 16px 18px;
+  margin-bottom: 12px;
+  background: var(--xcron-bg-elevated);
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+  transition:
+    transform 180ms var(--xcron-ease),
+    box-shadow 180ms var(--xcron-ease);
+  animation: xcron-rise 420ms var(--xcron-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.card:active {
+  transform: translateY(1px);
+}
+
+.card--unread {
+  background:
+    linear-gradient(90deg, rgba(10, 10, 10, 0.03) 0%, transparent 28%),
+    var(--xcron-bg-elevated);
+  border-color: var(--xcron-line-strong);
+  box-shadow: var(--xcron-shadow-hover);
+}
+
+.card__beam {
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--xcron-ink);
+}
+
+.card__sheen {
+  display: none;
+}
+
+.new-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  padding: 0.22rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--xcron-ink);
+}
+
+.card strong {
+  display: block;
+  margin-bottom: 6px;
+  padding-right: 3.4rem;
+  font-family: var(--xcron-display);
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--xcron-ink);
+}
+
+.card p {
+  margin: 0;
+  color: var(--xcron-ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.card .meta {
+  margin-top: 8px !important;
+  font-size: 0.78rem;
+  color: var(--xcron-muted) !important;
+  letter-spacing: 0.01em;
+}
+
+.card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.card--unread ion-button {
+  --border-color: var(--xcron-line-strong);
+  --color: var(--xcron-ink);
+}
+
+.empty {
+  margin: 8px 0 0;
+  padding: 22px 16px;
+  text-align: center;
+  border: 1px dashed var(--xcron-line-strong);
+  border-radius: var(--xcron-radius);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,161 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.brand {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: 1.4rem;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+}
+
+.brand span {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+  margin-left: 0.35rem;
+  font-family: var(--xcron-font-body);
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0.4rem 0 0.35rem;
+  font-family: var(--xcron-font-display);
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--xcron-font-display);
+  font-size: 1.1rem;
+  letter-spacing: -0.03em;
+}
+
+.lead {
+  color: var(--xcron-muted);
+  margin: 0 0 1.25rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.btn {
+  border: 0;
+  border-radius: var(--xcron-radius-sm);
+  padding: 0.55rem 0.9rem;
+  background: #0a0a0a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.link {
+  color: var(--xcron-ink);
+  font-weight: 600;
+}
+
+.meta {
+  margin: 0 0 0.75rem;
+  color: var(--xcron-muted);
+  font-size: 0.85rem;
+}
+
+.err {
+  color: #111;
+  background: #eee;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--xcron-radius-sm);
+}
+
+.layout {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 960px) {
+  .layout {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: start;
+  }
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  background: #fff;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--xcron-line);
+  white-space: nowrap;
+}
+
+th {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+  background: var(--xcron-wash);
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+tbody tr:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.row--active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.row--fail {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.detail {
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  background: var(--xcron-wash);
+  padding: 1rem;
+}
+
+.detail__table {
+  margin-top: 0.75rem;
+  background: #fff;
+}
+
+.hint {
+  margin: 0;
+  color: var(--xcron-muted);
+  font-size: 0.88rem;
+}
+
+code {
+  font-size: 0.78rem;
+}

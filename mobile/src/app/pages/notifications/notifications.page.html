@@ -1,0 +1,92 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'nav.notifications' | t }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <div class="brand-block">
+      <div class="title-row">
+        <p class="brand-mark">X Cron</p>
+        @if (isSignedIn() && unread() > 0) {
+          <span class="count-pill">{{ unread() }} new</span>
+        }
+      </div>
+      <p class="descriptor">Jobs</p>
+      <p class="lead">{{ 'notif.lead' | t }}</p>
+    </div>
+
+    @if (!isSignedIn()) {
+      <p class="hint">{{ 'prefs.signInForAlerts' | t }}</p>
+      <ion-button expand="block" color="dark" routerLink="/tabs/account">
+        {{ 'nav.account' | t }}
+      </ion-button>
+    } @else {
+      <section class="inbox">
+        <div class="inbox__head">
+          <h2>{{ 'notif.inbox' | t }}</h2>
+          <div class="inbox__actions">
+            @if (unread() > 0) {
+              <span class="inbox__live">{{ unread() }} unread</span>
+            }
+            <ion-button
+              size="small"
+              fill="outline"
+              color="dark"
+              [disabled]="busy()"
+              (click)="reload()"
+            >
+              {{ 'notif.refresh' | t }}
+            </ion-button>
+          </div>
+        </div>
+        @for (item of items(); track item.id; let i = $index) {
+          <div
+            class="card"
+            [class.card--unread]="item.status !== 'read'"
+            [style.--i]="i"
+          >
+            @if (item.status !== 'read') {
+              <span class="card__beam" aria-hidden="true"></span>
+              <span class="card__sheen" aria-hidden="true"></span>
+              <span class="new-badge">New</span>
+            }
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.body }}</p>
+            <p class="hint meta">{{ item.status }} · {{ item.createdAt | date: 'short' }}</p>
+            <div class="card__actions">
+              @if (item.jobId) {
+                <ion-button
+                  size="small"
+                  fill="outline"
+                  color="dark"
+                  [routerLink]="['/tabs/jobs', item.jobId]"
+                >
+                  Open
+                </ion-button>
+              }
+              @if (item.status !== 'read') {
+                <ion-button size="small" color="dark" (click)="markRead(item.id)">
+                  {{ 'notif.markRead' | t }}
+                </ion-button>
+              }
+            </div>
+          </div>
+        } @empty {
+          <p class="empty">{{ 'notif.empty' | t }}</p>
+        }
+      </section>
+
+      <p class="hint">
+        Channel toggles live under
+        <a routerLink="/tabs/preferences">{{ 'nav.prefs' | t }}</a>.
+      </p>
+
+      @if (isAdmin()) {
+        <p class="hint">{{ 'notif.adminHint' | t }}</p>
+        <ion-note>Open web → Admin → Alerts for dispatch history.</ion-note>
+      }
+    }
+  </div>
+</ion-content>

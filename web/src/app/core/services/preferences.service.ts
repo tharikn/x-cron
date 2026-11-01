@@ -10,7 +10,7 @@ export interface WebPreferences {
 const KEY = 'xcron.web.preferences';
 
 const DEFAULTS: WebPreferences = {
-  locations: ['Palani'],
+  locations: [],
   categories: [],
   notifyEmail: false,
 };
@@ -29,6 +29,10 @@ export class PreferencesService {
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem(KEY, JSON.stringify(this.prefs()));
     }
+  }
+
+  clear(): void {
+    this.save({ ...DEFAULTS });
   }
 
   private read(): WebPreferences {

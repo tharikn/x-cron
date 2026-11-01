@@ -87,7 +87,7 @@
       <ion-item>
         <ion-toggle
           [ngModel]="notifPrefs().jobAlertsEnabled"
-          (ngModelChange)="toggleJobAlerts($event)"
+          (ngModelChange)="toggleAlert('jobAlertsEnabled', $event)"
           labelPlacement="start"
           justify="space-between"
           [disabled]="!isSignedIn()"
@@ -95,9 +95,52 @@
           {{ 'prefs.jobAlerts' | t }}
         </ion-toggle>
       </ion-item>
+      <ion-item>
+        <ion-toggle
+          [ngModel]="notifPrefs().inAppEnabled ?? true"
+          (ngModelChange)="toggleAlert('inAppEnabled', $event)"
+          labelPlacement="start"
+          justify="space-between"
+          [disabled]="!isSignedIn()"
+        >
+          {{ 'prefs.inAppAlerts' | t }}
+        </ion-toggle>
+      </ion-item>
+      <ion-item>
+        <ion-toggle
+          [ngModel]="notifPrefs().pushAlertsEnabled ?? true"
+          (ngModelChange)="toggleAlert('pushAlertsEnabled', $event)"
+          labelPlacement="start"
+          justify="space-between"
+          [disabled]="!isSignedIn()"
+        >
+          {{ 'prefs.pushAlerts' | t }}
+        </ion-toggle>
+      </ion-item>
+      <ion-item>
+        <ion-toggle
+          [ngModel]="notifPrefs().emailAlertsEnabled ?? true"
+          (ngModelChange)="toggleAlert('emailAlertsEnabled', $event)"
+          labelPlacement="start"
+          justify="space-between"
+          [disabled]="!isSignedIn()"
+        >
+          {{ 'prefs.emailAlerts' | t }}
+        </ion-toggle>
+      </ion-item>
       @if (!isSignedIn()) {
         <ion-item>
           <ion-note>{{ 'prefs.signInForAlerts' | t }}</ion-note>
+        </ion-item>
+      } @else {
+        <ion-item>
+          <ion-note>
+            Push uses your phone/browser notification shade. Allow permission when prompted.
+            Inbox stays on the Notifications tab.
+          </ion-note>
+        </ion-item>
+        <ion-item button detail routerLink="/tabs/notifications">
+          <ion-label>{{ 'notif.inbox' | t }}</ion-label>
         </ion-item>
       }
     </ion-list>

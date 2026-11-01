@@ -1,0 +1,105 @@
+<section class="page">
+  <p class="brand">X Cron <span>Jobs</span></p>
+  <div class="title-row">
+    <h1>Notifications</h1>
+    @if (isSignedIn() && unread() > 0) {
+      <span class="count-pill count-pill--pulse" aria-live="polite">
+        {{ unread() }} new
+      </span>
+    }
+  </div>
+  <p class="lead">
+    In-app job alerts when new roles match your preferences. Push and mail use free stub
+    providers until you connect FCM / SMTP.
+  </p>
+
+  @if (!isSignedIn()) {
+    <div class="gate">
+      <p>Sign in to see your inbox and manage alert channels.</p>
+      <button type="button" class="btn" (click)="goSignIn()">Sign in</button>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <button type="button" class="btn" [disabled]="busy()" (click)="reload()">
+        {{ busy() ? 'Loading…' : 'Refresh' }}
+      </button>
+      <a routerLink="/preferences" class="link">Preferences</a>
+    </div>
+
+    <section class="prefs">
+      <h2>Alert channels</h2>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="prefs().jobAlertsEnabled"
+          (ngModelChange)="toggle('jobAlertsEnabled', $event)"
+        />
+        <span>Job match alerts</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="prefs().inAppEnabled"
+          (ngModelChange)="toggle('inAppEnabled', $event)"
+        />
+        <span>In-app inbox</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="prefs().pushAlertsEnabled"
+          (ngModelChange)="toggle('pushAlertsEnabled', $event)"
+        />
+        <span>Push (stub / FCM)</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="prefs().emailAlertsEnabled"
+          (ngModelChange)="toggle('emailAlertsEnabled', $event)"
+        />
+        <span>Email (stub / SMTP)</span>
+      </label>
+    </section>
+
+    <section class="inbox">
+      <div class="inbox__head">
+        <h2>Inbox</h2>
+        @if (unread() > 0) {
+          <span class="inbox__live">Live · {{ unread() }} unread</span>
+        }
+      </div>
+      @for (item of items(); track item.id; let i = $index) {
+        <article
+          class="card"
+          [class.card--unread]="item.status !== 'read'"
+          [style.--i]="i"
+        >
+          @if (item.status !== 'read') {
+            <span class="card__beam" aria-hidden="true"></span>
+            <span class="card__sheen" aria-hidden="true"></span>
+            <span class="new-badge">New</span>
+          }
+          <div class="card__body">
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.body }}</p>
+            <p class="meta">{{ item.status }} · {{ item.createdAt | date: 'short' }}</p>
+          </div>
+          <div class="card__actions">
+            @if (jobPath(item); as path) {
+              <a class="btn btn--ghost" [routerLink]="path">View role</a>
+            }
+
+            @if (item.status !== 'read') {
+              <button type="button" class="btn btn--glow" (click)="markRead(item.id)">
+                Mark read
+              </button>
+            }
+          </div>
+        </article>
+      } @empty {
+        <p class="empty">No in-app notifications yet. New matching jobs will appear here.</p>
+      }
+    </section>
+  }
+</section>

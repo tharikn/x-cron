@@ -76,6 +76,12 @@ input[type='email']:focus {
   accent-color: #111;
 }
 
+.form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
 button {
   border: 0;
   background: #0a0a0a;
@@ -93,6 +99,16 @@ button {
 button:hover {
   background: #222;
   transform: translateY(-1px);
+}
+
+.btn-clear {
+  background: #fff;
+  color: var(--xcron-ink);
+  border: 1px solid var(--xcron-line);
+}
+
+.btn-clear:hover {
+  background: var(--xcron-wash);
 }
 
 .ok {

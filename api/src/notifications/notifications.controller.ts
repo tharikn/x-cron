@@ -1,5 +1,15 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { CurrentUser, Public } from '../auth/decorators';
+import {
+  Body,
+  Controller,
+  DefaultValuePipe,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
+import { CurrentUser, Public, Roles } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
 import {
   DevSendNotificationDto,
@@ -51,6 +61,21 @@ export class NotificationsController {
   @Post('notifications/:id/read')
   markRead(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.notificationsService.markRead(user, id);
+  }
+
+  /** Trigger history (batch fan-outs). Admin only. */
+  @Roles('admin')
+  @Get('admin/notification-dispatches')
+  listDispatches(
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+  ) {
+    return this.notificationsService.listDispatches(limit);
+  }
+
+  @Roles('admin')
+  @Get('admin/notification-dispatches/:id')
+  getDispatch(@Param('id') id: string) {
+    return this.notificationsService.getDispatch(id);
   }
 
   @Public()
