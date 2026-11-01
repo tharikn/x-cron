@@ -154,6 +154,51 @@
     </form>
   }
 
+  @if (pendingCheckout(); as pay) {
+    <section id="post-payment-checkout" class="pay-panel" aria-label="Post fee payment">
+      <header class="pay-panel__head">
+        <h2>Post fee</h2>
+        <p class="pay-panel__amount">
+          ₹{{ (pay.checkout.amountPaise / 100).toFixed(0) }}
+        </p>
+      </header>
+      <p class="pay-panel__desc">{{ pay.checkout.description }}</p>
+      <p class="pay-panel__mode">
+        Mode: <strong>{{ pay.mode }}</strong>
+      </p>
+
+      @if (pay.checkout.upi; as upi) {
+        <div class="pay-panel__upi">
+          @if (upiQrSrc(pay.checkout); as qr) {
+            <img class="pay-panel__qr" [src]="qr" width="220" height="220" alt="UPI QR" />
+          }
+          <p class="pay-panel__vpa">{{ upi.vpa }}</p>
+          <button type="button" class="btn" (click)="openUpiApp()">Open UPI app</button>
+        </div>
+      }
+
+      <div class="pay-panel__actions">
+        <button
+          type="button"
+          class="btn"
+          [disabled]="confirmingPay()"
+          (click)="confirmCheckoutPayment()"
+        >
+          {{ confirmingPay() ? 'Confirming…' : 'I have paid' }}
+        </button>
+        @if (pay.mode === 'optional') {
+          <button type="button" class="btn btn--ghost" (click)="cancelCheckout()">
+            Skip payment
+          </button>
+        } @else {
+          <button type="button" class="btn btn--ghost" (click)="cancelCheckout()">
+            Cancel (fee unpaid)
+          </button>
+        }
+      </div>
+    </section>
+  }
+
   @if (message()) {
     <p class="ok">
       {{ message() }}
