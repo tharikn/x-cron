@@ -11,7 +11,7 @@ Currency: **INR**. Figures are planning estimates; live spend comes from cloud b
 | Object storage | Uploads / OCR sources | 200 |
 | CDN + static web | SSR assets / SEO | 500 |
 | OCR / LLM | Extraction pages | 2,000 |
-| FCM + email | Alerts | 400 |
+| FCM + email | Alerts (stubs ₹0 now; FCM free tier / SMTP later) | 400 |
 | Payment fees | Unlocks + promotions | 800 |
 | **Total estimate** | | **~8,200** |
 

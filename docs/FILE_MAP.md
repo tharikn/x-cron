@@ -76,11 +76,11 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Path | Purpose |
 | --- | --- |
 | `auth.module.ts` | Global auth module |
-| `auth.controller.ts` | OTP start/verify, Google stub, me, logout; employers routes |
+| `auth.controller.ts` | OTP start/verify, Google, admin login, refresh, me, logout; employers routes |
 | `auth.service.ts` | Auth business logic |
-| `auth.store.ts` | In-memory users, OTP, sessions, employers |
-| `auth.types.ts` | User / role / session types |
-| `auth.guard.ts` | Global JWT-ish bearer guard |
+| `auth.store.ts` | In-memory users, OTP, access+refresh sessions, employers |
+| `auth.types.ts` | User / role / session / AuthTokens types |
+| `auth.guard.ts` | Global Bearer access-token guard |
 | `decorators.ts` | `@Public`, `@Roles`, `@CurrentUser`, `@AccessToken` |
 | `dto/auth.dto.ts` | OTP / employer / Google DTOs |
 
@@ -105,7 +105,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | --- | --- |
 | `ingestion.module.ts` | Bulk import module |
 | `ingestion.controller.ts` | Import-batch CRUD/upload/approve |
-| `ingestion.service.ts` | Parse, dedupe, approve → needs-review jobs |
+| `ingestion.service.ts` | Parse, dedupe, approve → needs-review jobs; `ingestDigestText` for Job Fare |
 | `ingestion.store.ts` | In-memory batches/records |
 | `ingestion.types.ts` | Batch/record types |
 | `dto/ingestion.dto.ts` | Upload/approve DTOs |
@@ -114,6 +114,21 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `parsers/csv.parser.ts` | CSV extractor |
 | `parsers/text.parser.ts` | Pasted WhatsApp/text extractor |
 | `parsers/image-ocr.parser.ts` | Image/PDF OCR **stub** |
+
+#### `api/src/channels/`
+
+| Path | Purpose |
+| --- | --- |
+| `CLAUDE.md` | Agent guide — free Telegram + WA bridge rules |
+| `channels.module.ts` | Job Fare channel pull module |
+| `channels.controller.ts` | `/v1/channels/*` admin + public Telegram webhook |
+| `channels.service.ts` | Inbox, pull digests, schedule ownership |
+| `channels.store.ts` | In-memory sources / messages / pulls |
+| `channels.scheduler.ts` | 1m tick for morning/evening windows |
+| `channels.types.ts` | Domain types + workflow stages |
+| `dto/channels.dto.ts` | Source / manual message / schedule DTOs |
+| `adapters/channel-provider.ts` | Provider interface |
+| `adapters/telegram.adapter.ts` | Free Telegram Bot API (poll/webhook) |
 
 #### `api/src/payments/`
 
@@ -142,14 +157,19 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 
 | Path | Purpose |
 | --- | --- |
-| `notifications.module.ts` | Push + in-app notifications |
-| `notifications.controller.ts` | Devices, prefs, inbox, read, dev dispatch |
-| `notifications.service.ts` | Match prefs → alerts; quiet hours / daily cap |
-| `notifications.store.ts` | Devices, prefs, notification records |
+| `notifications.module.ts` | In-app + push + mail notifications |
+| `notifications.controller.ts` | Devices, prefs, inbox, read, admin dispatch history, dev |
+| `notifications.service.ts` | Subscriber match → fan-out; quiet hours / daily cap |
+| `notifications.store.ts` | Devices, prefs, inbox, dispatch + delivery history |
 | `notifications.types.ts` | Notification domain types |
 | `dto/notifications.dto.ts` | Device/prefs/dev DTOs |
-| `providers/push-provider.ts` | Push interface |
-| `providers/fcm.stub.ts` | FCM stub sender |
+| `providers/push-provider.ts` | Push Strategy interface |
+| `providers/push-provider.factory.ts` | `PUSH_PROVIDER` → stub/fcm |
+| `providers/fcm.stub.ts` | Zero-cost FCM stub sender |
+| `providers/mail-provider.ts` | Mail Strategy interface |
+| `providers/mail-provider.factory.ts` | `MAIL_PROVIDER` → stub/console/smtp |
+| `providers/mail.stub.ts` | Zero-cost mail logger |
+| `CLAUDE.md` | Agent guide for notification adapters |
 
 #### `api/src/ads/`
 
@@ -276,6 +296,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `services/jobs.service.ts` | Search/post/moderation API client |
 | `services/preferences.service.ts` | Local + API prefs sync/claim |
 | `services/ingestion.service.ts` | Bulk import API client |
+| `services/channels.service.ts` | Job Fare channel pull API client |
 | `services/payments.service.ts` | Unlock + subscription client |
 | `services/notifications.service.ts` | Device + inbox client |
 | `services/ads.service.ts` | Ad slots + promote packages |
@@ -289,8 +310,10 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `job-detail/*` | Detail, unlock, save, share, report, footer ad |
 | `post-job/*` | Quick/paste post + promote packages |
 | `import-batch/*` | CSV / camera / clipboard import UI |
+| `job-fare/*` | Admin Job Fare channel pull workflow (pipeline + schedule) |
 | `preferences/*` | Job prefs + notification toggles |
-| `account/*` | OTP, employer, subscription, feed, saved, inbox, moderation, delete |
+| `notifications/*` | Inbox + channel toggles (tab) |
+| `account/*` | OTP, employer, subscription, feed, saved, moderation, delete |
 
 #### `mobile/src/app/shared/`
 
@@ -370,6 +393,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `pages/home/*` | SEO home + search + ad rail |
 | `pages/job-detail/*` | Public job page |
 | `pages/location/*` | Location landing page |
+| `pages/notifications/*` | User inbox + channel toggles |
+| `pages/admin-notifications/*` | Admin dispatch / delivery history |
 
 ---
 
@@ -381,6 +406,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Change public job shape | `api/src/jobs/jobs.mapper.ts` (+ mobile/web models) |
 | Touch unlock / subscribe | `api/src/payments/` |
 | Touch bulk import / OCR | `api/src/ingestion/` |
+| Touch Job Fare / Telegram pull | `api/src/channels/` · `mobile/.../job-fare/` · `docs/CHANNEL_PULL.md` |
 | Change mobile screen | `mobile/src/app/pages/<name>/` |
 | Change SEO web page | `web/src/app/pages/<name>/` |
 | Update roadmap / release notes | `docs/` |

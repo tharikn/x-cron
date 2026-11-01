@@ -4,7 +4,7 @@ Engineering notes for everything built against PRD v1.0 (roadmap R0–R5 + MVP+)
 **Audience:** developers picking up the monorepo.  
 **Release status:** see [Is this ready for release?](#is-this-ready-for-release) at the bottom.
 
-Related docs: [ROADMAP.md](./ROADMAP.md) · [FILE_MAP.md](./FILE_MAP.md) · [MVP_COMPLETE.md](./MVP_COMPLETE.md) · [COST_MODEL.md](./COST_MODEL.md) · [MOBILE_MVP.md](./MOBILE_MVP.md)  
+Related docs: [ROADMAP.md](./ROADMAP.md) · [FILE_MAP.md](./FILE_MAP.md) · [MVP_COMPLETE.md](./MVP_COMPLETE.md) · [COST_MODEL.md](./COST_MODEL.md) · [MOBILE_MVP.md](./MOBILE_MVP.md) · [CHANNEL_PULL.md](./CHANNEL_PULL.md)  
 
 Agent guides: [../CLAUDE.md](../CLAUDE.md) · [../api/CLAUDE.md](../api/CLAUDE.md) · [../mobile/CLAUDE.md](../mobile/CLAUDE.md) · [../web/CLAUDE.md](../web/CLAUDE.md)
 
@@ -56,8 +56,10 @@ Node **22.22.3+** required.
 ### R4 — Preferences & notifications
 - Guest prefs by `deviceId`; account `GET/PUT/DELETE /v1/me/preferences` + claim
 - Device registration `POST /v1/devices` (stub FCM token)
-- Notification prefs, quiet hours, daily cap
-- In-app inbox; job publish → match alerts via FCM stub
+- Notification prefs (in-app / push / mail), quiet hours, daily cap
+- In-app inbox; job publish → subscriber fan-out via push + mail stubs (₹0)
+- Dispatch + delivery history: `GET /v1/admin/notification-dispatches`
+- Pluggable: `PUSH_PROVIDER=stub|fcm`, `MAIL_PROVIDER=stub|console|smtp`
 - Mobile: hydrate/claim prefs, alert toggle, Account inbox
 
 ### R5 — Ads, promotions, ops
@@ -74,6 +76,13 @@ Node **22.22.3+** required.
 - Quota checks on import batches and contact unlocks
 - Prisma models extended: `SavedJob`, `Subscription` (schema ready; runtime still memory)
 
+### Channel pull (Job Fare) — free
+- Telegram Bot API adapter (long-poll default; optional webhook) — ₹0
+- WhatsApp **bridge** via admin paste (no unofficial WA clients)
+- Morning/evening schedule + **Pull now** → `IngestionService.ingestDigestText`
+- Admin workflow UI: mobile `/tabs/job-fare` (pipeline + inbox + sources + history)
+- Design: [CHANNEL_PULL.md](./CHANNEL_PULL.md) · agent guide: [../api/src/channels/CLAUDE.md](../api/src/channels/CLAUDE.md)
+
 ---
 
 ## API modules (`api/src/`)
@@ -81,8 +90,9 @@ Node **22.22.3+** required.
 | Module | Purpose |
 | --- | --- |
 | `auth/` | OTP, sessions, employers, roles/guards |
-| `jobs/` | Search, CRUD-ish, moderation; memory store + seed |
+| `jobs/` | Search, CRUD-ish, moderation; memory or Prisma store + seed |
 | `ingestion/` | Import batches + parsers |
+| `channels/` | Job Fare inbox, Telegram/WA-bridge, scheduled digest pulls |
 | `payments/` | Unlock orders, subscriptions, Razorpay stub, entitlements |
 | `preferences/` | Device + account preferences |
 | `notifications/` | Devices, FCM stub, in-app notifications |
@@ -95,7 +105,7 @@ Node **22.22.3+** required.
 
 Global: `AuthGuard` via `APP_GUARD`; mark public routes with `@Public()`.
 
-Default data store: **in-memory** (`JOBS_STORE=memory`). Prisma client/schema exist under `api/prisma/` but are **not** the live path until wired.
+Default in code if unset: **in-memory**. Set `JOBS_STORE=prisma` (local `.env` does) to persist jobs + import batches in Postgres (`api/prisma/`). Auth/payments/prefs remain in-memory.
 
 ---
 
@@ -104,7 +114,7 @@ Default data store: **in-memory** (`JOBS_STORE=memory`). Prisma client/schema ex
 | Var | Default / notes |
 | --- | --- |
 | `PORT` | `3000` |
-| `JOBS_STORE` | `memory` (Prisma switch not live yet) |
+| `JOBS_STORE` | `prisma` (jobs + bulk import) or `memory` |
 | `DATABASE_URL` | Present for future Postgres |
 | `CORS_ORIGINS` | Local mobile/web origins |
 | `UNLOCK_PRICE_PAISE` | `500` |
@@ -113,6 +123,8 @@ Default data store: **in-memory** (`JOBS_STORE=memory`). Prisma client/schema ex
 | `PAYMENT_MODE` | `stub` → use `/payments/dev/confirm` |
 | `RAZORPAY_WEBHOOK_SECRET` | `dev_secret` for HMAC tests |
 | `MONTHLY_BUDGET_INR` / quota caps | See ops + COST_MODEL |
+| `TELEGRAM_BOT_TOKEN` | Optional free Job Fare bot |
+| `CHANNEL_SCHEDULE_ENABLED` | `1` morning/evening watcher |
 
 ---
 
@@ -131,7 +143,7 @@ cd mobile && npm install && npm start
 cd web && npm install && npm start   # :4201
 # or: npm run build && npm run serve:ssr  # :4000
 
-# Optional Postgres (schema only until JOBS_STORE=prisma is implemented)
+# Postgres for JOBS_STORE=prisma (jobs + bulk import)
 docker compose up -d
 ```
 
@@ -151,7 +163,7 @@ docker compose up -d
 | --- | --- | --- |
 | Job/auth/payment storage | Memory maps | Prisma + Postgres |
 | Razorpay | Stub order + HMAC webhook | Live keys, checkout SDK, settlements |
-| FCM | Stub provider + web fake token | Firebase + Capacitor Push |
+| FCM / mail | Stub providers + web fake token; dispatch history | Firebase + Capacitor Push; real SMTP/Resend |
 | OCR / LLM | Stub parser | Real provider + workers/queue |
 | Contact vault | Plain fields in memory | Encryption at rest, KMS |
 | Google sign-in | Explicit stub response | Google Identity |
@@ -183,7 +195,7 @@ docker compose up -d
 | --- | --- |
 | Demoable local MVP covering PRD roadmap slices? | **Yes** |
 | End-to-end product story (guest → seeker → employer → admin)? | **Yes** (with stubs) |
-| Production data durability? | **No** (memory store resets on restart) |
+| Production data durability? | **Jobs/imports yes** with `JOBS_STORE=prisma`; auth/payments/prefs still memory |
 | Real payments / push / OCR? | **No** (stubs) |
 | PRD AC-20 Play Store + billing review? | **No** |
 | PRD AC-23 backups, load tests, security gates? | **No** |

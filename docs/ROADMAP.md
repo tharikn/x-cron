@@ -11,6 +11,7 @@
 | 6 | R4 | Synced preferences, FCM notifications | Done |
 | 7 | R5 | Ads, promotions, scale/cost tuning | Done |
 | — | MVP+ | Subscriptions, saved jobs, feed, account delete, quotas | **Done** |
+| — | Channel pull | Free Telegram Bot + WhatsApp bridge → Job Fare admin workflow | **Done (MVP)** |
 
 ## Step 7 acceptance
 
@@ -20,3 +21,12 @@
 - [x] Admin placement/creative management
 - [x] Cost model + quotas + scale hints (`/v1/ops/*`, `docs/COST_MODEL.md`)
 - [x] Mobile discover/detail ad slots; Post → promote; web home ad rail
+
+## Channel pull acceptance (MVP)
+
+- [x] Telegram Bot API adapter (free long-poll / optional webhook) — no paid scrapers
+- [x] WhatsApp **manual bridge** only (paste into Job Fare inbox)
+- [x] Morning/evening configurable schedule (`Asia/Kolkata`)
+- [x] Digest pull → existing import-batch review
+- [x] Admin workflow UI (`/tabs/job-fare`) with pipeline tracking
+- [x] Design doc: [CHANNEL_PULL.md](./CHANNEL_PULL.md)

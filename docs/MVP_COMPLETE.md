@@ -21,7 +21,7 @@ This marks the **product MVP slice** as complete for local demo and iteration. I
 
 ## Still deferred (post-MVP / production)
 
-- Live Postgres runtime (`JOBS_STORE=prisma`) instead of memory
+- Persist auth/payments/prefs/ads (jobs + bulk import already support `JOBS_STORE=prisma`)
 - Real Razorpay keys, Firebase FCM, production OCR/LLM
 - Google Play packaging + billing policy review (AC-20)
 - Backups, load tests, malware scan, encrypted vault at rest (AC-23)

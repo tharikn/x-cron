@@ -60,8 +60,12 @@ When changing UI, update **both** clients unless the change is package-specific 
 ## Shared rules for agents
 
 - Prefer **small, focused changes**; do not drive-by refactor or fix unrelated lint.
+- **RBAC:** API `AuthGuard` + `RolesGuard` are authoritative (`@Roles` / `@Public`). Clients hide admin nav and block routes only after `GET /v1/auth/me` confirms the session — never trust localStorage roles alone; clear on 401.
 - Contacts are **private by default** — never put phone/email/WhatsApp in public DTOs, HTML, SEO, or caches.
-- Payments / FCM are largely **stubs** (`PAYMENT_MODE=stub`). Image OCR uses free local Tesseract (`OCR_PROVIDER=tesseract`; `stub` to disable). Do not assume live Razorpay/Firebase.
+- Payments use Strategy/Adapter (`PAYMENT_GATEWAY=stub|upi|razorpay`). Free path: stub or UPI VPA/QR (`upi` + `PAYMENT_UPI_VPA`). Follow [`.cursor/skills/xcron-payments/SKILL.md`](.cursor/skills/xcron-payments/SKILL.md). Notifications use the same adapter pattern (`PUSH_PROVIDER=stub|fcm`, `MAIL_PROVIDER=stub|console|smtp`) — job publish fans out in-app + push + mail with dispatch/delivery history; stubs are ₹0. Image OCR uses free local Tesseract (`OCR_PROVIDER=tesseract`; `stub` to disable). Do not assume live Razorpay/Firebase.
+- Optional AI job-text enrich is **off by default** (`AI_ENRICH_ENABLED=0`). Prefer free Groq or local Ollama — see `api/src/ai/CLAUDE.md`. Never invent contacts in public descriptions.
+- Job Fare channel pull is **free-first**: Telegram Bot API + WhatsApp paste bridge only — never unofficial WA scrapers. See [docs/CHANNEL_PULL.md](docs/CHANNEL_PULL.md) · [api/src/channels/CLAUDE.md](api/src/channels/CLAUDE.md).
+- When you change a package or feature folder, update that package’s `CLAUDE.md` (and add a folder `CLAUDE.md` for new modules).
 - Default data store is **in-memory**; Prisma schema exists but is not the live path yet.
 - Node **22.22.3+**. Install API with `npm install --legacy-peer-deps` if peers complain.
 - After substantive API/mobile/web work: `npm run build` in that package.
@@ -73,6 +77,7 @@ When changing UI, update **both** clients unless the change is package-specific 
 - [docs/FILE_MAP.md](docs/FILE_MAP.md) — folder-wise file inventory  
 - [docs/ROADMAP.md](docs/ROADMAP.md) — R0–R5 + MVP+  
 - [docs/MVP_COMPLETE.md](docs/MVP_COMPLETE.md) — MVP vs production gaps  
+- [docs/CHANNEL_PULL.md](docs/CHANNEL_PULL.md) — Job Fare Telegram/WA bridge design  
 
 ## Release reality
 

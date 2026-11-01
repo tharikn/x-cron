@@ -18,23 +18,30 @@ npm run prisma:validate
 npm run prisma:generate
 ```
 
-Optional Postgres: from repo root `docker compose up -d`, then `npm run prisma:migrate` (DDL in schema `xcron`, not `public`; **runtime still memory** unless `JOBS_STORE=prisma`).
+Optional Postgres: from repo root `docker compose up -d`, then `npm run prisma:migrate` (DDL in schema `xcron`, not `public`). Set `JOBS_STORE=prisma` to persist jobs + bulk import (auth/payments/prefs stay memory).
 
 ## Architecture
 
-- NestJS 11 + `ConfigModule` + global `ValidationPipe` + global `AuthGuard`
-- Mark public routes `@Public()`; role routes `@Roles('seeker'|'employer'|'admin')`
-- Feature modules under `src/`: `auth`, `jobs`, `ingestion`, `payments`, `preferences`, `notifications`, `ads`, `ops`, `seeker`, `account`, `health`
+- NestJS 11 + `ConfigModule` + global `ValidationPipe` + global `AuthGuard` + `RolesGuard`
+- Mark public routes `@Public()`; role routes `@Roles('seeker'|'employer'|'admin')` — `@Public()` never bypasses `@Roles()`
+- Clients must validate sessions via `GET /v1/auth/me` on boot; on 401 try `POST /v1/auth/refresh` once before clearing (stale tokens after API restart still clear)
+- Feature modules under `src/`: `ai`, `auth`, `jobs`, `ingestion`, `channels`, `payments`, `preferences`, `notifications`, `ads`, `ops`, `seeker`, `account`, `health`
+- Job Fare channel pull (`src/channels/`, see [src/channels/CLAUDE.md](src/channels/CLAUDE.md)): free Telegram Bot + WhatsApp paste bridge → digest → ingestion; design [../docs/CHANNEL_PULL.md](../docs/CHANNEL_PULL.md)
+- Optional job-text AI enrich (`src/ai/`, see [src/ai/CLAUDE.md](src/ai/CLAUDE.md)): Telegram/OCR noise strip, field mapping (`salaryText` / `vacancies` / `contactWebsite` / language), bullet-line `description`, chat `instruction` on import/post/moderation when `AI_ENRICH_ENABLED=1`; channel digests use `splitJobs` so multi-recruitment Telegram posts become separate import rows
+- Admin moderation edit: `PATCH /v1/admin/jobs/:id` (Blog Approval desk)
 - Typical pattern per feature: `*.module.ts`, `*.controller.ts`, `*.service.ts`, `*.store.ts` (in-memory), `*.types.ts`, `dto/`
 - **Public job DTOs** via `jobs/jobs.mapper.ts` — never serialize `privateContact`
 - Contact reveal: `GET /v1/jobs/:id/contact` requires auth + entitlement; `Cache-Control: no-store`
-- Payments: Razorpay **stub**; webhook HMAC; stub confirm `POST /v1/payments/dev/confirm` when `PAYMENT_MODE=stub`
+- Payments: Strategy/Adapter (`PAYMENT_GATEWAY=stub|upi|razorpay`); SiteConfig `paymentsEnabled` + `postJobPaymentMode`; history + CSV/PDF admin export; hardened `POST /v1/payments/dev/confirm` (blocked in production). Skill: [../.cursor/skills/xcron-payments/SKILL.md](../.cursor/skills/xcron-payments/SKILL.md) · [src/payments/CLAUDE.md](src/payments/CLAUDE.md)
+- Notifications: Strategy/Adapter push (`PUSH_PROVIDER=stub|fcm`) + mail (`MAIL_PROVIDER=stub|console|smtp`); job publish → subscriber fan-out with dispatch/delivery history. See [src/notifications/CLAUDE.md](src/notifications/CLAUDE.md)
 - Subscriptions grant `subscription_contact` (unlimited unlocks while valid)
-- Prisma: `prisma/schema.prisma` + versioned `prisma/migrations/*` (deploy with `npm run prisma:migrate`) — do not assume DB persistence in handlers today
+- Prisma: `prisma/schema.prisma` + versioned `prisma/migrations/*` (deploy with `npm run prisma:migrate`). Jobs/ingestion use Prisma when `JOBS_STORE=prisma`.
 
 ## Important env (`../api/.env` / `.env.example`)
 
-`PORT`, `JOBS_STORE=memory`, `DATABASE_URL`, `CORS_ORIGINS`, `UNLOCK_PRICE_PAISE`, `ADMIN_IDENTITIES`, `PAYMENT_MODE`, `RAZORPAY_WEBHOOK_SECRET`, quota/budget vars for `ops`
+`PORT`, `JOBS_STORE=memory|prisma`, `DATABASE_URL`, `CORS_ORIGINS`, `ADMIN_IDENTITIES`, `AUTH_ACCESS_TTL_MINUTES` (Bearer access TTL; default 15), `PAYMENT_GATEWAY` / `PAYMENT_MODE`, `PAYMENT_UPI_VPA` / `PAYMENT_UPI_PAYEE_NAME` / `PAYMENT_UPI_ALLOW_DEV_CONFIRM`, `RAZORPAY_WEBHOOK_SECRET`, `PUSH_PROVIDER` / `MAIL_PROVIDER` / `NOTIFICATION_FANOUT_BATCH`, quota/budget vars for `ops`, `OCR_PROVIDER`, `AI_ENRICH_ENABLED` / `AI_ENRICH_PROVIDER` / `AI_ENRICH_API_KEY` (off by default; free Groq or local Ollama), `TELEGRAM_BOT_TOKEN` / `TELEGRAM_MODE` / `CHANNEL_SCHEDULE_ENABLED` / `CHANNEL_PULL_OWNER_USER_ID` (Job Fare; optional). Unlock price + refresh TTLs live in Prisma `SiteConfig` (Settings UI), not env.
+
+Site config (`src/site/`, see [src/site/CLAUDE.md](src/site/CLAUDE.md)): Prisma `SiteConfig` keys `footer` / `commerce` / `auth` (Settings UI persists; seed only if missing). Auth `sessionTtlDays` = refresh token TTL; OTP TTL separate. See [src/auth/CLAUDE.md](src/auth/CLAUDE.md).
 
 Admin demo identity: `admin@xcron.local` (dev OTP `123456`).
 
@@ -43,7 +50,7 @@ Admin demo identity: `admin@xcron.local` (dev OTP `123456`).
 - New endpoint → DTO with `class-validator`, wire module in `app.module.ts` if new feature
 - Job publish → may trigger `NotificationsService.onJobPublished`; search may use `AdsService.activeBoosts()`
 - Quotas: import batches + contact unlocks consult `OpsService` where wired
-- Account wipe: `account/` clears payments/prefs/seeker + auth user
+- Account wipe: `account/` clears payments/prefs/seeker/notifications + auth user
 - Prefer extending existing modules over new cross-cutting frameworks
 - Do not commit real secrets; keep `.env.example` updated when adding env keys
 
@@ -51,9 +58,11 @@ Admin demo identity: `admin@xcron.local` (dev OTP `123456`).
 
 ```text
 GET  /v1/health
-POST /v1/auth/otp/start → verify (devCode)
+POST /v1/auth/otp/start → verify (devCode) → refreshToken
+POST /v1/auth/refresh
 GET  /v1/jobs
 POST /v1/jobs/:id/contact-orders → /payments/dev/confirm → GET contact
 POST /v1/subscriptions/checkout → confirm
 GET  /v1/feed · POST /v1/me/saved-jobs/:id · DELETE /v1/me
+GET  /v1/channels/workflow · POST /v1/channels/messages/manual · POST /v1/channels/pull
 ```
