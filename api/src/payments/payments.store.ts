@@ -3,10 +3,14 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   AuditEvent,
   Entitlement,
+  PaymentHistoryEvent,
+  PaymentHistoryStatus,
   PaymentOrder,
   PaymentStatus,
   SubscriptionPlan,
 } from './payments.types';
+
+const HISTORY_CAP = 5000;
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
@@ -33,6 +37,8 @@ export class PaymentsStore {
   private readonly ordersByGateway = new Map<string, string>();
   private readonly entitlements = new Map<string, Entitlement>();
   private readonly audit: AuditEvent[] = [];
+  private readonly history: PaymentHistoryEvent[] = [];
+  private readonly confirmAttempts = new Map<string, number>();
   private readonly processedWebhookEvents = new Set<string>();
 
   listPlans(): SubscriptionPlan[] {
@@ -230,5 +236,72 @@ export class PaymentsStore {
     };
     this.audit.push(record);
     return record;
+  }
+
+  addHistory(
+    event: Omit<PaymentHistoryEvent, 'id' | 'createdAt'> & {
+      status: PaymentHistoryStatus;
+    },
+  ): PaymentHistoryEvent {
+    const record: PaymentHistoryEvent = {
+      id: `ph_${uuidv4().slice(0, 10)}`,
+      createdAt: new Date().toISOString(),
+      ...event,
+    };
+    this.history.unshift(record);
+    if (this.history.length > HISTORY_CAP) {
+      this.history.length = HISTORY_CAP;
+    }
+    return record;
+  }
+
+  listHistory(filter?: {
+    status?: PaymentHistoryStatus;
+    orderId?: string;
+    userId?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+  }): PaymentHistoryEvent[] {
+    let rows = this.history;
+    if (filter?.status) {
+      rows = rows.filter((r) => r.status === filter.status);
+    }
+    if (filter?.orderId) {
+      rows = rows.filter((r) => r.orderId === filter.orderId);
+    }
+    if (filter?.userId) {
+      rows = rows.filter((r) => r.userId === filter.userId);
+    }
+    if (filter?.from) {
+      const from = filter.from;
+      rows = rows.filter((r) => r.createdAt >= from);
+    }
+    if (filter?.to) {
+      const to = filter.to;
+      rows = rows.filter((r) => r.createdAt <= to);
+    }
+    const limit = Math.min(Math.max(filter?.limit ?? 500, 1), 5000);
+    return rows.slice(0, limit);
+  }
+
+  bumpConfirmAttempt(orderId: string): number {
+    const next = (this.confirmAttempts.get(orderId) ?? 0) + 1;
+    this.confirmAttempts.set(orderId, next);
+    return next;
+  }
+
+  getConfirmAttempts(orderId: string): number {
+    return this.confirmAttempts.get(orderId) ?? 0;
+  }
+
+  clearConfirmAttempts(orderId: string): void {
+    this.confirmAttempts.delete(orderId);
+  }
+
+  listOrders(): PaymentOrder[] {
+    return [...this.orders.values()].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   }
 }

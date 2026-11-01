@@ -79,20 +79,26 @@ export class AccountPage implements OnInit {
       modeParam === 'admin' ||
       returnUrl.startsWith('/tabs/post') ||
       returnUrl.startsWith('/tabs/ads') ||
-      returnUrl.startsWith('/tabs/import');
+      returnUrl.startsWith('/tabs/import') ||
+      returnUrl.startsWith('/tabs/job-fare');
     return wantsAdmin && !this.isAdmin();
   });
 
   selectedPlanId = 'seeker_weekly';
 
   async ngOnInit(): Promise<void> {
-    await this.auth.refreshMe();
-    if (this.isSignedIn()) {
+    await this.auth.ensureSession();
+    if (this.isSignedIn() && !this.needsAdminLogin()) {
       await this.afterSignIn();
       await this.redirectIfNeeded();
+      return;
     }
-    if (this.needsAdminLogin()) {
+    if (this.needsAdminLogin() && !this.isAdmin()) {
+      // Keep current session visible; prompt admin password only when needed.
       await this.signInAsAdmin();
+    } else if (this.isSignedIn()) {
+      await this.afterSignIn();
+      await this.redirectIfNeeded();
     }
   }
 
@@ -280,7 +286,11 @@ export class AccountPage implements OnInit {
       await this.preferences.hydrate();
       await this.notifications.registerDevice();
       await this.notifications.loadPrefs();
-      await this.notifications.refreshInbox();
+      await this.notifications.refreshInbox({ announce: false });
+      if (this.notifications.prefs().pushAlertsEnabled !== false) {
+        await this.notifications.ensurePushPermission();
+      }
+      this.notifications.startPolling();
       this.plans.set(await this.payments.listSubscriptionPlans());
       const entitlements = await this.payments.listEntitlements();
       this.subscriptionLabel.set(

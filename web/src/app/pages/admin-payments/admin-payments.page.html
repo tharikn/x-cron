@@ -1,0 +1,85 @@
+<section class="page">
+  <p class="brand">X Cron <span>Jobs</span></p>
+  <h1>Payment history</h1>
+  <p class="lead">
+    Orders, confirm attempts, failures, and paid events. Export opens in Excel (CSV) or PDF.
+  </p>
+
+  <div class="toolbar">
+    <label>
+      <span>Status</span>
+      <select [(ngModel)]="statusFilter" name="statusFilter" (change)="reload()">
+        <option value="">All</option>
+        <option value="created">created</option>
+        <option value="confirm_attempt">confirm_attempt</option>
+        <option value="confirm_failed">confirm_failed</option>
+        <option value="paid">paid</option>
+        <option value="failed">failed</option>
+        <option value="free_grant">free_grant</option>
+      </select>
+    </label>
+    <button type="button" class="btn" [disabled]="busy()" (click)="reload()">
+      {{ busy() ? 'Loading…' : 'Refresh' }}
+    </button>
+    <button type="button" class="btn btn--ghost" (click)="export('csv')">
+      Export Excel (CSV)
+    </button>
+    <button type="button" class="btn btn--ghost" (click)="export('pdf')">
+      Export PDF
+    </button>
+    <a routerLink="/settings" class="link">Commerce settings</a>
+  </div>
+
+  @if (error()) {
+    <p class="err">{{ error() }}</p>
+  }
+
+  <p class="meta">{{ total() }} event(s)</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Status</th>
+          <th>Reason</th>
+          <th>Order</th>
+          <th>User</th>
+          <th>Job</th>
+          <th>Product</th>
+          <th>Gateway</th>
+          <th>Amount</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr [class.row--fail]="row.status === 'confirm_failed' || row.status === 'failed'">
+            <td>{{ row.createdAt | date: 'medium' }}</td>
+            <td>
+              <code>{{ row.status }}</code>
+            </td>
+            <td>{{ row.reason || '—' }}</td>
+            <td>
+              <code>{{ row.orderId || '—' }}</code>
+            </td>
+            <td>
+              <code>{{ row.userId || '—' }}</code>
+            </td>
+            <td>
+              <code>{{ row.jobId || '—' }}</code>
+            </td>
+            <td>{{ row.product || '—' }}</td>
+            <td>{{ row.gateway || '—' }}</td>
+            <td>{{ formatInr(row.amountPaise) }}</td>
+            <td>{{ row.ip || '—' }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="10">No payment events yet.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

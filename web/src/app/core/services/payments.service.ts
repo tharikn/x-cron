@@ -4,19 +4,29 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
+export interface UpiCheckoutDto {
+  vpa: string;
+  payeeName: string;
+  intentUri: string;
+  qrPayload: string;
+}
+
+export interface CheckoutDto {
+  gateway: string;
+  keyId: string | null;
+  gatewayOrderId: string;
+  amountPaise: number;
+  currency: 'INR';
+  checkoutMode: 'stub' | 'upi' | 'razorpay' | string;
+  description: string;
+  upi: UpiCheckoutDto | null;
+}
+
 export interface ContactOrderResponse {
   alreadyEntitled: boolean;
   entitlement: EntitlementDto | null;
   order: PaymentOrderDto | null;
-  checkout: {
-    gateway: 'razorpay';
-    keyId: string;
-    gatewayOrderId: string;
-    amountPaise: number;
-    currency: 'INR';
-    checkoutMode: 'stub' | 'razorpay';
-    description: string;
-  } | null;
+  checkout: CheckoutDto | null;
 }
 
 export interface PaymentOrderDto {
@@ -89,4 +99,73 @@ export class PaymentsService {
       ),
     );
   }
+
+  createPostJobOrder(jobId: string): Promise<{
+    order: PaymentOrderDto;
+    checkout: CheckoutDto;
+    mode: string;
+  }> {
+    return firstValueFrom(
+      this.http.post<{
+        order: PaymentOrderDto;
+        checkout: CheckoutDto;
+        mode: string;
+      }>(`${environment.apiUrl}/jobs/${jobId}/post-orders`, {}, {
+        headers: this.auth.authHeaders(),
+      }),
+    );
+  }
+
+  listAdminHistory(params: {
+    status?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+  } = {}): Promise<{
+    items: PaymentHistoryRow[];
+    orders: PaymentOrderDto[];
+    total: number;
+  }> {
+    const q = new URLSearchParams();
+    if (params.status) q.set('status', params.status);
+    if (params.from) q.set('from', params.from);
+    if (params.to) q.set('to', params.to);
+    if (params.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return firstValueFrom(
+      this.http.get<{
+        items: PaymentHistoryRow[];
+        orders: PaymentOrderDto[];
+        total: number;
+      }>(
+        `${environment.apiUrl}/admin/payments/history${qs ? `?${qs}` : ''}`,
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+  }
+
+  exportHistoryUrl(format: 'csv' | 'pdf', params: { status?: string } = {}): string {
+    const q = new URLSearchParams();
+    if (params.status) q.set('status', params.status);
+    const qs = q.toString();
+    return `${environment.apiUrl}/admin/payments/history/export.${format}${qs ? `?${qs}` : ''}`;
+  }
+}
+
+export interface PaymentHistoryRow {
+  id: string;
+  createdAt: string;
+  status: string;
+  reason?: string;
+  orderId?: string;
+  userId?: string;
+  actorId?: string;
+  jobId?: string;
+  product?: string;
+  gateway?: string;
+  gatewayOrderId?: string;
+  amountPaise?: number;
+  currency?: string;
+  ip?: string;
+  userAgent?: string;
 }

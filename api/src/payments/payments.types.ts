@@ -9,14 +9,64 @@ export type EntitlementStatus = 'active' | 'expired' | 'revoked' | 'refunded';
 
 export type EntitlementScope = 'job_contact' | 'subscription_contact';
 
-export type PaymentProduct = 'job_contact_unlock' | 'subscription';
+export type PaymentProduct =
+  | 'job_contact_unlock'
+  | 'subscription'
+  | 'job_post';
+
+/** Structured payment history row for admin table / Excel / PDF export. */
+export type PaymentHistoryStatus =
+  | 'created'
+  | 'confirm_attempt'
+  | 'confirm_failed'
+  | 'paid'
+  | 'failed'
+  | 'cancelled'
+  | 'webhook_rejected'
+  | 'free_grant';
+
+export interface PaymentHistoryEvent {
+  id: string;
+  createdAt: string;
+  status: PaymentHistoryStatus;
+  reason?: string;
+  orderId?: string;
+  userId?: string;
+  actorId?: string;
+  jobId?: string;
+  planId?: string;
+  product?: PaymentProduct;
+  gateway?: PaymentGatewayId | string;
+  gatewayOrderId?: string;
+  gatewayPaymentId?: string;
+  amountPaise?: number;
+  currency?: 'INR';
+  ip?: string;
+  userAgent?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/** Active + planned gateways. Extend when adding an adapter. */
+export type PaymentGatewayId = 'stub' | 'upi' | 'razorpay' | 'cashfree' | 'phonepe';
+
+export type CheckoutMode = 'stub' | 'upi' | 'razorpay' | 'cashfree' | 'phonepe';
+
+export interface UpiCheckoutPayload {
+  /** Merchant UPI ID (VPA) */
+  vpa: string;
+  payeeName: string;
+  /** NPCI intent — open in UPI apps */
+  intentUri: string;
+  /** Same as intentUri; client encodes QR locally (free) */
+  qrPayload: string;
+}
 
 export interface PaymentOrder {
   id: string;
   userId: string;
   jobId?: string;
   planId?: string;
-  gateway: 'razorpay';
+  gateway: PaymentGatewayId;
   gatewayOrderId: string;
   gatewayPaymentId?: string;
   amountPaise: number;
@@ -55,8 +105,11 @@ export interface CreateGatewayOrderResult {
   gatewayOrderId: string;
   amountPaise: number;
   currency: 'INR';
-  keyId: string;
-  checkoutMode: 'stub' | 'razorpay';
+  checkoutMode: CheckoutMode;
+  /** Hosted checkout PSPs (e.g. Razorpay key id) */
+  keyId?: string;
+  /** Present when checkoutMode is `upi` (QR + VPA) */
+  upi?: UpiCheckoutPayload;
 }
 
 export interface GatewayWebhookPayload {

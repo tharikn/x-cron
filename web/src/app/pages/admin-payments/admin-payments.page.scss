@@ -1,0 +1,137 @@
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.brand {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: 1.4rem;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+}
+
+.brand span {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+  margin-left: 0.35rem;
+  font-family: var(--xcron-font-body);
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0.4rem 0 0.35rem;
+  font-family: var(--xcron-font-display);
+  letter-spacing: -0.04em;
+}
+
+.lead {
+  color: var(--xcron-muted);
+  margin: 0 0 1.25rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.toolbar label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.toolbar select {
+  min-width: 10rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--xcron-line-strong);
+  border-radius: var(--xcron-radius-sm);
+  background: #fff;
+}
+
+.btn {
+  border: 0;
+  border-radius: var(--xcron-radius-sm);
+  padding: 0.55rem 0.9rem;
+  background: #0a0a0a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn--ghost {
+  background: #fff;
+  color: var(--xcron-ink);
+  border: 1px solid var(--xcron-line-strong);
+}
+
+.link {
+  align-self: center;
+  color: var(--xcron-ink);
+  font-weight: 600;
+}
+
+.meta {
+  margin: 0 0 0.5rem;
+  color: var(--xcron-muted);
+  font-size: 0.85rem;
+}
+
+.err {
+  color: #111;
+  background: #eee;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--xcron-radius-sm);
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  background: #fff;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--xcron-line);
+  white-space: nowrap;
+}
+
+th {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+  background: var(--xcron-wash);
+}
+
+.row--fail {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+code {
+  font-size: 0.78rem;
+}
+
+.gate {
+  padding: 1.25rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  background: var(--xcron-wash);
+}

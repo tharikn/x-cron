@@ -4,30 +4,31 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   CreateGatewayOrderResult,
   GatewayWebhookPayload,
+  PaymentGatewayId,
 } from '../payments.types';
-import { PaymentProvider } from './payment-provider';
+import {
+  CreatePaymentOrderInput,
+  PaymentProvider,
+} from './payment-provider';
 
 /**
  * Razorpay adapter stub.
  * Real SDK/keys can replace this later; webhook HMAC shape matches Razorpay docs.
  */
 export class RazorpayStubProvider implements PaymentProvider {
-  readonly name = 'razorpay' as const;
+  readonly name: PaymentGatewayId;
 
   constructor(
     private readonly keyId = process.env.RAZORPAY_KEY_ID ?? 'rzp_test_stub',
     private readonly webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET ?? 'dev_secret',
-    private readonly mode: 'stub' | 'razorpay' = (process.env.PAYMENT_MODE as
-      | 'stub'
-      | 'razorpay') || 'stub',
-  ) {}
+    private readonly mode: 'stub' | 'razorpay' = 'stub',
+  ) {
+    this.name = mode === 'razorpay' ? 'razorpay' : 'stub';
+  }
 
-  async createOrder(input: {
-    amountPaise: number;
-    currency: 'INR';
-    receipt: string;
-    notes?: Record<string, string>;
-  }): Promise<CreateGatewayOrderResult> {
+  async createOrder(
+    input: CreatePaymentOrderInput,
+  ): Promise<CreateGatewayOrderResult> {
     const gatewayOrderId = `order_${uuidv4().replace(/-/g, '').slice(0, 14)}`;
     return {
       gatewayOrderId,

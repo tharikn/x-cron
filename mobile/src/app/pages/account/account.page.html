@@ -32,8 +32,14 @@
 
       <div class="admin-links">
         <ion-button expand="block" color="dark" routerLink="/tabs/post">Post a job</ion-button>
+        <ion-button expand="block" color="dark" routerLink="/tabs/job-fare">
+          Job Fare pull
+        </ion-button>
         <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/ads">
           Advertisement setup
+        </ion-button>
+        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/notifications">
+          Notifications inbox
         </ion-button>
       </div>
 
@@ -132,24 +138,13 @@
       <section class="moderation">
         <div class="moderation__head">
           <h2>Notifications</h2>
-          <ion-button size="small" fill="outline" color="dark" (click)="refreshInbox()">
-            Refresh
+          <ion-button size="small" fill="outline" color="dark" routerLink="/tabs/notifications">
+            Open inbox
           </ion-button>
         </div>
-        @for (item of inbox(); track item.id) {
-          <div class="mod-card">
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.body }}</p>
-            <p class="hint">{{ item.status }} · {{ item.createdAt | date: 'short' }}</p>
-            @if (item.status !== 'read') {
-              <ion-button size="small" fill="outline" color="dark" (click)="markRead(item.id)">
-                Mark read
-              </ion-button>
-            }
-          </div>
-        } @empty {
-          <p class="empty">No in-app notifications yet.</p>
-        }
+        <p class="hint">
+          {{ inbox().length }} alert(s) · manage channels on Prefs · inbox on Notifications.
+        </p>
       </section>
 
       <ion-button expand="block" fill="outline" color="dark" (click)="logout()">
@@ -166,13 +161,35 @@
         Admin password login
       </ion-button>
     } @else if (needsAdminLogin()) {
-      <ion-button expand="block" color="dark" (click)="signInAsAdmin()">
-        Sign in with admin password
-      </ion-button>
-      <p class="hint">
-        Dashboard-style ops on mobile (Post, Ads, moderation) use the configured SUPER_ADMIN
-        email and password only.
-      </p>
+      @if (isSignedIn()) {
+        <ion-list lines="full" class="panel">
+          <ion-item>
+            <ion-label>Signed in</ion-label>
+            <ion-note slot="end">{{ user()?.email || user()?.displayName }}</ion-note>
+          </ion-item>
+          <ion-item>
+            <ion-label>Roles</ion-label>
+            <ion-note slot="end">{{ user()?.roles?.join(', ') || 'seeker' }}</ion-note>
+          </ion-item>
+        </ion-list>
+        <p class="hint">
+          This session is not admin. Enter the SUPER_ADMIN email and password for Post / Ads.
+        </p>
+        <ion-button expand="block" color="dark" (click)="signInAsAdmin()">
+          Switch to admin
+        </ion-button>
+        <ion-button expand="block" fill="outline" color="dark" (click)="logout()">
+          Sign out
+        </ion-button>
+      } @else {
+        <ion-button expand="block" color="dark" (click)="signInAsAdmin()">
+          Sign in with admin password
+        </ion-button>
+        <p class="hint">
+          Dashboard-style ops on mobile (Post, Ads, moderation) use the configured SUPER_ADMIN
+          email and password only.
+        </p>
+      }
       <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/discover">
         Back to jobs
       </ion-button>

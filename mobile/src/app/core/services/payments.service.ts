@@ -4,19 +4,29 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
+export interface UpiCheckoutDto {
+  vpa: string;
+  payeeName: string;
+  intentUri: string;
+  qrPayload: string;
+}
+
+export interface CheckoutDto {
+  gateway: string;
+  keyId: string | null;
+  gatewayOrderId: string;
+  amountPaise: number;
+  currency: 'INR';
+  checkoutMode: 'stub' | 'upi' | 'razorpay' | string;
+  description: string;
+  upi: UpiCheckoutDto | null;
+}
+
 export interface ContactOrderResponse {
   alreadyEntitled: boolean;
   entitlement: EntitlementDto | null;
   order: PaymentOrderDto | null;
-  checkout: {
-    gateway: 'razorpay';
-    keyId: string;
-    gatewayOrderId: string;
-    amountPaise: number;
-    currency: 'INR';
-    checkoutMode: 'stub' | 'razorpay';
-    description: string;
-  } | null;
+  checkout: CheckoutDto | null;
 }
 
 export interface PaymentOrderDto {
@@ -128,13 +138,14 @@ export class PaymentsService {
     const orderResult = await firstValueFrom(
       this.http.post<{
         order: PaymentOrderDto;
-        checkout: { checkoutMode: 'stub' | 'razorpay' };
+        checkout: CheckoutDto;
       }>(
         `${environment.apiUrl}/subscriptions/checkout`,
         { planId },
         { headers: this.auth.authHeaders() },
       ),
     );
+    // Stub-only auto-confirm. UPI/hosted must go through an explicit payment panel.
     if (orderResult.checkout.checkoutMode === 'stub') {
       const paid = await this.confirmDevPayment(orderResult.order.id);
       return paid.entitlement;
