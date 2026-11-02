@@ -26,6 +26,7 @@ import {
   formatSalary,
   jobPath,
 } from '../../core/utils/format';
+import { GetAppCtaComponent } from '../../shared/get-app-cta/get-app-cta.component';
 
 const PAGE_SIZE = 8;
 
@@ -39,7 +40,13 @@ const SORT_OPTIONS = [
 
 @Component({
   selector: 'app-home',
-  imports: [FormsModule, RouterLink, TranslatePipe, LocationTypeaheadComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    TranslatePipe,
+    LocationTypeaheadComponent,
+    GetAppCtaComponent,
+  ],
   templateUrl: './home.page.html',
   styleUrl: './home.page.scss',
 })

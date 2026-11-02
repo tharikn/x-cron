@@ -80,9 +80,11 @@ Discover search location starts empty (applies saved prefs only when present) �
 ## Stubs
 
 - Payments: stub confirm, or UPI QR/VPA when API `PAYMENT_GATEWAY=upi` (see monorepo payments skill)
-- FCM token is a local stub string until Capacitor Push + Firebase are wired
-- OS tray alerts: browser `Notification` API + `@capacitor/local-notifications` (poll inbox ~8s + focus/resume); chime via Web Audio + channel sound; true killed-app delivery still needs live FCM
+- Push: `@capacitor/push-notifications` registers a live FCM token on Android (needs `android/app/google-services.json`); browser still uses `stub_fcm_*`
+- OS tray when app closed/killed: server `PUSH_PROVIDER=fcm` + firebase-admin (see `api/src/notifications/CLAUDE.md`)
+- OS tray when app open / browser: `@capacitor/local-notifications` or Web Notification API; inbox poll ~8s for in-app list; foreground FCM mirrored to local tray
 - Alert channel toggles live on Prefs; Notifications tab is inbox-only
 - Discover **Open roles** badge uses API search `total` (not loaded-page length)
 - Job cards show uploaded/published date + time via `formatPostedDate`
-- Google sign-in button is informational only
+- Google sign-in: **native** uses `@capawesome/capacitor-google-sign-in` (Credential Manager — stays in-app); **browser** uses GIS popup. Web client ID in `environment*.ts`. **Required for APK:** Android OAuth client in the *same* Google Cloud project — package `com.xcron.jobs` + signing SHA-1. Debug SHA-1 from this machine: `82:DC:02:56:2D:7F:F2:62:C9:ED:20:39:C1:55:7F:54:E8:CF:AF:22` (`keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`). Missing/wrong Android client surfaces as fake cancel: `activity is cancelled by the user`.
+- APK updates (sideload): `AppUpdateService` checks `environment.appUpdateManifestUrl` (`/downloads/version.json` on the public site) on launch when native. Hosted `versionCode` > installed `App.getInfo().build` → Update / Later alert; opens `apkUrl`. Publish: bump `android/app/build.gradle` → `assembleDebug` → `cd ../web && npm run sync:apk` → deploy web. See `web/public/downloads/README.md`.

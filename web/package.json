@@ -8,7 +8,8 @@
     "build": "ng build --configuration development",
     "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
-    "serve:ssr": "node dist/web/server/server.mjs"
+    "serve:ssr": "node dist/web/server/server.mjs",
+    "sync:apk": "node scripts/sync-apk.mjs"
   },
   "private": true,
   "packageManager": "npm@10.9.8",

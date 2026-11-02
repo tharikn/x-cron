@@ -33,11 +33,13 @@ Optional Postgres: from repo root `docker compose up -d`, then `npm run prisma:m
 - **Public job DTOs** via `jobs/jobs.mapper.ts` — never serialize `privateContact`
 - Contact reveal: `GET /v1/jobs/:id/contact` requires auth + entitlement; `Cache-Control: no-store`
 - Payments: Strategy/Adapter (`PAYMENT_GATEWAY=stub|upi|razorpay`); SiteConfig `paymentsEnabled` + `postJobPaymentMode`; history + CSV/PDF admin export; hardened `POST /v1/payments/dev/confirm` (blocked in production); `PAYMENTS_STORE=prisma` persists orders/entitlements/history. Skill: [../.cursor/skills/xcron-payments/SKILL.md](../.cursor/skills/xcron-payments/SKILL.md) · [src/payments/CLAUDE.md](src/payments/CLAUDE.md)
-- Notifications: Strategy/Adapter push (`PUSH_PROVIDER=stub|fcm`) + mail (`MAIL_PROVIDER=stub|console|smtp`); job publish → subscriber fan-out with dispatch/delivery history; `NOTIFICATIONS_STORE=prisma` persists devices/prefs/inbox/dispatches. See [src/notifications/CLAUDE.md](src/notifications/CLAUDE.md)
+- Notifications: Strategy/Adapter push (`PUSH_PROVIDER=stub|fcm` + optional `FIREBASE_SERVICE_ACCOUNT_*`) + mail (`MAIL_PROVIDER=stub|console|smtp`); job publish → subscriber fan-out with dispatch/delivery history; `NOTIFICATIONS_STORE=prisma` persists devices/prefs/inbox/dispatches. Live FCM required for Android tray when app is closed. See [src/notifications/CLAUDE.md](src/notifications/CLAUDE.md)
 - Subscriptions grant `subscription_contact` (unlimited unlocks while valid)
 - Prisma: `prisma/schema.prisma` + versioned `prisma/migrations/*` (deploy with `npm run prisma:migrate`). Jobs/ingestion/notifications/payments use Prisma when their `*_STORE=prisma` (or `JOBS_STORE` fallback).
 
-## Important env (`../api/.env` / `.env.example`)
+## Important env (`api/.env` / `.env.example` / `api/env-dev`)
+
+Whenever you change env keys: update **`.env.example`**, local **`.env`**, and **`env-dev`**. `env-dev` is **live prod URLs only** (Render web/API, prod DB/CORS/gateways) — no localhost. See [../.cursor/skills/xcron-claude-md/SKILL.md](../.cursor/skills/xcron-claude-md/SKILL.md).
 
 `PORT`, `JOBS_STORE=memory|prisma`, `NOTIFICATIONS_STORE` / `PAYMENTS_STORE` (default: follow `JOBS_STORE`), `DATABASE_URL`, `CORS_ORIGINS`, `ADMIN_IDENTITIES`, `AUTH_ACCESS_TTL_MINUTES` (Bearer access TTL; default 15), `PAYMENT_GATEWAY` / `PAYMENT_MODE`, `PAYMENT_UPI_VPA` / `PAYMENT_UPI_PAYEE_NAME` / `PAYMENT_UPI_ALLOW_DEV_CONFIRM`, `RAZORPAY_WEBHOOK_SECRET`, `PUSH_PROVIDER` / `MAIL_PROVIDER` / `NOTIFICATION_FANOUT_BATCH`, quota/budget vars for `ops`, `OCR_PROVIDER`, `AI_ENRICH_ENABLED` / `AI_ENRICH_PROVIDER` / `AI_ENRICH_API_KEY` (off by default; free Groq or local Ollama), `TELEGRAM_BOT_TOKEN` / `TELEGRAM_MODE` / `CHANNEL_SCHEDULE_ENABLED` / `CHANNEL_PULL_OWNER_USER_ID` (Job Fare; optional). Unlock price + refresh TTLs live in Prisma `SiteConfig` (Settings UI), not env.
 
@@ -52,7 +54,7 @@ Admin demo identity: `admin@xcron.local` (dev OTP `123456`).
 - Quotas: import batches + contact unlocks consult `OpsService` where wired
 - Account wipe: `account/` clears payments/prefs/seeker/notifications + auth user
 - Prefer extending existing modules over new cross-cutting frameworks
-- Do not commit real secrets; keep `.env.example` updated when adding env keys
+- Do not commit real secrets into `.env.example`; when adding env keys also update `env-dev` (prod URLs only)
 
 ## Smoke hints
 

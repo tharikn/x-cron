@@ -163,7 +163,7 @@ docker compose up -d
 | --- | --- | --- |
 | Job/auth/payment storage | Memory maps | Prisma + Postgres |
 | Razorpay | Stub order + HMAC webhook | Live keys, checkout SDK, settlements |
-| FCM / mail | Stub providers + web fake token; dispatch history | Firebase + Capacitor Push; real SMTP/Resend |
+| FCM / mail | Live FCM wired (`PUSH_PROVIDER=fcm` + service account + mobile `google-services.json`); default still stub | Real SMTP/Resend; Play/prod Firebase project |
 | OCR / LLM | Stub parser | Real provider + workers/queue |
 | Contact vault | Plain fields in memory | Encryption at rest, KMS |
 | Google sign-in | Explicit stub response | Google Identity |

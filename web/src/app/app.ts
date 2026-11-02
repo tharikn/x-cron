@@ -25,6 +25,7 @@ import { LocaleService } from './core/services/locale.service';
 import { NotificationsService } from './core/services/notifications.service';
 import { SiteService } from './core/services/site.service';
 import { ToastService } from './core/services/toast.service';
+import { GetAppCtaComponent } from './shared/get-app-cta/get-app-cta.component';
 
 const FOOTER_ITEM_KEYS: Record<string, string> = {
   ql_home: 'footer.quick.home',
@@ -39,7 +40,13 @@ const FOOTER_ITEM_KEYS: Record<string, string> = {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    TranslatePipe,
+    GetAppCtaComponent,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

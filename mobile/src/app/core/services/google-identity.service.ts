@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
+import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in';
 import { environment } from '../../../environments/environment';
 
 declare global {
@@ -42,6 +44,7 @@ const GIS_SRC = 'https://accounts.google.com/gsi/client';
 @Injectable({ providedIn: 'root' })
 export class GoogleIdentityService {
   private loadPromise: Promise<void> | null = null;
+  private nativeInitPromise: Promise<void> | null = null;
 
   get clientId(): string {
     return (environment.googleClientId || '').trim();
@@ -56,6 +59,74 @@ export class GoogleIdentityService {
       throw new Error('Google client ID is not configured.');
     }
 
+    if (Capacitor.isNativePlatform()) {
+      return this.requestIdTokenNative();
+    }
+
+    return this.requestIdTokenWeb();
+  }
+
+  /** Credential Manager / native SDK — stays in-app (no Custom Tab stranding). */
+  private async requestIdTokenNative(): Promise<string> {
+    await this.ensureNativeInitialized();
+    try {
+      const result = await GoogleSignIn.signIn();
+      if (!result.idToken) {
+        throw new Error('Google did not return a credential.');
+      }
+      return result.idToken;
+    } catch (err: unknown) {
+      throw new Error(this.mapNativeSignInError(err));
+    }
+  }
+
+  /**
+   * Credential Manager often reports OAuth console misconfig as user cancel
+   * ("activity is cancelled by the user" / SIGN_IN_CANCELED).
+   */
+  private mapNativeSignInError(err: unknown): string {
+    const raw =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message?: unknown }).message || '')
+        : err instanceof Error
+          ? err.message
+          : '';
+    const code =
+      err && typeof err === 'object' && 'code' in err
+        ? String((err as { code?: unknown }).code || '')
+        : '';
+    const lower = raw.toLowerCase();
+    if (
+      code === 'SIGN_IN_CANCELED' ||
+      code === 'PROVIDER_CONFIGURATION_ERROR' ||
+      lower.includes('cancelled by the user') ||
+      lower.includes('canceled by the user') ||
+      lower.includes('unregistered_on_api_console') ||
+      lower.includes('developer console is not set up')
+    ) {
+      return (
+        'Google sign-in is not set up for this Android build. ' +
+        'In Google Cloud Console create an Android OAuth client for ' +
+        'package com.xcron.jobs with this app’s signing SHA-1 ' +
+        '(same project as the Web client ID).'
+      );
+    }
+    return raw || 'Google sign-in failed.';
+  }
+
+  private async ensureNativeInitialized(): Promise<void> {
+    if (!this.nativeInitPromise) {
+      this.nativeInitPromise = GoogleSignIn.initialize({
+        clientId: this.clientId,
+      }).catch((err: unknown) => {
+        this.nativeInitPromise = null;
+        throw err;
+      });
+    }
+    await this.nativeInitPromise;
+  }
+
+  private async requestIdTokenWeb(): Promise<string> {
     await this.ensureScript();
 
     return new Promise<string>((resolve, reject) => {

@@ -56,6 +56,15 @@ const EN_STRINGS: Record<string, string> = {
   'home.loading': 'Loading jobs…',
   'home.empty': 'No jobs match these filters.',
   'home.viewRole': 'View role',
+  'appDownload.eyebrow': 'Android app',
+  'appDownload.title': 'Get X Cron on your phone',
+  'appDownload.lead':
+    'Install the Android app for a faster, thumb-friendly job browse — same jobs, clearer on mobile.',
+  'appDownload.cta': 'Download APK',
+  'appDownload.direct': 'Direct install',
+  'appDownload.hint':
+    'Opens as an APK. On Android, allow install from this browser when prompted.',
+  'appDownload.nav': 'Get the app',
   'sort.newest': 'Newest',
   'sort.oldest': 'Oldest',
   'sort.salaryDesc': 'Salary high to low',
@@ -150,6 +159,15 @@ const TA_STRINGS: Record<string, string> = {
   'home.loading': 'வேலைகள் ஏற்றப்படுகிறது…',
   'home.empty': 'இந்த வடிகட்டிகளுக்கு வேலைகள் இல்லை.',
   'home.viewRole': 'பதவியைப் பார்',
+  'appDownload.eyebrow': 'Android செயலி',
+  'appDownload.title': 'உங்கள் போனில் X Cron பெறுங்கள்',
+  'appDownload.lead':
+    'வேகமான, தொடுவதற்கு எளிதான வேலை உலாவலுக்கு Android செயலியை நிறுவுங்கள் — அதே வேலைகள், மொபைலில் தெளிவாக.',
+  'appDownload.cta': 'APK பதிவிறக்கு',
+  'appDownload.direct': 'நேரடி நிறுவல்',
+  'appDownload.hint':
+    'APK ஆக திறக்கும். Android-ல் கேட்டால் இந்த உலாவியிலிருந்து நிறுவலை அனுமதியுங்கள்.',
+  'appDownload.nav': 'செயலியைப் பெறு',
   'sort.newest': 'புதியவை',
   'sort.oldest': 'பழையவை',
   'sort.salaryDesc': 'சம்பளம் அதிகம் முதல்',
@@ -244,6 +262,15 @@ const HI_STRINGS: Record<string, string> = {
   'home.loading': 'नौकरियाँ लोड हो रही हैं…',
   'home.empty': 'इन फ़िल्टर से कोई नौकरी नहीं मिली।',
   'home.viewRole': 'रोल देखें',
+  'appDownload.eyebrow': 'Android ऐप',
+  'appDownload.title': 'अपने फ़ोन पर X Cron पाएँ',
+  'appDownload.lead':
+    'तेज़, अंगूठे के अनुकूल जॉब ब्राउज़ के लिए Android ऐप इंस्टॉल करें — वही नौकरियाँ, मोबाइल पर साफ़।',
+  'appDownload.cta': 'APK डाउनलोड करें',
+  'appDownload.direct': 'सीधा इंस्टॉल',
+  'appDownload.hint':
+    'APK के रूप में खुलता है। Android पर पूछे जाने पर इस ब्राउज़र से इंस्टॉल की अनुमति दें।',
+  'appDownload.nav': 'ऐप पाएँ',
   'sort.newest': 'नवीनतम',
   'sort.oldest': 'पुरानी',
   'sort.salaryDesc': 'वेतन अधिक से कम',

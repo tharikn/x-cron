@@ -52,6 +52,7 @@ Full standards: [../CLAUDE.md](../CLAUDE.md) § **UI / UX standards**. Web speci
 - Fonts loaded in `src/index.html` (Syne + DM Sans + Noto Sans Tamil)
 - Design tokens + motion in `src/styles.scss`; shell in `src/app/app.scss`
 - Home: oversized brand hero, floating search panel, elevated job cards with stagger/hover
+- **Get the app** (Android APK sideload): highlighted panel under home search + footer band + drawer link via `shared/get-app-cta`. File at `public/downloads/xcron-jobs.apk` (gitignored binary) — run `npm run sync:apk` after a mobile debug build (copies APK, writes `public/downloads/version.json`, bumps `androidApkVersion` / `androidApkSizeLabel`). Bug-fix flow: bump `mobile/android/app/build.gradle` `versionCode`/`versionName` → assembleDebug → `sync:apk` → deploy web. Mobile native reads `version.json` on launch for an Update prompt (`appUpdateManifestUrl`)
 - Home search starts with empty location (optional saved prefs only); **Clear preferences** resets filters + device prefs
 - Preferences page: search prefs (Save + Clear) + signed-in **Alert channels** (job/in-app/push/email); inbox link to `/notifications`
 - Home / Discover **Open roles** badge uses API search `total` (stable while infinite-scroll appends pages)

@@ -1,0 +1,70 @@
+@if (variant() === 'link') {
+  <a
+    class="get-app get-app--link"
+    [href]="apkUrl"
+    [attr.download]="fileName"
+    rel="noopener"
+  >
+    <span class="get-app__link-label">{{ 'appDownload.nav' | t }}</span>
+    <span class="get-app__link-meta">Android</span>
+  </a>
+} @else if (variant() === 'band') {
+  <aside class="get-app get-app--band" aria-labelledby="get-app-band-title">
+    <div class="get-app__band-copy">
+      <p class="get-app__eyebrow">{{ 'appDownload.eyebrow' | t }}</p>
+      <h2 id="get-app-band-title" class="get-app__title get-app__title--sm">
+        {{ 'appDownload.title' | t }}
+      </h2>
+      <p class="get-app__lead get-app__lead--sm">{{ 'appDownload.lead' | t }}</p>
+    </div>
+    <div class="get-app__band-actions">
+      <a
+        class="get-app__cta"
+        [href]="apkUrl"
+        [attr.download]="fileName"
+        rel="noopener"
+      >
+        {{ 'appDownload.cta' | t }}
+      </a>
+      <p class="get-app__meta">
+        <span>Android</span>
+        <span aria-hidden="true">·</span>
+        <span>v{{ version }}</span>
+        <span aria-hidden="true">·</span>
+        <span>{{ sizeLabel }}</span>
+      </p>
+    </div>
+  </aside>
+} @else {
+  <aside class="get-app get-app--panel" aria-labelledby="get-app-panel-title">
+    <div class="get-app__glow" aria-hidden="true"></div>
+    <div class="get-app__shine" aria-hidden="true"></div>
+    <div class="get-app__body">
+      <p class="get-app__eyebrow">
+        <span class="get-app__pulse" aria-hidden="true"></span>
+        {{ 'appDownload.eyebrow' | t }}
+      </p>
+      <h2 id="get-app-panel-title" class="get-app__title">
+        {{ 'appDownload.title' | t }}
+      </h2>
+      <p class="get-app__lead">{{ 'appDownload.lead' | t }}</p>
+      <ul class="get-app__facts" aria-label="Download details">
+        <li>Android</li>
+        <li>v{{ version }}</li>
+        <li>{{ sizeLabel }}</li>
+        <li>{{ 'appDownload.direct' | t }}</li>
+      </ul>
+      <div class="get-app__actions">
+        <a
+          class="get-app__cta"
+          [href]="apkUrl"
+          [attr.download]="fileName"
+          rel="noopener"
+        >
+          {{ 'appDownload.cta' | t }}
+        </a>
+        <p class="get-app__hint">{{ 'appDownload.hint' | t }}</p>
+      </div>
+    </div>
+  </aside>
+}

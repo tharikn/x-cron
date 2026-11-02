@@ -146,6 +146,9 @@
       <a routerLink="/sign-in" routerLinkActive="is-active" (click)="closeMenu()">
         {{ isSignedIn() ? ('nav.account' | t) : ('nav.signIn' | t) }}
       </a>
+      @if (!isAdmin()) {
+        <app-get-app-cta variant="link" (click)="closeMenu()" />
+      }
     </nav>
   </aside>
 
@@ -155,6 +158,7 @@
 
   @if (!isAdmin()) {
     <footer class="foot" aria-label="Site footer">
+      <app-get-app-cta variant="band" />
       @if (footer(); as foot) {
         <div class="foot__grid">
           <div class="foot__brand">

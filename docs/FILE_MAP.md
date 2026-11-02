@@ -166,6 +166,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `providers/push-provider.ts` | Push Strategy interface |
 | `providers/push-provider.factory.ts` | `PUSH_PROVIDER` → stub/fcm |
 | `providers/fcm.stub.ts` | Zero-cost FCM stub sender |
+| `providers/fcm.provider.ts` | Live firebase-admin FCM (needs service account) |
 | `providers/mail-provider.ts` | Mail Strategy interface |
 | `providers/mail-provider.factory.ts` | `MAIL_PROVIDER` → stub/console/smtp |
 | `providers/mail.stub.ts` | Zero-cost mail logger |
@@ -301,6 +302,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `services/notifications.service.ts` | Device + inbox client |
 | `services/ads.service.ts` | Ad slots + promote packages |
 | `services/seeker.service.ts` | Saved jobs, feed, account delete |
+| `services/app-update.service.ts` | Native APK update check vs hosted `version.json` |
 
 #### `mobile/src/app/pages/`
 
@@ -361,6 +363,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `web/README.md` | Web package readme |
 | `web/CLAUDE.md` | Agent guide for Angular SSR web |
 | `web/public/favicon.ico` | Favicon |
+| `web/public/downloads/` | Android APK sideload (`xcron-jobs.apk`, gitignored) + `version.json` + README |
+| `web/scripts/sync-apk.mjs` | Copies mobile debug APK, writes `version.json`, bumps web CTA version labels |
 
 ### `web/src/`
 
@@ -391,6 +395,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `core/models/site.model.ts` | Footer config types |
 | `core/utils/format.ts` | Display helpers |
 | `pages/home/*` | SEO home + search + ad rail |
+| `shared/get-app-cta/*` | Android APK download CTA (home panel / footer band / drawer) |
 | `pages/job-detail/*` | Public job page |
 | `pages/location/*` | Location landing page |
 | `pages/notifications/*` | User inbox + channel toggles |

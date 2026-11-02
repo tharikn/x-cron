@@ -66,6 +66,15 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'home.maintenanceTitle': 'Server maintenance',
       'home.maintenanceLead': "We're updating X Cron right now. Please try again shortly.",
       'home.viewRole': 'View role',
+      'appDownload.eyebrow': 'Android app',
+      'appDownload.title': 'Get X Cron on your phone',
+      'appDownload.lead':
+        'Install the Android app for a faster, thumb-friendly job browse — same jobs, clearer on mobile.',
+      'appDownload.cta': 'Download APK',
+      'appDownload.direct': 'Direct install',
+      'appDownload.hint':
+        'Opens as an APK. On Android, allow install from this browser when prompted.',
+      'appDownload.nav': 'Get the app',
       'sort.newest': 'Newest',
       'sort.oldest': 'Oldest',
       'sort.salaryDesc': 'Salary high to low',

@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular';
 import { ApiLoadingService } from './core/services/api-loading.service';
+import { AppUpdateService } from './core/services/app-update.service';
 import { AuthService } from './core/services/auth.service';
 import { LocaleService } from './core/services/locale.service';
 import { NotificationsService } from './core/services/notifications.service';
@@ -18,6 +19,7 @@ export class AppComponent implements OnInit {
   private readonly notifications = inject(NotificationsService);
   private readonly apiLoading = inject(ApiLoadingService);
   private readonly locale = inject(LocaleService);
+  private readonly appUpdate = inject(AppUpdateService);
 
   readonly busy = this.apiLoading.visible;
 
@@ -38,5 +40,6 @@ export class AppComponent implements OnInit {
       }
     }
     this.notifications.startPolling();
+    void this.appUpdate.checkForUpdate();
   }
 }

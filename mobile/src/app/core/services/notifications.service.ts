@@ -3,6 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { PushNotifications } from '@capacitor/push-notifications';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
@@ -58,39 +59,54 @@ export class NotificationsService {
     'prompt',
   );
   readonly lastSyncedAt = signal<string | null>(null);
+  /** True when a live FCM token was registered (not stub_fcm_*). */
+  readonly remotePushReady = signal(false);
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private channelReady = false;
   private seededSeen = false;
   private inFlight = false;
   private listenersBound = false;
+  private pushListenersBound = false;
+  private pushRegistering = false;
   private audioCtx: AudioContext | null = null;
 
-  /** Stub FCM token for server registration until live Firebase is wired. */
+  /** Stub token for browser / until native FCM registration succeeds. */
   stubToken(): string {
-    let token = localStorage.getItem(FCM_TOKEN_KEY);
-    if (!token) {
-      token = `stub_fcm_${this.preferences.deviceId().replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}_${Date.now().toString(36)}`;
-      localStorage.setItem(FCM_TOKEN_KEY, token);
-    }
+    const stored = localStorage.getItem(FCM_TOKEN_KEY);
+    if (stored?.startsWith('stub_fcm_')) return stored;
+    const token = `stub_fcm_${this.preferences.deviceId().replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}_${Date.now().toString(36)}`;
+    if (!stored) localStorage.setItem(FCM_TOKEN_KEY, token);
     return token;
+  }
+
+  /** Prefer live FCM token; fall back to stub for web / missing Firebase. */
+  currentPushToken(): string {
+    const stored = localStorage.getItem(FCM_TOKEN_KEY);
+    if (stored && !stored.startsWith('stub_fcm_')) return stored;
+    return this.stubToken();
   }
 
   async registerDevice(): Promise<void> {
     try {
+      if (Capacitor.isNativePlatform()) {
+        await this.ensureRemotePush();
+      }
       const platform = Capacitor.getPlatform();
+      const fcmToken = this.currentPushToken();
       await firstValueFrom(
         this.http.post(
           `${environment.apiUrl}/devices`,
           {
             deviceId: this.preferences.deviceId(),
-            fcmToken: this.stubToken(),
+            fcmToken,
             platform: platform === 'ios' || platform === 'android' ? platform : 'web',
           },
           { headers: this.auth.authHeaders() },
         ),
       );
       this.deviceRegistered.set(true);
+      this.remotePushReady.set(!fcmToken.startsWith('stub_fcm_'));
     } catch {
       this.deviceRegistered.set(false);
     }
@@ -111,6 +127,7 @@ export class NotificationsService {
     const next = { ...this.prefs(), ...partial };
     if (partial.pushAlertsEnabled === true) {
       await this.ensurePushPermission();
+      await this.registerDevice();
     }
     const remote = await firstValueFrom(
       this.http.put<NotificationPrefs>(
@@ -186,14 +203,8 @@ export class NotificationsService {
   async ensurePushPermission(): Promise<boolean> {
     if (Capacitor.isNativePlatform()) {
       await this.ensureNativeChannel();
-      const current = await LocalNotifications.checkPermissions();
-      let display = current.display;
-      if (display !== 'granted') {
-        const asked = await LocalNotifications.requestPermissions();
-        display = asked.display;
-      }
-      this.pushPermission.set(display === 'granted' ? 'granted' : 'denied');
-      return display === 'granted';
+      const ok = await this.ensureRemotePush();
+      return ok;
     }
 
     if (typeof Notification === 'undefined') {
@@ -212,6 +223,91 @@ export class NotificationsService {
           : 'prompt',
     );
     return permission === 'granted';
+  }
+
+  /**
+   * Register with FCM via Capacitor Push Notifications.
+   * Required for system tray alerts when the app is backgrounded or killed.
+   * LocalNotifications alone only work while the WebView process is alive.
+   */
+  private async ensureRemotePush(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) return false;
+    if (this.pushRegistering) return this.remotePushReady();
+
+    try {
+      await this.bindPushListeners();
+      await this.ensureNativeChannel();
+
+      const current = await PushNotifications.checkPermissions();
+      let receive = current.receive;
+      if (receive !== 'granted') {
+        const asked = await PushNotifications.requestPermissions();
+        receive = asked.receive;
+      }
+      this.pushPermission.set(receive === 'granted' ? 'granted' : 'denied');
+      if (receive !== 'granted') return false;
+
+      // Also grant local notifications so foreground FCM can mirror to the tray.
+      try {
+        const local = await LocalNotifications.checkPermissions();
+        if (local.display !== 'granted') {
+          await LocalNotifications.requestPermissions();
+        }
+      } catch {
+        // Local channel is best-effort for foreground mirroring.
+      }
+
+      this.pushRegistering = true;
+      await PushNotifications.register();
+      this.pushRegistering = false;
+      return true;
+    } catch {
+      this.pushRegistering = false;
+      this.pushPermission.set('unsupported');
+      return false;
+    }
+  }
+
+  private async bindPushListeners(): Promise<void> {
+    if (this.pushListenersBound || !Capacitor.isNativePlatform()) return;
+    this.pushListenersBound = true;
+
+    await PushNotifications.addListener('registration', (token) => {
+      if (!token?.value) return;
+      localStorage.setItem(FCM_TOKEN_KEY, token.value);
+      this.remotePushReady.set(true);
+      void this.registerDevice();
+    });
+
+    await PushNotifications.addListener('registrationError', (err) => {
+      console.warn('[push] registrationError', err);
+      this.remotePushReady.set(false);
+    });
+
+    // Foreground: OS does not auto-show notification payload — mirror via local tray.
+    await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      if (this.prefs().pushAlertsEnabled === false) return;
+      if (this.prefs().jobAlertsEnabled === false) return;
+      const id =
+        (notification.data?.['notificationId'] as string | undefined) ||
+        notification.id ||
+        `fcm_${Date.now()}`;
+      void this.showOsNotification({
+        id,
+        title: notification.title || 'X Cron Jobs',
+        body: notification.body || 'New job match',
+        status: 'sent',
+        jobId: (notification.data?.['jobId'] as string | null) ?? null,
+        createdAt: new Date().toISOString(),
+        readAt: null,
+      });
+      this.playAlertTone();
+      void this.refreshInbox({ announce: false });
+    });
+
+    await PushNotifications.addListener('pushNotificationActionPerformed', () => {
+      void this.refreshInbox({ announce: false });
+    });
   }
 
   private async tick(): Promise<void> {
@@ -246,9 +342,9 @@ export class NotificationsService {
   private async refreshPushPermissionState(): Promise<void> {
     if (Capacitor.isNativePlatform()) {
       try {
-        const current = await LocalNotifications.checkPermissions();
+        const current = await PushNotifications.checkPermissions();
         this.pushPermission.set(
-          current.display === 'granted' ? 'granted' : 'denied',
+          current.receive === 'granted' ? 'granted' : 'denied',
         );
       } catch {
         this.pushPermission.set('unsupported');
@@ -290,6 +386,12 @@ export class NotificationsService {
     if (!announce || !fresh.length) return;
     if (this.prefs().pushAlertsEnabled === false) return;
     if (this.prefs().jobAlertsEnabled === false) return;
+
+    // When live FCM is registered, the server already pushed to the system tray
+    // (including while the app was closed). Skip poll-driven local duplicates.
+    if (Capacitor.isNativePlatform() && this.remotePushReady()) {
+      return;
+    }
 
     const allowed = await this.ensurePushPermission();
     if (!allowed) return;

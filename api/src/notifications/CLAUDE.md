@@ -30,7 +30,10 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 | Key | Default | Notes |
 | --- | --- | --- |
 | `NOTIFICATIONS_STORE` | follow `JOBS_STORE` | `prisma` \| `memory` |
-| `PUSH_PROVIDER` | `stub` | Log-only FCM stub; `fcm` reserved for firebase-admin |
+| `PUSH_PROVIDER` | `stub` | `stub` = log-only; `fcm` = firebase-admin (falls back to stub if no credentials) |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | — | Inline service-account JSON for live FCM |
+| `FIREBASE_SERVICE_ACCOUNT_PATH` | — | Path to service-account JSON file (alt to inline) |
+| `FCM_ANDROID_CHANNEL_ID` | `xcron-job-alerts-v2` | Must match mobile LocalNotifications channel |
 | `MAIL_PROVIDER` | `stub` | Log-only; `console` alias; `smtp` → stub until `MAIL_SMTP_URL` |
 | `NOTIFICATION_FANOUT_BATCH` | `25` | Yield between batches for large user sets |
 | `NOTIFICATION_MODE` | — | Legacy push mode alias |
@@ -50,8 +53,19 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 - Web admin log: `/admin/notifications` (drawer → Alert log)
 - Mobile inbox: Notifications tab (`/tabs/notifications`) — list only
 - Mobile channel toggles: Prefs tab (`/tabs/preferences`) — job/in-app/push/email
-- Mobile OS tray: Web Notification API (browser) + `@capacitor/local-notifications` (native); client polls inbox ~8s + focus/resume with alert chime; server FCM still stub until Firebase credentials
+- Mobile OS tray (closed/background app): live FCM via `@capacitor/push-notifications` + API `PUSH_PROVIDER=fcm`
+- Mobile OS tray (foreground / browser): `@capacitor/local-notifications` or Web Notification API; inbox poll ~8s remains for in-app list
 - Do not put Preferences / Alert channels back on the notifications inbox screen
+
+## Live FCM setup (killed-app delivery)
+
+1. Firebase Console → add Android app package `com.xcron.jobs` → download `google-services.json` → place at `mobile/android/app/google-services.json`
+2. Project settings → Service accounts → Generate new private key → store off-repo
+3. API: `PUSH_PROVIDER=fcm` + `FIREBASE_SERVICE_ACCOUNT_PATH` (or `_JSON`)
+4. Mobile: `npm run cap:sync`, rebuild APK, open app once (grant notifications) so FCM token registers to `POST /v1/devices`
+5. Publish a job / `POST /v1/notifications/dev/send` — tray appears even with app force-stopped
+
+`providers/fcm.provider.ts` sends `notification` + `data` + Android `channelId` so the OS shows the shade without the WebView running. Stub tokens (`stub_fcm_*`) are rejected by the live provider.
 
 ## Agent rules
 

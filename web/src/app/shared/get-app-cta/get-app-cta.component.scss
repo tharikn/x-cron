@@ -1,0 +1,303 @@
+.get-app--panel {
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 1.75rem;
+  padding: 1.25rem 1.2rem 1.35rem;
+  border-radius: var(--xcron-radius-lg);
+  border: 1px solid var(--xcron-ink);
+  background:
+    linear-gradient(145deg, #111 0%, #1c1c1c 42%, #0a0a0a 100%);
+  color: #f5f5f3;
+  box-shadow: var(--xcron-shadow-hover);
+  animation: xcron-rise 640ms var(--xcron-ease) 120ms both;
+}
+
+.get-app__glow {
+  position: absolute;
+  inset: -30% auto auto -10%;
+  width: 70%;
+  height: 140%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.16), transparent 72%);
+  pointer-events: none;
+}
+
+.get-app__shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 62%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  animation: get-app-shine 4.8s var(--xcron-ease) 0.8s infinite;
+}
+
+.get-app__body {
+  position: relative;
+  display: grid;
+  gap: 0.7rem;
+  max-width: 36rem;
+}
+
+.get-app__eyebrow {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.get-app__pulse {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55);
+  animation: get-app-pulse 2.2s var(--xcron-ease) infinite;
+}
+
+.get-app__title {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: #fff;
+}
+
+.get-app__title--sm {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.get-app__lead {
+  margin: 0;
+  color: rgba(245, 245, 243, 0.78);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 34rem;
+}
+
+.get-app__lead--sm {
+  font-size: 0.86rem;
+  color: var(--xcron-muted);
+}
+
+.get-app__facts {
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.get-app__facts li {
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.get-app__actions {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+  justify-items: start;
+}
+
+.get-app__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: var(--xcron-radius-sm);
+  background: #fff;
+  color: #0a0a0a;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.92rem;
+  letter-spacing: -0.01em;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transition:
+    transform 160ms var(--xcron-ease),
+    background 160ms var(--xcron-ease),
+    box-shadow 160ms var(--xcron-ease);
+}
+
+.get-app__cta:hover {
+  background: #f0f0ee;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+
+.get-app__cta:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.get-app__hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 28rem;
+}
+
+.get-app--band {
+  display: grid;
+  gap: 1rem;
+  margin: 0 0 1.5rem;
+  padding: 1.1rem 1.15rem;
+  border-radius: var(--xcron-radius);
+  border: 1px solid var(--xcron-line-strong);
+  background:
+    linear-gradient(180deg, #fff 0%, var(--xcron-wash) 100%);
+  box-shadow: var(--xcron-shadow);
+}
+
+@media (min-width: 720px) {
+  .get-app--band {
+    grid-template-columns: 1.4fr auto;
+    align-items: center;
+    gap: 1.25rem;
+  }
+}
+
+.get-app--band .get-app__eyebrow {
+  color: var(--xcron-muted);
+}
+
+.get-app--band .get-app__title {
+  color: var(--xcron-ink);
+}
+
+.get-app--band .get-app__cta {
+  background: var(--xcron-ink);
+  color: #fff;
+  box-shadow: none;
+}
+
+.get-app--band .get-app__cta:hover {
+  background: #1a1a1a;
+  box-shadow: var(--xcron-shadow);
+}
+
+.get-app--band .get-app__cta:focus-visible {
+  outline-color: var(--xcron-ink);
+}
+
+.get-app__band-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.get-app__band-actions {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: start;
+}
+
+@media (min-width: 720px) {
+  .get-app__band-actions {
+    justify-items: end;
+    text-align: right;
+  }
+}
+
+.get-app__meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xcron-faint);
+}
+
+.get-app--link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin: 0.35rem 0.65rem 0.15rem;
+  border-radius: var(--xcron-radius-sm);
+  border: 1px solid var(--xcron-ink);
+  background: var(--xcron-ink);
+  color: #fff;
+  text-decoration: none;
+  min-height: 2.75rem;
+  transition:
+    transform 160ms var(--xcron-ease),
+    background 160ms var(--xcron-ease);
+}
+
+.get-app--link:hover {
+  background: #1a1a1a;
+  transform: translateY(-1px);
+}
+
+.get-app__link-label {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.get-app__link-meta {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@keyframes get-app-shine {
+  0%,
+  55% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -40% 0;
+  }
+}
+
+@keyframes get-app-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .get-app--panel,
+  .get-app__shine,
+  .get-app__pulse,
+  .get-app__cta,
+  .get-app--link {
+    animation: none;
+    transition: none;
+  }
+}
