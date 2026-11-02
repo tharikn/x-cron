@@ -4,9 +4,8 @@ export const environment = {
   /** Set to a Google OAuth Web client ID to use GIS; leave empty for local stub. */
   googleClientId:
     '199090164542-ina98t21c5d8mm081gnj0j9fo5qvgsd0.apps.googleusercontent.com',
-  /**
-   * Hosted APK update manifest (written by `web` `npm run sync:apk`).
-   * Absolute URL required — Capacitor origin is not the public site.
-   */
-  appUpdateManifestUrl: 'https://x-cron.onrender.com/downloads/version.json',
+  githubRepo: 'tharikn/x-cron',
+  /** Latest GitHub Release JSON (CORS-friendly) — APK update check. */
+  githubReleasesLatestUrl:
+    'https://api.github.com/repos/tharikn/x-cron/releases/latest',
 };

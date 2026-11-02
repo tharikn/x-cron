@@ -44,22 +44,27 @@ Whenever you add, rename, remove, or change meaning of an env key:
 
 Do not put `http://localhost:*` (or local Postgres) into `env-dev`. Prod site: `https://x-cron.onrender.com` · prod API: `https://x-cron-api.onrender.com`.
 
-## Android APK sideload updates
+## Android APK sideload updates (GitHub Releases)
 
-Sideload path (not Play Store). Hosted files on web:
+Sideload path (not Play Store). **Production binary lives on GitHub Releases** — website Download buttons link straight to the release asset (no Render APK upload, no Drive).
 
-- APK: `web/public/downloads/xcron-jobs.apk` (gitignored binary)
-- Manifest: `web/public/downloads/version.json` (committed; mobile reads this)
-- Sync: `cd web && npm run sync:apk` (copies APK from mobile debug build, writes `version.json` from `mobile/android/app/build.gradle`, bumps web `androidApkVersion` / `androidApkSizeLabel`)
-- Native check: `mobile` `AppUpdateService` → `environment.appUpdateManifestUrl` on launch; prompts Update / Later when hosted `versionCode` > installed build
+| Piece | Where |
+| --- | --- |
+| Latest APK | `https://github.com/tharikn/x-cron/releases/latest/download/xcron-jobs.apk` |
+| Version history + notes | GitHub Releases API → web `get-app-cta` versions list |
+| In-app update check | `AppUpdateService` → `environment.githubReleasesLatestUrl` (parses `xcron-manifest` fence in release body) |
+| CI | `.github/workflows/android-release.yml` on tag `v*` (or workflow_dispatch) |
+| Manifest helper | `scripts/apk-release-manifest.mjs` |
+| Local smoke only | `cd web && npm run sync:apk` (gitignored local file; **not** prod) |
 
 **Ship a bug-fix APK**
 
 1. Bump `versionCode` (required) + `versionName` in `mobile/android/app/build.gradle`.
-2. `cd mobile && npx cap sync android && cd android && ./gradlew assembleDebug` (Windows: `.\gradlew.bat assembleDebug`).
-3. `cd web && npm run sync:apk` (optional `SITE_URL=…` / `APK_NOTES=…`).
-4. Deploy web so APK + `version.json` update together.
-5. Users already on a build that includes `AppUpdateService` get the in-app prompt; others re-download from the site CTA.
+2. Commit, then `git tag v{versionName}` and `git push origin v{versionName}` (tag must match `versionName`, e.g. `1.0.1` → `v1.0.1`).
+3. CI builds debug APK, creates Release with notes + assets `xcron-jobs.apk` + `version.json`.
+4. Site Download / in-app Update use that GitHub asset URL directly.
+
+Do **not** run `sync:apk` on Render. Do **not** host prod APKs on Google Drive.
 
 Docs: `web/public/downloads/README.md`, `web/CLAUDE.md`, `mobile/CLAUDE.md`.
 

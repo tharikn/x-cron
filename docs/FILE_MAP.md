@@ -302,7 +302,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `services/notifications.service.ts` | Device + inbox client |
 | `services/ads.service.ts` | Ad slots + promote packages |
 | `services/seeker.service.ts` | Saved jobs, feed, account delete |
-| `services/app-update.service.ts` | Native APK update check vs hosted `version.json` |
+| `services/app-update.service.ts` | Native APK update check vs GitHub Releases latest |
 
 #### `mobile/src/app/pages/`
 
@@ -363,8 +363,10 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `web/README.md` | Web package readme |
 | `web/CLAUDE.md` | Agent guide for Angular SSR web |
 | `web/public/favicon.ico` | Favicon |
-| `web/public/downloads/` | Android APK sideload (`xcron-jobs.apk`, gitignored) + `version.json` + README |
-| `web/scripts/sync-apk.mjs` | Copies mobile debug APK, writes `version.json`, bumps web CTA version labels |
+| `web/public/downloads/` | Local smoke APK (gitignored) + pointer `version.json` + README — **prod APK = GitHub Releases** |
+| `web/scripts/sync-apk.mjs` | Local-only debug APK copy for `ng serve` smoke |
+| `.github/workflows/android-release.yml` | Tag `v*` → build APK → GitHub Release + notes + assets |
+| `scripts/apk-release-manifest.mjs` | Writes `version.json` + release body `xcron-manifest` fence |
 
 ### `web/src/`
 
@@ -395,7 +397,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `core/models/site.model.ts` | Footer config types |
 | `core/utils/format.ts` | Display helpers |
 | `pages/home/*` | SEO home + search + ad rail |
-| `shared/get-app-cta/*` | Android APK download CTA (home panel / footer band / drawer) |
+| `shared/get-app-cta/*` | Android APK download CTA + GitHub version list (home / footer / drawer) |
+| `core/services/apk-releases.service.ts` | GitHub Releases API client for APK versions / notes |
 | `pages/job-detail/*` | Public job page |
 | `pages/location/*` | Location landing page |
 | `pages/notifications/*` | User inbox + channel toggles |

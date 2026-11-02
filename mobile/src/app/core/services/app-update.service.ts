@@ -15,9 +15,25 @@ export interface AppUpdateManifest {
   minVersionCode?: number;
   notes?: string;
   releasedAt?: string;
+  tag?: string;
+}
+
+interface GitHubReleaseAsset {
+  name: string;
+  browser_download_url: string;
+  size: number;
+}
+
+interface GitHubRelease {
+  tag_name: string;
+  name: string | null;
+  body: string | null;
+  published_at: string;
+  assets: GitHubReleaseAsset[];
 }
 
 const DISMISS_KEY = 'xcron.appUpdate.dismissedVersionCode';
+const MANIFEST_FENCE = /```xcron-manifest\s*([\s\S]*?)```/;
 
 @Injectable({ providedIn: 'root' })
 export class AppUpdateService {
@@ -25,14 +41,14 @@ export class AppUpdateService {
   private readonly alerts = inject(AlertController);
   private checking = false;
 
-  /** Native-only: compare installed build to hosted version.json and prompt if newer. */
+  /** Native-only: compare installed build to latest GitHub Release and prompt if newer. */
   async checkForUpdate(): Promise<void> {
     if (!Capacitor.isNativePlatform() || this.checking) return;
-    if (!environment.appUpdateManifestUrl) return;
+    if (!environment.githubReleasesLatestUrl) return;
 
     this.checking = true;
     try {
-      const manifest = await this.fetchManifest();
+      const manifest = await this.fetchLatestManifest();
       if (!manifest?.versionCode || !manifest.apkUrl) return;
 
       const info = await App.getInfo();
@@ -46,17 +62,76 @@ export class AppUpdateService {
 
       await this.prompt(manifest, installedCode, forced);
     } catch {
-      // optional — offline / CDN miss should not block app start
+      // optional — offline / API miss should not block app start
     } finally {
       this.checking = false;
     }
   }
 
-  private async fetchManifest(): Promise<AppUpdateManifest | null> {
-    const url = `${environment.appUpdateManifestUrl}${
-      environment.appUpdateManifestUrl.includes('?') ? '&' : '?'
+  private async fetchLatestManifest(): Promise<AppUpdateManifest | null> {
+    const url = `${environment.githubReleasesLatestUrl}${
+      environment.githubReleasesLatestUrl.includes('?') ? '&' : '?'
     }t=${Date.now()}`;
-    return firstValueFrom(this.http.get<AppUpdateManifest>(url));
+    const release = await firstValueFrom(
+      this.http.get<GitHubRelease>(url, {
+        headers: {
+          Accept: 'application/vnd.github+json',
+        },
+      }),
+    );
+    return this.manifestFromRelease(release);
+  }
+
+  /** Shared parser for latest + version list UIs. */
+  manifestFromRelease(release: GitHubRelease): AppUpdateManifest | null {
+    const apk = release.assets?.find((a) => a.name === 'xcron-jobs.apk');
+    const fromFence = this.parseFence(release.body ?? '');
+    const versionName =
+      fromFence?.versionName ||
+      release.tag_name?.replace(/^v/i, '') ||
+      release.name ||
+      '';
+    const versionCode = Number(fromFence?.versionCode);
+    if (!Number.isFinite(versionCode) || versionCode < 1) return null;
+
+    const apkUrl =
+      fromFence?.apkUrl ||
+      apk?.browser_download_url ||
+      (release.tag_name
+        ? `https://github.com/${environment.githubRepo}/releases/download/${release.tag_name}/xcron-jobs.apk`
+        : '');
+    if (!apkUrl) return null;
+
+    const sizeLabel =
+      fromFence?.sizeLabel ||
+      (apk?.size ? `~${(apk.size / (1024 * 1024)).toFixed(1)} MB` : undefined);
+
+    return {
+      versionCode,
+      versionName,
+      apkUrl,
+      sizeLabel,
+      minVersionCode: fromFence?.minVersionCode ?? 1,
+      notes: this.humanNotes(release.body ?? '', fromFence?.notes),
+      releasedAt: fromFence?.releasedAt || release.published_at,
+      tag: release.tag_name,
+    };
+  }
+
+  private parseFence(body: string): AppUpdateManifest | null {
+    const match = MANIFEST_FENCE.exec(body);
+    if (!match?.[1]) return null;
+    try {
+      return JSON.parse(match[1].trim()) as AppUpdateManifest;
+    } catch {
+      return null;
+    }
+  }
+
+  private humanNotes(body: string, fallback?: string): string | undefined {
+    const stripped = body.replace(MANIFEST_FENCE, '').replace(/^## Release notes\s*/m, '').trim();
+    if (stripped) return stripped.slice(0, 500);
+    return fallback;
   }
 
   private dismissedCode(): number {

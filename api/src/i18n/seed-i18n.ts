@@ -61,9 +61,14 @@ const EN_STRINGS: Record<string, string> = {
   'appDownload.lead':
     'Install the Android app for a faster, thumb-friendly job browse — same jobs, clearer on mobile.',
   'appDownload.cta': 'Download APK',
+  'appDownload.ctaVersion': 'Download',
   'appDownload.direct': 'Direct install',
   'appDownload.hint':
-    'Opens as an APK. On Android, allow install from this browser when prompted.',
+    'Downloads the APK from GitHub Releases. On Android, allow install from this browser when prompted.',
+  'appDownload.versions': 'Versions',
+  'appDownload.allReleases': 'All releases on GitHub',
+  'appDownload.noReleases':
+    'No GitHub releases yet — publish with tag vX.Y.Z after bumping versionCode.',
   'appDownload.nav': 'Get the app',
   'sort.newest': 'Newest',
   'sort.oldest': 'Oldest',
@@ -164,9 +169,14 @@ const TA_STRINGS: Record<string, string> = {
   'appDownload.lead':
     'வேகமான, தொடுவதற்கு எளிதான வேலை உலாவலுக்கு Android செயலியை நிறுவுங்கள் — அதே வேலைகள், மொபைலில் தெளிவாக.',
   'appDownload.cta': 'APK பதிவிறக்கு',
+  'appDownload.ctaVersion': 'பதிவிறக்கு',
   'appDownload.direct': 'நேரடி நிறுவல்',
   'appDownload.hint':
-    'APK ஆக திறக்கும். Android-ல் கேட்டால் இந்த உலாவியிலிருந்து நிறுவலை அனுமதியுங்கள்.',
+    'GitHub Releases-இலிருந்து APK பதிவிறக்கும். Android-ல் கேட்டால் இந்த உலாவியிலிருந்து நிறுவலை அனுமதியுங்கள்.',
+  'appDownload.versions': 'பதிப்புகள்',
+  'appDownload.allReleases': 'GitHub-இல் அனைத்து வெளியீடுகள்',
+  'appDownload.noReleases':
+    'இன்னும் GitHub வெளியீடு இல்லை — versionCode உயர்த்தி vX.Y.Z டேக் செய்யுங்கள்.',
   'appDownload.nav': 'செயலியைப் பெறு',
   'sort.newest': 'புதியவை',
   'sort.oldest': 'பழையவை',
@@ -267,9 +277,14 @@ const HI_STRINGS: Record<string, string> = {
   'appDownload.lead':
     'तेज़, अंगूठे के अनुकूल जॉब ब्राउज़ के लिए Android ऐप इंस्टॉल करें — वही नौकरियाँ, मोबाइल पर साफ़।',
   'appDownload.cta': 'APK डाउनलोड करें',
+  'appDownload.ctaVersion': 'डाउनलोड',
   'appDownload.direct': 'सीधा इंस्टॉल',
   'appDownload.hint':
-    'APK के रूप में खुलता है। Android पर पूछे जाने पर इस ब्राउज़र से इंस्टॉल की अनुमति दें।',
+    'GitHub Releases से APK डाउनलोड होता है। Android पर पूछे जाने पर इस ब्राउज़र से इंस्टॉल की अनुमति दें।',
+  'appDownload.versions': 'संस्करण',
+  'appDownload.allReleases': 'GitHub पर सभी रिलीज़',
+  'appDownload.noReleases':
+    'अभी GitHub रिलीज़ नहीं — versionCode बढ़ाकर vX.Y.Z टैग करें।',
   'appDownload.nav': 'ऐप पाएँ',
   'sort.newest': 'नवीनतम',
   'sort.oldest': 'पुरानी',

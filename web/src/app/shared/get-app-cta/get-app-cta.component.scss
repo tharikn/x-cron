@@ -160,6 +160,129 @@
   max-width: 28rem;
 }
 
+.get-app__hint--soft {
+  margin-top: 0.35rem;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.get-app__versions {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 36rem;
+}
+
+.get-app__versions-title {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.get-app__version-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.get-app__version-row {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: var(--xcron-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+@media (min-width: 560px) {
+  .get-app__version-row {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+}
+
+.get-app__version-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.get-app__version-name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.get-app__version-code {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.get-app__version-date {
+  margin: 0;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.get-app__version-notes {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(245, 245, 243, 0.72);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.get-app__version-dl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--xcron-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.get-app__version-dl:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.get-app__all-releases {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.get-app__all-releases:hover {
+  color: #fff;
+}
+
 .get-app--band {
   display: grid;
   gap: 1rem;

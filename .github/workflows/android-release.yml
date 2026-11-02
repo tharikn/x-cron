@@ -1,0 +1,109 @@
+name: Android APK release
+
+# Prod APK hosting = GitHub Releases (not Render / not git binary).
+# Ship: bump mobile/android/app/build.gradle versionCode + versionName, then:
+#   git tag v1.0.1 && git push origin v1.0.1
+# Or run this workflow manually (workflow_dispatch) with optional notes.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: 'Release notes (markdown)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.3'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install mobile deps
+        working-directory: mobile
+        run: npm ci
+
+      - name: Build web assets + Capacitor sync
+        working-directory: mobile
+        run: |
+          npm run build:prod
+          npx cap sync android
+
+      - name: Assemble debug APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Resolve tag + notes
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG="${{ github.ref_name }}"
+          else
+            NAME=$(grep -E 'versionName\s+"' mobile/android/app/build.gradle | head -1 | sed -E 's/.*versionName\s+"([^"]+)".*/\1/')
+            TAG="v${NAME}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          NOTES="${{ github.event.inputs.notes }}"
+          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
+          echo "${NOTES}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Write release manifest
+        run: |
+          node scripts/apk-release-manifest.mjs \
+            --out dist-apk-release \
+            --repo tharikn/x-cron \
+            --tag "${{ steps.meta.outputs.tag }}" \
+            --notes "${{ steps.meta.outputs.notes }}"
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk dist-apk-release/xcron-jobs.apk
+          cat dist-apk-release/release-meta.env >> "$GITHUB_ENV"
+
+      - name: Verify tag matches versionName
+        shell: bash
+        run: |
+          EXPECTED="v${VERSION_NAME}"
+          if [[ "${{ steps.meta.outputs.tag }}" != "$EXPECTED" ]]; then
+            echo "Tag ${{ steps.meta.outputs.tag }} must match versionName → ${EXPECTED} (bump build.gradle first)."
+            exit 1
+          fi
+
+      - name: Create GitHub Release + upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: X Cron Jobs ${{ env.VERSION_NAME }}
+          body_path: dist-apk-release/release-body.md
+          files: |
+            dist-apk-release/xcron-jobs.apk
+            dist-apk-release/version.json
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          # Softprops appends generated notes after body_path content.

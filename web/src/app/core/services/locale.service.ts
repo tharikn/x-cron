@@ -71,9 +71,14 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'appDownload.lead':
         'Install the Android app for a faster, thumb-friendly job browse — same jobs, clearer on mobile.',
       'appDownload.cta': 'Download APK',
+      'appDownload.ctaVersion': 'Download',
       'appDownload.direct': 'Direct install',
       'appDownload.hint':
-        'Opens as an APK. On Android, allow install from this browser when prompted.',
+        'Downloads the APK from GitHub Releases. On Android, allow install from this browser when prompted.',
+      'appDownload.versions': 'Versions',
+      'appDownload.allReleases': 'All releases on GitHub',
+      'appDownload.noReleases':
+        'No GitHub releases yet — publish with tag vX.Y.Z after bumping versionCode.',
       'appDownload.nav': 'Get the app',
       'sort.newest': 'Newest',
       'sort.oldest': 'Oldest',

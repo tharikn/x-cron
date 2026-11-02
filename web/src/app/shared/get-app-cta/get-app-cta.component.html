@@ -1,8 +1,7 @@
 @if (variant() === 'link') {
   <a
     class="get-app get-app--link"
-    [href]="apkUrl"
-    [attr.download]="fileName"
+    [href]="apkUrl()"
     rel="noopener"
   >
     <span class="get-app__link-label">{{ 'appDownload.nav' | t }}</span>
@@ -20,8 +19,7 @@
     <div class="get-app__band-actions">
       <a
         class="get-app__cta"
-        [href]="apkUrl"
-        [attr.download]="fileName"
+        [href]="apkUrl()"
         rel="noopener"
       >
         {{ 'appDownload.cta' | t }}
@@ -29,9 +27,9 @@
       <p class="get-app__meta">
         <span>Android</span>
         <span aria-hidden="true">·</span>
-        <span>v{{ version }}</span>
+        <span>v{{ versionLabel() }}</span>
         <span aria-hidden="true">·</span>
-        <span>{{ sizeLabel }}</span>
+        <span>{{ sizeLabel() }}</span>
       </p>
     </div>
   </aside>
@@ -50,21 +48,60 @@
       <p class="get-app__lead">{{ 'appDownload.lead' | t }}</p>
       <ul class="get-app__facts" aria-label="Download details">
         <li>Android</li>
-        <li>v{{ version }}</li>
-        <li>{{ sizeLabel }}</li>
+        <li>v{{ versionLabel() }}</li>
+        <li>{{ sizeLabel() }}</li>
         <li>{{ 'appDownload.direct' | t }}</li>
       </ul>
       <div class="get-app__actions">
         <a
           class="get-app__cta"
-          [href]="apkUrl"
-          [attr.download]="fileName"
+          [href]="apkUrl()"
           rel="noopener"
         >
           {{ 'appDownload.cta' | t }}
         </a>
         <p class="get-app__hint">{{ 'appDownload.hint' | t }}</p>
       </div>
+
+      @if (releases().length > 0) {
+        <div class="get-app__versions">
+          <p class="get-app__versions-title">{{ 'appDownload.versions' | t }}</p>
+          <ul class="get-app__version-list">
+            @for (row of releases(); track row.tag) {
+              <li class="get-app__version-row">
+                <div class="get-app__version-copy">
+                  <p class="get-app__version-name">
+                    v{{ row.versionName }}
+                    @if (row.versionCode) {
+                      <span class="get-app__version-code">build {{ row.versionCode }}</span>
+                    }
+                  </p>
+                  <p class="get-app__version-date">
+                    {{ row.publishedAt | date: 'mediumDate' }}
+                    <span aria-hidden="true">·</span>
+                    {{ row.sizeLabel }}
+                  </p>
+                  @if (row.notes) {
+                    <p class="get-app__version-notes">{{ row.notes }}</p>
+                  }
+                </div>
+                <a
+                  class="get-app__version-dl"
+                  [href]="row.apkUrl"
+                  rel="noopener"
+                >
+                  {{ 'appDownload.ctaVersion' | t }}
+                </a>
+              </li>
+            }
+          </ul>
+          <a class="get-app__all-releases" [href]="releasesUrl" rel="noopener" target="_blank">
+            {{ 'appDownload.allReleases' | t }}
+          </a>
+        </div>
+      } @else if (!loading()) {
+        <p class="get-app__hint get-app__hint--soft">{{ 'appDownload.noReleases' | t }}</p>
+      }
     </div>
   </aside>
 }

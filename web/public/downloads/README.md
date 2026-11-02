@@ -1,38 +1,37 @@
 # Android APK downloads
 
-Sideload build served by the public web site at `/downloads/xcron-jobs.apk`.
+**Production source of truth: GitHub Releases** on `tharikn/x-cron`.
 
-Update manifest (read by the mobile app): `/downloads/version.json`.
+| What | URL |
+| --- | --- |
+| Latest APK | `https://github.com/tharikn/x-cron/releases/latest/download/xcron-jobs.apk` |
+| Latest manifest | release body `xcron-manifest` fence + asset `version.json` |
+| All versions | `https://github.com/tharikn/x-cron/releases` |
 
-`*.apk` is gitignored (binary). `version.json` is committed so clients can check for updates even before an APK is synced locally.
+Website **Download APK** links straight to the GitHub asset (browser downloads the binary). The home panel also lists prior releases via the GitHub Releases API.
 
-## Publish a bug-fix build
+`*.apk` stays gitignored. Do **not** rely on Render hosting the binary.
 
-1. Bump `versionCode` (required) and `versionName` in `mobile/android/app/build.gradle`.
-2. Build the debug APK:
+## Ship a version (CI)
 
-```bash
-cd mobile
-npx cap sync android
-cd android
-.\gradlew.bat assembleDebug
-```
-
-3. Copy APK + refresh `version.json` + web CTA labels:
+1. Bump `versionCode` + `versionName` in `mobile/android/app/build.gradle`.
+2. Commit and tag matching `versionName`:
 
 ```bash
-cd web
-npm run sync:apk
-# optional: SITE_URL=https://your-host APK_NOTES="Fix Google sign-in" npm run sync:apk
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
-4. Deploy the web site so `/downloads/xcron-jobs.apk` and `/downloads/version.json` update together.
+3. Workflow [`.github/workflows/android-release.yml`](../../../.github/workflows/android-release.yml) builds the debug APK, creates the GitHub Release (notes + `xcron-jobs.apk` + `version.json`).
 
-Source path: `mobile/android/app/build/outputs/apk/debug/app-debug.apk`.
+Or run **Android APK release** → **Run workflow** and paste release notes.
 
-Override the public APK/base URL via `SITE_URL` when syncing, or `environment.androidApkUrl` for the web CTA.
+Tag must equal `v` + `versionName` (e.g. gradle `1.0.1` → tag `v1.0.1`).
 
-## How users update
+## Local only (`sync:apk`)
 
-- **New install / re-download:** site **Download APK** CTA.
-- **Already installed:** native app checks `version.json` on launch. If `versionCode` is higher than the installed build, it prompts **Update** (opens `apkUrl`) or **Later** (skipped until a newer code ships). If installed build is below `minVersionCode`, **Later** is hidden.
+`cd web && npm run sync:apk` still copies a debug APK into this folder for **local** `ng serve` smoke tests. It does **not** publish to production. Production = GitHub Release.
+
+## In-app updates
+
+Native app `AppUpdateService` reads `GET /repos/tharikn/x-cron/releases/latest`, parses the `xcron-manifest` fence, and prompts Update when `versionCode` is higher.
