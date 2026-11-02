@@ -10,6 +10,7 @@ import {
 } from '@ionic/angular';
 import { AuthService } from '../../core/services/auth.service';
 import { GoogleIdentityService } from '../../core/services/google-identity.service';
+import { NotificationsService } from '../../core/services/notifications.service';
 
 export type GoogleSignInReason = 'unlock' | 'save' | 'share' | 'generic';
 
@@ -48,6 +49,7 @@ const REASON_COPY: Record<GoogleSignInReason, { title: string; body: string }> =
 export class GoogleSignInSheetComponent {
   private readonly auth = inject(AuthService);
   private readonly googleIdentity = inject(GoogleIdentityService);
+  private readonly notifications = inject(NotificationsService);
 
   readonly open = input(false);
   readonly reason = input<GoogleSignInReason>('generic');
@@ -95,6 +97,12 @@ export class GoogleSignInSheetComponent {
           email: this.email.trim(),
           displayName: this.displayName.trim() || undefined,
         });
+      }
+      // Link FCM token to this user (push delivery is per-userId).
+      try {
+        await this.notifications.registerDevice();
+      } catch {
+        // optional — Account / Prefs also re-register
       }
       this.openChange.emit(false);
       this.signedIn.emit();

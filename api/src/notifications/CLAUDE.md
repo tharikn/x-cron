@@ -67,7 +67,7 @@ Full steps: [docs/FCM_SETUP.md](../../../docs/FCM_SETUP.md) · helper: `node scr
 4. Rebuild APK / restart API; open app once (grant notifications) so a real FCM token hits `POST /v1/devices`
 5. Force-stop app → publish job / `POST /v1/notifications/dev/send` → tray alert
 
-`providers/fcm.provider.ts` sends `notification` + `data` + Android `channelId`. Stub tokens (`stub_fcm_*`) are rejected by the live provider. Without credentials, factory falls back to stub.
+`providers/fcm.provider.ts` uses firebase-admin **modular** exports (`getApps` / `cert` / `getMessaging`) — not the legacy `admin.apps` / `admin.credential` / `admin.messaging()` shape (those are undefined on current firebase-admin and crash send with `reading 'length'`). Sends `notification` + `data` + Android `channelId`. Stub tokens (`stub_fcm_*`) are rejected by the live provider. Without credentials, factory falls back to stub. Mobile must `POST /v1/devices` with a **live** FCM token after sign-in (never upload `stub_fcm_*` when `fcmEnabled`).
 
 ## Agent rules
 

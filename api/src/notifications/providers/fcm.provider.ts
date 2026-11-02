@@ -7,17 +7,14 @@ type FirebaseMessaging = {
   send: (message: Record<string, unknown>) => Promise<string>;
 };
 
-type FirebaseAdminModule = {
-  apps: unknown[];
+type FirebaseAdminCompat = {
+  getApps: () => unknown[];
   initializeApp: (options: { credential: unknown }) => unknown;
-  credential: {
-    cert: (serviceAccount: object) => unknown;
-  };
-  messaging: () => FirebaseMessaging;
+  cert: (serviceAccount: object) => unknown;
 };
 
 /**
- * Live FCM via firebase-admin.
+ * Live FCM via firebase-admin (modular exports: getApps / cert / getMessaging).
  * Requires PUSH_PROVIDER=fcm and FIREBASE_SERVICE_ACCOUNT_JSON or _PATH.
  * Sends a `notification` + `data` message so Android shows the system tray
  * when the app is backgrounded or killed.
@@ -27,18 +24,23 @@ export class FcmProvider implements PushProvider {
   private readonly logger = new Logger(FcmProvider.name);
   private readonly channelId =
     process.env.FCM_ANDROID_CHANNEL_ID || 'xcron-job-alerts-v2';
-  private admin: FirebaseAdminModule | null = null;
+  private messaging: FirebaseMessaging | null = null;
   private initError: string | null = null;
 
-  private ensureAdmin(): FirebaseAdminModule {
+  private ensureMessaging(): FirebaseMessaging {
     if (this.initError) {
       throw new Error(this.initError);
     }
-    if (this.admin) return this.admin;
+    if (this.messaging) return this.messaging;
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const admin = require('firebase-admin') as FirebaseAdminModule;
-    if (!admin.apps.length) {
+    const admin = require('firebase-admin') as FirebaseAdminCompat;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getMessaging } = require('firebase-admin/messaging') as {
+      getMessaging: () => FirebaseMessaging;
+    };
+
+    if (!admin.getApps().length) {
       const serviceAccount = this.loadServiceAccount();
       if (!serviceAccount) {
         this.initError =
@@ -46,12 +48,13 @@ export class FcmProvider implements PushProvider {
         throw new Error(this.initError);
       }
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+        credential: admin.cert(serviceAccount),
       });
       this.logger.log('Firebase Admin initialized for FCM');
     }
-    this.admin = admin;
-    return admin;
+
+    this.messaging = getMessaging();
+    return this.messaging;
   }
 
   private loadServiceAccount(): object | null {
@@ -94,13 +97,13 @@ export class FcmProvider implements PushProvider {
     }
 
     try {
-      const admin = this.ensureAdmin();
+      const messaging = this.ensureMessaging();
       const data: Record<string, string> = {};
       for (const [key, value] of Object.entries(input.data || {})) {
         if (value != null) data[key] = String(value);
       }
 
-      const messageId = await admin.messaging().send({
+      const messageId = await messaging.send({
         token: input.token,
         notification: {
           title: input.title,

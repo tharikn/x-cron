@@ -70,6 +70,7 @@ export class NotificationsService {
   private pushListenersBound = false;
   private pushRegistering = false;
   private audioCtx: AudioContext | null = null;
+  private fcmTokenWaiters: Array<(token: string | null) => void> = [];
 
   /** Stub token for browser / until native FCM registration succeeds. */
   stubToken(): string {
@@ -96,6 +97,17 @@ export class NotificationsService {
       }
       const platform = Capacitor.getPlatform();
       const fcmToken = this.currentPushToken();
+      // Never upload stub tokens when FCM is enabled — that caused prod `no_device`
+      // / `stub_or_invalid_token` while a live token sat only on the phone.
+      if (
+        Capacitor.isNativePlatform() &&
+        environment.fcmEnabled &&
+        fcmToken.startsWith('stub_fcm_')
+      ) {
+        this.deviceRegistered.set(false);
+        this.remotePushReady.set(false);
+        return;
+      }
       await firstValueFrom(
         this.http.post(
           `${environment.apiUrl}/devices`,
@@ -263,7 +275,12 @@ export class NotificationsService {
       this.remotePushReady.set(false);
       return false;
     }
-    if (this.pushRegistering) return this.remotePushReady();
+    if (this.pushRegistering) {
+      const existing = this.currentPushToken();
+      if (!existing.startsWith('stub_fcm_')) return true;
+      const waited = await this.waitForLiveFcmToken(8_000);
+      return Boolean(waited);
+    }
 
     try {
       await this.bindPushListeners();
@@ -280,16 +297,53 @@ export class NotificationsService {
         return false;
       }
 
+      const already = this.currentPushToken();
+      if (!already.startsWith('stub_fcm_')) {
+        this.remotePushReady.set(true);
+        return true;
+      }
+
       this.pushRegistering = true;
       await PushNotifications.register();
+      const token = await this.waitForLiveFcmToken(8_000);
       this.pushRegistering = false;
-      return true;
+      this.remotePushReady.set(Boolean(token));
+      return Boolean(token);
     } catch (err) {
       console.warn('[notifications] FCM register skipped/failed', err);
       this.pushRegistering = false;
       this.remotePushReady.set(false);
       return false;
     }
+  }
+
+  private waitForLiveFcmToken(timeoutMs: number): Promise<string | null> {
+    const existing = localStorage.getItem(FCM_TOKEN_KEY);
+    if (existing && !existing.startsWith('stub_fcm_')) {
+      return Promise.resolve(existing);
+    }
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (token: string | null) => {
+        if (settled) return;
+        settled = true;
+        resolve(token);
+      };
+      const timer = setTimeout(() => {
+        this.fcmTokenWaiters = this.fcmTokenWaiters.filter((w) => w !== onToken);
+        finish(null);
+      }, timeoutMs);
+      const onToken = (token: string | null) => {
+        clearTimeout(timer);
+        finish(token);
+      };
+      this.fcmTokenWaiters.push(onToken);
+    });
+  }
+
+  private resolveFcmTokenWaiters(token: string | null): void {
+    const waiters = this.fcmTokenWaiters.splice(0);
+    for (const w of waiters) w(token);
   }
 
   private async bindPushListeners(): Promise<void> {
@@ -300,12 +354,14 @@ export class NotificationsService {
       if (!token?.value) return;
       localStorage.setItem(FCM_TOKEN_KEY, token.value);
       this.remotePushReady.set(true);
+      this.resolveFcmTokenWaiters(token.value);
       void this.registerDevice();
     });
 
     await PushNotifications.addListener('registrationError', (err) => {
       console.warn('[push] registrationError', err);
       this.remotePushReady.set(false);
+      this.resolveFcmTokenWaiters(null);
     });
 
     // Foreground: OS does not auto-show notification payload — mirror via local tray.
