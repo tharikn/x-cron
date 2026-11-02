@@ -40,6 +40,33 @@ export class ApkReleasesService {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  /** Home / CTA: latest release only (no version history fetch). */
+  async loadLatest(): Promise<void> {
+    if (!environment.androidReleasesApiUrl) return;
+    this.loading.set(true);
+    this.error.set(null);
+    try {
+      const url = `${environment.androidReleasesApiUrl}/latest?t=${Date.now()}`;
+      const release = await firstValueFrom(
+        this.http.get<GitHubRelease>(url, {
+          headers: { Accept: 'application/vnd.github+json' },
+        }),
+      );
+      if (release?.draft || release?.prerelease) {
+        this.latest.set(null);
+        return;
+      }
+      const row = this.toRow(release);
+      this.latest.set(row);
+    } catch {
+      this.error.set('Could not load latest release');
+      this.latest.set(null);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  /** Full history — for a future versions page / accordion, not the home panel. */
   async load(limit = 12): Promise<void> {
     if (!environment.androidReleasesApiUrl) return;
     this.loading.set(true);
@@ -73,7 +100,8 @@ export class ApkReleasesService {
     let versionCode: number | null = null;
     let versionName = release.tag_name.replace(/^v/i, '');
     let notes = '';
-    let sizeLabel = `~${(apk.size / (1024 * 1024)).toFixed(1)} MB`;
+    // Always prefer GitHub asset byte size so the UI matches the file users download.
+    const sizeLabel = `~${(apk.size / (1024 * 1024)).toFixed(1)} MB`;
 
     const fence = MANIFEST_FENCE.exec(release.body ?? '');
     if (fence?.[1]) {
@@ -82,13 +110,11 @@ export class ApkReleasesService {
           versionCode?: number;
           versionName?: string;
           notes?: string;
-          sizeLabel?: string;
         };
         if (Number.isFinite(Number(manifest.versionCode))) {
           versionCode = Number(manifest.versionCode);
         }
         if (manifest.versionName) versionName = manifest.versionName;
-        if (manifest.sizeLabel) sizeLabel = manifest.sizeLabel;
         if (manifest.notes) notes = String(manifest.notes);
       } catch {
         // ignore bad fence
@@ -100,7 +126,7 @@ export class ApkReleasesService {
         .replace(MANIFEST_FENCE, '')
         .replace(/^## Release notes\s*/m, '')
         .trim()
-        .slice(0, 280);
+        .slice(0, 180);
     }
 
     return {

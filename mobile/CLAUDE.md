@@ -16,7 +16,11 @@ npm run test:unit
 npm run test:e2e           # Playwright
 npm run cap:sync           # build + npx cap sync
 npm run cap:android        # open Android Studio
+npm run release:apk        # bump APK versionCode + versionName (patch)
+npm run release:apk:ship   # bump + commit + tag v{versionName} + push → GitHub Release
 ```
+
+Sideload APK release helper: [`../scripts/release-apk.mjs`](../scripts/release-apk.mjs) (same as above). Tag push triggers [`.github/workflows/android-release.yml`](../.github/workflows/android-release.yml). Do **not** use `web` `sync:apk` for prod.
 
 Requires API running for live data (`../api`). Env: `src/environments/environment*.ts` → `apiUrl`.
 

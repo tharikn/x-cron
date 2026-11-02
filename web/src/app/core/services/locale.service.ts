@@ -74,7 +74,8 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'appDownload.ctaVersion': 'Download',
       'appDownload.direct': 'Direct install',
       'appDownload.hint':
-        'Downloads the APK from GitHub Releases. On Android, allow install from this browser when prompted.',
+        'Downloads the latest APK from GitHub Releases. On Android, allow install from this browser when prompted.',
+      'appDownload.published': 'Published',
       'appDownload.versions': 'Versions',
       'appDownload.allReleases': 'All releases on GitHub',
       'appDownload.noReleases':

@@ -1,8 +1,11 @@
 name: Android APK release
 
 # Prod APK hosting = GitHub Releases (not Render / not git binary).
-# Ship: bump mobile/android/app/build.gradle versionCode + versionName, then:
-#   git tag v1.0.1 && git push origin v1.0.1
+# Ship (preferred): from repo root
+#   node scripts/release-apk.mjs --ship
+#   # or: cd mobile && npm run release:apk:ship
+# That bumps versionCode/versionName, commits, tags v{versionName}, and pushes.
+# Manual: bump build.gradle, then git tag v1.0.1 && git push origin v1.0.1
 # Or run this workflow manually (workflow_dispatch) with optional notes.
 
 on:

@@ -20,7 +20,9 @@
     "test:unit:watch": "ng test --watch",
     "test:e2e": "playwright test",
     "cap:sync": "npm run build && npx cap sync",
-    "cap:android": "npx cap open android"
+    "cap:android": "npx cap open android",
+    "release:apk": "node ../scripts/release-apk.mjs",
+    "release:apk:ship": "node ../scripts/release-apk.mjs --ship"
   },
   "private": true,
   "dependencies": {

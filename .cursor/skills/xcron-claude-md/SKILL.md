@@ -51,13 +51,23 @@ Sideload path (not Play Store). **Production binary lives on GitHub Releases** �
 | Piece | Where |
 | --- | --- |
 | Latest APK | `https://github.com/tharikn/x-cron/releases/latest/download/xcron-jobs.apk` |
-| Version history + notes | GitHub Releases API → web `get-app-cta` versions list |
+| Latest on home Download | GitHub `…/releases/latest` → web `get-app-cta` (version + size + published datetime); history deferred |
 | In-app update check | `AppUpdateService` → `environment.githubReleasesLatestUrl` (parses `xcron-manifest` fence in release body) |
 | CI | `.github/workflows/android-release.yml` on tag `v*` (or workflow_dispatch) |
 | Manifest helper | `scripts/apk-release-manifest.mjs` |
 | Local smoke only | `cd web && npm run sync:apk` (gitignored local file; **not** prod) |
 
 **Ship a bug-fix APK**
+
+Preferred (automated bump + tag + push):
+
+```bash
+node scripts/release-apk.mjs --ship
+# or: cd mobile && npm run release:apk:ship
+# options: --version 1.1.0 --notes "…" --dry-run
+```
+
+Manual equivalent:
 
 1. Bump `versionCode` (required) + `versionName` in `mobile/android/app/build.gradle`.
 2. Commit, then `git tag v{versionName}` and `git push origin v{versionName}` (tag must match `versionName`, e.g. `1.0.1` → `v1.0.1`).

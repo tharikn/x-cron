@@ -64,7 +64,8 @@ const EN_STRINGS: Record<string, string> = {
   'appDownload.ctaVersion': 'Download',
   'appDownload.direct': 'Direct install',
   'appDownload.hint':
-    'Downloads the APK from GitHub Releases. On Android, allow install from this browser when prompted.',
+    'Downloads the latest APK from GitHub Releases. On Android, allow install from this browser when prompted.',
+  'appDownload.published': 'Published',
   'appDownload.versions': 'Versions',
   'appDownload.allReleases': 'All releases on GitHub',
   'appDownload.noReleases':
@@ -172,7 +173,8 @@ const TA_STRINGS: Record<string, string> = {
   'appDownload.ctaVersion': 'பதிவிறக்கு',
   'appDownload.direct': 'நேரடி நிறுவல்',
   'appDownload.hint':
-    'GitHub Releases-இலிருந்து APK பதிவிறக்கும். Android-ல் கேட்டால் இந்த உலாவியிலிருந்து நிறுவலை அனுமதியுங்கள்.',
+    'GitHub Releases-இலிருந்து சமீபத்திய APK பதிவிறக்கும். Android-ல் கேட்டால் இந்த உலாவியிலிருந்து நிறுவலை அனுமதியுங்கள்.',
+  'appDownload.published': 'வெளியிடப்பட்டது',
   'appDownload.versions': 'பதிப்புகள்',
   'appDownload.allReleases': 'GitHub-இல் அனைத்து வெளியீடுகள்',
   'appDownload.noReleases':
@@ -280,7 +282,8 @@ const HI_STRINGS: Record<string, string> = {
   'appDownload.ctaVersion': 'डाउनलोड',
   'appDownload.direct': 'सीधा इंस्टॉल',
   'appDownload.hint':
-    'GitHub Releases से APK डाउनलोड होता है। Android पर पूछे जाने पर इस ब्राउज़र से इंस्टॉल की अनुमति दें।',
+    'GitHub Releases से नवीनतम APK डाउनलोड होता है। Android पर पूछे जाने पर इस ब्राउज़र से इंस्टॉल की अनुमति दें।',
+  'appDownload.published': 'प्रकाशित',
   'appDownload.versions': 'संस्करण',
   'appDownload.allReleases': 'GitHub पर सभी रिलीज़',
   'appDownload.noReleases':

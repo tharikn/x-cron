@@ -1,0 +1,2 @@
+Local smoke APK synced 2026-11-02T08:45:35.897Z (~12.2 MB).
+Production downloads use GitHub Releases, not this file.
