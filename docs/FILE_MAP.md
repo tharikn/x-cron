@@ -367,6 +367,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `web/scripts/sync-apk.mjs` | Local-only debug APK copy for `ng serve` smoke |
 | `.github/workflows/android-release.yml` | Tag `v*` → build APK → GitHub Release + notes + assets |
 | `scripts/apk-release-manifest.mjs` | Writes `version.json` + release body `xcron-manifest` fence |
+| `scripts/setup-fcm.mjs` | Wires free FCM after google-services + service account files are present |
+| `docs/FCM_SETUP.md` | Free Firebase / FCM setup for closed-app push |
 
 ### `web/src/`
 

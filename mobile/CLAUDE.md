@@ -80,7 +80,7 @@ Discover search location starts empty (applies saved prefs only when present) â€
 ## Stubs
 
 - Payments: stub confirm, or UPI QR/VPA when API `PAYMENT_GATEWAY=upi` (see monorepo payments skill)
-- Push: `@capacitor/push-notifications` registers a live FCM token on Android (needs `android/app/google-services.json`); browser still uses `stub_fcm_*`
+- System tray: always via `@capacitor/local-notifications` (`ensureOsTrayPermission`) â€” must not depend on FCM. FCM (`PushNotifications.register`) only when `environment.fcmEnabled` + `android/app/google-services.json`; without Firebase, keep `fcmEnabled: false` or the native register call fatally crashes. Poll-driven local tray still works with `stub_fcm_*` while the app process is alive.
 - OS tray when app closed/killed: server `PUSH_PROVIDER=fcm` + firebase-admin (see `api/src/notifications/CLAUDE.md`)
 - OS tray when app open / browser: `@capacitor/local-notifications` or Web Notification API; inbox poll ~8s for in-app list; foreground FCM mirrored to local tray
 - Alert channel toggles live on Prefs; Notifications tab is inbox-only

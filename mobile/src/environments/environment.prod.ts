@@ -7,4 +7,10 @@ export const environment = {
   /** Latest GitHub Release JSON (CORS-friendly) — APK update check. */
   githubReleasesLatestUrl:
     'https://api.github.com/repos/tharikn/x-cron/releases/latest',
+  /**
+   * Remote FCM. Requires `android/app/google-services.json` in the APK build.
+   * False until CI injects that file — otherwise PushNotifications.register()
+   * fatally crashes (Default FirebaseApp is not initialized).
+   */
+  fcmEnabled: true,
 };

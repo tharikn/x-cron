@@ -66,6 +66,10 @@ Sideload path (not Play Store). **Production binary lives on GitHub Releases** �
 
 Do **not** run `sync:apk` on Render. Do **not** host prod APKs on Google Drive.
 
+**System notifications:** OS tray uses LocalNotifications (`ensureOsTrayPermission`) and must work without Firebase. Never gate tray alerts on FCM success.
+
+**FCM (free, closed-app push):** Code is ready (`PUSH_PROVIDER=fcm`, `FcmProvider`, Capacitor push). Credentials are **not** inventable — user must download from Firebase Console (Spark ₹0). Setup: [docs/FCM_SETUP.md](../../../docs/FCM_SETUP.md) + `node scripts/setup-fcm.mjs` after placing `mobile/android/app/google-services.json` and `api/secrets/firebase-service-account.json`. Without those files keep `fcmEnabled: false` / `PUSH_PROVIDER=stub` or the app crashes / API falls back to stub. CI secret `GOOGLE_SERVICES_JSON` for release APKs.
+
 Docs: `web/public/downloads/README.md`, `web/CLAUDE.md`, `mobile/CLAUDE.md`.
 
 ## AI job enrich (`api/src/ai/`)

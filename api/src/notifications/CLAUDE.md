@@ -57,15 +57,17 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 - Mobile OS tray (foreground / browser): `@capacitor/local-notifications` or Web Notification API; inbox poll ~8s remains for in-app list
 - Do not put Preferences / Alert channels back on the notifications inbox screen
 
-## Live FCM setup (killed-app delivery)
+## Live FCM setup (killed-app delivery, ₹0)
 
-1. Firebase Console → add Android app package `com.xcron.jobs` → download `google-services.json` → place at `mobile/android/app/google-services.json`
-2. Project settings → Service accounts → Generate new private key → store off-repo
-3. API: `PUSH_PROVIDER=fcm` + `FIREBASE_SERVICE_ACCOUNT_PATH` (or `_JSON`)
-4. Mobile: `npm run cap:sync`, rebuild APK, open app once (grant notifications) so FCM token registers to `POST /v1/devices`
-5. Publish a job / `POST /v1/notifications/dev/send` — tray appears even with app force-stopped
+Full steps: [docs/FCM_SETUP.md](../../../docs/FCM_SETUP.md) · helper: `node scripts/setup-fcm.mjs`
 
-`providers/fcm.provider.ts` sends `notification` + `data` + Android `channelId` so the OS shows the shade without the WebView running. Stub tokens (`stub_fcm_*`) are rejected by the live provider.
+1. Firebase Console (Spark) → Android app `com.xcron.jobs` → `mobile/android/app/google-services.json`
+2. Service account private key → `api/secrets/firebase-service-account.json`
+3. `node scripts/setup-fcm.mjs` → sets `PUSH_PROVIDER=fcm` + mobile `fcmEnabled: true`
+4. Rebuild APK / restart API; open app once (grant notifications) so a real FCM token hits `POST /v1/devices`
+5. Force-stop app → publish job / `POST /v1/notifications/dev/send` → tray alert
+
+`providers/fcm.provider.ts` sends `notification` + `data` + Android `channelId`. Stub tokens (`stub_fcm_*`) are rejected by the live provider. Without credentials, factory falls back to stub.
 
 ## Agent rules
 

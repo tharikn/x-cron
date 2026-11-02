@@ -8,4 +8,10 @@ export const environment = {
   /** Latest GitHub Release JSON (CORS-friendly) — APK update check. */
   githubReleasesLatestUrl:
     'https://api.github.com/repos/tharikn/x-cron/releases/latest',
+  /**
+   * Remote FCM via @capacitor/push-notifications. Requires
+   * `android/app/google-services.json` in the native build. Keep false for
+   * CI/sideload APKs without that file — calling register() crashes the process.
+   */
+  fcmEnabled: true,
 };

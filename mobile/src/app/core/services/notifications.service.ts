@@ -89,7 +89,9 @@ export class NotificationsService {
 
   async registerDevice(): Promise<void> {
     try {
-      if (Capacitor.isNativePlatform()) {
+      // OS tray must work even when FCM/Firebase is absent.
+      await this.ensureOsTrayPermission();
+      if (Capacitor.isNativePlatform() && environment.fcmEnabled) {
         await this.ensureRemotePush();
       }
       const platform = Capacitor.getPlatform();
@@ -200,11 +202,37 @@ export class NotificationsService {
     await this.refreshInbox(options ?? { announce: true });
   }
 
+  /**
+   * Public entry used by Prefs / app boot.
+   * System tray permission is independent of FCM — never fail tray because Firebase is missing.
+   */
   async ensurePushPermission(): Promise<boolean> {
+    const trayOk = await this.ensureOsTrayPermission();
+    if (Capacitor.isNativePlatform() && environment.fcmEnabled) {
+      // Optional: killed-app delivery. Failure must not block LocalNotifications.
+      void this.ensureRemotePush();
+    }
+    return trayOk;
+  }
+
+  /** Android/iOS system shade via LocalNotifications (or browser Notification API). */
+  async ensureOsTrayPermission(): Promise<boolean> {
     if (Capacitor.isNativePlatform()) {
-      await this.ensureNativeChannel();
-      const ok = await this.ensureRemotePush();
-      return ok;
+      try {
+        await this.ensureNativeChannel();
+        const current = await LocalNotifications.checkPermissions();
+        let display = current.display;
+        if (display !== 'granted') {
+          const asked = await LocalNotifications.requestPermissions();
+          display = asked.display;
+        }
+        this.pushPermission.set(display === 'granted' ? 'granted' : 'denied');
+        return display === 'granted';
+      } catch (err) {
+        console.warn('[notifications] OS tray permission failed', err);
+        this.pushPermission.set('unsupported');
+        return false;
+      }
     }
 
     if (typeof Notification === 'undefined') {
@@ -226,17 +254,20 @@ export class NotificationsService {
   }
 
   /**
-   * Register with FCM via Capacitor Push Notifications.
-   * Required for system tray alerts when the app is backgrounded or killed.
-   * LocalNotifications alone only work while the WebView process is alive.
+   * Optional FCM registration for killed-app delivery.
+   * Requires environment.fcmEnabled + google-services.json. Never throws to JS callers
+   * in a way that disables LocalNotifications; native register() is skipped when disabled.
    */
   private async ensureRemotePush(): Promise<boolean> {
-    if (!Capacitor.isNativePlatform()) return false;
+    if (!Capacitor.isNativePlatform() || !environment.fcmEnabled) {
+      this.remotePushReady.set(false);
+      return false;
+    }
     if (this.pushRegistering) return this.remotePushReady();
 
     try {
       await this.bindPushListeners();
-      await this.ensureNativeChannel();
+      await this.ensureOsTrayPermission();
 
       const current = await PushNotifications.checkPermissions();
       let receive = current.receive;
@@ -244,26 +275,19 @@ export class NotificationsService {
         const asked = await PushNotifications.requestPermissions();
         receive = asked.receive;
       }
-      this.pushPermission.set(receive === 'granted' ? 'granted' : 'denied');
-      if (receive !== 'granted') return false;
-
-      // Also grant local notifications so foreground FCM can mirror to the tray.
-      try {
-        const local = await LocalNotifications.checkPermissions();
-        if (local.display !== 'granted') {
-          await LocalNotifications.requestPermissions();
-        }
-      } catch {
-        // Local channel is best-effort for foreground mirroring.
+      if (receive !== 'granted') {
+        this.remotePushReady.set(false);
+        return false;
       }
 
       this.pushRegistering = true;
       await PushNotifications.register();
       this.pushRegistering = false;
       return true;
-    } catch {
+    } catch (err) {
+      console.warn('[notifications] FCM register skipped/failed', err);
       this.pushRegistering = false;
-      this.pushPermission.set('unsupported');
+      this.remotePushReady.set(false);
       return false;
     }
   }
@@ -342,9 +366,9 @@ export class NotificationsService {
   private async refreshPushPermissionState(): Promise<void> {
     if (Capacitor.isNativePlatform()) {
       try {
-        const current = await PushNotifications.checkPermissions();
+        const current = await LocalNotifications.checkPermissions();
         this.pushPermission.set(
-          current.receive === 'granted' ? 'granted' : 'denied',
+          current.display === 'granted' ? 'granted' : 'denied',
         );
       } catch {
         this.pushPermission.set('unsupported');
@@ -393,7 +417,7 @@ export class NotificationsService {
       return;
     }
 
-    const allowed = await this.ensurePushPermission();
+    const allowed = await this.ensureOsTrayPermission();
     if (!allowed) return;
 
     for (const item of fresh.slice(0, 5)) {
@@ -403,37 +427,41 @@ export class NotificationsService {
   }
 
   private async showOsNotification(item: InAppNotification): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await this.ensureNativeChannel();
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: this.toNotifId(item.id),
-            title: item.title || 'X Cron Jobs',
-            body: item.body || 'New job match',
-            sound: 'default',
-            channelId: CHANNEL_ID,
-            foreground: true,
-            extra: { jobId: item.jobId, notificationId: item.id },
-          },
-        ],
-      });
-      return;
-    }
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await this.ensureNativeChannel();
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: this.toNotifId(item.id),
+              title: item.title || 'X Cron Jobs',
+              body: item.body || 'New job match',
+              sound: 'default',
+              channelId: CHANNEL_ID,
+              foreground: true,
+              extra: { jobId: item.jobId, notificationId: item.id },
+            },
+          ],
+        });
+        return;
+      }
 
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
-      return;
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+        return;
+      }
+      const note = new Notification(item.title || 'X Cron Jobs', {
+        body: item.body || 'New job match',
+        tag: item.id,
+        silent: false,
+        data: { jobId: item.jobId, notificationId: item.id },
+      });
+      note.onclick = () => {
+        window.focus();
+        note.close();
+      };
+    } catch (err) {
+      console.warn('[notifications] showOsNotification failed', err);
     }
-    const note = new Notification(item.title || 'X Cron Jobs', {
-      body: item.body || 'New job match',
-      tag: item.id,
-      silent: false,
-      data: { jobId: item.jobId, notificationId: item.id },
-    });
-    note.onclick = () => {
-      window.focus();
-      note.close();
-    };
   }
 
   /** Short system-like chime — browsers often mute Notification sound when focused. */

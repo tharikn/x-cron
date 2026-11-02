@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "732961185426",
+    "project_id": "xcronjobs",
+    "storage_bucket": "xcronjobs.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:732961185426:android:12073283a75e3fa89bd04b",
+        "android_client_info": {
+          "package_name": "com.xcron.jobs"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8-OkHbSXxNKY3BqhfTmHdOzhrbebltSI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -51,6 +51,24 @@ jobs:
         working-directory: mobile
         run: npm ci
 
+      - name: Inject google-services.json (optional FCM)
+        # Root crash without this file: PushNotifications.register() →
+        # "Default FirebaseApp is not initialized" kills the process.
+        # Add repo secret GOOGLE_SERVICES_JSON = full contents of
+        # Firebase Console → Project settings → Android app com.xcron.jobs
+        # → google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s\n' "$GOOGLE_SERVICES_JSON" > mobile/android/app/google-services.json
+            # Enable FCM in the shipped web bundle (prod env).
+            sed -i 's/fcmEnabled: false/fcmEnabled: true/' mobile/src/environments/environment.prod.ts
+            echo "google-services.json written; fcmEnabled=true"
+          else
+            echo "WARNING: secret GOOGLE_SERVICES_JSON missing — APK will run without FCM (safe)."
+          fi
+
       - name: Build web assets + Capacitor sync
         working-directory: mobile
         run: |
