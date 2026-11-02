@@ -42,7 +42,10 @@ jobs:
           java-version: '21'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        # v3 fails: Google removed the deprecated `tools` package from the SDK repo.
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
 
       - name: Install mobile deps
         working-directory: mobile
