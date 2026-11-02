@@ -12,6 +12,6 @@ export const environment = {
   /** Latest APK — GitHub Release asset (direct binary). */
   androidApkUrl:
     'https://github.com/tharikn/x-cron/releases/latest/download/xcron-jobs.apk',
-  androidApkVersion: '1.0',
+  androidApkVersion: '1.0.1',
   androidApkSizeLabel: '~13 MB',
 };

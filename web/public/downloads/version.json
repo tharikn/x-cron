@@ -1,12 +1,12 @@
 {
-  "versionCode": 1,
-  "versionName": "1.0",
+  "versionCode": 2,
+  "versionName": "1.0.1",
   "apkPath": "/downloads/xcron-jobs.apk",
-  "apkUrl": "https://github.com/tharikn/x-cron/releases/latest/download/xcron-jobs.apk",
+  "apkUrl": "https://github.com/tharikn/x-cron/releases/download/v1.0.1/xcron-jobs.apk",
   "sizeLabel": "~13 MB",
   "minVersionCode": 1,
   "releasedAt": "2026-11-02T00:00:00.000Z",
-  "notes": "Pointer only — production APK is the GitHub Release asset. Publish with tag vX.Y.Z.",
-  "tag": "v1.0",
+  "notes": "Pointer only — production APK is the GitHub Release asset.",
+  "tag": "v1.0.1",
   "repo": "tharikn/x-cron"
 }
