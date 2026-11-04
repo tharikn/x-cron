@@ -9,7 +9,7 @@ Parent monorepo context: [../CLAUDE.md](../CLAUDE.md) · [../docs/DEVELOPER.md](
 ```bash
 npm install --legacy-peer-deps
 npm run start:dev          # watch — :3000
-npm run build              # nest build
+npm run build              # prisma generate && nest build (avoids stale client on Render cache)
 npm run start:prod         # node dist/main
 npm run lint
 npm run test
@@ -18,7 +18,7 @@ npm run prisma:validate
 npm run prisma:generate
 ```
 
-Optional Postgres: from repo root `docker compose up -d`, then `npm run prisma:migrate` (DDL in schema `xcron`, not `public`). Set `JOBS_STORE=prisma` to persist jobs + bulk import. `NOTIFICATIONS_STORE` / `PAYMENTS_STORE` default to following `JOBS_STORE` when unset (auth/prefs stay memory).
+Optional Postgres: from repo root `docker compose up -d`, then `npm run prisma:migrate` (DDL in schema `xcron`, not `public`). Set `JOBS_STORE=prisma` to persist jobs + bulk import. `NOTIFICATIONS_STORE` / `PAYMENTS_STORE` default to following `JOBS_STORE` when unset (auth/prefs stay memory). Higher-env deploys must run `prisma generate` before `nest build` and `prisma migrate deploy` so Job columns like `lat`/`lng`/`walkInAt`/`applyBy` exist in both client types and Postgres.
 
 ## Architecture
 
