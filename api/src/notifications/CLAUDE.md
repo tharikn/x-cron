@@ -42,8 +42,8 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 
 - `POST /v1/devices` — **authenticated**; links FCM/device to the signed-in user (job fan-out is per `userId`)
 - `POST /v1/devices/unlink` — **public** with `{ deviceId, fcmToken }` proof; clears `userId` on logout / refresh expiry
-- Push send path suppresses with `session_expired` when the user has no live refresh session (even if a device row remains)
-- Google idToken is never used for push — only the app refresh session (~30d) + linked device
+- Push send targets devices still linked to `userId` (logout → `POST /devices/unlink`). Do **not** gate FCM on in-memory refresh sessions — those reset on Render restart while device rows persist, which blocked closed-app tray alerts.
+- On Render set `FIREBASE_SERVICE_ACCOUNT_JSON` (one-line JSON). `FIREBASE_SERVICE_ACCOUNT_PATH` is a **file path** only — never paste JSON into PATH.
 
 ## Endpoints
 

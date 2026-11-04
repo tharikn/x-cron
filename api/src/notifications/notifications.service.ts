@@ -519,22 +519,10 @@ export class NotificationsService {
     baseDedupe: string;
     dispatchId?: string;
   }) {
-    // Only users with a live refresh session receive system pushes.
-    if (!this.auth.hasActiveRefreshSession(input.userId)) {
-      await this.logDelivery(input.dispatchId, {
-        userId: input.userId,
-        channel: 'push',
-        status: 'suppressed',
-        title: input.title,
-        body: input.body,
-        dedupeKey: `${input.baseDedupe}:push:session`,
-        jobId: input.jobId,
-        error: 'session_expired',
-        provider: this.push.name,
-      });
-      return { sent: false, failed: false };
-    }
-
+    // Push targets devices still linked to the user. Auth sessions are
+    // in-memory (lost on Render restart), while device rows persist in
+    // Postgres — do not gate FCM on hasActiveRefreshSession or closed-app
+    // pushes die after every deploy/cold start. Logout already unlinks.
     const devices = await this.store.listDevicesForUser(input.userId);
     if (!devices.length) {
       await this.logDelivery(input.dispatchId, {
