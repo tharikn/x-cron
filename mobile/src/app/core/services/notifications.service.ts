@@ -251,7 +251,7 @@ export class NotificationsService {
     const trayOk = await this.ensureOsTrayPermission();
     if (Capacitor.isNativePlatform() && environment.fcmEnabled) {
       // Optional: killed-app delivery. Failure must not block LocalNotifications.
-      void this.ensureRemotePush();
+      await this.ensureRemotePush();
     }
     return trayOk;
   }
@@ -490,14 +490,23 @@ export class NotificationsService {
   ): Promise<void> {
     const unread = items.filter((n) => n.status !== 'read');
     const seen = this.readSeenIds();
+    /** Missed while process was dead / FCM failed — still worth a tray ping. */
+    const recentMs = 15 * 60 * 1000;
+    const now = Date.now();
+    const isRecent = (n: InAppNotification) => {
+      const t = Date.parse(n.createdAt);
+      return Number.isFinite(t) && now - t <= recentMs;
+    };
 
     if (!this.seededSeen && seen.size === 0) {
-      for (const item of unread) seen.add(item.id);
+      // Remember older history so first open does not spam the shade, but do
+      // not swallow alerts that landed while the app was closed.
+      for (const item of unread.filter((n) => !isRecent(n))) seen.add(item.id);
       this.writeSeenIds(seen);
       this.seededSeen = true;
-      return;
+    } else {
+      this.seededSeen = true;
     }
-    this.seededSeen = true;
 
     const fresh = unread.filter((n) => !seen.has(n.id));
     for (const item of unread) seen.add(item.id);
@@ -507,9 +516,17 @@ export class NotificationsService {
     if (this.prefs().pushAlertsEnabled === false) return;
     if (this.prefs().jobAlertsEnabled === false) return;
 
-    // When live FCM is registered, the server already pushed to the system tray
-    // (including while the app was closed). Skip poll-driven local duplicates.
-    if (Capacitor.isNativePlatform() && this.remotePushReady()) {
+    // Trust background FCM only when the device is linked on the API and the
+    // app is not visible. Otherwise poll-driven LocalNotifications must fill
+    // the tray (common failures: no_device, stub token, FCM send error).
+    const appHidden =
+      typeof document !== 'undefined' && document.visibilityState === 'hidden';
+    if (
+      Capacitor.isNativePlatform() &&
+      this.remotePushReady() &&
+      this.deviceRegistered() &&
+      appHidden
+    ) {
       return;
     }
 

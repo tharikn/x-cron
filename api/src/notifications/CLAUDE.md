@@ -63,6 +63,7 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 - Mobile channel toggles: Settings → Prefs (`/tabs/settings?tab=preferences`) — job/in-app/push/email
 - Mobile OS tray (closed/background app): live FCM via `@capacitor/push-notifications` + API `PUSH_PROVIDER=fcm`
 - Mobile OS tray (foreground / browser): `@capacitor/local-notifications` or Web Notification API; inbox poll ~8s remains for in-app list
+- **Badge up / inbox only after open / no shade** → check dispatch deliveries for `no_device`, `session_expired`, or `stub_or_invalid_token`. In-app always writes; push is separate. Mobile must not skip LocalNotifications just because a local FCM token exists (see `mobile` CLAUDE).
 - Do not put Preferences / Alert channels back on the notifications inbox screen
 
 ## Live FCM setup (killed-app delivery, ₹0)

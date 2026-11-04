@@ -31,10 +31,13 @@ export class AppComponent implements OnInit {
     if (this.auth.isSignedIn()) {
       try {
         await this.notifications.loadPrefs();
-        await this.notifications.refreshInbox({ announce: false });
         if (this.notifications.prefs().pushAlertsEnabled !== false) {
           await this.notifications.ensurePushPermission();
+          // Re-link after FCM token arrives — first registerDevice may have
+          // exited early on stub_fcm_* while PushNotifications.register() ran.
+          await this.notifications.registerDevice();
         }
+        await this.notifications.refreshInbox({ announce: true });
       } catch {
         // optional until signed in with API
       }
