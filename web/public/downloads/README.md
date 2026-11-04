@@ -24,7 +24,7 @@ git push origin v1.0.1
 
 3. Workflow [`.github/workflows/android-release.yml`](../../../.github/workflows/android-release.yml) builds the debug APK, creates the GitHub Release (notes + `xcron-jobs.apk` + `version.json`).
 
-**Required Actions secret (Google Sign-In):** `ANDROID_DEBUG_KEYSTORE_BASE64` = base64 of your local `~/.android/debug.keystore`. CI restores it before `assembleDebug` so the APK SHA-1 stays `82:DC:02:56:2D:7F:F2:62:C9:ED:20:39:C1:55:7F:54:E8:CF:AF:22`. Register that SHA-1 as an Android OAuth client for package `com.xcron.jobs` in the same Google Cloud project as the Web client ID. Never commit the keystore.
+**Stable signing:** `mobile/android/app/debug.keystore` is committed and used by CI/`assembleDebug` so every sideload APK shares SHA-1 `82:DC:02:56:2D:7F:F2:62:C9:ED:20:39:C1:55:7F:54:E8:CF:AF:22`. Register that SHA-1 as an Android OAuth client for package `com.xcron.jobs` (same GCP project as the Web client ID). Do not replace the keystore casually — a new signature forces uninstalls on every device.
 
 Or run **Android APK release** → **Run workflow** and paste release notes.
 

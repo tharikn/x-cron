@@ -78,26 +78,18 @@ jobs:
           npm run build:prod
           npx cap sync android
 
-      # GitHub runners create a fresh ~/.android/debug.keystore every job.
-      # Google Sign-In needs a stable SHA-1 registered in Cloud Console
-      # (package com.xcron.jobs). Restore the same debug keystore used locally.
-      # Secret = base64 of %USERPROFILE%\.android\debug.keystore (never commit).
-      # SHA-1 expected: 82:DC:02:56:2D:7F:F2:62:C9:ED:20:39:C1:55:7F:54:E8:CF:AF:22
-      - name: Restore debug keystore (stable Google Sign-In SHA-1)
-        env:
-          ANDROID_DEBUG_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
+      # Sideload APKs must share one signature or Android shows
+      # "package conflicts with an existing package" on every update.
+      # Source of truth: mobile/android/app/debug.keystore (committed; wired in build.gradle).
+      # SHA-1: 82:DC:02:56:2D:7F:F2:62:C9:ED:20:39:C1:55:7F:54:E8:CF:AF:22
+      - name: Verify shared debug keystore
         run: |
-          if [ -z "$ANDROID_DEBUG_KEYSTORE_BASE64" ]; then
-            echo "ERROR: repo secret ANDROID_DEBUG_KEYSTORE_BASE64 is required."
-            echo "Encode local ~/.android/debug.keystore (never commit it), then add as Actions secret."
-            echo "  bash: base64 -w0 ~/.android/debug.keystore"
-            echo "  PowerShell: [Convert]::ToBase64String([IO.File]::ReadAllBytes(\"$HOME\\.android\\debug.keystore\"))"
+          if [ ! -f mobile/android/app/debug.keystore ]; then
+            echo "ERROR: missing mobile/android/app/debug.keystore"
+            echo "Copy the stable debug keystore into that path before shipping."
             exit 1
           fi
-          mkdir -p "$HOME/.android"
-          printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 -d > "$HOME/.android/debug.keystore"
-          chmod 600 "$HOME/.android/debug.keystore"
-          echo "debug.keystore restored for assembleDebug"
+          echo "shared debug.keystore present"
 
       - name: Assemble debug APK
         working-directory: mobile/android
