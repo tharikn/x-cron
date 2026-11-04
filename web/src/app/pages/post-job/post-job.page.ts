@@ -12,6 +12,11 @@ import {
 } from '../../core/services/payments.service';
 import { SeoService } from '../../core/services/seo.service';
 import { SiteService } from '../../core/services/site.service';
+import {
+  type FieldErrors,
+  parseVacancies,
+  validateQuickPostFields,
+} from '../../core/utils/job-form.validation';
 
 type PostMode = 'quick' | 'paste';
 
@@ -55,6 +60,7 @@ export class PostJobPage implements OnInit {
   locationCity = 'Palani';
   jobType: JobType = 'full-time';
   salaryText = '';
+  vacancies = '';
   description = '';
   contentLanguage = 'en';
   contactPhone = '';
@@ -64,6 +70,7 @@ export class PostJobPage implements OnInit {
   priority = 0;
   effectiveFromLocal = this.defaultEffectiveLocal();
   expiresAtLocal = this.defaultExpiresLocal();
+  readonly fieldErrors = signal<FieldErrors>({});
 
   async ngOnInit(): Promise<void> {
     this.seo.setPage({
@@ -89,10 +96,31 @@ export class PostJobPage implements OnInit {
     this.error.set(null);
   }
 
+  clearFieldError(key: string): void {
+    if (!this.fieldErrors()[key]) return;
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      delete next[key];
+      return next;
+    });
+  }
+
   async submitQuick(): Promise<void> {
     if (!this.ensureAdminReady()) return;
-    if (!this.title.trim() || !this.employerName.trim() || !this.description.trim()) {
-      this.error.set('Title, employer and description are required.');
+    const errors = validateQuickPostFields({
+      title: this.title,
+      employerName: this.employerName,
+      locationCity: this.locationCity,
+      salaryText: this.salaryText,
+      description: this.description,
+      contactPhone: this.contactPhone,
+      contactEmail: this.contactEmail,
+      contactWebsite: this.contactWebsite,
+      vacancies: this.vacancies,
+    });
+    this.fieldErrors.set(errors);
+    if (Object.keys(errors).length) {
+      this.error.set(Object.values(errors)[0] ?? 'Fix the highlighted fields.');
       return;
     }
 
@@ -106,6 +134,7 @@ export class PostJobPage implements OnInit {
         locationCity: this.locationCity.trim() || 'Palani',
         jobType: this.jobType,
         salaryText: this.salaryText.trim() || undefined,
+        vacancies: parseVacancies(this.vacancies),
         description: this.description.trim(),
         contentLanguage: this.contentLanguage,
         contactPhone: this.contactPhone.trim() || undefined,
@@ -115,6 +144,7 @@ export class PostJobPage implements OnInit {
         effectiveFrom: this.fromLocalInput(this.effectiveFromLocal),
         expiresAt: this.fromLocalInput(this.expiresAtLocal),
       });
+      this.fieldErrors.set({});
       this.resetQuickForm();
       await this.afterJobCreated(job);
     } catch {
@@ -219,6 +249,7 @@ export class PostJobPage implements OnInit {
     this.title = '';
     this.description = '';
     this.salaryText = '';
+    this.vacancies = '';
     this.contactPhone = '';
     this.contactEmail = '';
     this.contactWebsite = '';

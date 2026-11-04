@@ -1,0 +1,131 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 1.75rem 0 2.5rem;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
+}
+
+h1 {
+  margin: 0 0 0.4rem;
+  font-family: var(--xcron-font-display);
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  letter-spacing: -0.045em;
+}
+
+.lead {
+  margin: 0 0 1.25rem;
+  color: var(--xcron-muted);
+  max-width: 42rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  position: sticky;
+  top: 5.5rem;
+}
+
+.tabs__btn {
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink-soft);
+  padding: 0.75rem 1rem;
+  border-radius: var(--xcron-radius-sm);
+  font-weight: 650;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.75rem;
+  transition:
+    background 160ms var(--xcron-ease),
+    border-color 160ms var(--xcron-ease),
+    color 160ms var(--xcron-ease);
+}
+
+.tabs__btn:hover {
+  border-color: var(--xcron-line-strong);
+  color: var(--xcron-ink);
+}
+
+.tabs__btn.is-active {
+  background: var(--xcron-primary);
+  color: #fff;
+  border-color: var(--xcron-primary);
+}
+
+.tabs__meta {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.panel {
+  min-width: 0;
+  width: 100%;
+}
+
+:host ::ng-deep .page {
+  padding-top: 0;
+  padding-bottom: 0;
+  animation: none;
+  width: 100%;
+  max-width: 100%;
+}
+
+:host ::ng-deep .page > h1 {
+  font-size: clamp(1.25rem, 2.5vw, 1.55rem);
+  margin-bottom: 0.35rem;
+}
+
+:host ::ng-deep .page > .lead {
+  margin-bottom: 1.1rem;
+  max-width: none;
+}
+
+:host ::ng-deep .form,
+:host ::ng-deep .panel,
+:host ::ng-deep .channels {
+  max-width: none;
+  width: 100%;
+}
+
+:host ::ng-deep .choices {
+  max-width: none;
+  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+}
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tabs {
+    position: static;
+  }
+}

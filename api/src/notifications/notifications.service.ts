@@ -1,8 +1,11 @@
 import {
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
+  forwardRef,
 } from '@nestjs/common';
 import { AuthStore } from '../auth/auth.store';
 import { AuthUser } from '../auth/auth.types';
@@ -10,10 +13,12 @@ import { JobRecord } from '../jobs/job.types';
 import { JobsStore } from '../jobs/jobs.store';
 import { PreferencesService } from '../preferences/preferences.service';
 import { PreferenceRecord } from '../preferences/preferences.types';
+import { SeekerService } from '../seeker/seeker.service';
 import {
   DevSendNotificationDto,
   NotificationPreferencesDto,
   RegisterDeviceDto,
+  UnlinkDeviceDto,
 } from './dto/notifications.dto';
 import { NotificationsStore } from './notifications.store';
 import {
@@ -34,11 +39,14 @@ export class NotificationsService {
     private readonly jobs: JobsStore,
     private readonly preferences: PreferencesService,
     private readonly auth: AuthStore,
+    @Optional()
+    @Inject(forwardRef(() => SeekerService))
+    private readonly seeker?: SeekerService,
   ) {}
 
-  async registerDevice(dto: RegisterDeviceDto, user?: AuthUser) {
+  async registerDevice(dto: RegisterDeviceDto, user: AuthUser) {
     const device = await this.store.upsertDevice({
-      userId: user?.id,
+      userId: user.id,
       deviceId: dto.deviceId,
       fcmToken: dto.fcmToken,
       platform: dto.platform,
@@ -50,7 +58,16 @@ export class NotificationsService {
       userId: device.userId ?? null,
       provider: this.push.name,
       updatedAt: device.updatedAt,
+      linked: true,
     };
+  }
+
+  async unlinkDevice(dto: UnlinkDeviceDto) {
+    const ok = await this.store.unlinkDevice({
+      deviceId: dto.deviceId,
+      fcmToken: dto.fcmToken,
+    });
+    return { ok };
   }
 
   getNotificationPreferences(user: AuthUser) {
@@ -151,10 +168,12 @@ export class NotificationsService {
       Number(process.env.NOTIFICATION_FANOUT_BATCH || 25) || 25,
     );
 
+    const already = new Set<string>();
     for (let i = 0; i < candidates.length; i += batchSize) {
       const slice = candidates.slice(i, i + batchSize);
       for (const { userId, preferences } of slice) {
         if (!this.matchesJob(preferences, job)) continue;
+        already.add(userId);
         matched += 1;
         const result = await this.deliverJobAlert(userId, job, {
           dispatchId: dispatch.id,
@@ -165,6 +184,22 @@ export class NotificationsService {
       }
       if (i + batchSize < candidates.length) {
         await new Promise((r) => setImmediate(r));
+      }
+    }
+
+    // Saved-search alerts (exact query match) for users not already notified.
+    if (this.seeker) {
+      for (const { userId, search } of this.seeker.listAlertSavedSearches()) {
+        if (already.has(userId)) continue;
+        if (!this.seeker.jobMatchesSavedQuery(job, search.query)) continue;
+        already.add(userId);
+        matched += 1;
+        const result = await this.deliverJobAlert(userId, job, {
+          dispatchId: dispatch.id,
+        });
+        if (result.sent) sent += 1;
+        else if (result.reason === 'failed') failed += 1;
+        else suppressed += 1;
       }
     }
 
@@ -484,6 +519,22 @@ export class NotificationsService {
     baseDedupe: string;
     dispatchId?: string;
   }) {
+    // Only users with a live refresh session receive system pushes.
+    if (!this.auth.hasActiveRefreshSession(input.userId)) {
+      await this.logDelivery(input.dispatchId, {
+        userId: input.userId,
+        channel: 'push',
+        status: 'suppressed',
+        title: input.title,
+        body: input.body,
+        dedupeKey: `${input.baseDedupe}:push:session`,
+        jobId: input.jobId,
+        error: 'session_expired',
+        provider: this.push.name,
+      });
+      return { sent: false, failed: false };
+    }
+
     const devices = await this.store.listDevicesForUser(input.userId);
     if (!devices.length) {
       await this.logDelivery(input.dispatchId, {

@@ -4,20 +4,12 @@
       <ion-icon name="home-outline"></ion-icon>
       <ion-label>{{ 'nav.discover' | t }}</ion-label>
     </ion-tab-button>
-    @if (isAdmin()) {
+    @if (isEmployer()) {
       <ion-tab-button tab="post" href="/tabs/post">
         <ion-icon name="create-outline"></ion-icon>
         <ion-label>{{ 'nav.post' | t }}</ion-label>
       </ion-tab-button>
-      <ion-tab-button tab="ads" href="/tabs/ads">
-        <ion-icon name="megaphone-outline"></ion-icon>
-        <ion-label>{{ 'nav.ads' | t }}</ion-label>
-      </ion-tab-button>
     }
-    <ion-tab-button tab="preferences" href="/tabs/preferences">
-      <ion-icon name="options-outline"></ion-icon>
-      <ion-label>{{ 'nav.prefs' | t }}</ion-label>
-    </ion-tab-button>
     <ion-tab-button
       tab="notifications"
       href="/tabs/notifications"
@@ -29,9 +21,9 @@
         <ion-badge class="tab-badge">{{ unread() > 99 ? '99+' : unread() }}</ion-badge>
       }
     </ion-tab-button>
-    <ion-tab-button tab="account" href="/tabs/account">
-      <ion-icon name="person-outline"></ion-icon>
-      <ion-label>{{ 'nav.account' | t }}</ion-label>
+    <ion-tab-button tab="settings" href="/tabs/settings">
+      <ion-icon name="settings-outline"></ion-icon>
+      <ion-label>{{ 'nav.settings' | t }}</ion-label>
     </ion-tab-button>
   </ion-tab-bar>
 </ion-tabs>

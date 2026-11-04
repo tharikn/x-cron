@@ -45,7 +45,7 @@ h1 {
   width: fit-content;
   text-decoration: none;
   border: 0;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   padding: 0.7rem 1rem;
   font-weight: 700;
@@ -55,7 +55,7 @@ h1 {
 }
 
 .btn.secondary {
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink);
   border: 1px solid var(--xcron-line);
 }
@@ -65,7 +65,7 @@ h1 {
   padding: 0.7rem 1rem;
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius-sm);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink);
   text-decoration: none;
   font-weight: 600;
@@ -126,7 +126,7 @@ h1 {
   overflow-x: auto;
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius-sm);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
 }
 
 /* overflow-x creates a scrollport that also clips y; let the row menu escape */
@@ -189,7 +189,7 @@ h1 {
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
   border: 1px solid var(--xcron-line);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   font-size: 0.75rem;
   font-weight: 650;
   letter-spacing: 0.02em;
@@ -216,7 +216,7 @@ h1 {
   min-width: 9.5rem;
   display: grid;
   padding: 0.35rem;
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius-sm);
   box-shadow: var(--xcron-shadow-hover, var(--xcron-shadow));
@@ -273,7 +273,7 @@ h1 {
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius-sm);
   padding: 0.7rem 0.8rem;
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   font: inherit;
 }
 
@@ -286,7 +286,7 @@ h1 {
 
 .form__actions button[type='submit'] {
   border: 0;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   padding: 0.75rem 1.05rem;
   font-weight: 700;
@@ -315,7 +315,7 @@ h1 {
 
 .error {
   margin-top: 1rem;
-  color: #222;
+  color: var(--xcron-ink-soft);
   font-weight: 600;
 }
 

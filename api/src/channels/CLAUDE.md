@@ -42,7 +42,7 @@ Admin unless noted:
 | GET/PUT | `/schedule` | Morning/evening HH:mm + timezone |
 | POST | `/telegram/webhook` | **Public** webhook receiver |
 
-Admin UIs: web `/admin/job-fare` (drawer **Job Fare**), mobile `/tabs/job-fare`.
+Admin UIs: web `/admin/job-fare` (drawer **Post** → Job Fare), mobile `/tabs/job-fare` (Post tab).
 
 ## Agent rules
 

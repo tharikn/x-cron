@@ -18,7 +18,7 @@
           This account is not an admin. Use admin&#64;xcron.local.
         }
       </p>
-      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+      <a class="btn" routerLink="/settings/account">Go to Sign in</a>
     </div>
   } @else {
     <nav class="tabs" aria-label="Import panels">
@@ -271,72 +271,97 @@
           <div class="modal__body">
             @if (activePanel() === 'edit') {
               <div class="fields">
-                <label>
+                <label [class.is-invalid]="!!fieldErrors()['title']">
                   <span>Title</span>
                   <textarea
                     rows="2"
                     [ngModel]="form.title"
                     (ngModelChange)="patchDraft({ title: $event })"
                   ></textarea>
+                  @if (fieldErrors()['title']; as err) {
+                    <em class="field-error">{{ err }}</em>
+                  }
                 </label>
-                <label>
+                <label [class.is-invalid]="!!fieldErrors()['employerName']">
                   <span>Employer</span>
                   <textarea
                     rows="2"
                     [ngModel]="form.employerName"
                     (ngModelChange)="patchDraft({ employerName: $event })"
                   ></textarea>
+                  @if (fieldErrors()['employerName']; as err) {
+                    <em class="field-error">{{ err }}</em>
+                  }
                 </label>
-                <label>
+                <label [class.is-invalid]="!!fieldErrors()['locationCity']">
                   <span>City / location</span>
                   <textarea
                     rows="2"
                     [ngModel]="form.locationCity"
                     (ngModelChange)="patchDraft({ locationCity: $event })"
                   ></textarea>
+                  @if (fieldErrors()['locationCity']; as err) {
+                    <em class="field-error">{{ err }}</em>
+                  }
                 </label>
-                <label>
+                <label [class.is-invalid]="!!fieldErrors()['jobType']">
                   <span>Job type</span>
                   <input
                     type="text"
                     [ngModel]="form.jobType"
                     (ngModelChange)="patchDraft({ jobType: $event })"
                   />
+                  @if (fieldErrors()['jobType']; as err) {
+                    <em class="field-error">{{ err }}</em>
+                  }
                 </label>
-                <label>
+                <label [class.is-invalid]="!!fieldErrors()['salaryText']">
                   <span>Salary</span>
                   <textarea
                     rows="2"
                     [ngModel]="form.salaryText"
                     (ngModelChange)="patchDraft({ salaryText: $event })"
                   ></textarea>
+                  @if (fieldErrors()['salaryText']; as err) {
+                    <em class="field-error">{{ err }}</em>
+                  }
                 </label>
-                <label>
+                <label [class.is-invalid]="!!fieldErrors()['vacancies']">
                   <span>Vacancies</span>
                   <input
                     type="number"
                     min="1"
+                    inputmode="numeric"
                     [ngModel]="form.vacancies"
                     (ngModelChange)="patchDraft({ vacancies: $event })"
                   />
+                  @if (fieldErrors()['vacancies']; as err) {
+                    <em class="field-error">{{ err }}</em>
+                  }
                 </label>
-                <label>
+                <label [class.is-invalid]="!!fieldErrors()['contentLanguage']">
                   <span>Language</span>
                   <input
                     type="text"
                     [ngModel]="form.contentLanguage"
                     (ngModelChange)="patchDraft({ contentLanguage: $event })"
                   />
+                  @if (fieldErrors()['contentLanguage']; as err) {
+                    <em class="field-error">{{ err }}</em>
+                  }
                 </label>
-                <label class="fields__wide">
+                <label class="fields__wide" [class.is-invalid]="!!fieldErrors()['contactWebsite']">
                   <span>Apply / info link</span>
                   <textarea
                     rows="2"
                     [ngModel]="form.contactWebsite"
                     (ngModelChange)="patchDraft({ contactWebsite: $event })"
                   ></textarea>
+                  @if (fieldErrors()['contactWebsite']; as err) {
+                    <em class="field-error">{{ err }}</em>
+                  }
                 </label>
-                <label class="fields__wide">
+                <label class="fields__wide" [class.is-invalid]="!!fieldErrors()['description']">
                   <span>Description</span>
                   <textarea
                     class="fields__about"
@@ -344,6 +369,9 @@
                     [ngModel]="form.description"
                     (ngModelChange)="patchDraft({ description: $event })"
                   ></textarea>
+                  @if (fieldErrors()['description']; as err) {
+                    <em class="field-error">{{ err }}</em>
+                  }
                 </label>
               </div>
               <div class="desk__actions">

@@ -1,17 +1,10 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-title>Account</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content>
-  <div class="page">
+<div class="page">
     <div class="brand-block">
       <p class="brand-mark">X Cron</p>
       <p class="descriptor">Jobs</p>
       <p class="lead">
         @if (needsAdminLogin()) {
-          Admin email and password unlock Post, Ads, and moderation.
+          Admin email and password unlock Post and moderation.
         } @else {
           Search jobs anytime. Sign in with Google to sync preferences, saved jobs, and unlocks.
         }
@@ -32,12 +25,6 @@
 
       <div class="admin-links">
         <ion-button expand="block" color="dark" routerLink="/tabs/post">Post a job</ion-button>
-        <ion-button expand="block" color="dark" routerLink="/tabs/job-fare">
-          Job Fare pull
-        </ion-button>
-        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/ads">
-          Advertisement setup
-        </ion-button>
         <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/notifications">
           Notifications inbox
         </ion-button>
@@ -105,6 +92,47 @@
         </ion-button>
       </section>
 
+      @if (isEmployer()) {
+        <div class="admin-links">
+          <ion-button expand="block" color="dark" routerLink="/tabs/post">Post a job</ion-button>
+        </div>
+      }
+
+      <section class="moderation">
+        <h2>Seeker profile</h2>
+        <ion-list lines="full" class="panel">
+          <ion-item>
+            <ion-select
+              label="Experience"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="profileBand"
+            >
+              <ion-select-option value="">Any</ion-select-option>
+              <ion-select-option value="fresher">Fresher</ion-select-option>
+              <ion-select-option value="0-1">0–1 years</ion-select-option>
+              <ion-select-option value="1-3">1–3 years</ion-select-option>
+              <ion-select-option value="3-5">3–5 years</ion-select-option>
+              <ion-select-option value="5+">5+ years</ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Skills (comma separated)</ion-label>
+            <ion-input [(ngModel)]="profileSkills"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Preferred cities</ion-label>
+            <ion-input [(ngModel)]="profileCities"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-toggle [(ngModel)]="openToWork" labelPlacement="start" justify="space-between">
+              Open to work
+            </ion-toggle>
+          </ion-item>
+        </ion-list>
+        <ion-button expand="block" color="dark" (click)="saveProfile()">Save profile</ion-button>
+      </section>
+
       <section class="moderation">
         <h2>Your feed</h2>
         @for (job of feedJobs(); track job.id) {
@@ -121,17 +149,80 @@
       </section>
 
       <section class="moderation">
-        <h2>Saved jobs</h2>
+        <div class="moderation__head">
+          <h2>Saved jobs</h2>
+          <ion-button
+            size="small"
+            fill="outline"
+            color="dark"
+            routerLink="/tabs/settings"
+            [queryParams]="{ tab: 'saved' }"
+          >
+            Open menu
+          </ion-button>
+        </div>
         @for (job of savedJobs(); track job.id) {
           <div class="mod-card">
             <strong>{{ job.title }}</strong>
             <p>{{ job.employerName }}</p>
-            <ion-button size="small" fill="outline" color="dark" [routerLink]="['/tabs/jobs', job.id]">
-              Open
+            <div class="mod-card__actions">
+              <ion-button
+                size="small"
+                fill="outline"
+                color="dark"
+                [routerLink]="['/tabs/jobs', job.id]"
+              >
+                Open
+              </ion-button>
+              <ion-button size="small" color="dark" (click)="removeSavedJob(job.id)">
+                Remove
+              </ion-button>
+            </div>
+          </div>
+        } @empty {
+          <p class="empty">No saved jobs yet. Save a role from job detail.</p>
+        }
+      </section>
+
+      <section class="moderation">
+        <h2>Contacted</h2>
+        @for (row of applications(); track row.jobId) {
+          <div class="mod-card">
+            <strong>{{ row.job?.title || row.jobId }}</strong>
+            <p>{{ row.status }}{{ row.channel ? ' · ' + row.channel : '' }}</p>
+            @if (row.job) {
+              <ion-button
+                size="small"
+                fill="outline"
+                color="dark"
+                [routerLink]="['/tabs/jobs', row.jobId]"
+              >
+                Open
+              </ion-button>
+            }
+          </div>
+        } @empty {
+          <p class="empty">Tap phone / WhatsApp / email on a job to track it here.</p>
+        }
+      </section>
+
+      <section class="moderation">
+        <h2>Saved searches</h2>
+        @for (row of savedSearches(); track row.id) {
+          <div class="mod-card">
+            <strong>{{ row.name }}</strong>
+            <p>{{ row.alertEnabled ? 'Alerts on' : 'Alerts off' }}</p>
+            <ion-button
+              size="small"
+              fill="outline"
+              color="dark"
+              (click)="deleteSavedSearch(row.id)"
+            >
+              Remove
             </ion-button>
           </div>
         } @empty {
-          <p class="empty">No saved jobs yet.</p>
+          <p class="empty">Save a search from Discover to get alerts.</p>
         }
       </section>
 
@@ -155,7 +246,7 @@
       </ion-button>
 
       <p class="hint admin-hint">
-        Need Post / Ads? Use admin email and password below.
+        Need Post? Use admin email and password below.
       </p>
       <ion-button expand="block" fill="outline" color="dark" (click)="signInAsAdmin()">
         Admin password login
@@ -173,7 +264,7 @@
           </ion-item>
         </ion-list>
         <p class="hint">
-          This session is not admin. Enter the SUPER_ADMIN email and password for Post / Ads.
+          This session is not admin. Enter the SUPER_ADMIN email and password for Post.
         </p>
         <ion-button expand="block" color="dark" (click)="signInAsAdmin()">
           Switch to admin
@@ -186,7 +277,7 @@
           Sign in with admin password
         </ion-button>
         <p class="hint">
-          Dashboard-style ops on mobile (Post, Ads, moderation) use the configured SUPER_ADMIN
+          Dashboard-style ops on mobile (Post, moderation) use the configured SUPER_ADMIN
           email and password only.
         </p>
       }
@@ -201,11 +292,10 @@
         Admin password login
       </ion-button>
       <p class="hint">
-        Google for seekers (save, unlock, preferences). Admin password for Post / Ads.
+        Google for seekers (save, unlock, preferences). Admin password for Post.
       </p>
       <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/discover">
         Keep browsing jobs
       </ion-button>
     }
   </div>
-</ion-content>

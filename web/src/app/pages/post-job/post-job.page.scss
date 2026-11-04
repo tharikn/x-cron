@@ -13,7 +13,7 @@ h1 {
 .lead {
   margin: 0 0 1.5rem;
   color: var(--xcron-muted);
-  max-width: 36rem;
+  max-width: 48rem;
 }
 
 .gate {
@@ -34,12 +34,15 @@ h1 {
 
 .btn {
   display: inline-flex;
+  align-items: center;
   width: fit-content;
   text-decoration: none;
-  border: 0;
-  background: #0a0a0a;
+  border: 1px solid var(--xcron-primary);
+  background: var(--xcron-primary);
   color: #fff;
-  padding: 0.85rem 1.1rem;
+  padding: 0 1.1rem;
+  min-height: var(--xcron-btn-height);
+  height: var(--xcron-btn-height);
   font-weight: 700;
   border-radius: var(--xcron-radius-sm);
 }
@@ -67,19 +70,56 @@ h1 {
 }
 
 .modes button.is-active {
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
 }
 
 .form {
   display: grid;
-  gap: 1rem;
-  max-width: 28rem;
-  padding: 1.15rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem 1.1rem;
+  width: 100%;
+  max-width: none;
+  padding: 1.25rem 1.35rem;
   background: var(--xcron-bg-elevated);
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius);
   box-shadow: var(--xcron-shadow);
+}
+
+.form--paste {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.form--paste > label:not(.form__wide) {
+  max-width: 18rem;
+}
+
+.form__wide {
+  grid-column: 1 / -1;
+}
+
+label.is-invalid input,
+label.is-invalid textarea,
+label.is-invalid select {
+  border-color: var(--xcron-danger, #f43f5e);
+}
+
+.field-error {
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--xcron-danger, #f43f5e);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.form__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding-top: 0.25rem;
 }
 
 label {
@@ -90,6 +130,7 @@ label {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--xcron-muted);
+  min-width: 0;
 }
 
 input,
@@ -116,14 +157,14 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #111;
-  background: #fff;
+  border-color: var(--xcron-primary);
+  background: var(--xcron-bg-elevated);
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
 }
 
 button[type='submit'] {
   border: 0;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   padding: 0.85rem 1.1rem;
   font-weight: 700;
@@ -139,7 +180,7 @@ button[type='submit'] {
 }
 
 button[type='submit']:hover:not(:disabled) {
-  background: #222;
+  background: var(--xcron-primary-hover);
   transform: translateY(-1px);
 }
 
@@ -152,7 +193,6 @@ button[type='submit']:disabled {
 .ok,
 .error {
   margin-top: 1rem;
-  max-width: 28rem;
   font-weight: 600;
 }
 
@@ -176,12 +216,24 @@ button[type='submit']:disabled {
 .pay-panel {
   display: grid;
   gap: 0.75rem;
-  max-width: 28rem;
+  width: min(100%, 28rem);
   margin: 1.25rem 0;
   padding: 1rem;
   border: 1px solid var(--xcron-line-strong);
   border-radius: var(--xcron-radius);
   background: var(--xcron-wash);
+}
+
+@media (max-width: 900px) {
+  .form:not(.form--paste) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pay-panel__head {
@@ -219,7 +271,7 @@ button[type='submit']:disabled {
 .pay-panel__qr {
   border-radius: 12px;
   border: 1px solid var(--xcron-line);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
 }
 
 .pay-panel__vpa {
@@ -236,14 +288,14 @@ button[type='submit']:disabled {
   border: 0;
   border-radius: var(--xcron-radius-sm);
   padding: 0.75rem 1rem;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
 }
 
 .btn--ghost {
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink);
   border: 1px solid var(--xcron-line-strong);
 }

@@ -1,7 +1,16 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem 1.25rem 3rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 1.75rem 0 2.5rem;
 }
 
 .brand {
@@ -37,7 +46,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
-  align-items: end;
+  align-items: flex-end;
   margin-bottom: 1rem;
 }
 
@@ -50,33 +59,46 @@ h1 {
 
 .toolbar select {
   min-width: 10rem;
-  padding: 0.45rem 0.6rem;
+  height: var(--xcron-btn-height, 2.5rem);
+  padding: 0 0.7rem;
   border: 1px solid var(--xcron-line-strong);
   border-radius: var(--xcron-radius-sm);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink);
+  box-sizing: border-box;
 }
 
 .btn {
   border: 0;
   border-radius: var(--xcron-radius-sm);
-  padding: 0.55rem 0.9rem;
-  background: #0a0a0a;
+  height: var(--xcron-btn-height, 2.5rem);
+  padding: 0 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--xcron-primary);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .btn--ghost {
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink);
   border: 1px solid var(--xcron-line-strong);
 }
 
 .link {
-  align-self: center;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  height: var(--xcron-btn-height, 2.5rem);
   color: var(--xcron-ink);
   font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .meta {
@@ -86,7 +108,7 @@ h1 {
 }
 
 .err {
-  color: #111;
+  color: var(--xcron-ink);
   background: #eee;
   padding: 0.6rem 0.8rem;
   border-radius: var(--xcron-radius-sm);
@@ -94,9 +116,11 @@ h1 {
 
 .table-wrap {
   overflow: auto;
+  width: 100%;
+  min-width: 0;
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius-sm);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
 }
 
 table {

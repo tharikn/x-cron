@@ -79,7 +79,7 @@ button {
   border: 0;
   border-radius: var(--xcron-radius-sm);
   padding: 0.85rem 1rem;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
@@ -91,7 +91,7 @@ button:disabled {
 }
 
 button.secondary {
-  background: #0a0a0a;
+  background: var(--xcron-primary);
 }
 
 button.ghost {

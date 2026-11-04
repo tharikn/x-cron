@@ -12,7 +12,7 @@
     <section class="hero">
       <p class="hero__brand">X Cron</p>
       <p class="hero__jobs">Jobs</p>
-      <h1>{{ 'home.headline' | t }}</h1>
+      <h1 class="hero__quote">{{ 'home.headline' | t }}</h1>
       <p class="lead">{{ 'home.lead' | t }}</p>
     </section>
 
@@ -52,6 +52,27 @@
         placeholder="Location (city / district)"
       />
 
+      <div class="nearby-row">
+        <ion-button
+          size="small"
+          fill="outline"
+          color="dark"
+          (click)="nearbyActive() ? clearNearby() : useNearby()"
+        >
+          <ion-icon name="navigate-outline" slot="start"></ion-icon>
+          {{ nearbyActive() ? 'Clear nearby' : 'Near me' }}
+        </ion-button>
+        @if (nearbyActive()) {
+          <ion-input
+            type="number"
+            label="Radius km"
+            labelPlacement="stacked"
+            [value]="query().radiusKm ?? 25"
+            (ionChange)="onRadiusKm($event.detail.value)"
+          ></ion-input>
+        }
+      </div>
+
       <ion-list lines="none" class="filters">
         <ion-item>
           <ion-select
@@ -66,6 +87,7 @@
             <ion-select-option value="salary-desc">{{ 'sort.salaryDesc' | t }}</ion-select-option>
             <ion-select-option value="salary-asc">{{ 'sort.salaryAsc' | t }}</ion-select-option>
             <ion-select-option value="relevance">{{ 'sort.relevance' | t }}</ion-select-option>
+            <ion-select-option value="distance">Distance</ion-select-option>
           </ion-select>
         </ion-item>
         <ion-item>
@@ -110,8 +132,60 @@
             }
           </ion-select>
         </ion-item>
+        <ion-item>
+          <ion-input
+            label="Min salary (₹)"
+            labelPlacement="stacked"
+            type="number"
+            [value]="query().salaryMin ?? ''"
+            (ionChange)="onSalaryMin($event.detail.value)"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-select
+            label="Posted within"
+            labelPlacement="stacked"
+            interface="popover"
+            [value]="query().postedWithin || ''"
+            (ionChange)="onPostedWithin($event.detail.value)"
+          >
+            <ion-select-option value="">Any time</ion-select-option>
+            <ion-select-option value="1d">Last 24 hours</ion-select-option>
+            <ion-select-option value="7d">Last 7 days</ion-select-option>
+            <ion-select-option value="30d">Last 30 days</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-toggle
+            [checked]="!!query().remote"
+            (ionChange)="onRemote($event.detail.checked)"
+            labelPlacement="start"
+            justify="space-between"
+          >
+            Remote / WFH only
+          </ion-toggle>
+        </ion-item>
+        <ion-item>
+          <ion-toggle
+            [checked]="!!query().walkInOnly"
+            (ionChange)="onWalkInOnly($event.detail.checked)"
+            labelPlacement="start"
+            justify="space-between"
+          >
+            Walk-in only
+          </ion-toggle>
+        </ion-item>
       </ion-list>
 
+      <ion-button
+        expand="block"
+        fill="solid"
+        color="dark"
+        class="search-clear"
+        (click)="saveCurrentSearch()"
+      >
+        Save this search
+      </ion-button>
       <ion-button
         expand="block"
         fill="outline"
@@ -122,6 +196,20 @@
         {{ 'home.clear' | t }}
       </ion-button>
     </div>
+
+    @if (viewed.items().length) {
+      <section class="recently-viewed">
+        <h2>Continue browsing</h2>
+        <div class="recently-viewed__list">
+          @for (row of viewed.items(); track row.id) {
+            <a class="recently-viewed__item" [routerLink]="['/tabs/jobs', row.id]">
+              <strong>{{ row.title }}</strong>
+              <span>{{ row.employerName }} · {{ row.city }}</span>
+            </a>
+          }
+        </div>
+      </section>
+    }
 
     @if (showPrefPrompt()) {
       <div class="pref-prompt">
@@ -135,18 +223,6 @@
           </ion-button>
         </div>
       </div>
-    }
-
-    @if (discoverAd(); as ad) {
-      <aside class="ad-slot" aria-label="Advertisement">
-        <p class="ad-slot__label">{{ ad.label }}</p>
-        <p class="ad-slot__advertiser">{{ ad.advertiser }}</p>
-        <strong>{{ ad.headline }}</strong>
-        <p>{{ ad.body }}</p>
-        <ion-button size="small" fill="outline" color="dark" (click)="onAdClick()">
-          {{ ad.ctaLabel }}
-        </ion-button>
-      </aside>
     }
 
     <div class="results-head">

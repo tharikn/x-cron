@@ -32,39 +32,45 @@ export class PreferencesPage implements OnInit {
     this.seo.setPage({
       title: 'Preferences',
       description: 'Save job search preferences on X Cron Jobs.',
-      path: '/preferences',
+      path: '/settings/preferences',
     });
-    const prefs = this.preferences.prefs();
-    this.locationsText = prefs.locations.join(', ');
-    this.categoriesText = prefs.categories.join(', ');
-    this.notifyEmail = prefs.notifyEmail;
     await this.auth.ensureSession();
     if (this.auth.isSignedIn()) {
       try {
+        await this.preferences.hydrateFromApi();
         await this.notifications.loadPrefs();
       } catch {
         // local search prefs still usable
       }
     }
+    const prefs = this.preferences.prefs();
+    this.locationsText = prefs.locations.join(', ');
+    this.categoriesText = prefs.categories.join(', ');
+    this.notifyEmail = prefs.notifyEmail;
   }
 
   async save(): Promise<void> {
-    this.preferences.save({
+    const next = {
+      ...this.preferences.prefs(),
       locations: this.split(this.locationsText),
       categories: this.split(this.categoriesText),
       notifyEmail: this.notifyEmail,
-    });
-    if (this.auth.isSignedIn()) {
-      try {
+    };
+    try {
+      await this.preferences.saveAndSync(next);
+      if (this.auth.isSignedIn()) {
         await this.notifications.savePrefs({
           emailAlertsEnabled: this.notifyEmail,
           jobAlertsEnabled: true,
         });
-      } catch {
-        // local prefs still saved
       }
+      this.saved = true;
+      this.toast.show('Preferences saved');
+    } catch {
+      this.preferences.save(next);
+      this.saved = true;
+      this.toast.show('Saved locally; could not sync to account', 'error');
     }
-    this.saved = true;
   }
 
   clear(): void {

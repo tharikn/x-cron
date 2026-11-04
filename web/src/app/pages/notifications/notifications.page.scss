@@ -91,17 +91,22 @@ h2 {
 }
 
 .btn {
-  border: 0;
+  border: 1px solid var(--xcron-primary);
   border-radius: var(--xcron-radius-sm);
-  padding: 0.55rem 0.9rem;
-  background: #0a0a0a;
+  padding: 0 0.9rem;
+  min-height: var(--xcron-btn-height);
+  height: var(--xcron-btn-height);
+  background: var(--xcron-primary);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  transition: transform 160ms var(--xcron-ease), box-shadow 160ms var(--xcron-ease);
+  transition:
+    transform 160ms var(--xcron-ease),
+    background 160ms var(--xcron-ease),
+    opacity 160ms var(--xcron-ease);
 }
 
 .btn:hover {
@@ -115,13 +120,13 @@ h2 {
 }
 
 .btn--ghost {
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink);
   border: 1px solid var(--xcron-line-strong);
 }
 
 .btn--glow {
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   border: 0;
   box-shadow: none;
@@ -154,7 +159,7 @@ h2 {
 .check input {
   width: 1.05rem;
   height: 1.05rem;
-  accent-color: #111;
+  accent-color: var(--xcron-primary);
 }
 
 .inbox {
@@ -195,9 +200,11 @@ h2 {
   border-radius: var(--xcron-radius);
   background: var(--xcron-bg-elevated);
   box-shadow: var(--xcron-shadow);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
   transition:
-    transform 180ms var(--xcron-ease),
-    box-shadow 180ms var(--xcron-ease);
+    transform 160ms var(--xcron-ease),
+    box-shadow 160ms var(--xcron-ease);
   animation: xcron-rise 420ms var(--xcron-ease) both;
   animation-delay: calc(var(--i, 0) * 45ms);
 }
@@ -223,7 +230,7 @@ h2 {
   bottom: 0.85rem;
   width: 3px;
   border-radius: 999px;
-  background: #111;
+  background: var(--xcron-primary-hover);
 }
 
 .card__sheen {
@@ -242,7 +249,7 @@ h2 {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #fff;
-  background: #111;
+  background: var(--xcron-primary-hover);
 }
 
 .card__body strong {
@@ -285,7 +292,7 @@ h2 {
 }
 
 .card--unread .btn--ghost {
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink);
   border-color: var(--xcron-line-strong);
 }
@@ -295,9 +302,10 @@ h2 {
   margin: 0;
   padding: 1.25rem 1rem;
   text-align: center;
-  border: 1px dashed var(--xcron-line-strong);
+  border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius);
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--xcron-wash);
+  box-shadow: var(--xcron-shadow);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -141,7 +141,7 @@ export class GoogleSignInSheetComponent implements AfterViewInit {
       this.openChange.emit(false);
       this.signedIn.emit();
     } catch {
-      this.error.set('Google sign-in failed. Is the API running?');
+      this.error.set("Google sign-in didn't work. Please try again.");
     } finally {
       this.busy.set(false);
     }

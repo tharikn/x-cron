@@ -219,7 +219,13 @@
     <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/import">
       Classic bulk import
     </ion-button>
-    <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/account">
+    <ion-button
+      expand="block"
+      fill="clear"
+      color="dark"
+      routerLink="/tabs/settings"
+      [queryParams]="{ tab: 'account' }"
+    >
       Back to account
     </ion-button>
   </div>

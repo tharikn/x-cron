@@ -16,6 +16,13 @@ export class JobsService {
     jobType?: string;
     category?: string;
     language?: string;
+    salaryMin?: number | null;
+    remote?: boolean | null;
+    postedWithin?: string | null;
+    nearLat?: number | null;
+    nearLng?: number | null;
+    radiusKm?: number | null;
+    walkInOnly?: boolean | null;
     sort?: string;
     cursor?: string;
     limit?: number;
@@ -35,6 +42,34 @@ export class JobsService {
 
   getById(id: string): Promise<Job> {
     return firstValueFrom(this.http.get<Job>(`${environment.apiUrl}/jobs/${id}`));
+  }
+
+  getPublicEmployer(id: string): Promise<{
+    id: string;
+    name: string;
+    about: string | null;
+    verified: boolean;
+    jobs: Job[];
+  }> {
+    return firstValueFrom(
+      this.http.get<{
+        id: string;
+        name: string;
+        about: string | null;
+        verified: boolean;
+        jobs: Job[];
+      }>(`${environment.apiUrl}/employers/${id}/public`),
+    );
+  }
+
+  renewMyJob(id: string): Promise<Job> {
+    return firstValueFrom(
+      this.http.post<Job>(
+        `${environment.apiUrl}/employers/jobs/${id}/renew`,
+        {},
+        { headers: this.auth.authHeaders() },
+      ),
+    );
   }
 
   getBySlug(slug: string): Promise<Job> {
@@ -63,6 +98,7 @@ export class JobsService {
     locationCity: string;
     jobType: string;
     salaryText?: string;
+    vacancies?: number;
     description: string;
     contentLanguage: string;
     contactPhone?: string;
@@ -224,6 +260,12 @@ export class JobsService {
         { note },
         { headers: this.auth.authHeaders() },
       ),
+    );
+  }
+
+  async reportJob(id: string, reason: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post(`${environment.apiUrl}/jobs/${id}/report`, { reason }),
     );
   }
 }

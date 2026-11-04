@@ -99,7 +99,7 @@ export class SeoService {
       },
       url,
       identifier: job.id,
-      // Never include contact phone/email (PRD AC-13 / SEO rules)
+      // Keep contact phone/email out of JSON-LD even though detail UI shows them
     };
 
     if (job.salary?.min != null || job.salary?.max != null) {

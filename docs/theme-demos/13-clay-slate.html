@@ -1,0 +1,89 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Theme demo 13 · Clay & Slate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#f6f1ee; --surface:#fffdfb; --ink:#292524; --muted:#78716c;
+  --wash:#ebe4df; --line:#e7e5e4; --primary:#b45309; --primary-hover:#9a3412;
+  --accent:#0f766e; --font-display:Fraunces, Georgia, serif; --font-body:Figtree, system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:var(--font-body);color:var(--ink);background:var(--bg)}
+.wrap{max-width:720px;margin:0 auto;padding:20px 18px 48px}
+.tag{display:inline-block;margin-bottom:12px;padding:.3rem .65rem;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--primary);font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.5rem;padding-bottom:.9rem;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:.45rem;text-decoration:none;color:inherit}
+.brand strong{font-family:var(--font-display);font-size:1.4rem;color:var(--primary)}
+.brand span{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 1rem;border-radius:10px;border:1px solid var(--primary);background:var(--primary);color:#fff;font:inherit;font-weight:700;cursor:pointer;text-decoration:none}
+.btn--ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.hero{display:grid;gap:1.1rem;margin-bottom:1.25rem}
+@media(min-width:720px){.hero{grid-template-columns:1.2fr .9fr;align-items:end}}
+.kicker{margin:0 0 .4rem;color:var(--accent);font-size:.76rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+h1{margin:0 0 .55rem;font-family:var(--font-display);font-size:clamp(1.8rem,4.8vw,2.35rem);line-height:1.12;max-width:16ch}
+.lead{margin:0 0 1rem;color:var(--muted);line-height:1.5;max-width:36ch}
+.actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1rem;box-shadow:0 10px 28px rgba(31,24,20,0.05)}
+.panel h2{margin:0 0 .75rem;font-family:var(--font-display);font-size:1.1rem}
+label{display:grid;gap:.28rem;margin-bottom:.65rem;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+input{width:100%;border:1px solid var(--line);background:var(--wash);border-radius:8px;padding:.72rem .8rem;font:inherit;color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:.42rem .75rem;font:inherit;font-size:.84rem;font-weight:600;cursor:pointer}
+.chip.is-active{border-color:var(--primary);color:var(--primary);background:color-mix(in srgb, var(--primary) 10%, var(--surface))}
+.section{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 .75rem}
+.section h2{margin:0;font-family:var(--font-display);font-size:1.2rem}
+.section span{color:var(--muted);font-size:.86rem;font-weight:600}
+.job{display:grid;gap:.45rem;padding:1rem;margin-bottom:.65rem;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.job__top{display:flex;justify-content:space-between;gap:.75rem}
+.job h3{margin:0 0 .15rem;font-family:var(--font-display);font-size:1.08rem}
+.job p{margin:0;color:var(--muted);font-size:.9rem}
+.pay{font-weight:700;color:var(--primary);white-space:nowrap}
+.meta{display:flex;gap:.35rem;flex-wrap:wrap}
+.badge{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:.25rem .5rem;border-radius:999px;background:var(--wash);border:1px solid var(--line);color:var(--ink)}
+.cta{color:var(--primary);font-weight:700;text-decoration:none}
+.nav{margin-bottom:.8rem}
+.nav a{color:var(--muted);font-weight:700;text-decoration:none;font-size:.88rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav"><a href="./11-20-gallery.html">← All 10 styles</a></div>
+  <span class="tag">Demo 13 · Clay & Slate</span>
+  <header class="top">
+    <a class="brand" href="#"><strong>X Cron</strong><span>Jobs</span></a>
+    <div class="actions"><button class="btn btn--ghost" type="button">Preferences</button><button class="btn" type="button">Sign in</button></div>
+  </header>
+  <section class="hero">
+    <div>
+      <p class="kicker">Local · Clear · Trusted</p>
+      <h1>Find local work with confidence</h1>
+      <p class="lead">Browse roles freely. Pay and location stay clear. Contact unlocks only when you’re ready.</p>
+      <div class="actions"><button class="btn" type="button">Search roles</button><button class="btn btn--ghost" type="button">Clear filters</button></div>
+    </div>
+    <form class="panel" onsubmit="return false">
+      <h2>Quick search</h2>
+      <label>Role<input value="Warehouse helper" /></label>
+      <label>Location<input value="Palani" /></label>
+      <button class="btn" type="button" style="width:100%">Find jobs</button>
+    </form>
+  </section>
+  <div class="filters">
+    <button class="chip is-active" type="button">Nearby</button>
+    <button class="chip" type="button">Full-time</button>
+    <button class="chip" type="button">Part-time</button>
+    <button class="chip" type="button">Daily wage</button>
+    <button class="chip" type="button">Verified</button>
+  </div>
+  <div class="section"><h2>Open roles</h2><span>128 near Palani</span></div>
+  <article class="job"><div class="job__top"><div><h3>Warehouse helper</h3><p>Sunrise Logistics · Palani</p></div><div class="pay">₹16k–18k</div></div><div class="meta"><span class="badge">Full-time</span><span class="badge">Verified</span></div><a class="cta" href="#">View role →</a></article>
+  <article class="job"><div class="job__top"><div><h3>Cafe cashier</h3><p>Bean Street · Dindigul</p></div><div class="pay">₹12k</div></div><div class="meta"><span class="badge">Part-time</span></div><a class="cta" href="#">View role →</a></article>
+  <article class="job"><div class="job__top"><div><h3>Delivery executive</h3><p>City hops · Daily wage</p></div><div class="pay">₹600/day</div></div><div class="meta"><span class="badge">Daily wage</span></div><a class="cta" href="#">View role →</a></article>
+</div>
+</body>
+</html>

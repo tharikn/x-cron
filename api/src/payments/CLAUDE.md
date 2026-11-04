@@ -1,6 +1,6 @@
 # CLAUDE.md — `api/src/payments/`
 
-Contact unlock, seeker subscriptions, post-job fees. **Entitlements are separate from the PSP.**
+Seeker subscriptions + post-job fees (legacy `job_contact_unlock` still in store; seeker UI shows contacts on the public job DTO with no unlock). **Entitlements are separate from the PSP.**
 
 Agents: follow [`.cursor/skills/xcron-payments/SKILL.md`](../../../.cursor/skills/xcron-payments/SKILL.md).
 
@@ -36,7 +36,7 @@ Every failure writes `confirm_failed` history (reason, IP, UA).
 
 ## Products
 
-`job_contact_unlock` | `subscription` | `job_post`
+`job_contact_unlock` (legacy / unused by job-detail UI) | `subscription` | `job_post`
 
 ## Env
 

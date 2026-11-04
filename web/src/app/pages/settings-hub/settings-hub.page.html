@@ -1,0 +1,44 @@
+<section class="page">
+  <h1>{{ 'nav.settings' | t }}</h1>
+  <p class="lead">{{ 'settings.lead' | t }}</p>
+
+  <div class="layout">
+    <nav class="tabs" aria-label="Settings">
+      <a
+        routerLink="/settings/account"
+        routerLinkActive="is-active"
+        class="tabs__btn"
+      >
+        {{ 'nav.account' | t }}
+      </a>
+      <a
+        routerLink="/settings/language"
+        routerLinkActive="is-active"
+        class="tabs__btn"
+      >
+        {{ 'nav.language' | t }}
+        <span class="tabs__meta">{{ languageLabel() }}</span>
+      </a>
+      <a
+        routerLink="/settings/preferences"
+        routerLinkActive="is-active"
+        class="tabs__btn"
+      >
+        {{ 'nav.preferences' | t }}
+      </a>
+      @if (isAdmin()) {
+        <a
+          routerLink="/settings/site"
+          routerLinkActive="is-active"
+          class="tabs__btn"
+        >
+          {{ 'nav.siteSettings' | t }}
+        </a>
+      }
+    </nav>
+
+    <div class="panel">
+      <router-outlet />
+    </div>
+  </div>
+</section>

@@ -116,8 +116,8 @@
 }
 
 .tabs button.active {
-  background: #0a0a0a;
-  border-color: #0a0a0a;
+  background: var(--xcron-primary);
+  border-color: var(--xcron-primary);
   color: #fff;
 }
 
@@ -197,7 +197,7 @@
 
 .msg--selected {
   box-shadow: var(--xcron-shadow-hover);
-  outline: 2px solid #0a0a0a;
+  outline: 2px solid var(--xcron-primary);
 }
 
 .msg__meta time {

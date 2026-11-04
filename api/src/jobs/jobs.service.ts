@@ -49,8 +49,11 @@ export class JobsService {
     return toPublicJob(job, boost, this.site.getUnlockPricePaise());
   }
 
-  async search(query: SearchJobsDto) {
+  async search(query: SearchJobsDto & { excludeJobIds?: string[] }) {
     this.ops?.recordSearch();
+    const sort =
+      query.sort ??
+      (query.nearLat != null && query.nearLng != null ? 'distance' : 'newest');
     const result = await this.store.search({
       keyword: query.keyword,
       locationText: query.location,
@@ -58,16 +61,28 @@ export class JobsService {
       category: query.category,
       language: query.language,
       salaryMin: query.salaryMin ?? null,
-      sort: query.sort ?? 'newest',
+      remote: query.remote ?? null,
+      postedWithin: query.postedWithin || null,
+      nearLat: query.nearLat ?? null,
+      nearLng: query.nearLng ?? null,
+      radiusKm: query.radiusKm ?? null,
+      walkInOnly: query.walkInOnly ?? null,
+      excludeJobIds: query.excludeJobIds,
+      sort,
       cursor: query.cursor,
       limit: query.limit,
     });
 
     const boosts = this.ads?.activeBoosts() ?? new Map();
-    let items = result.items.map((job) =>
-      this.publicJob(job, boosts.get(job.id) ?? null),
-    );
-    if (query.sort === 'newest' || query.sort === 'relevance' || !query.sort) {
+    let items = result.items.map((job) => {
+      const dto = this.publicJob(job, boosts.get(job.id) ?? null);
+      const distanceKm =
+        'distanceKm' in job && typeof (job as { distanceKm?: number }).distanceKm === 'number'
+          ? (job as { distanceKm: number }).distanceKm
+          : undefined;
+      return distanceKm != null ? { ...dto, distanceKm } : dto;
+    });
+    if (sort === 'newest' || sort === 'relevance' || !query.sort) {
       items = [
         ...items.filter((j) => j.promoted),
         ...items.filter((j) => !j.promoted),
@@ -225,6 +240,53 @@ export class JobsService {
     const job = await this.store.softRemoveOwned(id, user.id);
     if (!job) throw new NotFoundException('Job not found');
     return { ok: true, id: job.id, status: job.status };
+  }
+
+  /** Extend listing by 30 days and republish if expired/draft. */
+  async renewMyJob(user: AuthUser, id: string) {
+    const expiresAt = new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const existing = await this.store.findById(id);
+    if (!existing || existing.ownerUserId !== user.id) {
+      throw new NotFoundException('Job not found');
+    }
+    const shouldPublish =
+      existing.status === 'expired' ||
+      existing.status === 'draft' ||
+      existing.status === 'published';
+    const job = await this.store.updateOwned(id, user.id, {
+      expiresAt,
+      status: shouldPublish ? 'published' : existing.status,
+      effectiveFrom: new Date().toISOString(),
+    });
+    if (!job) throw new NotFoundException('Job not found');
+    if (job.status === 'published') {
+      this.ops?.recordPublish();
+      void this.notifications?.onJobPublished(job.id);
+    }
+    return this.publicJob(job, this.ads?.activeBoosts().get(job.id) ?? null);
+  }
+
+  async publicEmployer(employerId: string) {
+    const employer = this.authStore.getEmployer(employerId);
+    if (!employer) throw new NotFoundException('Employer not found');
+    const boosts = this.ads?.activeBoosts() ?? new Map();
+    const published = (await this.store.listPublished()).filter(
+      (job) => job.employerId === employerId,
+    );
+    return {
+      id: employer.id,
+      name: employer.name,
+      slug: employer.slug ?? employer.id,
+      about: employer.about ?? null,
+      logoUrl: employer.logoUrl ?? null,
+      verificationStatus: employer.verificationStatus,
+      verified: employer.verificationStatus === 'verified',
+      jobs: published.map((job) =>
+        this.publicJob(job, boosts.get(job.id) ?? null),
+      ),
+    };
   }
 
   async moderationQueue(status = 'needs-review') {

@@ -13,7 +13,7 @@ Public site chrome + admin-tunable config. Runtime is **Prisma `SiteConfig`** (J
 ## Persistence
 
 - Source of truth: Postgres table `xcron.SiteConfig` (`key` + `value` JSON).
-- Settings UI (`web` `/settings`) writes commerce + auth via admin PUT; values survive API restart.
+- Settings UI (`web` `/settings/site`) writes commerce + auth via admin PUT; values survive API restart.
 - First boot (missing key): insert from `seed-*.ts` constants (not env). Do not re-read `UNLOCK_PRICE_PAISE` / `SESSION_TTL_*` at runtime.
 
 ## Auth TTLs
@@ -22,7 +22,7 @@ Public site chrome + admin-tunable config. Runtime is **Prisma `SiteConfig`** (J
 - Bounds: session 1–365 days; OTP 1–60 minutes.
 - `SiteStore` syncs TTLs into `AuthStore.setAuthTtls()` on boot and on admin update.
 - Changing TTLs does **not** rewrite existing session `expiresAt` values.
-- Web Settings (`/settings`) edits commerce + auth for admins.
+- Web Site config (`/settings/site`) edits commerce + auth for admins (Settings hub tab). User tabs: language / preferences / account.
 
 ## Agent rules
 

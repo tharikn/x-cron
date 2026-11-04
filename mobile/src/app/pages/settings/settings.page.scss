@@ -1,0 +1,27 @@
+.settings-tabs {
+  --background: transparent;
+  --border-width: 0;
+  padding-bottom: 0.35rem;
+}
+
+ion-segment {
+  margin: 0 0.65rem;
+  min-height: 40px;
+  --background: var(--xcron-wash);
+}
+
+ion-segment-button {
+  --color: var(--xcron-muted);
+  --color-checked: #fff;
+  --indicator-color: var(--xcron-primary);
+  --indicator-box-shadow: none;
+  min-height: 36px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.settings-body {
+  min-height: 100%;
+}

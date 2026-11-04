@@ -1,10 +1,11 @@
 ---
 name: xcron-claude-md
 description: >-
-  Keep X Cron CLAUDE.md agent guides and env files in sync whenever code
-  changes. Use when editing api/, mobile/, web/, docs/, env keys (.env,
-  .env.example, env-dev), APK sideload / version.json updates, or a new feature
-  module — especially AI enrich, OCR, ingestion, jobs, payments/UPI gateways.
+  Keep X Cron CLAUDE.md agent guides, env files, and Prisma DDL migrations in
+  sync whenever code changes. Use when editing api/, mobile/, web/, docs/,
+  env keys (.env, .env.example, env-dev), prisma schema, APK sideload /
+  version.json updates, or a new feature module — especially AI enrich, OCR,
+  ingestion, jobs, payments/UPI gateways, seeker retention.
 ---
 
 # X Cron — update CLAUDE.md on every change
@@ -23,7 +24,28 @@ wherever you make changes just add claude.md file
    - [web/CLAUDE.md](../../../web/CLAUDE.md)
    - root [CLAUDE.md](../../../CLAUDE.md) for monorepo-wide rules
 4. Keep env files aligned (see **Env files** below); never commit real secrets into `.env.example`.
-5. Prefer short, accurate deltas — do not rewrite unrelated sections.
+5. Keep **Prisma DDL** aligned (see **Prisma / migrations** below) whenever persisted shape changes.
+6. Prefer short, accurate deltas — do not rewrite unrelated sections.
+
+## Prisma / migrations (verbatim rule)
+
+db ddl changes are preserved as migration scripts so that higher environments can store and retrieve the data
+
+Whenever domain code needs **new or changed persistent columns/tables/indexes/enums** (Postgres via Prisma):
+
+1. Update [`api/prisma/schema.prisma`](../../../api/prisma/schema.prisma) first (source of truth).
+2. **Always add a versioned migration** under `api/prisma/migrations/<timestamp>_<name>/migration.sql` — never ship schema-only / `db push`-only for features that higher envs (staging/prod Render) must store or read.
+3. Wire read/write in the Prisma store/map path used when `*_STORE=prisma` (or `JOBS_STORE` fallback) — memory-only fields that higher envs must keep **are not done**.
+4. Run locally: `cd api && npm run prisma:validate` (and migrate against local Postgres when available).
+5. Mention the new models/fields in the nearest module `CLAUDE.md` + `api/CLAUDE.md` smoke/persistence notes.
+
+**Do not:**
+
+- Add Job/seeker/payment/auth columns only on TypeScript `*.types.ts` / memory Maps and call the feature “done” for production.
+- Edit old migration files that may already be applied in higher envs — add a **new** forward migration instead.
+- Put secrets or environment-specific data into migration SQL (DDL + safe seeds only).
+
+Deploy path for higher envs: `npm run prisma:migrate` (or the host’s migrate deploy) against prod `DATABASE_URL` so tables/columns exist before traffic hits the new code.
 
 ## Env files (verbatim rule)
 

@@ -47,7 +47,7 @@ h1 {
   width: fit-content;
   text-decoration: none;
   border: 0;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   padding: 0.85rem 1.1rem;
   font-weight: 700;
@@ -81,10 +81,17 @@ h1 {
 
 .queue__head {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
   margin-bottom: 0.75rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.queue__head .secondary {
+  flex-shrink: 0;
 }
 
 .queue h2 {
@@ -96,8 +103,8 @@ h1 {
 
 .secondary {
   border: 1px solid var(--xcron-line-strong);
-  background: #fff;
-  color: #000;
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink);
   padding: 0.65rem 0.95rem;
   font-weight: 700;
   cursor: pointer;
@@ -158,7 +165,7 @@ h1 {
 .editor__toolbar button,
 .chat__compose button {
   border: 0;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   padding: 0.7rem 0.95rem;
   font-weight: 700;
@@ -170,8 +177,8 @@ h1 {
 .mod-card__actions button.secondary,
 .preview__actions button.secondary,
 .editor__toolbar button.secondary {
-  background: #fff;
-  color: #000;
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink);
   border: 1px solid var(--xcron-line-strong);
 }
 
@@ -309,7 +316,7 @@ h1 {
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius-sm);
   padding: 0.85rem 0.95rem;
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   font: inherit;
   color: var(--xcron-ink);
   resize: vertical;
@@ -327,7 +334,7 @@ h1 {
 .fields textarea:focus,
 .fields select:focus,
 .chat__compose textarea:focus {
-  outline: 2px solid #111;
+  outline: 2px solid var(--xcron-primary);
   outline-offset: 1px;
 }
 
@@ -373,7 +380,7 @@ h1 {
 .chat__bubble {
   margin: 0;
   padding: 0.65rem 0.75rem;
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius-sm);
   font-size: 0.9rem;
@@ -381,9 +388,9 @@ h1 {
 }
 
 .chat__bubble--user {
-  background: #111;
+  background: var(--xcron-primary-hover);
   color: #fff;
-  border-color: #111;
+  border-color: var(--xcron-primary);
   justify-self: end;
   max-width: 92%;
 }
@@ -410,7 +417,7 @@ h1 {
   gap: 0.25rem;
   margin-bottom: 0.85rem;
   padding: 0.25rem;
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   border: 1px solid var(--xcron-line);
   border-radius: 999px;
 }
@@ -429,13 +436,13 @@ h1 {
 }
 
 .preview-pane__tabs button.is-active {
-  background: #111;
+  background: var(--xcron-primary-hover);
   color: #fff;
 }
 
 .preview-frame {
   border: 1px solid var(--xcron-line);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   border-radius: var(--xcron-radius);
   padding: 1rem;
   box-shadow: var(--xcron-shadow);
@@ -490,7 +497,7 @@ h1 {
 }
 
 .badge {
-  background: #111;
+  background: var(--xcron-primary-hover);
   color: #fff;
   padding: 0.22rem 0.55rem;
   font-size: 0.68rem;
@@ -612,7 +619,7 @@ h1 {
 
 .panel {
   border: 1px solid var(--xcron-line);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   padding: 1rem 1.1rem;
   margin: 1.1rem 0 0;
   border-radius: var(--xcron-radius-sm);

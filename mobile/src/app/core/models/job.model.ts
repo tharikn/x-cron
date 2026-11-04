@@ -31,7 +31,11 @@ export interface JobContactMask {
   hasEmail: boolean;
   hasWhatsapp: boolean;
   hasWebsite: boolean;
-  unlockPricePaise: number;
+  phone?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
+  website?: string | null;
+  unlockPricePaise?: number;
 }
 
 export interface Job {
@@ -62,6 +66,10 @@ export interface Job {
   promoted?: boolean;
   promotionBadge?: string | null;
   promotionEndsAt?: string | null;
+  employerId?: string | null;
+  walkInAt?: string | null;
+  applyBy?: string | null;
+  distanceKm?: number;
 }
 
 export interface JobSearchQuery {
@@ -71,12 +79,19 @@ export interface JobSearchQuery {
   category?: string;
   language?: string;
   salaryMin?: number | null;
+  remote?: boolean | null;
+  postedWithin?: '1d' | '7d' | '30d' | '' | null;
+  nearLat?: number | null;
+  nearLng?: number | null;
+  radiusKm?: number | null;
+  walkInOnly?: boolean | null;
   sort:
     | 'relevance'
     | 'newest'
     | 'oldest'
     | 'salary-desc'
-    | 'salary-asc';
+    | 'salary-asc'
+    | 'distance';
   cursor?: string;
   limit?: number;
 }
@@ -95,6 +110,7 @@ export interface UserPreferences {
   salaryMin?: number | null;
   remotePreferred: boolean;
   interfaceLocale: string;
+  sort?: JobSearchQuery['sort'];
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -105,6 +121,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   salaryMin: null,
   remotePreferred: false,
   interfaceLocale: 'en',
+  sort: 'newest',
 };
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {

@@ -4,7 +4,7 @@ import { AuthService } from '../services/auth.service';
 
 /**
  * Admin tabs only after backend `/auth/me` confirms admin.
- * Guests / seekers never land on Post / Ads / Import.
+ * Guests / seekers never land on Post / Import / Job Fare.
  */
 export const adminGuard: CanActivateFn = async (_route, state) => {
   const auth = inject(AuthService);
@@ -16,7 +16,7 @@ export const adminGuard: CanActivateFn = async (_route, state) => {
     return true;
   }
 
-  return router.createUrlTree(['/tabs/account'], {
-    queryParams: { returnUrl: state.url, mode: 'admin' },
+  return router.createUrlTree(['/tabs/settings'], {
+    queryParams: { tab: 'account', returnUrl: state.url, mode: 'admin' },
   });
 };

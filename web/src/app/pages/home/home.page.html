@@ -2,7 +2,7 @@
   <div class="hero__glow" aria-hidden="true"></div>
   <p class="brand">X Cron</p>
   <p class="brand-sub">Jobs</p>
-  <h1>{{ 'home.headline' | t }}</h1>
+  <h1 class="hero__quote">{{ 'home.headline' | t }}</h1>
   <p class="lead">{{ 'home.lead' | t }}</p>
 </section>
 
@@ -54,6 +54,32 @@
       </ul>
     }
   </div>
+  <label class="search__field">
+    <span>Min salary (₹)</span>
+    <input
+      type="number"
+      [(ngModel)]="salaryMin"
+      name="salaryMin"
+      placeholder="e.g. 15000"
+    />
+  </label>
+  <label class="search__field">
+    <span>Posted within</span>
+    <select [(ngModel)]="postedWithin" name="postedWithin">
+      <option value="">Any time</option>
+      <option value="1d">Last 24 hours</option>
+      <option value="7d">Last 7 days</option>
+      <option value="30d">Last 30 days</option>
+    </select>
+  </label>
+  <label class="search__field search__field--check">
+    <input type="checkbox" [(ngModel)]="remote" name="remote" />
+    <span>Remote / WFH</span>
+  </label>
+  <label class="search__field search__field--check">
+    <input type="checkbox" [(ngModel)]="walkInOnly" name="walkInOnly" />
+    <span>Walk-in only</span>
+  </label>
   <div class="search__actions">
     <button
       type="button"
@@ -135,17 +161,4 @@
     }
   </div>
 
-  @if (railAds().length) {
-    <aside class="ad-rail" aria-label="Advertisements">
-      @for (ad of railAds(); track ad.id) {
-        <div class="ad-rail__item">
-          <p class="ad-rail__label">{{ ad.label }}</p>
-          <p class="ad-rail__advertiser">{{ ad.advertiser }}</p>
-          <strong>{{ ad.headline }}</strong>
-          <p>{{ ad.body }}</p>
-          <span class="ad-rail__cta">{{ ad.ctaLabel }}</span>
-        </div>
-      }
-    </aside>
-  }
 </div>

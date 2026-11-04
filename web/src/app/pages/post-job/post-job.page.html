@@ -3,8 +3,10 @@
   <p class="lead">
     Admin-only posting. Use a quick form or paste a message. Contacts stay private by default.
     New posts go to moderation before search.
-    Prefer CSV / image OCR?
+    Prefer CSV / image OCR / channel pull?
     <a routerLink="/import">Bulk import</a>
+    ·
+    <a routerLink="/admin/job-fare">Job Fare</a>
     ·
     <a routerLink="/my-jobs">Posted jobs history</a>
   </p>
@@ -18,7 +20,7 @@
           This account is not an admin. Use admin&#64;xcron.local.
         }
       </p>
-      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+      <a class="btn" routerLink="/settings/account">Go to Sign in</a>
     </div>
   }
 
@@ -45,17 +47,40 @@
 
   @if (mode() === 'quick') {
     <form class="form" (ngSubmit)="submitQuick()">
-      <label>
+      <label [class.is-invalid]="!!fieldErrors()['title']">
         <span>Job title</span>
-        <input [(ngModel)]="title" name="title" required />
+        <input
+          [(ngModel)]="title"
+          name="title"
+          (ngModelChange)="clearFieldError('title')"
+          required
+        />
+        @if (fieldErrors()['title']; as err) {
+          <em class="field-error">{{ err }}</em>
+        }
       </label>
-      <label>
+      <label [class.is-invalid]="!!fieldErrors()['employerName']">
         <span>Employer / business name</span>
-        <input [(ngModel)]="employerName" name="employerName" required />
+        <input
+          [(ngModel)]="employerName"
+          name="employerName"
+          (ngModelChange)="clearFieldError('employerName')"
+          required
+        />
+        @if (fieldErrors()['employerName']; as err) {
+          <em class="field-error">{{ err }}</em>
+        }
       </label>
-      <label>
+      <label [class.is-invalid]="!!fieldErrors()['locationCity']">
         <span>Location (city)</span>
-        <input [(ngModel)]="locationCity" name="locationCity" />
+        <input
+          [(ngModel)]="locationCity"
+          name="locationCity"
+          (ngModelChange)="clearFieldError('locationCity')"
+        />
+        @if (fieldErrors()['locationCity']; as err) {
+          <em class="field-error">{{ err }}</em>
+        }
       </label>
       <label>
         <span>Job type</span>
@@ -65,13 +90,32 @@
           }
         </select>
       </label>
-      <label>
+      <label [class.is-invalid]="!!fieldErrors()['salaryText']">
         <span>Salary (optional)</span>
         <input
           [(ngModel)]="salaryText"
           name="salaryText"
           placeholder="e.g. 12000-15000 / month"
+          (ngModelChange)="clearFieldError('salaryText')"
         />
+        @if (fieldErrors()['salaryText']; as err) {
+          <em class="field-error">{{ err }}</em>
+        }
+      </label>
+      <label [class.is-invalid]="!!fieldErrors()['vacancies']">
+        <span>Vacancies (optional)</span>
+        <input
+          [(ngModel)]="vacancies"
+          name="vacancies"
+          type="number"
+          min="1"
+          inputmode="numeric"
+          placeholder="e.g. 2"
+          (ngModelChange)="clearFieldError('vacancies')"
+        />
+        @if (fieldErrors()['vacancies']; as err) {
+          <em class="field-error">{{ err }}</em>
+        }
       </label>
       <label>
         <span>Content language</span>
@@ -81,26 +125,56 @@
           }
         </select>
       </label>
-      <label>
+      <label class="form__wide" [class.is-invalid]="!!fieldErrors()['description']">
         <span>Description / duties</span>
-        <textarea [(ngModel)]="description" name="description" rows="5" required></textarea>
+        <textarea
+          [(ngModel)]="description"
+          name="description"
+          rows="5"
+          required
+          (ngModelChange)="clearFieldError('description')"
+        ></textarea>
+        @if (fieldErrors()['description']; as err) {
+          <em class="field-error">{{ err }}</em>
+        }
       </label>
-      <label>
+      <label [class.is-invalid]="!!fieldErrors()['contactPhone']">
         <span>Private contact phone</span>
-        <input [(ngModel)]="contactPhone" name="contactPhone" type="tel" />
+        <input
+          [(ngModel)]="contactPhone"
+          name="contactPhone"
+          type="tel"
+          placeholder="10-digit or +91…"
+          (ngModelChange)="clearFieldError('contactPhone')"
+        />
+        @if (fieldErrors()['contactPhone']; as err) {
+          <em class="field-error">{{ err }}</em>
+        }
       </label>
-      <label>
+      <label [class.is-invalid]="!!fieldErrors()['contactEmail']">
         <span>HR email</span>
-        <input [(ngModel)]="contactEmail" name="contactEmail" type="email" />
+        <input
+          [(ngModel)]="contactEmail"
+          name="contactEmail"
+          type="email"
+          (ngModelChange)="clearFieldError('contactEmail')"
+        />
+        @if (fieldErrors()['contactEmail']; as err) {
+          <em class="field-error">{{ err }}</em>
+        }
       </label>
-      <label>
+      <label [class.is-invalid]="!!fieldErrors()['contactWebsite']">
         <span>Website to apply</span>
         <input
           [(ngModel)]="contactWebsite"
           name="contactWebsite"
           type="url"
           placeholder="https://"
+          (ngModelChange)="clearFieldError('contactWebsite')"
         />
+        @if (fieldErrors()['contactWebsite']; as err) {
+          <em class="field-error">{{ err }}</em>
+        }
       </label>
       <label>
         <span>Priority (higher first)</span>
@@ -114,17 +188,19 @@
         <span>End date</span>
         <input [(ngModel)]="expiresAtLocal" name="expiresAt" type="datetime-local" />
       </label>
-      <button type="submit" [disabled]="busy()">
-        @if (busy()) {
-          <span class="spinner spinner--inline" aria-hidden="true"></span>
-          Submitting…
-        } @else {
-          Submit job
-        }
-      </button>
+      <div class="form__actions">
+        <button type="submit" [disabled]="busy()">
+          @if (busy()) {
+            <span class="spinner spinner--inline" aria-hidden="true"></span>
+            Submitting…
+          } @else {
+            Submit job
+          }
+        </button>
+      </div>
     </form>
   } @else {
-    <form class="form" (ngSubmit)="submitPaste()">
+    <form class="form form--paste" (ngSubmit)="submitPaste()">
       <label>
         <span>Content language</span>
         <select [(ngModel)]="contentLanguage" name="pasteLanguage">
@@ -133,7 +209,7 @@
           }
         </select>
       </label>
-      <label>
+      <label class="form__wide">
         <span>Paste WhatsApp / Telegram text</span>
         <textarea
           [(ngModel)]="pasteText"
@@ -143,14 +219,16 @@
           required
         ></textarea>
       </label>
-      <button type="submit" [disabled]="busy()">
-        @if (busy()) {
-          <span class="spinner spinner--inline" aria-hidden="true"></span>
-          Extracting…
-        } @else {
-          Extract and publish
-        }
-      </button>
+      <div class="form__actions">
+        <button type="submit" [disabled]="busy()">
+          @if (busy()) {
+            <span class="spinner spinner--inline" aria-hidden="true"></span>
+            Extracting…
+          } @else {
+            Extract and publish
+          }
+        </button>
+      </div>
     </form>
   }
 

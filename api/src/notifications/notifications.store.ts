@@ -22,6 +22,15 @@ export abstract class NotificationsStore {
     platform: PushPlatform;
   }): Promise<DeviceRegistration>;
 
+  /**
+   * Detach this device from any user so job pushes stop after logout / session death.
+   * Matches on deviceId + fcmToken (proof the caller holds the device credentials).
+   */
+  abstract unlinkDevice(input: {
+    deviceId: string;
+    fcmToken: string;
+  }): Promise<boolean>;
+
   abstract listDevicesForUser(userId: string): Promise<DeviceRegistration[]>;
 
   abstract getNotificationPrefs(

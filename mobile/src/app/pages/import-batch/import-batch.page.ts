@@ -24,6 +24,11 @@ import {
   ImportRecord,
   IngestionService,
 } from '../../core/services/ingestion.service';
+import {
+  type FieldErrors,
+  parseVacancies,
+  validateImportDraftFields,
+} from '../../core/utils/job-form.validation';
 
 interface EditDraft {
   title: string;
@@ -82,6 +87,7 @@ export class ImportBatchPage implements OnInit {
   readonly draft = signal<EditDraft | null>(null);
   readonly dirty = signal(false);
   readonly saveBusy = signal(false);
+  readonly fieldErrors = signal<FieldErrors>({});
   readonly chat = signal<ChatMessage[]>([]);
   readonly chatInput = signal('');
 
@@ -260,8 +266,18 @@ export class ImportBatchPage implements OnInit {
     this.activePanel.set(null);
     this.draft.set(null);
     this.dirty.set(false);
+    this.fieldErrors.set({});
     this.chat.set([]);
     this.chatInput.set('');
+  }
+
+  clearFieldError(key: string): void {
+    if (!this.fieldErrors()[key]) return;
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      delete next[key];
+      return next;
+    });
   }
 
   @HostListener('document:keydown.escape')
@@ -278,6 +294,9 @@ export class ImportBatchPage implements OnInit {
     }
     this.draft.set(next);
     this.dirty.set(true);
+    for (const key of Object.keys(partial)) {
+      this.clearFieldError(key);
+    }
   }
 
   async saveDraft(): Promise<void> {
@@ -285,20 +304,21 @@ export class ImportBatchPage implements OnInit {
     const record = this.activeRecord();
     const draft = this.draft();
     if (!batch || !record || !draft) return;
+    const errors = validateImportDraftFields(draft);
+    this.fieldErrors.set(errors);
+    if (Object.keys(errors).length) {
+      await this.showToast(Object.values(errors)[0] ?? 'Fix the highlighted fields.');
+      return;
+    }
     this.saveBusy.set(true);
     try {
-      const vacanciesRaw = String(draft.vacancies ?? '').trim();
-      const vacancies = Number(vacanciesRaw);
       const updated = await this.ingestion.updateRecord(batch.id, record.id, {
         title: draft.title.trim(),
         employerName: draft.employerName.trim(),
         locationCity: draft.locationCity.trim(),
         jobType: draft.jobType.trim(),
         salaryText: draft.salaryText.trim() || undefined,
-        vacancies:
-          vacanciesRaw && Number.isFinite(vacancies) && vacancies >= 1
-            ? Math.floor(vacancies)
-            : undefined,
+        vacancies: parseVacancies(draft.vacancies),
         description: draft.description.trim(),
         contentLanguage: draft.contentLanguage.trim() || 'en',
         contactWebsite: draft.contactWebsite.trim() || undefined,
@@ -308,6 +328,7 @@ export class ImportBatchPage implements OnInit {
       );
       this.draft.set(this.recordToDraft(updated));
       this.dirty.set(false);
+      this.fieldErrors.set({});
       await this.showToast('Saved record edits.');
     } catch {
       await this.showToast('Could not save record edits.');

@@ -1,13 +1,14 @@
 import { JobRecord } from './job.types';
 
-/** Public DTO — never includes privateContact (PRD AC-13). */
+/** Public DTO — includes employer contact for seekers (no unlock gate). */
 export function toPublicJob(
   job: JobRecord,
   boost?: { badge: string; endsAt: string } | null,
-  /** Global SiteConfig commerce price; falls back to per-job seed. */
+  /** Global SiteConfig commerce price; kept for admin commerce UI compatibility. */
   unlockPricePaise?: number,
 ) {
   const pricePaise = unlockPricePaise ?? job.contact.unlockPricePaise;
+  const privateContact = job.privateContact;
   return {
     id: job.id,
     slug: job.slug,
@@ -24,11 +25,14 @@ export function toPublicJob(
     workSchedule: job.workSchedule,
     skills: job.skills,
     category: job.category,
+    employerId: job.employerId ?? null,
     publishedAt: job.publishedAt,
     effectiveFrom: job.effectiveFrom,
     expiresAt: job.expiresAt,
     priority: job.priority,
     status: job.status,
+    walkInAt: job.walkInAt ?? null,
+    applyBy: job.applyBy ?? null,
     promoted: !!boost,
     promotionBadge: boost?.badge ?? null,
     promotionEndsAt: boost?.endsAt ?? null,
@@ -37,9 +41,11 @@ export function toPublicJob(
       hasEmail: job.contact.hasEmail,
       hasWhatsapp: job.contact.hasWhatsapp,
       hasWebsite: job.contact.hasWebsite,
+      phone: privateContact?.phone ?? null,
+      email: privateContact?.email ?? null,
+      whatsapp: privateContact?.whatsapp ?? null,
+      website: privateContact?.website ?? null,
       unlockPricePaise: pricePaise,
-      masked: true,
-      unlockLabel: `Unlock employer contact – ₹${(pricePaise / 100).toFixed(0)}`,
     },
   };
 }

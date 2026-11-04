@@ -31,7 +31,14 @@ export const MOCK_JOBS: Job[] = [
     publishedAt: '2026-10-30T08:00:00.000Z',
     expiresAt: '2026-11-30T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: true, hasEmail: false, hasWhatsapp: true, hasWebsite: false, unlockPricePaise: 500 },
+    contact: {
+      hasPhone: true,
+      hasEmail: false,
+      hasWhatsapp: true,
+      hasWebsite: false,
+      phone: '+919876543210',
+      whatsapp: '+919876543210',
+    },
   },
   {
     id: 'job_002',
@@ -61,7 +68,14 @@ export const MOCK_JOBS: Job[] = [
     publishedAt: '2026-10-29T11:30:00.000Z',
     expiresAt: '2026-11-20T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: true, hasEmail: false, hasWhatsapp: true, hasWebsite: false, unlockPricePaise: 500 },
+    contact: {
+      hasPhone: true,
+      hasEmail: false,
+      hasWhatsapp: true,
+      hasWebsite: false,
+      phone: '+919811122233',
+      whatsapp: '+919811122233',
+    },
   },
   {
     id: 'job_003',
@@ -89,7 +103,13 @@ export const MOCK_JOBS: Job[] = [
     publishedAt: '2026-10-28T05:15:00.000Z',
     expiresAt: '2026-12-15T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: false, hasEmail: true, hasWhatsapp: false, hasWebsite: false, unlockPricePaise: 500 },
+    contact: {
+      hasPhone: false,
+      hasEmail: true,
+      hasWhatsapp: false,
+      hasWebsite: false,
+      email: 'hr@nilgirisoft.example',
+    },
   },
   {
     id: 'job_004',
@@ -118,7 +138,14 @@ export const MOCK_JOBS: Job[] = [
     publishedAt: '2026-10-27T14:00:00.000Z',
     expiresAt: '2026-11-27T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: true, hasEmail: false, hasWhatsapp: true, hasWebsite: false, unlockPricePaise: 500 },
+    contact: {
+      hasPhone: true,
+      hasEmail: false,
+      hasWhatsapp: true,
+      hasWebsite: false,
+      phone: '+919900112233',
+      whatsapp: '+919900112233',
+    },
   },
   {
     id: 'job_005',
@@ -145,6 +172,13 @@ export const MOCK_JOBS: Job[] = [
     publishedAt: '2026-10-26T09:45:00.000Z',
     expiresAt: '2026-11-26T00:00:00.000Z',
     status: 'published',
-    contact: { hasPhone: true, hasEmail: true, hasWhatsapp: false, hasWebsite: false, unlockPricePaise: 500 },
+    contact: {
+      hasPhone: true,
+      hasEmail: true,
+      hasWhatsapp: false,
+      hasWebsite: false,
+      phone: '+919944556677',
+      email: 'accounts@srimurugan.example',
+    },
   },
 ];

@@ -1,5 +1,17 @@
-import { Routes } from '@angular/router';
+import type { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
+import { employerGuard } from './core/guards/employer.guard';
+
+function withQuery(path: string, queryParams: Record<string, string>): string {
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(queryParams)) {
+    if (value != null && value !== '') {
+      q.set(key, String(value));
+    }
+  }
+  const qs = q.toString();
+  return qs ? `${path}?${qs}` : path;
+}
 
 export const routes: Routes = [
   {
@@ -7,9 +19,52 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/home/home.page').then((m) => m.HomePage),
   },
   {
-    path: 'preferences',
+    path: 'settings',
     loadComponent: () =>
-      import('./pages/preferences/preferences.page').then((m) => m.PreferencesPage),
+      import('./pages/settings-hub/settings-hub.page').then((m) => m.SettingsHubPage),
+    children: [
+      {
+        path: '',
+        redirectTo: 'account',
+        pathMatch: 'full',
+      },
+      {
+        path: 'account',
+        loadComponent: () =>
+          import('./pages/sign-in/sign-in.page').then((m) => m.SignInPage),
+      },
+      {
+        path: 'language',
+        loadComponent: () =>
+          import('./pages/language/language.page').then((m) => m.LanguagePage),
+      },
+      {
+        path: 'preferences',
+        loadComponent: () =>
+          import('./pages/preferences/preferences.page').then((m) => m.PreferencesPage),
+      },
+      {
+        path: 'site',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/settings/settings.page').then((m) => m.SettingsPage),
+      },
+    ],
+  },
+  {
+    path: 'preferences',
+    redirectTo: 'settings/preferences',
+    pathMatch: 'full',
+  },
+  {
+    path: 'language',
+    redirectTo: 'settings/language',
+    pathMatch: 'full',
+  },
+  {
+    path: 'sign-in',
+    redirectTo: ({ queryParams }) => withQuery('/settings/account', queryParams),
+    pathMatch: 'full',
   },
   {
     path: 'notifications',
@@ -19,18 +74,8 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'language',
-    loadComponent: () =>
-      import('./pages/language/language.page').then((m) => m.LanguagePage),
-  },
-  {
-    path: 'sign-in',
-    loadComponent: () =>
-      import('./pages/sign-in/sign-in.page').then((m) => m.SignInPage),
-  },
-  {
     path: 'post',
-    canActivate: [adminGuard],
+    canActivate: [employerGuard],
     loadComponent: () =>
       import('./pages/post-job/post-job.page').then((m) => m.PostJobPage),
   },
@@ -42,9 +87,19 @@ export const routes: Routes = [
   },
   {
     path: 'my-jobs',
-    canActivate: [adminGuard],
+    canActivate: [employerGuard],
     loadComponent: () =>
       import('./pages/my-jobs/my-jobs.page').then((m) => m.MyJobsPage),
+  },
+  {
+    path: 'me',
+    loadComponent: () =>
+      import('./pages/seeker/seeker.page').then((m) => m.SeekerPage),
+  },
+  {
+    path: 'employers/:id',
+    loadComponent: () =>
+      import('./pages/employer/employer.page').then((m) => m.EmployerPage),
   },
   {
     path: 'admin',
@@ -85,10 +140,9 @@ export const routes: Routes = [
       import('./pages/blog-approval/blog-approval.page').then((m) => m.BlogApprovalPage),
   },
   {
-    path: 'settings',
-    canActivate: [adminGuard],
-    loadComponent: () =>
-      import('./pages/settings/settings.page').then((m) => m.SettingsPage),
+    path: 'admin/settings',
+    redirectTo: 'settings/site',
+    pathMatch: 'full',
   },
   {
     path: 'locations/:state/:city',

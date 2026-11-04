@@ -54,8 +54,8 @@ input[type='email'] {
 input[type='text']:focus,
 input:not([type]):focus,
 input[type='email']:focus {
-  border-color: #111;
-  background: #fff;
+  border-color: var(--xcron-primary);
+  background: var(--xcron-bg-elevated);
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -73,7 +73,7 @@ input[type='email']:focus {
 .check input {
   width: 1.05rem;
   height: 1.05rem;
-  accent-color: #111;
+  accent-color: var(--xcron-primary);
 }
 
 .form__actions {
@@ -83,26 +83,29 @@ input[type='email']:focus {
 }
 
 button {
-  border: 0;
-  background: #0a0a0a;
+  border: 1px solid var(--xcron-primary);
+  background: var(--xcron-primary);
   color: #fff;
-  padding: 0.85rem 1.1rem;
+  padding: 0 1.1rem;
+  min-height: var(--xcron-btn-height);
+  height: var(--xcron-btn-height);
   font-weight: 700;
   cursor: pointer;
   width: fit-content;
   border-radius: var(--xcron-radius-sm);
   transition:
     transform 160ms var(--xcron-ease),
-    background 160ms var(--xcron-ease);
+    background 160ms var(--xcron-ease),
+    opacity 160ms var(--xcron-ease);
 }
 
 button:hover {
-  background: #222;
+  background: var(--xcron-primary-hover);
   transform: translateY(-1px);
 }
 
 .btn-clear {
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink);
   border: 1px solid var(--xcron-line);
 }

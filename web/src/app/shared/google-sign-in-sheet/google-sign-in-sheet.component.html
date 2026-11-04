@@ -14,9 +14,9 @@
 
       @if (googleReady) {
         <div #googleBtnHost class="google-btn-host" aria-label="Continue with Google"></div>
-        <button type="button" class="secondary" [disabled]="busy()" (click)="continueWithGoogle()">
-          {{ busy() ? 'Signing in…' : 'Continue with Google' }}
-        </button>
+        @if (busy()) {
+          <p class="hint">Signing in…</p>
+        }
       } @else {
         <form class="form" (ngSubmit)="continueWithGoogle()">
           <label>

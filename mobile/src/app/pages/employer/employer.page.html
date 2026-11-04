@@ -1,0 +1,38 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/discover"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Employer</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    @if (error()) {
+      <p class="empty">{{ error() }}</p>
+      <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/discover">
+        Back to discover
+      </ion-button>
+    } @else {
+      <header class="hero">
+        <h1>{{ name() }}</h1>
+        @if (verified()) {
+          <p class="verified">Verified employer</p>
+        }
+        @if (about()) {
+          <p class="about">{{ about() }}</p>
+        }
+      </header>
+
+      <h2>Open roles</h2>
+      <div class="job-list">
+        @for (job of jobsList(); track job.id; let i = $index) {
+          <app-job-card [job]="job" [style.--i]="i"></app-job-card>
+        } @empty {
+          <p class="empty">No open roles right now.</p>
+        }
+      </div>
+    }
+  </div>
+</ion-content>

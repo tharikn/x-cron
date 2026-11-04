@@ -1,0 +1,29 @@
+@if (error()) {
+  <section class="missing">
+    <h1>Employer not found</h1>
+    <p>{{ error() }}</p>
+    <a routerLink="/">Back to jobs</a>
+  </section>
+} @else {
+  <section class="employer">
+    <p class="crumb"><a routerLink="/">Jobs</a> / Employer</p>
+    <h1>{{ name() }}</h1>
+    @if (verified()) {
+      <p class="verified">Verified employer</p>
+    }
+    @if (about()) {
+      <p class="about">{{ about() }}</p>
+    }
+    <h2>Open roles</h2>
+    <div class="job-list">
+      @for (job of jobsList(); track job.id) {
+        <a class="job-card" [routerLink]="jobPath(job)">
+          <strong>{{ job.title }}</strong>
+          <span>{{ formatLocation(job) }}</span>
+        </a>
+      } @empty {
+        <p>No open roles right now.</p>
+      }
+    </div>
+  </section>
+}

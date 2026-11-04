@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { JobsModule } from '../jobs/jobs.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { PreferencesModule } from '../preferences/preferences.module';
+import { SeekerModule } from '../seeker/seeker.module';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsMemoryStore } from './notifications.memory-store';
 import { NotificationsPrismaStore } from './notifications.prisma-store';
@@ -19,7 +20,11 @@ function resolveNotificationsStoreMode(): 'prisma' | 'memory' {
 }
 
 @Module({
-  imports: [forwardRef(() => JobsModule), PreferencesModule],
+  imports: [
+    forwardRef(() => JobsModule),
+    PreferencesModule,
+    forwardRef(() => SeekerModule),
+  ],
   controllers: [NotificationsController],
   providers: [
     {

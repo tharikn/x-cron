@@ -63,13 +63,11 @@ const FALLBACK_FOOTER: SiteFooterConfig = {
   quickLinks: [
     { id: 'ql_home', label: 'Home', href: '/', sortOrder: 1 },
     { id: 'ql_post', label: 'Post a job', href: '/post', sortOrder: 2 },
-    { id: 'ql_prefs', label: 'Preferences', href: '/preferences', sortOrder: 3 },
-    { id: 'ql_lang', label: 'Language', href: '/language', sortOrder: 4 },
-    { id: 'ql_signin', label: 'Sign in', href: '/sign-in', sortOrder: 5 },
+    { id: 'ql_settings', label: 'Settings', href: '/settings', sortOrder: 3 },
   ],
   legalLinks: [
-    { id: 'leg_privacy', label: 'Privacy', href: '/preferences', sortOrder: 1 },
-    { id: 'leg_terms', label: 'Terms', href: '/preferences', sortOrder: 2 },
+    { id: 'leg_privacy', label: 'Privacy', href: '/settings/preferences', sortOrder: 1 },
+    { id: 'leg_terms', label: 'Terms', href: '/settings/preferences', sortOrder: 2 },
   ],
   copyright: '© X Cron Jobs. Search open — sign in with Google to save or unlock.',
   updatedAt: new Date(0).toISOString(),

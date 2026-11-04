@@ -39,16 +39,25 @@ ion-card-content {
   padding: 0 14px 12px;
 }
 
-ion-card-title {
-  font-size: 1.02rem;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+/* Title → employer → facts → time: one Manrope/Outfit ladder */
+.job-card__title {
   margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-title);
+  font-weight: var(--xcron-weight-bold);
+  letter-spacing: var(--xcron-tracking-title);
+  line-height: var(--xcron-leading-tight);
+  color: var(--xcron-ink);
 }
 
-ion-card-subtitle {
-  font-size: 0.88rem;
-  margin-top: 2px;
+.job-card__employer {
+  margin-top: 4px;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-body);
+  font-weight: var(--xcron-weight-medium);
+  letter-spacing: 0;
+  line-height: var(--xcron-leading-body);
+  color: var(--xcron-ink-soft) !important;
 }
 
 .job-card__meta {
@@ -66,12 +75,25 @@ ion-card-subtitle {
   flex-wrap: wrap;
 }
 
+.job-card__time {
+  flex-shrink: 0;
+  margin: 0;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  font-weight: var(--xcron-weight-medium);
+  letter-spacing: 0;
+  line-height: 1.3;
+  color: var(--xcron-faint);
+  white-space: nowrap;
+}
+
 .verified {
   display: inline-block;
   margin-left: 0.35rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-label);
+  font-weight: var(--xcron-weight-semibold);
+  letter-spacing: var(--xcron-tracking-label);
   text-transform: uppercase;
   color: var(--xcron-muted);
   border: 1px solid var(--xcron-line-strong);
@@ -82,9 +104,12 @@ ion-card-subtitle {
 
 .job-card__line {
   margin: 0;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  font-weight: var(--xcron-weight-regular);
+  letter-spacing: 0;
+  line-height: 1.4;
   color: var(--xcron-muted);
-  font-size: 0.84rem;
-  line-height: 1.35;
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 0.3rem;
@@ -98,9 +123,10 @@ ion-card-subtitle {
 .job-card__cta {
   display: inline-block;
   margin-top: 8px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-label);
+  font-weight: var(--xcron-weight-semibold);
+  letter-spacing: var(--xcron-tracking-label);
   text-transform: uppercase;
   color: var(--xcron-ink);
   opacity: 0.45;

@@ -14,6 +14,9 @@ export interface AuthUser {
 export interface EmployerProfile {
   id: string;
   name: string;
+  slug?: string;
+  about?: string;
+  logoUrl?: string;
   verificationStatus: 'unverified' | 'pending' | 'verified';
   ownerUserId: string;
   createdAt: string;

@@ -1,148 +1,155 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-title>{{ 'prefs.title' | t }}</ion-title>
-  </ion-toolbar>
-</ion-header>
+<div class="page">
+  <p class="lead">
+    @if (isSignedIn()) {
+      {{ 'prefs.leadSignedIn' | t }}
+    } @else {
+      {{ 'prefs.leadGuest' | t }}
+    }
+  </p>
+  <p class="sync-meta">
+    Sync:
+    <strong>{{ syncScope() }}</strong>
+    @if (deviceRegistered()) {
+      · Push device registered
+    }
+  </p>
 
-<ion-content>
-  <div class="page">
-    <p class="lead">
-      @if (isSignedIn()) {
-        {{ 'prefs.leadSignedIn' | t }}
-      } @else {
-        {{ 'prefs.leadGuest' | t }}
-      }
-    </p>
-    <p class="sync-meta">
-      Sync:
-      <strong>{{ syncScope() }}</strong>
-      @if (deviceRegistered()) {
-        · Push device registered
-      }
-    </p>
+  <ion-list lines="full" class="form">
+    <ion-item lines="none" class="loc-item">
+      <ion-label position="stacked">{{ 'prefs.location' | t }}</ion-label>
+      <app-location-typeahead [(value)]="location" />
+    </ion-item>
+    <ion-item>
+      <ion-select
+        [label]="'prefs.jobType' | t"
+        labelPlacement="stacked"
+        interface="popover"
+        [(ngModel)]="jobType"
+      >
+        <ion-select-option value="">{{ 'common.any' | t }}</ion-select-option>
+        @for (entry of jobTypeEntries; track entry[0]) {
+          <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
+        }
+      </ion-select>
+    </ion-item>
+    <ion-item>
+      <ion-select
+        label="Category"
+        labelPlacement="stacked"
+        interface="popover"
+        [(ngModel)]="category"
+      >
+        <ion-select-option value="">{{ 'common.any' | t }}</ion-select-option>
+        @for (cat of categories(); track cat) {
+          <ion-select-option [value]="cat">{{ cat }}</ion-select-option>
+        }
+      </ion-select>
+    </ion-item>
+    <ion-item>
+      <ion-select
+        [label]="'prefs.jobLanguage' | t"
+        labelPlacement="stacked"
+        interface="popover"
+        [(ngModel)]="language"
+      >
+        @for (lang of languages(); track lang.code) {
+          <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
+        }
+      </ion-select>
+    </ion-item>
+    <ion-item>
+      <ion-select
+        label="Default sort"
+        labelPlacement="stacked"
+        interface="popover"
+        [(ngModel)]="sort"
+      >
+        <ion-select-option value="newest">{{ 'sort.newest' | t }}</ion-select-option>
+        <ion-select-option value="oldest">{{ 'sort.oldest' | t }}</ion-select-option>
+        <ion-select-option value="salary-desc">{{ 'sort.salaryDesc' | t }}</ion-select-option>
+        <ion-select-option value="salary-asc">{{ 'sort.salaryAsc' | t }}</ion-select-option>
+        <ion-select-option value="relevance">{{ 'sort.relevance' | t }}</ion-select-option>
+        <ion-select-option value="distance">Distance</ion-select-option>
+      </ion-select>
+    </ion-item>
+    <ion-item>
+      <ion-input
+        [label]="'prefs.salaryMin' | t"
+        labelPlacement="stacked"
+        type="number"
+        [(ngModel)]="salaryMin"
+      ></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-toggle [(ngModel)]="remotePreferred" labelPlacement="start" justify="space-between">
+        {{ 'prefs.remote' | t }}
+      </ion-toggle>
+    </ion-item>
+  </ion-list>
 
-    <ion-list lines="full" class="form">
-      <ion-item lines="none" class="loc-item">
-        <ion-label position="stacked">{{ 'prefs.location' | t }}</ion-label>
-        <app-location-typeahead [(value)]="location" />
-      </ion-item>
-      <ion-item>
-        <ion-select
-          [label]="'prefs.jobType' | t"
-          labelPlacement="stacked"
-          interface="popover"
-          [(ngModel)]="jobType"
-        >
-          <ion-select-option value="">{{ 'common.any' | t }}</ion-select-option>
-          @for (entry of jobTypeEntries; track entry[0]) {
-            <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
-          }
-        </ion-select>
-      </ion-item>
-      <ion-item>
-        <ion-select
-          [label]="'prefs.jobLanguage' | t"
-          labelPlacement="stacked"
-          interface="popover"
-          [(ngModel)]="language"
-        >
-          @for (lang of languages(); track lang.code) {
-            <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
-          }
-        </ion-select>
-      </ion-item>
-      <ion-item>
-        <ion-select
-          [label]="'prefs.appLanguage' | t"
-          labelPlacement="stacked"
-          interface="popover"
-          [(ngModel)]="interfaceLocale"
-          (ngModelChange)="onAppLanguage($event)"
-        >
-          @for (lang of languages(); track lang.code) {
-            <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
-          }
-        </ion-select>
-      </ion-item>
-      <ion-item>
-        <ion-input
-          [label]="'prefs.salaryMin' | t"
-          labelPlacement="stacked"
-          type="number"
-          [(ngModel)]="salaryMin"
-        ></ion-input>
-      </ion-item>
-      <ion-item>
-        <ion-toggle [(ngModel)]="remotePreferred" labelPlacement="start" justify="space-between">
-          {{ 'prefs.remote' | t }}
-        </ion-toggle>
-      </ion-item>
-    </ion-list>
+  <ion-button expand="block" color="dark" (click)="save()">{{ 'prefs.save' | t }}</ion-button>
+  <ion-button expand="block" fill="outline" color="dark" (click)="clear()">{{ 'prefs.clear' | t }}</ion-button>
 
-    <ion-button expand="block" color="dark" (click)="save()">{{ 'prefs.save' | t }}</ion-button>
-    <ion-button expand="block" fill="outline" color="dark" (click)="clear()">{{ 'prefs.clear' | t }}</ion-button>
-
-    <h2 class="section-title">{{ 'prefs.notifications' | t }}</h2>
-    <ion-list lines="full" class="form">
+  <h2 class="section-title">{{ 'prefs.notifications' | t }}</h2>
+  <ion-list lines="full" class="form">
+    <ion-item>
+      <ion-toggle
+        [ngModel]="notifPrefs().jobAlertsEnabled"
+        (ngModelChange)="toggleAlert('jobAlertsEnabled', $event)"
+        labelPlacement="start"
+        justify="space-between"
+        [disabled]="!isSignedIn()"
+      >
+        {{ 'prefs.jobAlerts' | t }}
+      </ion-toggle>
+    </ion-item>
+    <ion-item>
+      <ion-toggle
+        [ngModel]="notifPrefs().inAppEnabled ?? true"
+        (ngModelChange)="toggleAlert('inAppEnabled', $event)"
+        labelPlacement="start"
+        justify="space-between"
+        [disabled]="!isSignedIn()"
+      >
+        {{ 'prefs.inAppAlerts' | t }}
+      </ion-toggle>
+    </ion-item>
+    <ion-item>
+      <ion-toggle
+        [ngModel]="notifPrefs().pushAlertsEnabled ?? true"
+        (ngModelChange)="toggleAlert('pushAlertsEnabled', $event)"
+        labelPlacement="start"
+        justify="space-between"
+        [disabled]="!isSignedIn()"
+      >
+        {{ 'prefs.pushAlerts' | t }}
+      </ion-toggle>
+    </ion-item>
+    <ion-item>
+      <ion-toggle
+        [ngModel]="notifPrefs().emailAlertsEnabled ?? true"
+        (ngModelChange)="toggleAlert('emailAlertsEnabled', $event)"
+        labelPlacement="start"
+        justify="space-between"
+        [disabled]="!isSignedIn()"
+      >
+        {{ 'prefs.emailAlerts' | t }}
+      </ion-toggle>
+    </ion-item>
+    @if (!isSignedIn()) {
       <ion-item>
-        <ion-toggle
-          [ngModel]="notifPrefs().jobAlertsEnabled"
-          (ngModelChange)="toggleAlert('jobAlertsEnabled', $event)"
-          labelPlacement="start"
-          justify="space-between"
-          [disabled]="!isSignedIn()"
-        >
-          {{ 'prefs.jobAlerts' | t }}
-        </ion-toggle>
+        <ion-note>{{ 'prefs.signInForAlerts' | t }}</ion-note>
       </ion-item>
+    } @else {
       <ion-item>
-        <ion-toggle
-          [ngModel]="notifPrefs().inAppEnabled ?? true"
-          (ngModelChange)="toggleAlert('inAppEnabled', $event)"
-          labelPlacement="start"
-          justify="space-between"
-          [disabled]="!isSignedIn()"
-        >
-          {{ 'prefs.inAppAlerts' | t }}
-        </ion-toggle>
+        <ion-note>
+          Push uses your phone/browser notification shade. Allow permission when prompted.
+          Inbox stays on the Notifications tab.
+        </ion-note>
       </ion-item>
-      <ion-item>
-        <ion-toggle
-          [ngModel]="notifPrefs().pushAlertsEnabled ?? true"
-          (ngModelChange)="toggleAlert('pushAlertsEnabled', $event)"
-          labelPlacement="start"
-          justify="space-between"
-          [disabled]="!isSignedIn()"
-        >
-          {{ 'prefs.pushAlerts' | t }}
-        </ion-toggle>
+      <ion-item button detail routerLink="/tabs/notifications">
+        <ion-label>{{ 'notif.inbox' | t }}</ion-label>
       </ion-item>
-      <ion-item>
-        <ion-toggle
-          [ngModel]="notifPrefs().emailAlertsEnabled ?? true"
-          (ngModelChange)="toggleAlert('emailAlertsEnabled', $event)"
-          labelPlacement="start"
-          justify="space-between"
-          [disabled]="!isSignedIn()"
-        >
-          {{ 'prefs.emailAlerts' | t }}
-        </ion-toggle>
-      </ion-item>
-      @if (!isSignedIn()) {
-        <ion-item>
-          <ion-note>{{ 'prefs.signInForAlerts' | t }}</ion-note>
-        </ion-item>
-      } @else {
-        <ion-item>
-          <ion-note>
-            Push uses your phone/browser notification shade. Allow permission when prompted.
-            Inbox stays on the Notifications tab.
-          </ion-note>
-        </ion-item>
-        <ion-item button detail routerLink="/tabs/notifications">
-          <ion-label>{{ 'notif.inbox' | t }}</ion-label>
-        </ion-item>
-      }
-    </ion-list>
-  </div>
-</ion-content>
+    }
+  </ion-list>
+</div>

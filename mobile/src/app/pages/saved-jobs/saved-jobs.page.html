@@ -1,0 +1,64 @@
+<div class="page">
+  <div class="brand-block">
+    <p class="brand-mark">X Cron</p>
+    <p class="descriptor">Jobs</p>
+    <p class="lead">{{ 'saved.lead' | t }}</p>
+  </div>
+
+  @if (!isSignedIn()) {
+    <p class="hint">{{ 'saved.signIn' | t }}</p>
+    <ion-button
+      expand="block"
+      color="dark"
+      routerLink="/tabs/settings"
+      [queryParams]="{ tab: 'account' }"
+    >
+      {{ 'nav.account' | t }}
+    </ion-button>
+  } @else {
+    <section class="saved">
+      <div class="saved__head">
+        <h2>{{ 'nav.saved' | t }}</h2>
+        <ion-button
+          size="small"
+          fill="outline"
+          color="dark"
+          [disabled]="busy()"
+          (click)="reload()"
+        >
+          {{ 'saved.refresh' | t }}
+        </ion-button>
+      </div>
+
+      @for (job of savedJobs(); track job.id; let i = $index) {
+        <div class="card" [style.--i]="i">
+          <strong>{{ job.title }}</strong>
+          <p>{{ job.employerName }}</p>
+          <div class="card__actions">
+            <ion-button
+              size="small"
+              fill="outline"
+              color="dark"
+              [routerLink]="['/tabs/jobs', job.id]"
+            >
+              {{ 'saved.open' | t }}
+            </ion-button>
+            <ion-button
+              size="small"
+              color="dark"
+              [disabled]="removingId() === job.id"
+              (click)="remove(job)"
+            >
+              {{ 'saved.remove' | t }}
+            </ion-button>
+          </div>
+        </div>
+      } @empty {
+        <p class="empty">{{ 'saved.empty' | t }}</p>
+        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/discover">
+          {{ 'nav.discover' | t }}
+        </ion-button>
+      }
+    </section>
+  }
+</div>

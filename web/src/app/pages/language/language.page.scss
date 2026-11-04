@@ -45,8 +45,8 @@ h1 {
 }
 
 .choice--active {
-  border-color: #111;
-  background: #111;
+  border-color: var(--xcron-primary);
+  background: var(--xcron-primary-hover);
   color: #fff;
   transform: translateY(-1px);
 }

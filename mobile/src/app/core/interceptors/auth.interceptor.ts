@@ -8,6 +8,7 @@ const AUTH_ENTRY_MARKERS = [
   '/auth/admin/login',
   '/auth/otp/',
   '/auth/refresh',
+  '/devices/unlink',
 ];
 
 function isAuthEntry(url: string): boolean {

@@ -25,7 +25,11 @@
     <h2>Alert channels</h2>
     @if (!isSignedIn()) {
       <p class="hint">Sign in to manage job match, inbox, push, and email alerts.</p>
-      <a routerLink="/sign-in" [queryParams]="{ returnUrl: '/preferences' }" class="link">
+      <a
+        routerLink="/settings/account"
+        [queryParams]="{ returnUrl: '/settings/preferences' }"
+        class="link"
+      >
         Sign in
       </a>
     } @else {

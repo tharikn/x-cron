@@ -79,6 +79,23 @@ export class NotificationsMemoryStore extends NotificationsStore {
     return record;
   }
 
+  async unlinkDevice(input: {
+    deviceId: string;
+    fcmToken: string;
+  }): Promise<boolean> {
+    const existingId = this.devicesByToken.get(input.fcmToken);
+    if (!existingId) return false;
+    const current = this.devices.get(existingId);
+    if (!current || current.deviceId !== input.deviceId) return false;
+    if (!current.userId) return true;
+    this.devices.set(existingId, {
+      ...current,
+      userId: undefined,
+      updatedAt: new Date().toISOString(),
+    });
+    return true;
+  }
+
   async listDevicesForUser(userId: string): Promise<DeviceRegistration[]> {
     return [...this.devices.values()].filter((d) => d.userId === userId);
   }

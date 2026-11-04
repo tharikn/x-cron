@@ -1,4 +1,15 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
   padding: 1.75rem 0 2.5rem;
   animation: xcron-rise 480ms var(--xcron-ease) both;
 }
@@ -31,7 +42,7 @@ h1 {
 .lead {
   margin: 0 0 1.5rem;
   color: var(--xcron-muted);
-  max-width: 34rem;
+  max-width: 42rem;
 }
 
 .gate {
@@ -48,19 +59,38 @@ h1 {
   color: var(--xcron-ink-soft);
 }
 
+.panels {
+  display: grid;
+  gap: 1.15rem;
+  width: 100%;
+  min-width: 0;
+}
+
 .form {
   display: grid;
-  gap: 1rem;
-  max-width: 28rem;
-  padding: 1.15rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem 1.1rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  padding: 1.25rem 1.35rem;
   background: var(--xcron-bg-elevated);
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius);
   box-shadow: var(--xcron-shadow);
 }
 
-.form--spaced {
-  margin-top: 1.15rem;
+.form__wide {
+  grid-column: 1 / -1;
+}
+
+.form__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.15rem;
 }
 
 .form__title {
@@ -80,6 +110,9 @@ h1 {
   outline: none;
   font-size: 1.05rem;
   font-weight: 600;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   transition:
     border-color 160ms var(--xcron-ease),
     box-shadow 160ms var(--xcron-ease),
@@ -87,8 +120,8 @@ h1 {
 }
 
 .plain:focus {
-  border-color: #111;
-  background: #fff;
+  border-color: var(--xcron-primary);
+  background: var(--xcron-bg-elevated);
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -100,6 +133,7 @@ label {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--xcron-muted);
+  min-width: 0;
 }
 
 .rupee {
@@ -115,8 +149,8 @@ label {
 }
 
 .rupee:focus-within {
-  border-color: #111;
-  background: #fff;
+  border-color: var(--xcron-primary);
+  background: var(--xcron-bg-elevated);
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -157,13 +191,13 @@ label {
   font-size: 0.82em;
   padding: 0.08rem 0.3rem;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(15, 118, 110, 0.12);
 }
 
 button,
 .btn {
   border: 0;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   padding: 0.85rem 1.1rem;
   font-weight: 700;
@@ -179,7 +213,7 @@ button,
 
 button:hover:not(:disabled),
 .btn:hover {
-  background: #222;
+  background: var(--xcron-primary-hover);
   transform: translateY(-1px);
 }
 
@@ -214,4 +248,16 @@ button:disabled {
 .toggle input {
   width: 1.1rem;
   height: 1.1rem;
+}
+
+@media (max-width: 900px) {
+  .form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
 }

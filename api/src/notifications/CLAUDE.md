@@ -38,9 +38,17 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 | `NOTIFICATION_FANOUT_BATCH` | `25` | Yield between batches for large user sets |
 | `NOTIFICATION_MODE` | — | Legacy push mode alias |
 
+## Session ↔ push contract
+
+- `POST /v1/devices` — **authenticated**; links FCM/device to the signed-in user (job fan-out is per `userId`)
+- `POST /v1/devices/unlink` — **public** with `{ deviceId, fcmToken }` proof; clears `userId` on logout / refresh expiry
+- Push send path suppresses with `session_expired` when the user has no live refresh session (even if a device row remains)
+- Google idToken is never used for push — only the app refresh session (~30d) + linked device
+
 ## Endpoints
 
-- `POST /v1/devices` — register stub/FCM token
+- `POST /v1/devices` — link stub/FCM token to signed-in user
+- `POST /v1/devices/unlink` — detach device (logout / session death)
 - `GET|PUT|POST /v1/notifications/preferences` — channel toggles + quiet hours + daily cap
 - `GET /v1/notifications` · `POST /v1/notifications/:id/read` — in-app inbox
 - `GET /v1/admin/notification-dispatches` · `.../:id` — trigger + delivery history
@@ -49,10 +57,10 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 ## UI
 
 - Web user inbox: `/notifications` — **list only** (Refresh + Inbox); no channel toggles
-- Web alert channels: `/preferences` (drawer → Preferences) — job/in-app/push/email
-- Web admin log: `/admin/notifications` (drawer → Alert log)
+- Web alert channels: `/settings/preferences` (Settings → Preferences) — job/in-app/push/email
+- Web admin log: `/admin/notifications` (drawer Logs → menu label Notification)
 - Mobile inbox: Notifications tab (`/tabs/notifications`) — list only
-- Mobile channel toggles: Prefs tab (`/tabs/preferences`) — job/in-app/push/email
+- Mobile channel toggles: Settings → Prefs (`/tabs/settings?tab=preferences`) — job/in-app/push/email
 - Mobile OS tray (closed/background app): live FCM via `@capacitor/push-notifications` + API `PUSH_PROVIDER=fcm`
 - Mobile OS tray (foreground / browser): `@capacitor/local-notifications` or Web Notification API; inbox poll ~8s remains for in-app list
 - Do not put Preferences / Alert channels back on the notifications inbox screen
@@ -64,8 +72,8 @@ Full steps: [docs/FCM_SETUP.md](../../../docs/FCM_SETUP.md) · helper: `node scr
 1. Firebase Console (Spark) → Android app `com.xcron.jobs` → `mobile/android/app/google-services.json`
 2. Service account private key → `api/secrets/firebase-service-account.json`
 3. `node scripts/setup-fcm.mjs` → sets `PUSH_PROVIDER=fcm` + mobile `fcmEnabled: true`
-4. Rebuild APK / restart API; open app once (grant notifications) so a real FCM token hits `POST /v1/devices`
-5. Force-stop app → publish job / `POST /v1/notifications/dev/send` → tray alert
+4. Rebuild APK / restart API; **sign in**, grant notifications so a live FCM token hits authenticated `POST /v1/devices`
+5. Force-stop app → publish job / `POST /v1/notifications/dev/send` → tray alert (user must still have a live refresh session)
 
 `providers/fcm.provider.ts` uses firebase-admin **modular** exports (`getApps` / `cert` / `getMessaging`) — not the legacy `admin.apps` / `admin.credential` / `admin.messaging()` shape (those are undefined on current firebase-admin and crash send with `reading 'length'`). Sends `notification` + `data` + Android `channelId`. Stub tokens (`stub_fcm_*`) are rejected by the live provider. Without credentials, factory falls back to stub. Mobile must `POST /v1/devices` with a **live** FCM token after sign-in (never upload `stub_fcm_*` when `fcmEnabled`).
 

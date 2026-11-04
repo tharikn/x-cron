@@ -14,7 +14,6 @@ import { RouterLink } from '@angular/router';
 import { LocationTypeaheadComponent } from '../../core/components/location-typeahead/location-typeahead.component';
 import type { Job } from '../../core/models/job.model';
 import { TranslatePipe } from '../../core/pipes/translate.pipe';
-import { AdsService, type AdCreative } from '../../core/services/ads.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { PreferencesService } from '../../core/services/preferences.service';
@@ -52,7 +51,6 @@ const SORT_OPTIONS = [
 })
 export class HomePage implements OnInit, OnDestroy {
   private readonly jobsService = inject(JobsService);
-  private readonly ads = inject(AdsService);
   private readonly seo = inject(SeoService);
   private readonly locale = inject(LocaleService);
   private readonly preferences = inject(PreferencesService);
@@ -76,7 +74,6 @@ export class HomePage implements OnInit, OnDestroy {
   readonly jobs = signal<Job[]>([]);
   readonly total = signal(0);
   readonly nextCursor = signal<string | undefined>(undefined);
-  readonly railAds = signal<AdCreative[]>([]);
   readonly loading = signal(true);
   readonly loadingMore = signal(false);
   readonly error = signal<string | null>(null);
@@ -85,6 +82,10 @@ export class HomePage implements OnInit, OnDestroy {
 
   keyword = '';
   location = '';
+  salaryMin: number | null = null;
+  remote = false;
+  postedWithin: '' | '1d' | '7d' | '30d' = '';
+  walkInOnly = false;
   sort: (typeof SORT_OPTIONS)[number]['value'] = 'newest';
 
   readonly formatLocation = formatLocation;
@@ -141,13 +142,16 @@ export class HomePage implements OnInit, OnDestroy {
     if (savedLocation) {
       this.location = savedLocation;
     }
-    this.railAds.set(await this.ads.loadHomeRail());
     await this.search();
   }
 
   async clearPreferences(): Promise<void> {
     this.keyword = '';
     this.location = '';
+    this.salaryMin = null;
+    this.remote = false;
+    this.postedWithin = '';
+    this.walkInOnly = false;
     this.sort = 'newest';
     this.preferences.clear();
     await this.search();
@@ -167,6 +171,10 @@ export class HomePage implements OnInit, OnDestroy {
       const res = await this.jobsService.search({
         keyword: this.keyword.trim() || undefined,
         location: this.location.trim() || undefined,
+        salaryMin: this.salaryMin,
+        remote: this.remote || null,
+        postedWithin: this.postedWithin || null,
+        walkInOnly: this.walkInOnly || null,
         sort: this.sort,
         limit: PAGE_SIZE,
       });
@@ -192,6 +200,10 @@ export class HomePage implements OnInit, OnDestroy {
       const res = await this.jobsService.search({
         keyword: this.keyword.trim() || undefined,
         location: this.location.trim() || undefined,
+        salaryMin: this.salaryMin,
+        remote: this.remote || null,
+        postedWithin: this.postedWithin || null,
+        walkInOnly: this.walkInOnly || null,
         sort: this.sort,
         cursor,
         limit: PAGE_SIZE,

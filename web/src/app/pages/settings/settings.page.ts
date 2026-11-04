@@ -41,7 +41,7 @@ export class SettingsPage implements OnInit {
     this.seo.setPage({
       title: 'Settings',
       description: 'Configure payments, unlock pricing, and auth session expiry for X Cron Jobs.',
-      path: '/settings',
+      path: '/settings/site',
       robots: 'noindex,follow',
     });
     if (!this.locale.ready()) {

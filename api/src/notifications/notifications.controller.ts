@@ -15,6 +15,7 @@ import {
   DevSendNotificationDto,
   NotificationPreferencesDto,
   RegisterDeviceDto,
+  UnlinkDeviceDto,
 } from './dto/notifications.dto';
 import { NotificationsService } from './notifications.service';
 
@@ -22,13 +23,20 @@ import { NotificationsService } from './notifications.service';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
-  @Public()
+  /** Link FCM/device to the signed-in user (requires live access token). */
   @Post('devices')
   registerDevice(
     @Body() dto: RegisterDeviceDto,
-    @CurrentUser() user?: AuthUser,
+    @CurrentUser() user: AuthUser,
   ) {
     return this.notificationsService.registerDevice(dto, user);
+  }
+
+  /** Detach FCM device from user (logout / refresh expiry). Public + device proof. */
+  @Public()
+  @Post('devices/unlink')
+  unlinkDevice(@Body() dto: UnlinkDeviceDto) {
+    return this.notificationsService.unlinkDevice(dto);
   }
 
   @Get('notifications/preferences')

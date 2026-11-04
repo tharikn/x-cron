@@ -72,6 +72,10 @@ model User {
   notificationPrefs NotificationPreference?
   notifications   NotificationRecord[]
   notificationDeliveries NotificationDelivery[]
+  seekerProfile   SeekerProfile?
+  applications    SeekerApplication[]
+  hiddenJobs      HiddenJob[]
+  savedSearches   SavedSearch[]
 
   @@schema("xcron")
 }
@@ -111,6 +115,9 @@ model UserPreference {
 model Employer {
   id                 String           @id @default(uuid())
   name               String
+  slug               String?
+  about              String?
+  logoUrl            String?
   verificationStatus String           @default("unverified")
   ownerUserId        String
   createdAt          DateTime         @default(now())
@@ -121,6 +128,7 @@ model Employer {
   sources            JobSource[]
   importBatches      ImportBatch[]
 
+  @@unique([slug])
   @@index([ownerUserId])
   @@schema("xcron")
 }
@@ -154,6 +162,8 @@ model Job {
   city                 String
   locality             String?
   remote               Boolean           @default(false)
+  lat                  Float?
+  lng                  Float?
   salaryMinPaise       Int?
   salaryMaxPaise       Int?
   salaryCurrency       String            @default("INR")
@@ -170,6 +180,8 @@ model Job {
   publishedAt          DateTime?
   effectiveFrom        DateTime?
   expiresAt            DateTime?
+  walkInAt             DateTime?
+  applyBy              DateTime?
   priority             Int               @default(0)
   reportCount          Int               @default(0)
   moderationNote       String?
@@ -181,12 +193,15 @@ model Job {
   entitlements         Entitlement[]
   importRecords        ImportRecord[]
   savedBy              SavedJob[]
+  applications         SeekerApplication[]
+  hiddenBy             HiddenJob[]
 
   @@index([employerId])
   @@index([ownerUserId])
   @@index([status, publishedAt])
   @@index([city, district, state])
   @@index([jobType, category, contentLanguage])
+  @@index([walkInAt])
   @@schema("xcron")
 }
 
@@ -201,6 +216,70 @@ model SavedJob {
   @@unique([userId, jobId])
   @@index([userId])
   @@index([jobId])
+  @@schema("xcron")
+}
+
+/// Light seeker profile (not a resume vault).
+model SeekerProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  displayName      String?
+  experienceBand   String?
+  skillsJson       Json     @default("[]")
+  preferredCitiesJson Json  @default("[]")
+  openToWork       Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("xcron")
+}
+
+/// Contact-first I-reached-out marker (not ATS inbox).
+model SeekerApplication {
+  id        String   @id @default(uuid())
+  userId    String
+  jobId     String
+  status    String   @default("contacted")
+  channel   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+  @@schema("xcron")
+}
+
+model HiddenJob {
+  id         String   @id @default(uuid())
+  userId     String
+  jobId      String
+  employerId String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+  @@index([employerId])
+  @@schema("xcron")
+}
+
+model SavedSearch {
+  id           String   @id @default(uuid())
+  userId       String
+  name         String
+  queryJson    Json     @default("{}")
+  alertEnabled Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([alertEnabled])
   @@schema("xcron")
 }
 

@@ -16,21 +16,16 @@ import {
   ToastController,
 } from '@ionic/angular';
 import type { Job } from '../../core/models/job.model';
-import { AdsService, type AdCreative } from '../../core/services/ads.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
-import {
-  PaymentsService,
-  type CheckoutDto,
-} from '../../core/services/payments.service';
 import { SeekerService } from '../../core/services/seeker.service';
+import { ViewedJobsService } from '../../core/services/viewed-jobs.service';
 import {
   formatJobType,
   formatLocation,
   formatPostedDate,
   formatSalary,
-  formatUnlockPrice,
 } from '../../core/utils/format';
 import { JobCardComponent } from '../../shared/job-card/job-card.component';
 import {
@@ -38,7 +33,7 @@ import {
   type GoogleSignInReason,
 } from '../../shared/google-sign-in-sheet/google-sign-in-sheet.component';
 
-type PendingAction = 'unlock' | 'save' | 'share';
+type PendingAction = 'save' | 'share';
 
 @Component({
   selector: 'app-job-detail',
@@ -65,34 +60,17 @@ type PendingAction = 'unlock' | 'save' | 'share';
 export class JobDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly jobsService = inject(JobsService);
-  private readonly payments = inject(PaymentsService);
   private readonly seeker = inject(SeekerService);
-  private readonly ads = inject(AdsService);
   private readonly auth = inject(AuthService);
   private readonly toastController = inject(ToastController);
   private readonly locale = inject(LocaleService);
+  private readonly viewed = inject(ViewedJobsService);
 
   readonly job = signal<Job | undefined>(undefined);
   readonly related = signal<Job[]>([]);
-  readonly footerAd = signal<AdCreative | null>(null);
-  readonly unlocking = signal(false);
-  readonly confirmingPay = signal(false);
   readonly saved = signal(false);
-  readonly priceRevealed = signal(false);
   readonly signInOpen = signal(false);
   readonly signInReason = signal<GoogleSignInReason>('generic');
-  readonly revealed = signal<{
-    phone: string | null;
-    email: string | null;
-    whatsapp: string | null;
-    website: string | null;
-  } | null>(null);
-  /** Active unlock checkout — payment section, not silent confirm. */
-  readonly pendingCheckout = signal<{
-    orderId: string;
-    jobId: string;
-    checkout: CheckoutDto;
-  } | null>(null);
 
   private pendingAction: PendingAction | null = null;
 
@@ -100,7 +78,6 @@ export class JobDetailPage implements OnInit {
   readonly formatSalary = formatSalary;
   readonly formatJobType = formatJobType;
   readonly formatPostedDate = formatPostedDate;
-  readonly formatUnlockPrice = formatUnlockPrice;
   readonly languageLabel = (code: string) => this.locale.label(code);
 
   async ngOnInit(): Promise<void> {
@@ -108,10 +85,9 @@ export class JobDetailPage implements OnInit {
     const job = await this.jobsService.getById(id);
     this.job.set(job);
     if (job) {
+      this.viewed.track(job);
       this.related.set(await this.jobsService.related(job.id));
-      this.footerAd.set(await this.ads.loadSlot('job_detail_footer'));
       if (this.auth.isSignedIn()) {
-        await this.tryLoadEntitledContact(job.id);
         try {
           const saved = await this.seeker.loadSaved();
           this.saved.set(saved.some((item) => item.id === job.id));
@@ -119,6 +95,36 @@ export class JobDetailPage implements OnInit {
           this.saved.set(false);
         }
       }
+    }
+  }
+
+  async markContacted(channel: 'phone' | 'whatsapp' | 'email' | 'website'): Promise<void> {
+    const job = this.job();
+    if (!job) return;
+    if (!this.auth.isSignedIn()) {
+      this.openSignIn('save');
+      return;
+    }
+    try {
+      await this.seeker.markApplication(job.id, { status: 'contacted', channel });
+      await this.showToast('Marked as contacted.');
+    } catch {
+      await this.showToast('Could not save contact marker.');
+    }
+  }
+
+  async hideJob(): Promise<void> {
+    const job = this.job();
+    if (!job) return;
+    if (!this.auth.isSignedIn()) {
+      this.openSignIn('save');
+      return;
+    }
+    try {
+      await this.seeker.hideJob(job.id);
+      await this.showToast('Job hidden from your feed.');
+    } catch {
+      await this.showToast('Could not hide job.');
     }
   }
 
@@ -132,7 +138,6 @@ export class JobDetailPage implements OnInit {
     this.pendingAction = null;
     const job = this.job();
     if (job) {
-      await this.tryLoadEntitledContact(job.id);
       try {
         const saved = await this.seeker.loadSaved();
         this.saved.set(saved.some((item) => item.id === job.id));
@@ -140,8 +145,7 @@ export class JobDetailPage implements OnInit {
         /* ignore */
       }
     }
-    if (action === 'unlock') await this.unlockContact();
-    else if (action === 'save') await this.toggleSave();
+    if (action === 'save') await this.toggleSave();
     else if (action === 'share') await this.shareJob();
   }
 
@@ -158,126 +162,12 @@ export class JobDetailPage implements OnInit {
         this.saved.set(false);
         await this.showToast('Removed from saved jobs.');
       } else {
-        await this.seeker.save(job.id);
+        await this.seeker.save(job.id, job);
         this.saved.set(true);
         await this.showToast('Job saved.');
       }
     } catch {
       await this.showToast('Could not update saved jobs.');
-    }
-  }
-
-  async onFooterAdClick(): Promise<void> {
-    const ad = this.footerAd();
-    if (!ad) return;
-    await this.ads.recordEvent(ad.id, 'job_detail_footer', 'click');
-  }
-
-  revealPrice(): void {
-    this.priceRevealed.set(true);
-  }
-
-  async unlockContact(): Promise<void> {
-    const job = this.job();
-    if (!job || this.unlocking() || this.pendingCheckout()) {
-      return;
-    }
-
-    if (!this.auth.isSignedIn()) {
-      this.openSignIn('unlock');
-      return;
-    }
-
-    this.unlocking.set(true);
-    try {
-      const orderResult = await this.payments.createContactOrder(job.id);
-      if (orderResult.alreadyEntitled) {
-        await this.tryLoadEntitledContact(job.id);
-        await this.showToast('Contact already unlocked for your account.');
-        return;
-      }
-      if (!orderResult.order || !orderResult.checkout) {
-        await this.showToast('Could not create unlock order.');
-        return;
-      }
-
-      this.pendingCheckout.set({
-        orderId: orderResult.order.id,
-        jobId: job.id,
-        checkout: orderResult.checkout,
-      });
-      queueMicrotask(() => {
-        document
-          .getElementById('payment-checkout')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    } catch {
-      await this.showToast('Unlock failed. Sign in and try again.');
-    } finally {
-      this.unlocking.set(false);
-    }
-  }
-
-  cancelCheckout(): void {
-    this.pendingCheckout.set(null);
-  }
-
-  upiQrSrc(checkout: CheckoutDto): string | null {
-    const payload = checkout.upi?.qrPayload;
-    if (!payload) return null;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(payload)}`;
-  }
-
-  async copyUpiId(): Promise<void> {
-    const vpa = this.pendingCheckout()?.checkout.upi?.vpa;
-    if (!vpa) return;
-    try {
-      await navigator.clipboard.writeText(vpa);
-      await this.showToast('UPI ID copied.');
-    } catch {
-      await this.showToast(vpa);
-    }
-  }
-
-  openUpiApp(): void {
-    const uri = this.pendingCheckout()?.checkout.upi?.intentUri;
-    if (uri) {
-      window.location.href = uri;
-    }
-  }
-
-  async confirmCheckoutPayment(): Promise<void> {
-    const pending = this.pendingCheckout();
-    if (!pending || this.confirmingPay()) return;
-
-    this.confirmingPay.set(true);
-    try {
-      const mode = pending.checkout.checkoutMode;
-      if (mode === 'stub' || mode === 'upi') {
-        await this.payments.confirmDevPayment(pending.orderId);
-      } else {
-        await this.showToast(
-          'Hosted checkout not wired — use PAYMENT_GATEWAY=stub or upi.',
-        );
-        return;
-      }
-
-      const reveal = await this.payments.getContact(pending.jobId);
-      if (!reveal.allowed || !reveal.contact) {
-        await this.showToast(
-          reveal.message || 'Payment recorded but contact unavailable.',
-        );
-        return;
-      }
-      this.revealed.set(reveal.contact);
-      this.pendingCheckout.set(null);
-      await this.showToast('Contact unlocked.');
-    } catch {
-      await this.showToast(
-        'Payment not confirmed yet. For local UPI set PAYMENT_UPI_ALLOW_DEV_CONFIRM=1.',
-      );
-    } finally {
-      this.confirmingPay.set(false);
     }
   }
 
@@ -314,17 +204,6 @@ export class JobDetailPage implements OnInit {
     this.pendingAction = action;
     this.signInReason.set(action);
     this.signInOpen.set(true);
-  }
-
-  private async tryLoadEntitledContact(jobId: string): Promise<void> {
-    try {
-      const result = await this.payments.getContact(jobId);
-      if (result.allowed && result.contact) {
-        this.revealed.set(result.contact);
-      }
-    } catch {
-      // Guest or no entitlement — keep masked.
-    }
   }
 
   private async showToast(message: string): Promise<void> {

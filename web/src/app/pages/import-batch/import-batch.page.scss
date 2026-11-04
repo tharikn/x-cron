@@ -32,7 +32,7 @@ h1 {
 
 .tabs__btn {
   border: 1px solid var(--xcron-line);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink-soft);
   padding: 0.65rem 1rem;
   border-radius: var(--xcron-radius-sm);
@@ -45,9 +45,9 @@ h1 {
 }
 
 .tabs__btn.is-active {
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
-  border-color: #0a0a0a;
+  border-color: var(--xcron-primary);
 }
 
 .tabs__count {
@@ -67,16 +67,22 @@ h1 {
 }
 
 .tabs__link {
-  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink-soft);
   font-weight: 650;
   font-size: 0.9rem;
   text-decoration: none;
-  border-bottom: 1px solid transparent;
 }
 
 .tabs__link:hover {
-  border-bottom-color: currentColor;
+  color: var(--xcron-ink);
+  border-color: var(--xcron-primary);
 }
 
 .empty {
@@ -122,7 +128,7 @@ h1 {
   width: fit-content;
   text-decoration: none;
   border: 0;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   padding: 0.75rem 1.05rem;
   font-weight: 700;
@@ -148,7 +154,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   padding: 0.75rem 1.05rem;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   font-weight: 700;
   border-radius: var(--xcron-radius-sm);
@@ -167,7 +173,7 @@ h1 {
   padding: 0.75rem 1.05rem;
   border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius-sm);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink);
   text-decoration: none;
   font-weight: 600;
@@ -209,7 +215,7 @@ h1 {
 
 .form button {
   border: 0;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
   padding: 0.85rem 1.1rem;
   font-weight: 700;
@@ -379,9 +385,9 @@ h1 {
 }
 
 .action-btn {
-  border: 1px solid var(--xcron-line-strong, #222);
-  background: #fff;
-  color: #0a0a0a;
+  border: 1px solid var(--xcron-line-strong);
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink);
   padding: 0.45rem 0.7rem;
   font-size: 0.78rem;
   font-weight: 700;
@@ -403,20 +409,20 @@ h1 {
 }
 
 .action-btn--primary {
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
-  border-color: #0a0a0a;
+  border-color: var(--xcron-primary);
 }
 
 .action-btn--primary:hover:not(:disabled) {
-  background: #222;
+  background: var(--xcron-primary-hover);
 }
 
 .ai-badge {
   display: inline-flex;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  border: 1px solid var(--xcron-line-strong, #222);
+  border: 1px solid var(--xcron-line-strong);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -496,7 +502,7 @@ h1 {
 
 .desk__tabs button {
   border: 1px solid var(--xcron-line);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   color: var(--xcron-ink-soft);
   padding: 0.45rem 0.85rem;
   border-radius: var(--xcron-radius-sm);
@@ -505,9 +511,9 @@ h1 {
 }
 
 .desk__tabs button.is-active {
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
-  border-color: #0a0a0a;
+  border-color: var(--xcron-primary);
 }
 
 .desk__actions {
@@ -561,8 +567,22 @@ h1 {
 .fields textarea:focus,
 .fields input:focus,
 .chat__compose textarea:focus {
-  outline: 2px solid #111;
+  outline: 2px solid var(--xcron-primary);
   outline-offset: 1px;
+}
+
+.fields label.is-invalid textarea,
+.fields label.is-invalid input {
+  border-color: var(--xcron-danger, #f43f5e);
+}
+
+.field-error {
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--xcron-danger, #f43f5e);
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .fields__about {
@@ -593,7 +613,7 @@ h1 {
   margin: 0;
   padding: 0.55rem 0.7rem;
   border-radius: var(--xcron-radius-sm);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   border: 1px solid var(--xcron-line);
   font-size: 0.9rem;
   max-width: 92%;
@@ -601,9 +621,9 @@ h1 {
 
 .chat__bubble--user {
   justify-self: end;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
-  border-color: #0a0a0a;
+  border-color: var(--xcron-primary);
 }
 
 .chat__compose {
@@ -630,7 +650,7 @@ h1 {
 
 .error {
   margin-top: 1rem;
-  color: #222;
+  color: var(--xcron-ink-soft);
   font-weight: 600;
 }
 

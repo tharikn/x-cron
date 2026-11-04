@@ -1,11 +1,17 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { cityCentroid } from './geo';
 import {
   CreateJobInput,
   JobRecord,
   JobSearchQuery,
   JobType,
 } from './job.types';
+import {
+  filterJobs,
+  paginateHits,
+  sortJobHits,
+} from './jobs-search.util';
 import { JobsStore } from './jobs.store';
 import { SEED_JOBS } from './seed-jobs';
 
@@ -18,7 +24,17 @@ export class JobsMemoryStore extends JobsStore implements OnModuleInit {
   }
 
   onModuleInit() {
-    this.jobs = SEED_JOBS.map((job) => structuredClone(job));
+    this.jobs = SEED_JOBS.map((job) => {
+      const clone = structuredClone(job);
+      if (clone.location.lat == null || clone.location.lng == null) {
+        const c = cityCentroid(clone.location.city);
+        if (c) {
+          clone.location.lat = c.lat;
+          clone.location.lng = c.lng;
+        }
+      }
+      return clone;
+    });
   }
 
   async listPublished(): Promise<JobRecord[]> {
@@ -44,55 +60,14 @@ export class JobsMemoryStore extends JobsStore implements OnModuleInit {
   async search(
     query: JobSearchQuery,
   ): Promise<{ items: JobRecord[]; nextCursor?: string; total: number }> {
-    const keyword = query.keyword?.trim().toLowerCase() ?? '';
-    const locationText = query.locationText?.trim().toLowerCase() ?? '';
-    const limit = Math.min(Math.max(query.limit ?? 20, 1), 50);
-
-    let results = (await this.listPublished()).filter((job) => {
-      const haystack = [
-        job.title,
-        job.employerName,
-        job.category,
-        job.description.about,
-        ...(job.skills ?? []),
-      ]
-        .join(' ')
-        .toLowerCase();
-      const locationHaystack = [
-        job.location.city,
-        job.location.district,
-        job.location.state,
-        job.location.locality ?? '',
-      ]
-        .join(' ')
-        .toLowerCase();
-
-      return (
-        (!keyword || haystack.includes(keyword)) &&
-        (!locationText || locationHaystack.includes(locationText)) &&
-        (!query.jobType || job.jobType === query.jobType) &&
-        (!query.category || job.category === query.category) &&
-        (!query.language || job.contentLanguage === query.language) &&
-        (query.salaryMin == null ||
-          (job.salary?.max ?? job.salary?.min ?? 0) >= query.salaryMin)
-      );
-    });
-
-    results = this.sortJobs(results, query.sort ?? 'newest', !!keyword);
-
-    const total = results.length;
-
-    if (query.cursor) {
-      const index = results.findIndex((job) => job.id === query.cursor);
-      if (index >= 0) {
-        results = results.slice(index + 1);
-      }
-    }
-
-    const page = results.slice(0, limit);
-    const nextCursor =
-      results.length > limit ? page[page.length - 1]?.id : undefined;
-    return { items: page, nextCursor, total };
+    const published = await this.listPublished();
+    const filtered = filterJobs(published, query);
+    const sorted = sortJobHits(
+      filtered,
+      query.sort ?? 'newest',
+      query.keyword ?? '',
+    );
+    return paginateHits(sorted, query.cursor, query.limit);
   }
 
   async related(job: JobRecord, limit = 3): Promise<JobRecord[]> {
@@ -147,6 +122,9 @@ export class JobsMemoryStore extends JobsStore implements OnModuleInit {
 
     const status = input.status ?? 'needs-review';
     const nowIso = new Date().toISOString();
+    const centroid = cityCentroid(city);
+    const lat = input.locationLat ?? centroid?.lat;
+    const lng = input.locationLng ?? centroid?.lng;
     const job: JobRecord = {
       id,
       slug: `tamil-nadu/${this.slugify(city)}/${this.slugify(title)}-${id}`,
@@ -160,6 +138,9 @@ export class JobsMemoryStore extends JobsStore implements OnModuleInit {
         state,
         district,
         city,
+        remote: !!input.remote,
+        lat,
+        lng,
       },
       jobType: input.jobType,
       salary,
@@ -180,6 +161,8 @@ export class JobsMemoryStore extends JobsStore implements OnModuleInit {
       priority: input.priority ?? 0,
       status,
       reportCount: 0,
+      walkInAt: input.walkInAt,
+      applyBy: input.applyBy,
       contact: {
         hasPhone: !!phone,
         hasEmail: !!email,
@@ -324,6 +307,9 @@ export class JobsMemoryStore extends JobsStore implements OnModuleInit {
     if (patch.effectiveFrom) job.effectiveFrom = patch.effectiveFrom;
     if (patch.expiresAt) job.expiresAt = patch.expiresAt;
     if (patch.priority !== undefined) job.priority = patch.priority;
+    if (patch.remote !== undefined) job.location.remote = patch.remote;
+    if (patch.walkInAt !== undefined) job.walkInAt = patch.walkInAt || undefined;
+    if (patch.applyBy !== undefined) job.applyBy = patch.applyBy || undefined;
     if (patch.status) {
       job.status = patch.status;
       if (patch.status === 'published' && !job.publishedAt) {

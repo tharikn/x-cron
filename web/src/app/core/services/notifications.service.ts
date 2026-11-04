@@ -104,6 +104,7 @@ export class NotificationsService {
     return token;
   }
 
+  /** Link stub/web device token to the signed-in user (in-app + future web push). */
   async registerDevice(): Promise<void> {
     if (!this.auth.isSignedIn()) return;
     await firstValueFrom(
@@ -117,6 +118,20 @@ export class NotificationsService {
         { headers: this.auth.authHeaders() },
       ),
     );
+  }
+
+  /** Detach device after logout / refresh-session death (no Bearer required). */
+  async unlinkDevice(): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.post(`${environment.apiUrl}/devices/unlink`, {
+          deviceId: this.deviceId(),
+          fcmToken: this.stubToken(),
+        }),
+      );
+    } catch {
+      // best-effort — API also suppresses pushes without an active refresh session
+    }
   }
 
   async loadPrefs(): Promise<void> {

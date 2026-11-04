@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Theme demo 5 — High-end modern</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Sans:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #07080a;
+        --surface: #111318;
+        --surface-2: #171a21;
+        --ink: #f4f5f7;
+        --muted: #9aa3af;
+        --faint: #6b7380;
+        --line: rgba(255, 255, 255, 0.08);
+        --line-strong: rgba(255, 255, 255, 0.14);
+        --accent: #3b82f6;
+        --accent-soft: rgba(59, 130, 246, 0.16);
+        --radius: 16px;
+        --font-display: 'Instrument Sans', system-ui, sans-serif;
+        --font-body: Geist, system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--font-body);
+        color: var(--ink);
+        background:
+          radial-gradient(900px 520px at 15% -20%, rgba(59, 130, 246, 0.18) 0%, transparent 55%),
+          radial-gradient(700px 420px at 100% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 45%),
+          var(--bg);
+      }
+      .wrap {
+        max-width: 440px;
+        margin: 0 auto;
+        padding: 28px 18px 56px;
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-bottom: 18px;
+        padding: 0.4rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .tag i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+      }
+      .brand {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: clamp(3rem, 12vw, 3.6rem);
+        font-weight: 700;
+        letter-spacing: -0.06em;
+        line-height: 0.92;
+      }
+      .jobs {
+        margin: 0.55rem 0 1.35rem;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--faint);
+      }
+      h1 {
+        margin: 0 0 0.55rem;
+        font-family: var(--font-display);
+        font-size: 1.55rem;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        max-width: 11ch;
+        line-height: 1.1;
+      }
+      .lead {
+        margin: 0 0 1.5rem;
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 0.98rem;
+        max-width: 32ch;
+      }
+      .search {
+        display: grid;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        margin-bottom: 1.35rem;
+      }
+      label {
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.66rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      input {
+        width: 100%;
+        border: 1px solid var(--line-strong);
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 0.85rem 0.9rem;
+        font: inherit;
+        color: var(--ink);
+        outline: none;
+      }
+      input:focus {
+        border-color: rgba(59, 130, 246, 0.55);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .btn {
+        border: 0;
+        border-radius: 999px;
+        min-height: 48px;
+        background: #fff;
+        color: #07080a;
+        font-weight: 700;
+        font-family: inherit;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        transition: transform 160ms ease, opacity 160ms ease;
+      }
+      .btn:hover { transform: translateY(-1px); }
+      .section-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin: 0 0 0.85rem;
+        color: var(--faint);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .section-label strong {
+        color: var(--ink);
+        font-size: 0.95rem;
+        letter-spacing: -0.02em;
+        text-transform: none;
+      }
+      .card {
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.05rem;
+        margin-bottom: 0.75rem;
+        transition: border-color 160ms ease, transform 160ms ease;
+      }
+      .card:hover {
+        border-color: var(--line-strong);
+        transform: translateY(-2px);
+      }
+      .card h2 {
+        margin: 0 0 0.28rem;
+        font-size: 1.08rem;
+        font-family: var(--font-display);
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+      .card p {
+        margin: 0 0 0.85rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .meta {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.75rem;
+      }
+      .chip {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--muted);
+        border: 1px solid var(--line);
+      }
+      .chip--accent {
+        background: var(--accent-soft);
+        color: #93c5fd;
+        border-color: rgba(59, 130, 246, 0.28);
+      }
+      .link {
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 0.92rem;
+        letter-spacing: -0.01em;
+      }
+      .link span {
+        color: var(--accent);
+      }
+      .note {
+        margin-top: 1.5rem;
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+      .note b { color: var(--ink); font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="tag"><i></i> Demo 5 · High-end modern</span>
+      <p class="brand">X Cron</p>
+      <p class="jobs">Jobs</p>
+      <h1>Find work near you</h1>
+      <p class="lead">Local roles with clear pay. Browse free — unlock contact when ready.</p>
+      <form class="search" onsubmit="return false">
+        <label>Role<input value="Warehouse helper" /></label>
+        <label>Location<input value="Palani" /></label>
+        <button class="btn" type="button">Search roles</button>
+      </form>
+      <div class="section-label"><strong>Open roles</strong><span>Nearby</span></div>
+      <article class="card">
+        <div class="meta">
+          <span class="chip">Full-time</span>
+          <span class="chip chip--accent">Matched</span>
+        </div>
+        <h2>Warehouse helper</h2>
+        <p>Sunrise Logistics · ₹16k–18k · Palani</p>
+        <a class="link" href="#">View role <span>→</span></a>
+      </article>
+      <article class="card">
+        <div class="meta"><span class="chip">Part-time</span></div>
+        <h2>Cafe cashier</h2>
+        <p>Bean Street · ₹12k · Dindigul</p>
+        <a class="link" href="#">View role <span>→</span></a>
+      </article>
+      <p class="note">
+        <b>Pattern from CRED / Revolut / Linear:</b>
+        dark canvas, one blue accent, white pill CTA, oversized tight type, hairline borders, one job per section.
+      </p>
+    </div>
+  </body>
+</html>

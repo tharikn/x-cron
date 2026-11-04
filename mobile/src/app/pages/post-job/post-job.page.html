@@ -14,7 +14,12 @@
     @if (!isSignedIn()) {
       <div class="auth-gate">
         <p>Admins must sign in with the admin email and password before posting.</p>
-        <ion-button expand="block" color="dark" routerLink="/tabs/account" [queryParams]="{ mode: 'admin' }">
+        <ion-button
+          expand="block"
+          color="dark"
+          routerLink="/tabs/settings"
+          [queryParams]="{ tab: 'account', mode: 'admin' }"
+        >
           Go to admin sign in
         </ion-button>
       </div>
@@ -33,27 +38,46 @@
       <ion-button expand="block" color="dark" routerLink="/tabs/import">
         Bulk import (CSV / camera / clipboard)
       </ion-button>
+      <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/job-fare">
+        Job Fare pull
+      </ion-button>
     </div>
 
     @if (mode() === 'quick') {
       <ion-list lines="full" class="form">
-        <ion-item>
-          <ion-input label="Job title" labelPlacement="stacked" [(ngModel)]="title"></ion-input>
+        <ion-item [class.field-invalid]="!!fieldErrors()['title']">
+          <ion-input
+            label="Job title"
+            labelPlacement="stacked"
+            [(ngModel)]="title"
+            (ngModelChange)="clearFieldError('title')"
+          ></ion-input>
         </ion-item>
-        <ion-item>
+        @if (fieldErrors()['title']; as err) {
+          <p class="field-error">{{ err }}</p>
+        }
+        <ion-item [class.field-invalid]="!!fieldErrors()['employerName']">
           <ion-input
             label="Employer / business name"
             labelPlacement="stacked"
             [(ngModel)]="employerName"
+            (ngModelChange)="clearFieldError('employerName')"
           ></ion-input>
         </ion-item>
-        <ion-item lines="none" class="loc-item">
+        @if (fieldErrors()['employerName']; as err) {
+          <p class="field-error">{{ err }}</p>
+        }
+        <ion-item lines="none" class="loc-item" [class.field-invalid]="!!fieldErrors()['locationCity']">
           <ion-label position="stacked">Location (city)</ion-label>
           <app-location-typeahead
             [(value)]="locationCity"
+            (valueChange)="clearFieldError('locationCity')"
             placeholder="City or district"
           />
         </ion-item>
+        @if (fieldErrors()['locationCity']; as err) {
+          <p class="field-error">{{ err }}</p>
+        }
         <ion-item>
           <ion-select
             label="Job type"
@@ -66,14 +90,33 @@
             }
           </ion-select>
         </ion-item>
-        <ion-item>
+        <ion-item [class.field-invalid]="!!fieldErrors()['salaryText']">
           <ion-input
             label="Salary (optional)"
             labelPlacement="stacked"
             placeholder="e.g. 12000-15000 / month"
             [(ngModel)]="salaryText"
+            (ngModelChange)="clearFieldError('salaryText')"
           ></ion-input>
         </ion-item>
+        @if (fieldErrors()['salaryText']; as err) {
+          <p class="field-error">{{ err }}</p>
+        }
+        <ion-item [class.field-invalid]="!!fieldErrors()['vacancies']">
+          <ion-input
+            label="Vacancies (optional)"
+            labelPlacement="stacked"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            placeholder="e.g. 2"
+            [(ngModel)]="vacancies"
+            (ngModelChange)="clearFieldError('vacancies')"
+          ></ion-input>
+        </ion-item>
+        @if (fieldErrors()['vacancies']; as err) {
+          <p class="field-error">{{ err }}</p>
+        }
         <ion-item>
           <ion-select
             [label]="'post.contentLanguage' | t"
@@ -86,39 +129,56 @@
             }
           </ion-select>
         </ion-item>
-        <ion-item>
+        <ion-item [class.field-invalid]="!!fieldErrors()['description']">
           <ion-textarea
             label="Description / duties"
             labelPlacement="stacked"
             autoGrow="true"
             [(ngModel)]="description"
+            (ngModelChange)="clearFieldError('description')"
           ></ion-textarea>
         </ion-item>
-        <ion-item>
+        @if (fieldErrors()['description']; as err) {
+          <p class="field-error">{{ err }}</p>
+        }
+        <ion-item [class.field-invalid]="!!fieldErrors()['contactPhone']">
           <ion-input
             label="Private contact phone"
             labelPlacement="stacked"
             type="tel"
+            placeholder="10-digit or +91…"
             [(ngModel)]="contactPhone"
+            (ngModelChange)="clearFieldError('contactPhone')"
           ></ion-input>
         </ion-item>
-        <ion-item>
+        @if (fieldErrors()['contactPhone']; as err) {
+          <p class="field-error">{{ err }}</p>
+        }
+        <ion-item [class.field-invalid]="!!fieldErrors()['contactEmail']">
           <ion-input
             label="HR email"
             labelPlacement="stacked"
             type="email"
             [(ngModel)]="contactEmail"
+            (ngModelChange)="clearFieldError('contactEmail')"
           ></ion-input>
         </ion-item>
-        <ion-item>
+        @if (fieldErrors()['contactEmail']; as err) {
+          <p class="field-error">{{ err }}</p>
+        }
+        <ion-item [class.field-invalid]="!!fieldErrors()['contactWebsite']">
           <ion-input
             label="Website to apply"
             labelPlacement="stacked"
             type="url"
             placeholder="https://"
             [(ngModel)]="contactWebsite"
+            (ngModelChange)="clearFieldError('contactWebsite')"
           ></ion-input>
         </ion-item>
+        @if (fieldErrors()['contactWebsite']; as err) {
+          <p class="field-error">{{ err }}</p>
+        }
       </ion-list>
       <ion-button expand="block" color="dark" (click)="submitQuick()">Submit job</ion-button>
     } @else {

@@ -1,0 +1,43 @@
+<section class="seeker">
+  <h1>Saved jobs</h1>
+  @if (!isSignedIn()) {
+    <p>Sign in to see saved jobs and your personalised feed.</p>
+    <a routerLink="/settings/account">Sign in</a>
+  } @else {
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    @if (viewed.items().length) {
+      <h2>Continue browsing</h2>
+      <div class="list">
+        @for (row of viewed.items(); track row.id) {
+          <a [routerLink]="['/jobs', row.slug]">{{ row.title }} · {{ row.city }}</a>
+        }
+      </div>
+    }
+
+    <h2>Personalised feed</h2>
+    <div class="list">
+      @for (job of feed(); track job.id) {
+        <a [routerLink]="jobPath(job)">{{ job.title }} · {{ job.employerName }}</a>
+      } @empty {
+        <p>Set preferences to personalise this feed.</p>
+      }
+    </div>
+
+    <h2>Saved jobs</h2>
+    <div class="list">
+      @for (job of saved(); track job.id) {
+        <div class="row">
+          <a [routerLink]="jobPath(job)">{{ job.title }} · {{ job.employerName }}</a>
+          <button type="button" class="remove" (click)="removeSaved(job.id)" [disabled]="removingId() === job.id">
+            Remove
+          </button>
+        </div>
+      } @empty {
+        <p>No saved jobs yet. Save a role from a job page.</p>
+      }
+    </div>
+  }
+</section>

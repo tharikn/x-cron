@@ -28,48 +28,57 @@ Requires API running for live data (`../api`). Env: `src/environments/environmen
 
 - Ionic 9 + Angular 22 standalone components; Capacitor 8 (`capacitor.config.ts`)
 - Routes: `src/app/app.routes.ts` under `/tabs/*`
-- Tabs: Discover · Post · Prefs · Notifications · Account (`src/app/tabs/`)
+- Tabs: Discover · Notifications · Settings (`src/app/tabs/`) — employers also Post. Settings hosts segment tabs Language · Prefs · Account (`/tabs/settings?tab=`). Old `/tabs/preferences` and `/tabs/account` redirect into Settings. No Ads tab / discover feed ad slot.
 - Pages: `src/app/pages/<name>/` (`*.page.ts|html|scss`)
 - Shared: `src/app/shared/job-card/`
 - Core services: `src/app/core/services/` — `auth` (access + refresh), `jobs`, `preferences`, `ingestion`, `channels`, `payments`, `notifications`, `ads`, `seeker`
 - Models/utils: `core/models/`, `core/utils/format.ts`, offline `core/data/mock-jobs.ts`
-- App init: `AuthService.ensureSession()` (`APP_INITIALIZER` + `app.component`) via `/auth/me`; `adminGuard` blocks Post/Ads/Import until admin is confirmed; `authInterceptor` refreshes once on 401 then clears
+- App init: `AuthService.ensureSession()` (`APP_INITIALIZER` + `app.component`) via `/auth/me`; `adminGuard` blocks Import/Job Fare until admin is confirmed; `employerGuard` gates Post; `authInterceptor` refreshes once on 401 then clears
 - Admin tabs render only when `isAdmin()` is true after session validation — never from localStorage alone
 - Android project: `android/` (permissions in `AndroidManifest.xml`; camera for import)
 
 ## Product / UI rules
 
-- Guest browse is first-class; sign-in for post, unlock, sync, save, subscribe
-- Contacts stay masked until unlock/subscription; never display raw contacts from public job DTO
-- Ads must stay **labelled** (“Advertisement”), visually separate from job cards
+- Guest browse is first-class; sign-in for post, sync, save, subscribe
+- Employer contact is public on the job DTO — show phone/email/WhatsApp/website on job detail with no unlock paywall
+- House ad creatives / Ads admin screen are not shown in the seeker UI (route removed)
 - Featured/promoted jobs show a badge — not disguised as organic-only
 
 ## UI / UX (follow monorepo standards)
 
 Full standards: [../CLAUDE.md](../CLAUDE.md) § **UI / UX standards**. Mobile specifics:
 
-- Fonts loaded in `src/index.html` (Syne + DM Sans + Noto Sans Tamil)
-- Tokens in `src/theme/variables.scss`; Ionic chrome overrides in `src/global.scss`
+- Fonts loaded in `src/index.html` (Outfit + Manrope + Fraunces italic quote + Noto Sans Tamil). Discover hero quote uses soft Fraunces italic + curly quotes.
+- Tokens in `src/theme/variables.scss` (night-sky + violet→amber CTA + shared `--xcron-text-*` type scale); Ionic chrome overrides in `src/global.scss` (starfield, gradient solid buttons). Search/input placeholders: set `--placeholder-color` / `--color` on `ion-searchbar.sc-ion-searchbar-*-h` (and input/textarea hosts) — bare `ion-searchbar` loses to Ionic’s md host vars (`--color: #262626`, `--placeholder-color: initial`) and placeholders go invisible on night-sky wash
+- Job detail uses role tokens (Outfit titles, Manrope body/UI) — keep in sync with web job-detail
+- `--ion-color-dark` is remapped to white ink so `color="dark"` outline/clear buttons stay readable on night sky (never near-black)
+- App frame: `ion-app` max-width 480px centered; on ≥520px viewports keep the rounded phone-frame card with fixed height (`100vh - 32px`) so only `ion-content` scrolls (no body + content double scrollbar)
 - Discover mirrors web hero + search panel; shared `job-card` uses radius, shadow, lift
-- Job detail contact mirrors web: private badge, channel chips, vault peek, solid Unlock CTA; Save/Share in a two-column secondary row
-- Notifications inbox: soft elevated light cards (unread = left ink beam + wash, not inverted black); quiet count/unread pills; no sheen/pulse chrome
+- Job list type ladder (shared `job-card`): title = Outfit `--xcron-text-title` / bold / `--xcron-ink`; employer = Manrope `--xcron-text-body` / medium / `--xcron-ink-soft`; facts + posted time = Manrope `--xcron-text-meta` (time uses `--xcron-faint`); CTA = label token — no one-off rem sizes or Ionic `color="medium"` on time
+- Job detail contact mirrors web: show contact values directly; Save/Share in a two-column secondary row
+- Labelled ad slots + Discover/notification empty states use elevated/wash dark tokens (not light grey wash) so they sit on the night-sky canvas
+- Notifications inbox: elevated night-sky cards (unread = left blue beam + wash); quiet count/unread pills; no sheen/pulse chrome
 - Prefer existing Ionic components restyled to tokens — do not invent a second visual language
-- Stay visually aligned with web (`:4201`); do not regress to sharp boxes / IBM Plex / Space Grotesk / flat white-only chrome
+- Stay visually aligned with web (`:4201`); do not regress to light mint/teal / Plus Jakarta / white chrome
 
 ## Key flows to preserve
 
 | Flow | Where |
 | --- | --- |
-| Search / pref prompt | `pages/discover` |
-| Clear preferences / filters | Discover **Clear preferences** (also Prefs tab Clear) |
-| Unlock ₹5 / reveal | `pages/job-detail` + `payments.service` |
+| Search / pref prompt | `pages/discover` — salary/remote/postedWithin/walk-in/nearby/save search/recently viewed |
+| Clear preferences / filters | Discover **Clear preferences** (also Settings → Prefs Clear) |
+| Contact (direct) | `pages/job-detail` from public job DTO (+ contacted marker, hide, employer link) |
 | Save job | job-detail → `seeker.service` |
-| Quick/paste/promote | `pages/post-job` |
-| Bulk CSV/camera/clipboard | `pages/import-batch` — full-width review rows + **Edit** / **Chat** / **Improve with AI** in a **popup modal** (`updateRecord` + `enrichRecord` with optional instruction) |
-| Job Fare channel workflow | `pages/job-fare` (admin; Telegram/WA bridge + schedule). Web parity: `/admin/job-fare` |
-| Prefs + alert channel toggles | `pages/preferences` |
+| Saved jobs list / remove | Settings → **Saved** (`pages/saved-jobs`; also Account + `/tabs/saved` redirect) |
+| Seeker profile / applications / saved searches | Settings → Account |
+| Employer public page | `/tabs/employers/:id` |
+| Quick/paste/promote | `pages/post-job` (`employerGuard` for employer or admin) — client field validation via `core/utils/job-form.validation.ts` (required title/employer/city/description; regex for phone, email, URL, salary, optional vacancies 1–100000) |
+| Bulk CSV/camera/clipboard | `pages/import-batch` — full-width review rows (checkbox + body, actions wrap below; no viewport 3-col table — `ion-app` is 480px) + **Edit** / **Chat** / **Improve with AI** in a **popup modal** (`updateRecord` + `enrichRecord` with optional instruction); Edit Save uses the same `job-form.validation` helpers (vacancies integer, language code, apply URL) |
+| Job Fare channel workflow | `pages/job-fare` (admin; reach from Post tab, not Account). Web parity: `/admin/job-fare` under Post drawer group |
+| Language / Prefs / Account / Saved | Settings tab segments → `pages/language`, `pages/preferences`, `pages/account`, `pages/saved-jobs` |
+| Prefs + alert channel toggles | Settings → Prefs (`pages/preferences`) |
 | Notifications inbox | `pages/notifications` |
-| OTP, subscribe, feed, saved, delete | `pages/account` |
+| OTP, subscribe, feed, delete | Settings → Account (`pages/account`) |
 
 Discover search location starts empty (applies saved prefs only when present) — no hardcoded Palani default.
 
@@ -87,7 +96,8 @@ Discover search location starts empty (applies saved prefs only when present) �
 - System tray: always via `@capacitor/local-notifications` (`ensureOsTrayPermission`) — must not depend on FCM. FCM (`PushNotifications.register`) only when `environment.fcmEnabled` + `android/app/google-services.json`; without Firebase, keep `fcmEnabled: false` or the native register call fatally crashes. Poll-driven local tray still works with `stub_fcm_*` while the app process is alive.
 - OS tray when app closed/killed: server `PUSH_PROVIDER=fcm` + firebase-admin (see `api/src/notifications/CLAUDE.md`)
 - OS tray when app open / browser: `@capacitor/local-notifications` or Web Notification API; inbox poll ~8s for in-app list; foreground FCM mirrored to local tray
-- Alert channel toggles live on Prefs; Notifications tab is inbox-only
+- Session ↔ push: Google idToken exchanged once (not stored); app access ~15m + refresh ~30d. `registerDevice` only while signed in; `unlinkDevice` on logout / failed refresh. Foreground/resume runs `ensureSession` then inbox. API also suppresses pushes without a live refresh session.
+- Alert channel toggles live on Prefs; inbox page remains at `/tabs/notifications` (not shown in tab bar)
 - Discover **Open roles** badge uses API search `total` (not loaded-page length)
 - Job cards show uploaded/published date + time via `formatPostedDate`
 - Google sign-in: **native** uses `@capawesome/capacitor-google-sign-in` (Credential Manager — stays in-app); **browser** uses GIS popup. Web client ID in `environment*.ts`. **Required for APK:** Android OAuth client in the *same* Google Cloud project — package `com.xcron.jobs` + signing SHA-1. Debug SHA-1 from this machine: `82:DC:02:56:2D:7F:F2:62:C9:ED:20:39:C1:55:7F:54:E8:CF:AF:22` (`keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`). Missing/wrong Android client surfaces as fake cancel: `activity is cancelled by the user`.

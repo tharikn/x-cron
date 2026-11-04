@@ -66,25 +66,25 @@ export class JobsController {
     return this.jobsService.getById(id);
   }
 
-  @Roles('admin')
+  @Roles('employer', 'admin')
   @Get('employers/jobs')
   myJobs(@CurrentUser() user: AuthUser, @Query() query: ListMyJobsDto) {
     return this.jobsService.myJobs(user, query.page ?? 1, query.limit ?? 10);
   }
 
-  @Roles('admin')
+  @Roles('employer', 'admin')
   @Post('employers/jobs')
   createQuick(@CurrentUser() user: AuthUser, @Body() dto: CreateJobDto) {
     return this.jobsService.createQuick(user, dto);
   }
 
-  @Roles('admin')
+  @Roles('employer', 'admin')
   @Post('employers/jobs/paste')
   createFromPaste(@CurrentUser() user: AuthUser, @Body() dto: PasteJobDto) {
     return this.jobsService.createFromPaste(user, dto);
   }
 
-  @Roles('admin')
+  @Roles('employer', 'admin')
   @Patch('employers/jobs/:id')
   updateMyJob(
     @CurrentUser() user: AuthUser,
@@ -94,28 +94,41 @@ export class JobsController {
     return this.jobsService.updateMyJob(user, id, dto);
   }
 
-  @Roles('admin')
+  @Roles('employer', 'admin')
   @Post('employers/jobs/:id/activate')
   activateMyJob(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.jobsService.activateMyJob(user, id);
   }
 
-  @Roles('admin')
+  @Roles('employer', 'admin')
   @Post('employers/jobs/:id/deactivate')
   deactivateMyJob(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.jobsService.deactivateMyJob(user, id);
   }
 
-  @Roles('admin')
+  @Roles('employer', 'admin')
   @Post('employers/jobs/:id/hide')
   hideMyJob(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.jobsService.hideMyJob(user, id);
   }
 
-  @Roles('admin')
+  @Roles('employer', 'admin')
   @Delete('employers/jobs/:id')
   deleteMyJob(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.jobsService.deleteMyJob(user, id);
+  }
+
+  @Roles('employer', 'admin')
+  @Post('employers/jobs/:id/renew')
+  renewMyJob(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.jobsService.renewMyJob(user, id);
+  }
+
+  @Public()
+  @Get('employers/:id/public')
+  @Header('Cache-Control', 'public, max-age=60, stale-while-revalidate=120')
+  publicEmployer(@Param('id') id: string) {
+    return this.jobsService.publicEmployer(id);
   }
 
   @Roles('admin')

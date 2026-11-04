@@ -39,6 +39,20 @@ export class JobsService {
       if (query.salaryMin != null) {
         params = params.set('salaryMin', String(query.salaryMin));
       }
+      if (query.remote) params = params.set('remote', 'true');
+      if (query.postedWithin) {
+        params = params.set('postedWithin', query.postedWithin);
+      }
+      if (query.nearLat != null) {
+        params = params.set('nearLat', String(query.nearLat));
+      }
+      if (query.nearLng != null) {
+        params = params.set('nearLng', String(query.nearLng));
+      }
+      if (query.radiusKm != null) {
+        params = params.set('radiusKm', String(query.radiusKm));
+      }
+      if (query.walkInOnly) params = params.set('walkInOnly', 'true');
       params = params.set('sort', query.sort || 'newest');
       if (query.cursor) params = params.set('cursor', query.cursor);
       if (query.limit != null) params = params.set('limit', String(query.limit));
@@ -82,6 +96,24 @@ export class JobsService {
     }
   }
 
+  async getPublicEmployer(id: string): Promise<{
+    id: string;
+    name: string;
+    about: string | null;
+    verified: boolean;
+    jobs: Job[];
+  }> {
+    return firstValueFrom(
+      this.http.get<{
+        id: string;
+        name: string;
+        about: string | null;
+        verified: boolean;
+        jobs: Job[];
+      }>(`${environment.apiUrl}/employers/${id}/public`),
+    );
+  }
+
   async related(jobId: string): Promise<Job[]> {
     try {
       const response = await firstValueFrom(
@@ -119,6 +151,7 @@ export class JobsService {
     locationCity: string;
     jobType: JobType;
     salaryText?: string;
+    vacancies?: number;
     description: string;
     contentLanguage: string;
     contactPhone?: string;

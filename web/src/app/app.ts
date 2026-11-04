@@ -30,6 +30,7 @@ import { GetAppCtaComponent } from './shared/get-app-cta/get-app-cta.component';
 const FOOTER_ITEM_KEYS: Record<string, string> = {
   ql_home: 'footer.quick.home',
   ql_post: 'footer.quick.post',
+  ql_settings: 'footer.quick.settings',
   ql_prefs: 'footer.quick.prefs',
   ql_lang: 'footer.quick.language',
   ql_signin: 'footer.quick.signIn',

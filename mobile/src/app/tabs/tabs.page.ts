@@ -12,10 +12,8 @@ import {
   briefcaseOutline,
   createOutline,
   homeOutline,
-  megaphoneOutline,
   notificationsOutline,
-  personOutline,
-  optionsOutline,
+  settingsOutline,
 } from 'ionicons/icons';
 import { TranslatePipe } from '../core/pipes/translate.pipe';
 import { AuthService } from '../core/services/auth.service';
@@ -37,17 +35,15 @@ import { NotificationsService } from '../core/services/notifications.service';
 })
 export class TabsPage {
   readonly auth = inject(AuthService);
-  readonly isAdmin = this.auth.isAdmin;
+  readonly isEmployer = this.auth.isEmployer;
   readonly unread = inject(NotificationsService).unreadCount;
 
   constructor() {
     addIcons({
       homeOutline,
       createOutline,
-      optionsOutline,
+      settingsOutline,
       briefcaseOutline,
-      personOutline,
-      megaphoneOutline,
       notificationsOutline,
     });
   }

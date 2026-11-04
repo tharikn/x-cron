@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Theme demo 9 — Warm rich</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #2b140c;
+        --muted: #8a5a45;
+        --cream: #fff8f1;
+        --font-display: Fraunces, Georgia, serif;
+        --font-body: Nunito, system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--font-body);
+        color: var(--ink);
+        background: #1a0d08;
+      }
+      .shell {
+        max-width: 430px;
+        margin: 0 auto;
+        min-height: 100vh;
+        background:
+          radial-gradient(120% 70% at 0% 0%, #ff7a59 0%, transparent 48%),
+          radial-gradient(90% 60% at 100% 8%, #ffb703 0%, transparent 42%),
+          radial-gradient(80% 50% at 80% 40%, #fb7185 0%, transparent 45%),
+          linear-gradient(165deg, #ff5d2d 0%, #e11d48 28%, #9a3412 62%, #1a0d08 100%);
+        padding-bottom: 28px;
+        overflow: hidden;
+      }
+      .hero {
+        padding: 22px 18px 28px;
+        color: #fff8f1;
+        position: relative;
+      }
+      .hero::after {
+        content: '';
+        position: absolute;
+        inset: auto -20% -40px;
+        height: 120px;
+        background: radial-gradient(closest-side, rgba(255, 183, 3, 0.45), transparent 70%);
+        pointer-events: none;
+      }
+      .tag {
+        display: inline-block;
+        margin-bottom: 14px;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(255, 248, 241, 0.16);
+        border: 1px solid rgba(255, 248, 241, 0.28);
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+      .brand {
+        font-family: var(--font-display);
+        font-size: 1.55rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      .brand small {
+        display: block;
+        margin-top: 0.25rem;
+        font-family: var(--font-body);
+        font-size: 0.65rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        opacity: 0.8;
+        font-weight: 700;
+      }
+      .pill-btn {
+        border: 1px solid rgba(255, 248, 241, 0.35);
+        background: rgba(255, 248, 241, 0.12);
+        color: #fff8f1;
+        border-radius: 999px;
+        min-height: 40px;
+        padding: 0 0.95rem;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .kicker {
+        margin: 0 0 0.45rem;
+        font-weight: 700;
+        opacity: 0.86;
+      }
+      h1 {
+        margin: 0 0 0.75rem;
+        font-family: var(--font-display);
+        font-size: clamp(2.2rem, 9vw, 2.7rem);
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+        max-width: 10ch;
+      }
+      .lead {
+        margin: 0 0 1.2rem;
+        max-width: 28ch;
+        opacity: 0.9;
+        font-size: 1.02rem;
+        line-height: 1.4;
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+      }
+      .btn-main {
+        border: 0;
+        border-radius: 999px;
+        min-height: 48px;
+        padding: 0 1.15rem;
+        background: #fff8f1;
+        color: #9a3412;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 12px 28px rgba(26, 13, 8, 0.22);
+      }
+      .btn-soft {
+        border: 1px solid rgba(255, 248, 241, 0.35);
+        border-radius: 999px;
+        min-height: 48px;
+        padding: 0 1.05rem;
+        background: transparent;
+        color: #fff8f1;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .sheet {
+        margin: -8px 12px 0;
+        border-radius: 28px 28px 24px 24px;
+        background:
+          linear-gradient(180deg, #fffaf4 0%, #fff4e8 100%);
+        box-shadow: 0 -10px 40px rgba(26, 13, 8, 0.28);
+        padding: 1.05rem 0.95rem 1.2rem;
+        position: relative;
+        z-index: 2;
+      }
+      .chips {
+        display: flex;
+        gap: 0.45rem;
+        overflow-x: auto;
+        margin-bottom: 0.95rem;
+        scrollbar-width: none;
+      }
+      .chips::-webkit-scrollbar { display: none; }
+      .chip {
+        flex: 0 0 auto;
+        border: 0;
+        border-radius: 999px;
+        padding: 0.62rem 0.9rem;
+        font: inherit;
+        font-weight: 800;
+        font-size: 0.84rem;
+        cursor: pointer;
+        color: #fff8f1;
+      }
+      .chip--a { background: #e11d48; }
+      .chip--b { background: #ea580c; }
+      .chip--c { background: #f59e0b; color: #2b140c; }
+      .chip--d { background: #0f766e; }
+      .chip--e { background: #fff; color: #2b140c; border: 1px solid rgba(42, 20, 12, 0.1); }
+
+      .mosaic {
+        display: grid;
+        grid-template-columns: 1.25fr 0.95fr;
+        grid-template-rows: auto auto;
+        gap: 0.65rem;
+        margin-bottom: 1rem;
+      }
+      .card {
+        border-radius: 22px;
+        padding: 1rem;
+        color: #fff8f1;
+        min-height: 132px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 14px 28px rgba(42, 20, 12, 0.12);
+      }
+      .card--tall {
+        grid-row: span 2;
+        min-height: 280px;
+        background:
+          radial-gradient(120% 80% at 100% 0%, rgba(255, 255, 255, 0.25), transparent 45%),
+          linear-gradient(160deg, #fb7185 0%, #e11d48 45%, #9f1239 100%);
+      }
+      .card--amber {
+        background: linear-gradient(145deg, #fbbf24, #f59e0b 55%, #d97706);
+        color: #2b140c;
+      }
+      .card--teal {
+        background: linear-gradient(145deg, #2dd4bf, #0f766e);
+      }
+      .card .label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.85;
+      }
+      .card h2 {
+        margin: 0.45rem 0 0;
+        font-family: var(--font-display);
+        font-size: 1.35rem;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+      }
+      .card p {
+        margin: 0.35rem 0 0;
+        font-size: 0.9rem;
+        opacity: 0.92;
+      }
+      .card .meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.85rem;
+        font-weight: 800;
+      }
+      .card .ghost {
+        border: 0;
+        border-radius: 999px;
+        min-height: 34px;
+        padding: 0 0.8rem;
+        background: rgba(255, 248, 241, 0.2);
+        color: inherit;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .card--amber .ghost { background: rgba(42, 20, 12, 0.12); }
+
+      .section {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin: 0.15rem 0 0.65rem;
+      }
+      .section h3 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 1.2rem;
+      }
+      .section a {
+        color: #c2410c;
+        font-weight: 800;
+        text-decoration: none;
+        font-size: 0.88rem;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.75rem;
+        border-radius: 18px;
+        background: #fff;
+        border: 1px solid rgba(42, 20, 12, 0.06);
+        margin-bottom: 0.55rem;
+        box-shadow: 0 8px 18px rgba(42, 20, 12, 0.04);
+      }
+      .badge {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        color: #fff8f1;
+        font-weight: 800;
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+      }
+      .badge--coral { background: linear-gradient(145deg, #fb7185, #e11d48); }
+      .badge--orange { background: linear-gradient(145deg, #fb923c, #ea580c); }
+      .row h4 {
+        margin: 0 0 0.15rem;
+        font-size: 0.98rem;
+        font-family: var(--font-display);
+      }
+      .row p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .pay {
+        font-weight: 800;
+        color: #9a3412;
+        white-space: nowrap;
+      }
+      .search {
+        margin-top: 0.85rem;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.45rem;
+        padding: 0.4rem;
+        border-radius: 18px;
+        background: #2b140c;
+      }
+      .search input {
+        border: 0;
+        outline: none;
+        background: transparent;
+        color: #fff8f1;
+        font: inherit;
+        padding: 0.8rem 0.85rem;
+      }
+      .search button {
+        border: 0;
+        border-radius: 14px;
+        min-height: 46px;
+        padding: 0 1rem;
+        background: linear-gradient(135deg, #fb923c, #e11d48);
+        color: #fff;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <span class="tag">Demo 9 · Warm rich</span>
+        <div class="nav">
+          <div class="brand">X Cron<small>Jobs</small></div>
+          <button class="pill-btn" type="button">Sign in</button>
+        </div>
+        <p class="kicker">Palani · tonight</p>
+        <h1>Work that feels warm & near</h1>
+        <p class="lead">Browse free. Unlock contact only when the role feels right.</p>
+        <div class="hero-actions">
+          <button class="btn-main" type="button">Explore roles</button>
+          <button class="btn-soft" type="button">Save prefs</button>
+        </div>
+      </header>
+
+      <main class="sheet">
+        <div class="chips" aria-label="Filters">
+          <button class="chip chip--a" type="button">Nearby</button>
+          <button class="chip chip--b" type="button">Full-time</button>
+          <button class="chip chip--c" type="button">Daily wage</button>
+          <button class="chip chip--d" type="button">Part-time</button>
+          <button class="chip chip--e" type="button">Saved</button>
+        </div>
+
+        <div class="mosaic" aria-label="Featured roles mosaic">
+          <article class="card card--tall">
+            <div>
+              <div class="label">Spotlight</div>
+              <h2>Warehouse helper</h2>
+              <p>Sunrise Logistics · start this week</p>
+            </div>
+            <div class="meta">
+              <span>₹16k–18k</span>
+              <button class="ghost" type="button">View</button>
+            </div>
+          </article>
+          <article class="card card--amber">
+            <div>
+              <div class="label">Fast hire</div>
+              <h2>Cafe cashier</h2>
+              <p>Bean Street</p>
+            </div>
+            <div class="meta"><span>₹12k</span></div>
+          </article>
+          <article class="card card--teal">
+            <div>
+              <div class="label">Daily</div>
+              <h2>Delivery</h2>
+              <p>City hops</p>
+            </div>
+            <div class="meta"><span>₹600/day</span></div>
+          </article>
+        </div>
+
+        <div class="section">
+          <h3>More near you</h3>
+          <a href="#">See all</a>
+        </div>
+
+        <article class="row">
+          <div class="badge badge--coral">HR</div>
+          <div>
+            <h4>Accounts assistant</h4>
+            <p>Part-time · Palani</p>
+          </div>
+          <div class="pay">₹8k</div>
+        </article>
+        <article class="row">
+          <div class="badge badge--orange">ST</div>
+          <div>
+            <h4>Store assistant</h4>
+            <p>Full-time · Bus stand</p>
+          </div>
+          <div class="pay">₹14k</div>
+        </article>
+
+        <form class="search" onsubmit="return false">
+          <input value="Role or city" aria-label="Search" />
+          <button type="button">Search</button>
+        </form>
+      </main>
+    </div>
+  </body>
+</html>

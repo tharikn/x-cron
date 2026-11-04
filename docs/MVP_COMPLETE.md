@@ -25,7 +25,8 @@ This marks the **product MVP slice** as complete for local demo and iteration. I
 - Real Razorpay keys, Firebase FCM, production OCR/LLM
 - Google Play packaging + billing policy review (AC-20)
 - Backups, load tests, malware scan, encrypted vault at rest (AC-23)
-- Radius search, email campaigns, DOCX/XLSX full parsers
+- Email campaigns, DOCX/XLSX full parsers
+- Radius / nearby search, richer filters, saved searches, seeker profile, contacted marker, hide job, employer self-serve + company page (shipped in seeker-first gap close)
 
 ## Local demo
 

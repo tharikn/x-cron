@@ -1,6 +1,20 @@
 import type { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
+import { employerGuard } from './core/guards/employer.guard';
 import { TabsPage } from './tabs/tabs.page';
+
+function settingsRedirect(
+  tab: 'language' | 'preferences' | 'account' | 'saved',
+  queryParams: Record<string, string>,
+): string {
+  const q = new URLSearchParams();
+  q.set('tab', tab);
+  for (const [key, value] of Object.entries(queryParams)) {
+    if (key === 'tab' || value == null || value === '') continue;
+    q.set(key, String(value));
+  }
+  return `/tabs/settings?${q.toString()}`;
+}
 
 export const routes: Routes = [
   {
@@ -14,9 +28,14 @@ export const routes: Routes = [
       },
       {
         path: 'post',
-        canActivate: [adminGuard],
+        canActivate: [employerGuard],
         loadComponent: () =>
           import('./pages/post-job/post-job.page').then((m) => m.PostJobPage),
+      },
+      {
+        path: 'employers/:id',
+        loadComponent: () =>
+          import('./pages/employer/employer.page').then((m) => m.EmployerPage),
       },
       {
         path: 'import',
@@ -31,15 +50,25 @@ export const routes: Routes = [
           import('./pages/job-fare/job-fare.page').then((m) => m.JobFarePage),
       },
       {
-        path: 'ads',
-        canActivate: [adminGuard],
+        path: 'settings',
         loadComponent: () =>
-          import('./pages/ads-admin/ads-admin.page').then((m) => m.AdsAdminPage),
+          import('./pages/settings/settings.page').then((m) => m.SettingsPage),
       },
       {
         path: 'preferences',
-        loadComponent: () =>
-          import('./pages/preferences/preferences.page').then((m) => m.PreferencesPage),
+        redirectTo: ({ queryParams }) =>
+          settingsRedirect('preferences', queryParams),
+        pathMatch: 'full',
+      },
+      {
+        path: 'account',
+        redirectTo: ({ queryParams }) => settingsRedirect('account', queryParams),
+        pathMatch: 'full',
+      },
+      {
+        path: 'saved',
+        redirectTo: ({ queryParams }) => settingsRedirect('saved', queryParams),
+        pathMatch: 'full',
       },
       {
         path: 'notifications',
@@ -47,11 +76,6 @@ export const routes: Routes = [
           import('./pages/notifications/notifications.page').then(
             (m) => m.NotificationsPage,
           ),
-      },
-      {
-        path: 'account',
-        loadComponent: () =>
-          import('./pages/account/account.page').then((m) => m.AccountPage),
       },
       {
         path: 'jobs/:id',

@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Theme demo 10 — Warm professional</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f1ea;
+        --surface: #fffdf9;
+        --ink: #1f1814;
+        --ink-soft: #3d322c;
+        --muted: #6f6258;
+        --line: #e8ddd2;
+        --line-strong: #d5c4b4;
+        --wash: #f1e7dc;
+        --primary: #9a3412;
+        --primary-hover: #7c2d12;
+        --accent: #c2410c;
+        --amber: #b45309;
+        --teal: #0f766e;
+        --radius: 12px;
+        --font-display: 'Source Serif 4', Georgia, serif;
+        --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--font-body);
+        color: var(--ink);
+        background:
+          radial-gradient(900px 480px at 8% -10%, rgba(251, 191, 36, 0.12), transparent 55%),
+          radial-gradient(700px 420px at 100% 0%, rgba(194, 65, 12, 0.08), transparent 50%),
+          linear-gradient(180deg, #faf6f1 0%, var(--bg) 40%, #f3ebe2 100%);
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 20px 18px 48px;
+      }
+      .tag {
+        display: inline-block;
+        margin-bottom: 14px;
+        padding: 0.32rem 0.65rem;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        color: var(--accent);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.75rem;
+        padding-bottom: 0.95rem;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        text-decoration: none;
+        color: inherit;
+      }
+      .brand strong {
+        font-family: var(--font-display);
+        font-size: 1.45rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--primary);
+      }
+      .brand span {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .top-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--primary);
+        background: var(--primary);
+        color: #fffdf9;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .btn:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+      .btn--ghost {
+        background: var(--surface);
+        color: var(--ink);
+        border-color: var(--line-strong);
+      }
+      .hero {
+        display: grid;
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      @media (min-width: 720px) {
+        .hero {
+          grid-template-columns: 1.2fr 0.9fr;
+          align-items: end;
+        }
+      }
+      .kicker {
+        margin: 0 0 0.45rem;
+        color: var(--amber);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0 0 0.65rem;
+        font-family: var(--font-display);
+        font-size: clamp(1.9rem, 5vw, 2.45rem);
+        line-height: 1.12;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        max-width: 16ch;
+      }
+      .lead {
+        margin: 0 0 1.1rem;
+        color: var(--muted);
+        font-size: 1.02rem;
+        line-height: 1.5;
+        max-width: 36ch;
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 1rem;
+        box-shadow: 0 10px 28px rgba(31, 24, 20, 0.05);
+      }
+      .panel h2 {
+        margin: 0 0 0.75rem;
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+      }
+      label {
+        display: grid;
+        gap: 0.3rem;
+        margin-bottom: 0.7rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      input, select {
+        width: 100%;
+        border: 1px solid var(--line-strong);
+        background: var(--wash);
+        border-radius: 10px;
+        padding: 0.75rem 0.85rem;
+        font: inherit;
+        color: var(--ink);
+      }
+      input:focus, select:focus {
+        outline: 2px solid rgba(154, 52, 18, 0.25);
+        border-color: var(--primary);
+      }
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-bottom: 1rem;
+      }
+      .chip {
+        border: 1px solid var(--line-strong);
+        background: var(--surface);
+        color: var(--ink-soft);
+        border-radius: 999px;
+        padding: 0.45rem 0.8rem;
+        font: inherit;
+        font-size: 0.84rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .chip.is-active {
+        background: #fff7ed;
+        border-color: #fdba74;
+        color: var(--primary);
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.75rem;
+        margin: 0.35rem 0 0.8rem;
+      }
+      .section-head h2 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+      }
+      .section-head span {
+        color: var(--muted);
+        font-size: 0.88rem;
+        font-weight: 600;
+      }
+      .jobs {
+        display: grid;
+        gap: 0.7rem;
+      }
+      .job {
+        display: grid;
+        gap: 0.55rem;
+        padding: 1rem 1.05rem;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: 0 8px 20px rgba(31, 24, 20, 0.04);
+        transition: border-color 160ms ease, transform 160ms ease;
+      }
+      .job:hover {
+        border-color: #fdba74;
+        transform: translateY(-1px);
+      }
+      .job__top {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: start;
+      }
+      .job h3 {
+        margin: 0 0 0.2rem;
+        font-family: var(--font-display);
+        font-size: 1.12rem;
+        color: var(--ink);
+      }
+      .job p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .pay {
+        font-weight: 700;
+        color: var(--primary);
+        white-space: nowrap;
+        font-size: 0.95rem;
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+      .badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        background: var(--wash);
+        color: var(--ink-soft);
+        border: 1px solid var(--line);
+      }
+      .badge--warm {
+        background: #ffedd5;
+        border-color: #fdba74;
+        color: var(--primary);
+      }
+      .badge--teal {
+        background: #ccfbf1;
+        border-color: #99f6e4;
+        color: var(--teal);
+      }
+      .job__cta {
+        color: var(--accent);
+        font-weight: 700;
+        text-decoration: none;
+        font-size: 0.92rem;
+      }
+      .aside {
+        margin-top: 1.1rem;
+        display: grid;
+        gap: 0.7rem;
+      }
+      @media (min-width: 720px) {
+        .aside {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .note {
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        border-radius: 12px;
+        padding: 0.95rem 1rem;
+      }
+      .note h3 {
+        margin: 0 0 0.3rem;
+        font-family: var(--font-display);
+        font-size: 1.02rem;
+        color: var(--primary);
+      }
+      .note p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+      .note--teal {
+        background: #f0fdfa;
+        border-color: #99f6e4;
+      }
+      .note--teal h3 { color: var(--teal); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="tag">Demo 10 · Warm professional</span>
+      <header class="top">
+        <a class="brand" href="#">
+          <strong>X Cron</strong>
+          <span>Jobs</span>
+        </a>
+        <div class="top-actions">
+          <button class="btn btn--ghost" type="button">Preferences</button>
+          <button class="btn" type="button">Sign in</button>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div>
+          <p class="kicker">Local · Clear · Trusted</p>
+          <h1>Find local work with confidence</h1>
+          <p class="lead">
+            Browse roles freely. Pay and location stay clear. Contact unlocks only when you’re ready.
+          </p>
+          <div class="hero-actions">
+            <button class="btn" type="button">Search roles</button>
+            <button class="btn btn--ghost" type="button">Clear filters</button>
+          </div>
+        </div>
+        <form class="panel" onsubmit="return false">
+          <h2>Quick search</h2>
+          <label>Role<input value="Warehouse helper" /></label>
+          <label>Location<input value="Palani" /></label>
+          <button class="btn" type="button" style="width:100%">Find jobs</button>
+        </form>
+      </section>
+
+      <div class="filters" aria-label="Filters">
+        <button class="chip is-active" type="button">Nearby</button>
+        <button class="chip" type="button">Full-time</button>
+        <button class="chip" type="button">Part-time</button>
+        <button class="chip" type="button">Daily wage</button>
+        <button class="chip" type="button">Verified</button>
+      </div>
+
+      <div class="section-head">
+        <h2>Open roles</h2>
+        <span>128 near Palani</span>
+      </div>
+
+      <div class="jobs">
+        <article class="job">
+          <div class="job__top">
+            <div>
+              <h3>Warehouse helper</h3>
+              <p>Sunrise Logistics · Palani, Dindigul</p>
+            </div>
+            <div class="pay">₹16k–18k</div>
+          </div>
+          <div class="meta">
+            <span class="badge badge--warm">Full-time</span>
+            <span class="badge badge--teal">Verified</span>
+          </div>
+          <a class="job__cta" href="#">View role →</a>
+        </article>
+        <article class="job">
+          <div class="job__top">
+            <div>
+              <h3>Cafe cashier</h3>
+              <p>Bean Street · Dindigul</p>
+            </div>
+            <div class="pay">₹12k</div>
+          </div>
+          <div class="meta">
+            <span class="badge">Part-time</span>
+          </div>
+          <a class="job__cta" href="#">View role →</a>
+        </article>
+        <article class="job">
+          <div class="job__top">
+            <div>
+              <h3>Delivery executive</h3>
+              <p>City hops · Daily wage</p>
+            </div>
+            <div class="pay">₹600/day</div>
+          </div>
+          <div class="meta">
+            <span class="badge badge--warm">Daily wage</span>
+          </div>
+          <a class="job__cta" href="#">View role →</a>
+        </article>
+      </div>
+
+      <div class="aside">
+        <aside class="note">
+          <h3>Unlock when ready</h3>
+          <p>Browse every listing free. Pay a small unlock only to reveal private contact.</p>
+        </aside>
+        <aside class="note note--teal">
+          <h3>Clear pay first</h3>
+          <p>Salary and location stay visible before sign-in — no hidden essentials.</p>
+        </aside>
+      </div>
+    </div>
+  </body>
+</html>

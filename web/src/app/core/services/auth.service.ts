@@ -1,6 +1,13 @@
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import {
+  Injectable,
+  Injector,
+  PLATFORM_ID,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -32,6 +39,8 @@ const USER_KEY = 'xcron.web.authUser';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
+  /** Lazy — avoids circular DI with NotificationsService. */
+  private readonly injector = inject(Injector);
   private ensurePromise: Promise<void> | null = null;
   private refreshPromise: Promise<boolean> | null = null;
   private storageHydrated = false;
@@ -48,6 +57,12 @@ export class AuthService {
   readonly isAdmin = computed(
     () =>
       this.sessionValidated() && !!this.user()?.roles.includes('admin'),
+  );
+  readonly isEmployer = computed(
+    () =>
+      this.sessionValidated() &&
+      (!!this.user()?.roles.includes('employer') ||
+        !!this.user()?.roles.includes('admin')),
   );
 
   authHeaders(): Record<string, string> {
@@ -73,6 +88,7 @@ export class AuthService {
     email?: string;
     displayName?: string;
   }): Promise<void> {
+    // Google idToken is exchanged once — never persisted client-side.
     const response = await firstValueFrom(
       this.http.post<AuthSessionResponse>(
         `${environment.apiUrl}/auth/google`,
@@ -81,6 +97,7 @@ export class AuthService {
     );
     this.persist(response.token, response.refreshToken, response.user);
     this.sessionValidated.set(true);
+    await this.linkPushDevice();
   }
 
   async signInAsAdmin(input: { email: string; password: string }): Promise<void> {
@@ -92,6 +109,7 @@ export class AuthService {
     );
     this.persist(response.token, response.refreshToken, response.user);
     this.sessionValidated.set(true);
+    await this.linkPushDevice();
   }
 
   /**
@@ -107,6 +125,7 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
+    await this.unlinkPushDevice();
     const token = this.token();
     try {
       if (token) {
@@ -121,12 +140,15 @@ export class AuthService {
     } catch {
       // still clear local session
     } finally {
-      this.clearSession();
+      this.clearSession({ unlinkPush: false });
     }
   }
 
   /** Local wipe only (used by 401 interceptor — avoid logout loops). */
-  clearSession(): void {
+  clearSession(options?: { unlinkPush?: boolean }): void {
+    if (options?.unlinkPush !== false) {
+      void this.unlinkPushDevice();
+    }
     this.token.set(null);
     this.refreshToken.set(null);
     this.user.set(null);
@@ -135,6 +157,26 @@ export class AuthService {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(REFRESH_KEY);
       localStorage.removeItem(USER_KEY);
+    }
+  }
+
+  private async linkPushDevice(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      const { NotificationsService } = await import('./notifications.service');
+      await this.injector.get(NotificationsService).registerDevice();
+    } catch {
+      // boot / preferences also re-register
+    }
+  }
+
+  private async unlinkPushDevice(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      const { NotificationsService } = await import('./notifications.service');
+      await this.injector.get(NotificationsService).unlinkDevice();
+    } catch {
+      // API suppresses pushes when refresh session is gone
     }
   }
 

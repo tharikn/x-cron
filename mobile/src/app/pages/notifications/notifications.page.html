@@ -19,7 +19,12 @@
 
     @if (!isSignedIn()) {
       <p class="hint">{{ 'prefs.signInForAlerts' | t }}</p>
-      <ion-button expand="block" color="dark" routerLink="/tabs/account">
+      <ion-button
+        expand="block"
+        color="dark"
+        routerLink="/tabs/settings"
+        [queryParams]="{ tab: 'account' }"
+      >
         {{ 'nav.account' | t }}
       </ion-button>
     } @else {
@@ -80,7 +85,9 @@
 
       <p class="hint">
         Channel toggles live under
-        <a routerLink="/tabs/preferences">{{ 'nav.prefs' | t }}</a>.
+        <a routerLink="/tabs/settings" [queryParams]="{ tab: 'preferences' }">{{
+          'nav.prefs' | t
+        }}</a>.
       </p>
 
       @if (isAdmin()) {

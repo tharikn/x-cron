@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsISO8601,
@@ -108,6 +109,18 @@ export class CreateJobDto {
   @Min(0)
   @Max(1000)
   priority?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  remote?: boolean;
+
+  @IsOptional()
+  @IsISO8601()
+  walkInAt?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  applyBy?: string;
 }
 
 export class UpdateJobDto {
@@ -223,6 +236,18 @@ export class UpdateJobDto {
     | 'needs-review'
     | 'rejected'
     | 'removed';
+
+  @IsOptional()
+  @IsBoolean()
+  remote?: boolean;
+
+  @IsOptional()
+  @IsISO8601()
+  walkInAt?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  applyBy?: string;
 }
 
 export class PasteJobDto {

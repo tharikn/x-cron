@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#9a3412" />
+    <title>X Cron — Theme options for review</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;600;700&family=Libre+Baskerville:wght@700&family=Manrope:wght@500;600;700;800&family=Newsreader:opsz,wght@6..72,600;6..72,700&family=Outfit:wght@500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --safe-top: env(safe-area-inset-top, 0px);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: Manrope, system-ui, sans-serif;
+        background: #111;
+        color: #fff;
+        min-height: 100dvh;
+      }
+
+      .chrome {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        padding: calc(10px + var(--safe-top)) 12px 10px;
+        background: rgba(17, 17, 17, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .chrome h1 {
+        margin: 0 0 2px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .chrome p {
+        margin: 0 0 10px;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.62);
+        line-height: 1.35;
+      }
+      .picker {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      .picker::-webkit-scrollbar { display: none; }
+      .picker button {
+        flex: 0 0 auto;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.82);
+        border-radius: 999px;
+        min-height: 36px;
+        padding: 0 12px;
+        font: inherit;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .picker button.is-active {
+        background: #fff;
+        color: #111;
+        border-color: #fff;
+      }
+
+      .stage {
+        padding: 14px 12px calc(88px + var(--safe-bottom));
+      }
+      .phone {
+        width: min(390px, 100%);
+        margin: 0 auto;
+        border-radius: 28px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+        min-height: 720px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font-body);
+      }
+      .phone-inner { padding: 18px 16px 24px; }
+
+      .tag {
+        display: inline-block;
+        margin-bottom: 12px;
+        padding: 0.28rem 0.6rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--primary);
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.15rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+      }
+      .brand strong {
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        color: var(--primary);
+        letter-spacing: -0.02em;
+      }
+      .brand span {
+        font-size: 0.62rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0 0.9rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--primary);
+        background: var(--primary);
+        color: var(--on-primary);
+        font: inherit;
+        font-weight: 700;
+        font-size: 0.88rem;
+      }
+      .btn--ghost {
+        background: var(--surface);
+        color: var(--ink);
+        border-color: var(--line-strong);
+      }
+      .kicker {
+        margin: 0 0 0.35rem;
+        color: var(--accent);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      h2.headline {
+        margin: 0 0 0.5rem;
+        font-family: var(--font-display);
+        font-size: 1.7rem;
+        line-height: 1.12;
+        letter-spacing: -0.025em;
+        max-width: 14ch;
+      }
+      .lead {
+        margin: 0 0 0.95rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+      .actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 1rem; }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--panel-radius);
+        padding: 0.9rem;
+        margin-bottom: 0.95rem;
+        box-shadow: var(--shadow);
+      }
+      .panel h3 {
+        margin: 0 0 0.65rem;
+        font-family: var(--font-display);
+        font-size: 1.02rem;
+      }
+      label {
+        display: grid;
+        gap: 0.25rem;
+        margin-bottom: 0.55rem;
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      input {
+        width: 100%;
+        border: 1px solid var(--line-strong);
+        background: var(--wash);
+        border-radius: 8px;
+        padding: 0.7rem 0.75rem;
+        font: inherit;
+        color: var(--ink);
+      }
+      .filters {
+        display: flex;
+        gap: 0.4rem;
+        overflow-x: auto;
+        margin-bottom: 0.9rem;
+        scrollbar-width: none;
+      }
+      .filters::-webkit-scrollbar { display: none; }
+      .chip {
+        flex: 0 0 auto;
+        border: 1px solid var(--line-strong);
+        background: var(--surface);
+        color: var(--ink);
+        border-radius: 999px;
+        padding: 0.42rem 0.72rem;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+      .chip.is-active {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+      }
+      .section {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin: 0 0 0.65rem;
+      }
+      .section h3 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 1.08rem;
+      }
+      .section span {
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+      .job {
+        display: grid;
+        gap: 0.4rem;
+        padding: 0.85rem 0.9rem;
+        margin-bottom: 0.55rem;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--card-radius);
+        box-shadow: var(--shadow-soft);
+      }
+      .job.rail { border-left: 4px solid var(--primary); }
+      .job__top {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.6rem;
+      }
+      .job h4 {
+        margin: 0 0 0.12rem;
+        font-family: var(--font-display);
+        font-size: 1rem;
+      }
+      .job p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+      .pay {
+        font-weight: 800;
+        color: var(--primary);
+        white-space: nowrap;
+        font-size: 0.9rem;
+      }
+      .meta { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+      .badge {
+        font-size: 0.64rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 0.22rem 0.45rem;
+        border-radius: 999px;
+        background: var(--wash);
+        border: 1px solid var(--line);
+        color: var(--ink);
+      }
+      .cta {
+        color: var(--primary);
+        font-weight: 800;
+        font-size: 0.88rem;
+      }
+      .note {
+        margin-top: 0.85rem;
+        padding: 0.8rem 0.85rem;
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+        border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--line));
+      }
+      .note strong {
+        display: block;
+        margin-bottom: 0.2rem;
+        font-family: var(--font-display);
+        color: var(--primary);
+      }
+      .note p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.84rem;
+        line-height: 1.4;
+      }
+
+      .dock {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50;
+        padding: 10px 12px calc(12px + var(--safe-bottom));
+        background: rgba(17, 17, 17, 0.94);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 8px;
+        align-items: center;
+      }
+      .dock .name {
+        font-size: 0.82rem;
+        font-weight: 800;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .dock button {
+        border: 0;
+        border-radius: 999px;
+        min-height: 40px;
+        padding: 0 14px;
+        font: inherit;
+        font-weight: 800;
+        font-size: 0.8rem;
+      }
+      .dock .prev, .dock .next {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      .hint {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 0.72rem;
+        margin: 8px 0 0;
+      }
+
+      /* Themes */
+      [data-theme='sand-navy'] {
+        --bg: #f4efe6; --surface: #fffdf8; --ink: #1e293b; --muted: #64748b;
+        --wash: #ebe3d6; --line: #d6cfc3; --line-strong: #c5bdb0;
+        --primary: #1e3a5f; --accent: #b45309; --on-primary: #fff;
+        --font-display: 'Source Serif 4', Georgia, serif;
+        --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+        --radius: 10px; --panel-radius: 14px; --card-radius: 12px;
+        --shadow: 0 10px 24px rgba(30, 58, 95, 0.08);
+        --shadow-soft: 0 6px 16px rgba(30, 41, 59, 0.04);
+      }
+      [data-theme='olive-cream'] {
+        --bg: #f5f2e8; --surface: #fffdf5; --ink: #1f2418; --muted: #6b705c;
+        --wash: #ebe6d5; --line: #d6d3b8; --line-strong: #c7c3a6;
+        --primary: #4d7c0f; --accent: #a16207; --on-primary: #fff;
+        --font-display: Outfit, system-ui, sans-serif;
+        --font-body: Manrope, system-ui, sans-serif;
+        --radius: 10px; --panel-radius: 14px; --card-radius: 12px;
+        --shadow: 0 10px 24px rgba(61, 98, 18, 0.08);
+        --shadow-soft: 0 6px 16px rgba(31, 36, 24, 0.04);
+      }
+      [data-theme='clay-slate'] {
+        --bg: #f6f1ee; --surface: #fffdfb; --ink: #292524; --muted: #78716c;
+        --wash: #ebe4df; --line: #e7e5e4; --line-strong: #d6d3d1;
+        --primary: #b45309; --accent: #0f766e; --on-primary: #fff;
+        --font-display: Fraunces, Georgia, serif;
+        --font-body: Figtree, system-ui, sans-serif;
+        --radius: 10px; --panel-radius: 14px; --card-radius: 12px;
+        --shadow: 0 10px 24px rgba(180, 83, 9, 0.08);
+        --shadow-soft: 0 6px 16px rgba(41, 37, 36, 0.04);
+      }
+      [data-theme='honey-espresso'] {
+        --bg: #1c1410; --surface: #2a1c14; --ink: #f8f1e7; --muted: #c4b5a5;
+        --wash: #2f2118; --line: #4a3426; --line-strong: #5c4130;
+        --primary: #f59e0b; --accent: #fbbf24; --on-primary: #1c1410;
+        --font-display: 'Libre Baskerville', Georgia, serif;
+        --font-body: Manrope, system-ui, sans-serif;
+        --radius: 10px; --panel-radius: 14px; --card-radius: 12px;
+        --shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        --shadow-soft: 0 6px 16px rgba(0, 0, 0, 0.2);
+      }
+      [data-theme='rosewood-ivory'] {
+        --bg: #fbf7f4; --surface: #ffffff; --ink: #3f1d1d; --muted: #7f6161;
+        --wash: #f3ebe6; --line: #e7d5d5; --line-strong: #d8bdbd;
+        --primary: #9f1239; --accent: #be123c; --on-primary: #fff;
+        --font-display: Newsreader, Georgia, serif;
+        --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+        --radius: 10px; --panel-radius: 14px; --card-radius: 12px;
+        --shadow: 0 10px 24px rgba(159, 18, 57, 0.08);
+        --shadow-soft: 0 6px 16px rgba(63, 29, 29, 0.04);
+      }
+      [data-theme='warm-paper'] {
+        --bg: #f8f1e3; --surface: #fffaf0; --ink: #2a2118; --muted: #6f5b48;
+        --wash: #efe4cf; --line: #d6c4a8; --line-strong: #c5b090;
+        --primary: #7c2d12; --accent: #b45309; --on-primary: #fff;
+        --font-display: Newsreader, Georgia, serif;
+        --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+        --radius: 8px; --panel-radius: 0; --card-radius: 0;
+        --shadow: none; --shadow-soft: none;
+      }
+      [data-theme='soft-apricot'] {
+        --bg: #fff7ed; --surface: #ffffff; --ink: #1c1917; --muted: #78716c;
+        --wash: #ffedd5; --line: #fed7aa; --line-strong: #fdba74;
+        --primary: #ea580c; --accent: #f59e0b; --on-primary: #fff;
+        --font-display: Outfit, system-ui, sans-serif;
+        --font-body: Outfit, system-ui, sans-serif;
+        --radius: 999px; --panel-radius: 18px; --card-radius: 16px;
+        --shadow: 0 12px 28px rgba(234, 88, 12, 0.1);
+        --shadow-soft: 0 8px 18px rgba(234, 88, 12, 0.06);
+      }
+      [data-theme='copper-industrial'] {
+        --bg: #efeeec; --surface: #fafaf9; --ink: #292524; --muted: #78716c;
+        --wash: #e4e1dc; --line: #d6d3d1; --line-strong: #a8a29e;
+        --primary: #c2410c; --accent: #ea580c; --on-primary: #fff;
+        --font-display: Manrope, system-ui, sans-serif;
+        --font-body: Manrope, system-ui, sans-serif;
+        --radius: 4px; --panel-radius: 4px; --card-radius: 4px;
+        --shadow: none; --shadow-soft: none;
+      }
+      [data-theme='sandstone-forest'] {
+        --bg: #f5f0e6; --surface: #fffdf8; --ink: #1c1917; --muted: #6b705c;
+        --wash: #ebe4d4; --line: #d6d3b8; --line-strong: #c4bf9f;
+        --primary: #166534; --accent: #a16207; --on-primary: #fff;
+        --font-display: Fraunces, Georgia, serif;
+        --font-body: Figtree, system-ui, sans-serif;
+        --radius: 10px; --panel-radius: 14px; --card-radius: 12px;
+        --shadow: 0 10px 24px rgba(22, 101, 52, 0.08);
+        --shadow-soft: 0 6px 16px rgba(28, 25, 23, 0.04);
+      }
+      [data-theme='ivory-burgundy'] {
+        --bg: #faf8f5; --surface: #ffffff; --ink: #1c1917; --muted: #78716c;
+        --wash: #f3eee7; --line: #e7e5e4; --line-strong: #d6d3d1;
+        --primary: #7f1d1d; --accent: #b45309; --on-primary: #fff;
+        --font-display: 'Source Serif 4', Georgia, serif;
+        --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+        --radius: 10px; --panel-radius: 14px; --card-radius: 12px;
+        --shadow: 0 10px 24px rgba(127, 29, 29, 0.08);
+        --shadow-soft: 0 6px 16px rgba(28, 25, 23, 0.04);
+      }
+      [data-theme='warm-professional'] {
+        --bg: #f7f1ea; --surface: #fffdf9; --ink: #1f1814; --muted: #6f6258;
+        --wash: #f1e7dc; --line: #e8ddd2; --line-strong: #d5c4b4;
+        --primary: #9a3412; --accent: #c2410c; --on-primary: #fffdf9;
+        --font-display: 'Source Serif 4', Georgia, serif;
+        --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+        --radius: 10px; --panel-radius: 16px; --card-radius: 12px;
+        --shadow: 0 10px 28px rgba(31, 24, 20, 0.05);
+        --shadow-soft: 0 8px 20px rgba(31, 24, 20, 0.04);
+      }
+      [data-theme='peach-teal'] {
+        --bg: #fff6ef; --surface: #ffffff; --ink: #1f2937; --muted: #6b7280;
+        --wash: #ffedd5; --line: #fed7aa; --line-strong: #fdba74;
+        --primary: #0f766e; --accent: #ea580c; --on-primary: #fff;
+        --font-display: Outfit, system-ui, sans-serif;
+        --font-body: Figtree, system-ui, sans-serif;
+        --radius: 12px; --panel-radius: 18px; --card-radius: 14px;
+        --shadow: 0 12px 28px rgba(15, 118, 110, 0.1);
+        --shadow-soft: 0 8px 18px rgba(31, 41, 55, 0.05);
+      }
+      [data-theme='sunset-sheet'] {
+        --bg: #fff7ed; --surface: #ffffff; --ink: #2b140c; --muted: #8a5a45;
+        --wash: #ffedd5; --line: #fdba74; --line-strong: #fb923c;
+        --primary: #e11d48; --accent: #ea580c; --on-primary: #fff;
+        --font-display: Fraunces, Georgia, serif;
+        --font-body: Figtree, system-ui, sans-serif;
+        --radius: 999px; --panel-radius: 22px; --card-radius: 16px;
+        --shadow: 0 16px 36px rgba(225, 29, 72, 0.12);
+        --shadow-soft: 0 10px 22px rgba(43, 20, 12, 0.06);
+      }
+      [data-theme='mocha-mint'] {
+        --bg: #f6f3ef; --surface: #fffcf8; --ink: #2a211c; --muted: #7a6a60;
+        --wash: #efe8e0; --line: #e0d5cb; --line-strong: #cdbdae;
+        --primary: #5b4636; --accent: #0f766e; --on-primary: #fff;
+        --font-display: Newsreader, Georgia, serif;
+        --font-body: Manrope, system-ui, sans-serif;
+        --radius: 10px; --panel-radius: 14px; --card-radius: 12px;
+        --shadow: 0 10px 24px rgba(91, 70, 54, 0.08);
+        --shadow-soft: 0 6px 16px rgba(42, 33, 28, 0.04);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="chrome">
+      <h1>X Cron theme review</h1>
+      <p>Swipe styles below · tap Prev/Next · share this single HTML file with your client</p>
+      <div class="picker" id="picker" aria-label="Theme styles"></div>
+    </header>
+
+    <main class="stage">
+      <div class="phone" id="phone" data-theme="warm-professional">
+        <div class="phone-inner">
+          <span class="tag" id="themeTag">01 · Warm Professional</span>
+          <div class="top">
+            <div class="brand">
+              <strong>X Cron</strong>
+              <span>Jobs</span>
+            </div>
+            <button class="btn btn--ghost" type="button">Sign in</button>
+          </div>
+
+          <p class="kicker">Local · Clear · Trusted</p>
+          <h2 class="headline">Find local work with confidence</h2>
+          <p class="lead">
+            Browse roles freely. Pay and location stay clear. Contact unlocks only when you’re ready.
+          </p>
+          <div class="actions">
+            <button class="btn" type="button">Search roles</button>
+            <button class="btn btn--ghost" type="button">Clear</button>
+          </div>
+
+          <form class="panel" onsubmit="return false">
+            <h3>Quick search</h3>
+            <label>Role<input value="Warehouse helper" readonly /></label>
+            <label>Location<input value="Palani" readonly /></label>
+            <button class="btn" type="button" style="width: 100%">Find jobs</button>
+          </form>
+
+          <div class="filters" aria-hidden="true">
+            <span class="chip is-active">Nearby</span>
+            <span class="chip">Full-time</span>
+            <span class="chip">Part-time</span>
+            <span class="chip">Daily wage</span>
+          </div>
+
+          <div class="section">
+            <h3>Open roles</h3>
+            <span>128 near</span>
+          </div>
+
+          <article class="job" id="job1">
+            <div class="job__top">
+              <div>
+                <h4>Warehouse helper</h4>
+                <p>Sunrise Logistics · Palani</p>
+              </div>
+              <div class="pay">₹16k–18k</div>
+            </div>
+            <div class="meta">
+              <span class="badge">Full-time</span>
+              <span class="badge">Verified</span>
+            </div>
+            <div class="cta">View role →</div>
+          </article>
+
+          <article class="job">
+            <div class="job__top">
+              <div>
+                <h4>Cafe cashier</h4>
+                <p>Bean Street · Dindigul</p>
+              </div>
+              <div class="pay">₹12k</div>
+            </div>
+            <div class="meta"><span class="badge">Part-time</span></div>
+            <div class="cta">View role →</div>
+          </article>
+
+          <div class="note">
+            <strong>Client note</strong>
+            <p id="themeNote">Calm cream surfaces with terracotta CTAs — warm and professional.</p>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Mobile tip: add this file to Files / Drive and open in Chrome or Safari</p>
+    </main>
+
+    <footer class="dock">
+      <div class="name" id="dockName">01 · Warm Professional</div>
+      <button class="prev" id="prevBtn" type="button">Prev</button>
+      <button class="next" id="nextBtn" type="button">Next</button>
+    </footer>
+
+    <script>
+      const themes = [
+        {
+          id: 'warm-professional',
+          label: '01 Warm Pro',
+          title: '01 · Warm Professional',
+          note: 'Calm cream surfaces with terracotta CTAs — warm and professional.',
+          rail: false,
+        },
+        {
+          id: 'sand-navy',
+          label: '02 Sand Navy',
+          title: '02 · Sand & Navy',
+          note: 'Warm beige page with navy trust buttons — corporate calm.',
+          rail: false,
+        },
+        {
+          id: 'olive-cream',
+          label: '03 Olive',
+          title: '03 · Olive Cream',
+          note: 'Earthy olive on cream — natural, steady, professional.',
+          rail: false,
+        },
+        {
+          id: 'clay-slate',
+          label: '04 Clay',
+          title: '04 · Clay & Slate',
+          note: 'Muted terracotta actions with slate text — soft and serious.',
+          rail: false,
+        },
+        {
+          id: 'honey-espresso',
+          label: '05 Espresso',
+          title: '05 · Honey Espresso',
+          note: 'Dark warm premium with honey-gold CTAs.',
+          rail: false,
+        },
+        {
+          id: 'rosewood-ivory',
+          label: '06 Rosewood',
+          title: '06 · Rosewood Ivory',
+          note: 'Ivory surfaces with rosewood authority — formal warm.',
+          rail: false,
+        },
+        {
+          id: 'warm-paper',
+          label: '07 Paper',
+          title: '07 · Warm Paper',
+          note: 'Editorial paper look with rust accents — modern broadsheet.',
+          rail: false,
+        },
+        {
+          id: 'soft-apricot',
+          label: '08 Apricot',
+          title: '08 · Soft Apricot',
+          note: 'Friendly apricot SaaS softness with pill CTAs.',
+          rail: false,
+        },
+        {
+          id: 'copper-industrial',
+          label: '09 Copper',
+          title: '09 · Copper Industrial',
+          note: 'Utility-professional with copper edge rails.',
+          rail: true,
+        },
+        {
+          id: 'sandstone-forest',
+          label: '10 Forest',
+          title: '10 · Sandstone Forest',
+          note: 'Sandstone ground with forest-green confidence.',
+          rail: false,
+        },
+        {
+          id: 'ivory-burgundy',
+          label: '11 Burgundy',
+          title: '11 · Ivory Burgundy',
+          note: 'Classic ivory + burgundy — traditional professional.',
+          rail: false,
+        },
+        {
+          id: 'peach-teal',
+          label: '12 Peach Teal',
+          title: '12 · Peach & Teal',
+          note: 'Warm peach wash with teal primary — fresh and trustworthy.',
+          rail: false,
+        },
+        {
+          id: 'sunset-sheet',
+          label: '13 Sunset',
+          title: '13 · Sunset Sheet',
+          note: 'Warmer energy with rose CTAs — still readable and product-like.',
+          rail: false,
+        },
+        {
+          id: 'mocha-mint',
+          label: '14 Mocha',
+          title: '14 · Mocha Mint',
+          note: 'Mocha brown authority with mint accent — quiet premium.',
+          rail: false,
+        },
+      ];
+
+      const phone = document.getElementById('phone');
+      const picker = document.getElementById('picker');
+      const themeTag = document.getElementById('themeTag');
+      const themeNote = document.getElementById('themeNote');
+      const dockName = document.getElementById('dockName');
+      const job1 = document.getElementById('job1');
+      let index = 0;
+
+      themes.forEach((t, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = t.label;
+        b.dataset.index = String(i);
+        b.addEventListener('click', () => apply(i));
+        picker.appendChild(b);
+      });
+
+      function apply(i) {
+        index = (i + themes.length) % themes.length;
+        const t = themes[index];
+        phone.dataset.theme = t.id;
+        themeTag.textContent = t.title;
+        themeNote.textContent = t.note;
+        dockName.textContent = t.title;
+        job1.classList.toggle('rail', !!t.rail);
+        [...picker.children].forEach((btn, bi) => {
+          btn.classList.toggle('is-active', bi === index);
+        });
+        picker.children[index]?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+      }
+
+      document.getElementById('prevBtn').addEventListener('click', () => apply(index - 1));
+      document.getElementById('nextBtn').addEventListener('click', () => apply(index + 1));
+
+      let startX = 0;
+      phone.addEventListener('touchstart', (e) => {
+        startX = e.changedTouches[0].clientX;
+      }, { passive: true });
+      phone.addEventListener('touchend', (e) => {
+        const dx = e.changedTouches[0].clientX - startX;
+        if (Math.abs(dx) < 48) return;
+        apply(index + (dx < 0 ? 1 : -1));
+      }, { passive: true });
+
+      apply(0);
+    </script>
+  </body>
+</html>

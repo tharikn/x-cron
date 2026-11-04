@@ -26,16 +26,17 @@ Optional Postgres: from repo root `docker compose up -d`, then `npm run prisma:m
 - Mark public routes `@Public()`; role routes `@Roles('seeker'|'employer'|'admin')` — `@Public()` never bypasses `@Roles()`
 - Clients must validate sessions via `GET /v1/auth/me` on boot; on 401 try `POST /v1/auth/refresh` once before clearing (stale tokens after API restart still clear)
 - Feature modules under `src/`: `ai`, `auth`, `jobs`, `ingestion`, `channels`, `payments`, `preferences`, `notifications`, `ads`, `ops`, `seeker`, `account`, `health`
+- Ads house seed (`ads.store`): labelled placements only — do not seed “unlock contact” copy; seeker UI shows public contacts with no paywall
 - Job Fare channel pull (`src/channels/`, see [src/channels/CLAUDE.md](src/channels/CLAUDE.md)): free Telegram Bot + WhatsApp paste bridge → digest → ingestion; design [../docs/CHANNEL_PULL.md](../docs/CHANNEL_PULL.md)
 - Optional job-text AI enrich (`src/ai/`, see [src/ai/CLAUDE.md](src/ai/CLAUDE.md)): Telegram/OCR noise strip, field mapping (`salaryText` / `vacancies` / `contactWebsite` / language), bullet-line `description`, chat `instruction` on import/post/moderation when `AI_ENRICH_ENABLED=1`; channel digests use `splitJobs` so multi-recruitment Telegram posts become separate import rows
 - Admin moderation edit: `PATCH /v1/admin/jobs/:id` (Blog Approval desk)
 - Typical pattern per feature: `*.module.ts`, `*.controller.ts`, `*.service.ts`, dual `*.store` (memory + prisma where wired), `*.types.ts`, `dto/`
-- **Public job DTOs** via `jobs/jobs.mapper.ts` — never serialize `privateContact`
-- Contact reveal: `GET /v1/jobs/:id/contact` requires auth + entitlement; `Cache-Control: no-store`
-- Payments: Strategy/Adapter (`PAYMENT_GATEWAY=stub|upi|razorpay`); SiteConfig `paymentsEnabled` + `postJobPaymentMode`; history + CSV/PDF admin export; hardened `POST /v1/payments/dev/confirm` (blocked in production); `PAYMENTS_STORE=prisma` persists orders/entitlements/history. Skill: [../.cursor/skills/xcron-payments/SKILL.md](../.cursor/skills/xcron-payments/SKILL.md) · [src/payments/CLAUDE.md](src/payments/CLAUDE.md)
+- **Public job DTOs** via `jobs/jobs.mapper.ts` — include phone/email/whatsapp/website from `privateContact` (no unlock gate for seekers)
+- Legacy contact reveal still exists: `GET /v1/jobs/:id/contact` (auth + entitlement; `Cache-Control: no-store`) — unused by current clients
+- Payments: Strategy/Adapter (`PAYMENT_GATEWAY=stub|upi|razorpay`); SiteConfig `paymentsEnabled` + `postJobPaymentMode`; history + CSV/PDF admin export; hardened `POST /v1/payments/dev/confirm` (blocked in production); `PAYMENTS_STORE=prisma` persists orders/entitlements/history. Used for post-job fees / subscriptions; job contact unlock is not in the seeker UI. Skill: [../.cursor/skills/xcron-payments/SKILL.md](../.cursor/skills/xcron-payments/SKILL.md) · [src/payments/CLAUDE.md](src/payments/CLAUDE.md)
 - Notifications: Strategy/Adapter push (`PUSH_PROVIDER=stub|fcm` + optional `FIREBASE_SERVICE_ACCOUNT_*`) + mail (`MAIL_PROVIDER=stub|console|smtp`); job publish → subscriber fan-out with dispatch/delivery history; `NOTIFICATIONS_STORE=prisma` persists devices/prefs/inbox/dispatches. Live FCM required for Android tray when app is closed. See [src/notifications/CLAUDE.md](src/notifications/CLAUDE.md)
-- Subscriptions grant `subscription_contact` (unlimited unlocks while valid)
 - Prisma: `prisma/schema.prisma` + versioned `prisma/migrations/*` (deploy with `npm run prisma:migrate`). Jobs/ingestion/notifications/payments use Prisma when their `*_STORE=prisma` (or `JOBS_STORE` fallback).
+- **DDL rule:** new persistent columns/tables must update `schema.prisma` **and** add `prisma/migrations/<ts>_<name>/migration.sql` so higher envs can store/retrieve — see [../.cursor/skills/xcron-claude-md/SKILL.md](../.cursor/skills/xcron-claude-md/SKILL.md) § Prisma / migrations.
 
 ## Important env (`api/.env` / `.env.example` / `api/env-dev`)
 
@@ -63,8 +64,13 @@ GET  /v1/health
 POST /v1/auth/otp/start → verify (devCode) → refreshToken
 POST /v1/auth/refresh
 GET  /v1/jobs
-POST /v1/jobs/:id/contact-orders → /payments/dev/confirm → GET contact
 POST /v1/subscriptions/checkout → confirm
 GET  /v1/feed · POST /v1/me/saved-jobs/:id · DELETE /v1/me
+GET/PATCH /v1/me/profile · POST /v1/me/applications/:jobId · POST /v1/me/hidden-jobs/:jobId
+GET/POST /v1/me/saved-searches · GET /v1/employers/:id/public · POST /v1/employers/jobs/:id/renew
+GET  /v1/jobs?remote=&postedWithin=&nearLat=&nearLng=&radiusKm=&walkInOnly=&sort=distance
 GET  /v1/channels/workflow · POST /v1/channels/messages/manual · POST /v1/channels/pull
 ```
+
+Seeker retention (profile, applications, hidden, saved searches): [src/seeker/CLAUDE.md](src/seeker/CLAUDE.md).
+Employer self-serve job CRUD uses `@Roles('employer','admin')` (not admin-only).

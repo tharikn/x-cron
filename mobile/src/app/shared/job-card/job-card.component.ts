@@ -7,7 +7,6 @@ import {
   IonCardHeader,
   IonCardSubtitle,
   IonCardTitle,
-  IonText,
 } from '@ionic/angular';
 import type { Job } from '../../core/models/job.model';
 import { LocaleService } from '../../core/services/locale.service';
@@ -30,7 +29,6 @@ import {
     IonCardSubtitle,
     IonCardContent,
     IonBadge,
-    IonText,
   ],
 })
 export class JobCardComponent {

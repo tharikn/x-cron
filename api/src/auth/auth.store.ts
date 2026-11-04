@@ -264,6 +264,20 @@ export class AuthStore implements OnModuleInit {
     return count;
   }
 
+  /** True while the user still has a non-expired refresh session (stay signed-in). */
+  hasActiveRefreshSession(userId: string): boolean {
+    const now = Date.now();
+    for (const session of this.sessions.values()) {
+      if (
+        session.userId === userId &&
+        new Date(session.refreshExpiresAt).getTime() >= now
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   logout(token: string) {
     const session = this.sessions.get(token);
     if (session) this.revokeSession(session);
@@ -299,9 +313,17 @@ export class AuthStore implements OnModuleInit {
       return existing;
     }
 
+    const id = `emp_${randomUUID().slice(0, 8)}`;
+    const safeName = name.trim() || 'Employer';
     const profile: EmployerProfile = {
-      id: `emp_${randomUUID().slice(0, 8)}`,
-      name: name.trim() || 'Employer',
+      id,
+      name: safeName,
+      slug: `${safeName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 48)}-${id.slice(-4)}`,
+      about: '',
       verificationStatus: 'unverified',
       ownerUserId,
       createdAt: new Date().toISOString(),

@@ -286,6 +286,22 @@ export class NotificationsPrismaStore extends NotificationsStore {
     return this.mapDevice(created);
   }
 
+  async unlinkDevice(input: {
+    deviceId: string;
+    fcmToken: string;
+  }): Promise<boolean> {
+    const row = await this.prisma.deviceRegistration.findUnique({
+      where: { fcmToken: input.fcmToken },
+    });
+    if (!row || row.deviceId !== input.deviceId) return false;
+    if (!row.userId) return true;
+    await this.prisma.deviceRegistration.update({
+      where: { id: row.id },
+      data: { userId: null, lastSeenAt: new Date() },
+    });
+    return true;
+  }
+
   async listDevicesForUser(userId: string): Promise<DeviceRegistration[]> {
     const rows = await this.prisma.deviceRegistration.findMany({
       where: { userId },

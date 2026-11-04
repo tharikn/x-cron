@@ -1,26 +1,66 @@
 :root {
-  color-scheme: light;
-  accent-color: #0a0a0a;
-  --xcron-bg: #f4f4f2;
-  --xcron-bg-elevated: #ffffff;
-  --xcron-ink: #0a0a0a;
-  --xcron-ink-soft: #2a2a2a;
-  --xcron-muted: #6b6b6b;
-  --xcron-faint: #9a9a9a;
-  --xcron-line: #e4e4e1;
-  --xcron-line-strong: #c8c8c4;
-  --xcron-wash: #ececeb;
-  --xcron-wash-deep: #e0e0dd;
+  color-scheme: dark;
+  accent-color: #7c5cff;
+  /* X Cron premium — night sky + violet→amber CTA (no blue/rose pair) */
+  --xcron-primary: #7c5cff;
+  --xcron-primary-hover: #9580ff;
+  --xcron-primary-rgb: 124, 92, 255;
+  --xcron-accent: #f5a524;
+  --xcron-accent-rgb: 245, 165, 36;
+  --xcron-cta-gradient: linear-gradient(90deg, #7c5cff 0%, #f5a524 100%);
+  --xcron-cta-gradient-hover: linear-gradient(90deg, #9580ff 0%, #ffb84d 100%);
+  --xcron-danger: #f43f5e;
+  --xcron-success: #22c55e;
+  --xcron-bg: #070412;
+  --xcron-bg-elevated: #14101f;
+  --xcron-ink: #ffffff;
+  --xcron-ink-soft: #f0eef6;
+  --xcron-muted: #b4adc7;
+  --xcron-faint: #817a96;
+  --xcron-line: #2a2440;
+  --xcron-line-strong: #3d3558;
+  --xcron-wash: #1b162b;
+  --xcron-wash-deep: #241e36;
   --xcron-radius: 14px;
-  --xcron-radius-sm: 10px;
+  --xcron-radius-sm: 12px;
   --xcron-radius-lg: 22px;
-  --xcron-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 12px 32px rgba(0, 0, 0, 0.06);
-  --xcron-shadow-hover: 0 1px 0 rgba(0, 0, 0, 0.05), 0 18px 40px rgba(0, 0, 0, 0.1);
-  --xcron-font-display: 'Syne', 'Noto Sans Tamil', system-ui, sans-serif;
-  --xcron-font-body: 'DM Sans', 'Noto Sans Tamil', system-ui, sans-serif;
+  --xcron-shadow: 0 1px 0 rgba(124, 92, 255, 0.1), 0 18px 44px rgba(0, 0, 0, 0.55);
+  --xcron-shadow-hover: 0 1px 0 rgba(245, 165, 36, 0.16), 0 24px 52px rgba(0, 0, 0, 0.62);
+  --xcron-font-display: 'Outfit', 'Noto Sans Tamil', system-ui, sans-serif;
+  --xcron-font-body: 'Manrope', 'Noto Sans Tamil', system-ui, sans-serif;
+  --xcron-font-quote: 'Fraunces', 'Noto Sans Tamil', Georgia, serif;
+  /* Aliases aligned with mobile */
+  --xcron-display: var(--xcron-font-display);
+  --xcron-sans: var(--xcron-font-body);
+  --xcron-quote: var(--xcron-font-quote);
+  /* Shared type scale (roles — keep web + mobile in sync) */
+  --xcron-text-display: clamp(1.55rem, 5vw, 2.25rem);
+  --xcron-text-title: 1.0625rem; /* 17px — section headers */
+  --xcron-text-body: 0.9375rem; /* 15px — readable default */
+  --xcron-text-meta: 0.875rem; /* 14px — secondary / date / location */
+  --xcron-text-label: 0.6875rem; /* 11px — captions, chips, uppercase labels */
+  --xcron-text-button: 0.9375rem; /* 15px — CTAs */
+  --xcron-weight-regular: 400;
+  --xcron-weight-medium: 500;
+  --xcron-weight-semibold: 600;
+  --xcron-weight-bold: 700;
+  --xcron-leading-tight: 1.15;
+  --xcron-leading-body: 1.5;
+  --xcron-tracking-display: -0.04em;
+  --xcron-tracking-title: -0.02em;
+  --xcron-tracking-label: 0.06em;
   --xcron-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --xcron-btn-height: 48px;
   --xcron-text: var(--xcron-ink);
   --xcron-border: var(--xcron-line);
+  --xcron-pad-x: 1rem;
+  --xcron-content-max: 100%;
+}
+
+@media (min-width: 760px) {
+  :root {
+    --xcron-pad-x: 1.5rem;
+  }
 }
 
 *,
@@ -35,27 +75,107 @@ body {
   padding: 0;
   min-height: 100%;
   background:
-    radial-gradient(1200px 600px at 12% -10%, #ffffff 0%, transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, #e8e8e6 0%, transparent 50%),
-    linear-gradient(180deg, #f7f7f5 0%, var(--xcron-bg) 40%, #efefed 100%);
+    radial-gradient(900px 520px at 50% -5%, rgba(88, 28, 135, 0.35) 0%, transparent 58%),
+    radial-gradient(700px 420px at 15% 10%, rgba(124, 92, 255, 0.18) 0%, transparent 50%),
+    radial-gradient(700px 420px at 90% 20%, rgba(245, 165, 36, 0.12) 0%, transparent 48%),
+    linear-gradient(180deg, #12081f 0%, #070412 48%, #030208 100%);
   background-attachment: fixed;
   color: var(--xcron-ink);
   font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-body);
+  font-weight: var(--xcron-weight-regular);
   font-optical-sizing: auto;
-  line-height: 1.5;
+  line-height: var(--xcron-leading-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
+/* Starfield night-sky wash */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.35;
-  background-image: radial-gradient(rgba(0, 0, 0, 0.035) 0.6px, transparent 0.6px);
-  background-size: 3px 3px;
+  opacity: 0.85;
+  background-image:
+    radial-gradient(1.2px 1.2px at 8% 12%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 18% 28%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1.4px 1.4px at 28% 8%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 42% 18%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1.2px 1.2px at 58% 10%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 72% 22%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1.3px 1.3px at 86% 14%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 94% 30%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 12% 48%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1.2px 1.2px at 36% 42%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 64% 38%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 80% 52%, rgba(255, 255, 255, 0.35), transparent);
+  background-size: 100% 100%;
+}
+
+/* Shared CTA — violet→amber gradient */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--xcron-btn-height);
+  height: var(--xcron-btn-height);
+  padding: 0 1.35rem;
+  border-radius: var(--xcron-radius-sm);
+  border: 0;
+  background: var(--xcron-cta-gradient);
+  color: #fff;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-button);
+  font-weight: var(--xcron-weight-semibold);
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(124, 92, 255, 0.28);
+  transition:
+    background 160ms var(--xcron-ease),
+    filter 160ms var(--xcron-ease),
+    transform 160ms var(--xcron-ease),
+    opacity 160ms var(--xcron-ease),
+    box-shadow 160ms var(--xcron-ease);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--xcron-cta-gradient-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgba(245, 165, 36, 0.34);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--ghost,
+.btn--outline,
+.btn.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--xcron-ink);
+  border: 1px solid var(--xcron-line-strong);
+  box-shadow: none;
+}
+
+.btn--ghost:hover:not(:disabled),
+.btn--outline:hover:not(:disabled),
+.btn.secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+  box-shadow: none;
+}
+
+.btn--sm {
+  min-height: 36px;
+  height: 36px;
+  padding: 0 0.85rem;
+  font-size: 0.85rem;
 }
 
 app-root {
@@ -71,10 +191,15 @@ select,
 textarea {
   font: inherit;
   color: inherit;
-  accent-color: #0a0a0a;
+  accent-color: var(--xcron-primary);
 }
 
-/* Chromium native <select> list uses system blue; opt into styleable picker. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--xcron-muted);
+  opacity: 1;
+}
+
 @supports (appearance: base-select) {
   select,
   select::picker(select) {
@@ -82,7 +207,7 @@ textarea {
   }
 
   select::picker(select) {
-    background: #fff;
+    background: var(--xcron-bg-elevated);
     color: var(--xcron-ink);
     border: 1px solid var(--xcron-line);
     border-radius: var(--xcron-radius-sm);
@@ -90,7 +215,7 @@ textarea {
   }
 
   select option {
-    background: #fff;
+    background: var(--xcron-bg-elevated);
     color: var(--xcron-ink);
     padding: 0.55rem 0.75rem;
   }
@@ -98,7 +223,7 @@ textarea {
   select option:hover,
   select option:focus,
   select option:checked {
-    background: #0a0a0a;
+    background: var(--xcron-primary);
     color: #fff;
   }
 
@@ -112,15 +237,16 @@ a {
 }
 
 ::selection {
-  background: #111;
+  background: rgba(245, 165, 36, 0.35);
   color: #fff;
 }
 
 .spinner {
   width: 28px;
   height: 28px;
-  border: 2px solid #d0d0d0;
-  border-top-color: #000;
+  border: 2px solid rgba(var(--xcron-primary-rgb), 0.22);
+  border-top-color: var(--xcron-primary);
+  border-right-color: var(--xcron-accent);
   border-radius: 50%;
   animation: xcron-spin 0.7s linear infinite;
   display: inline-block;
@@ -167,7 +293,6 @@ body.import-batch-modal-open {
   overflow: hidden;
 }
 
-/* Portaled import-batch modal — viewport-centered (not page-scroll center) */
 .import-batch-modal.modal {
   position: fixed;
   top: 0;
@@ -182,7 +307,7 @@ body.import-batch-modal-open {
   place-items: center;
   padding: 1rem;
   margin: 0;
-  background: rgba(10, 10, 10, 0.48);
+  background: rgba(3, 2, 8, 0.78);
   box-sizing: border-box;
 }
 

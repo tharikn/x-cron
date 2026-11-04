@@ -39,6 +39,7 @@ export interface Job {
   slug: string;
   title: string;
   employerName: string;
+  employerId?: string | null;
   verifiedEmployer: boolean;
   location: JobLocation;
   jobType: string;
@@ -60,6 +61,9 @@ export interface Job {
   expiresAt: string;
   priority?: number;
   status: string;
+  walkInAt?: string | null;
+  applyBy?: string | null;
+  distanceKm?: number;
   promoted?: boolean;
   promotionBadge?: string | null;
   contact: {
@@ -67,9 +71,11 @@ export interface Job {
     hasEmail: boolean;
     hasWhatsapp: boolean;
     hasWebsite: boolean;
-    unlockPricePaise: number;
-    masked: boolean;
-    unlockLabel: string;
+    phone?: string | null;
+    email?: string | null;
+    whatsapp?: string | null;
+    website?: string | null;
+    unlockPricePaise?: number;
   };
   /** Admin moderation only — apply/info URL for edit boxes. */
   contactWebsite?: string | null;

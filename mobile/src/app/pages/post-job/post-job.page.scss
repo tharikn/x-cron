@@ -22,6 +22,19 @@
   overflow: hidden;
 }
 
+.field-error {
+  margin: 0;
+  padding: 0 16px 10px;
+  color: var(--ion-color-danger, #f43f5e);
+  font-size: var(--xcron-text-meta, 0.875rem);
+  font-weight: var(--xcron-weight-medium, 500);
+}
+
+.field-invalid {
+  --border-color: var(--ion-color-danger, #f43f5e);
+  --highlight-color: var(--ion-color-danger, #f43f5e);
+}
+
 .auth-gate {
   border: 1px solid var(--xcron-line);
   background: var(--xcron-bg-elevated);

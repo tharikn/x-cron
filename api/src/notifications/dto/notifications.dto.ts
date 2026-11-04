@@ -22,6 +22,17 @@ export class RegisterDeviceDto {
   platform!: 'android' | 'ios' | 'web';
 }
 
+/** Proof-of-device unlink after logout or refresh-session death (no Bearer required). */
+export class UnlinkDeviceDto {
+  @IsString()
+  @MinLength(3)
+  deviceId!: string;
+
+  @IsString()
+  @MinLength(8)
+  fcmToken!: string;
+}
+
 export class NotificationPreferencesDto {
   @IsOptional()
   @IsBoolean()

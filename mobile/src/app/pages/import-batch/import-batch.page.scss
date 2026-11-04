@@ -37,8 +37,8 @@
 
 .file-btn {
   display: block;
-  border: 1px solid #0a0a0a;
-  background: #0a0a0a;
+  border: 1px solid var(--xcron-primary);
+  background: var(--xcron-primary);
   color: #fff;
   padding: 12px;
   text-align: center;
@@ -106,6 +106,7 @@
 
 .record-row__body {
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .record-row__body h3 {
@@ -135,6 +136,7 @@
 
 .desc {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   max-height: 7rem;
   overflow: auto;
   margin: 6px 0;
@@ -149,7 +151,7 @@
   display: inline-block;
   margin-left: 6px;
   padding: 2px 8px;
-  border: 1px solid #222;
+  border: 1px solid var(--xcron-line-strong);
   border-radius: 999px;
   font-size: 0.65rem;
   font-weight: 700;
@@ -159,9 +161,9 @@
 }
 
 .action-btn {
-  border: 1px solid #222;
-  background: #fff;
-  color: #0a0a0a;
+  border: 1px solid var(--xcron-line-strong);
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink);
   padding: 10px 12px;
   min-height: 44px;
   font-size: 0.82rem;
@@ -176,9 +178,9 @@
 }
 
 .action-btn--primary {
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
-  border-color: #0a0a0a;
+  border-color: var(--xcron-primary);
 }
 
 .modal-sheet {
@@ -232,15 +234,15 @@
   flex: 1;
   min-height: 40px;
   border: 1px solid var(--xcron-line);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   border-radius: var(--xcron-radius-sm);
   font-weight: 650;
 }
 
 .desk__tabs button.is-active {
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
-  border-color: #0a0a0a;
+  border-color: var(--xcron-primary);
 }
 
 .desk__actions {
@@ -279,6 +281,18 @@
   color: var(--xcron-ink);
 }
 
+.fields label.is-invalid textarea,
+.fields label.is-invalid input {
+  border-color: var(--ion-color-danger, #f43f5e);
+}
+
+.field-error {
+  font-style: normal;
+  color: var(--ion-color-danger, #f43f5e);
+  font-size: var(--xcron-text-meta, 0.8rem);
+  font-weight: 500;
+}
+
 .fields__about {
   min-height: 10rem;
   line-height: 1.45;
@@ -307,7 +321,7 @@
   margin: 0;
   padding: 8px 10px;
   border-radius: var(--xcron-radius-sm);
-  background: #fff;
+  background: var(--xcron-bg-elevated);
   border: 1px solid var(--xcron-line);
   font-size: 0.9rem;
   max-width: 92%;
@@ -315,9 +329,9 @@
 
 .chat__bubble--user {
   justify-self: end;
-  background: #0a0a0a;
+  background: var(--xcron-primary);
   color: #fff;
-  border-color: #0a0a0a;
+  border-color: var(--xcron-primary);
 }
 
 .chat__compose {
@@ -325,38 +339,13 @@
   gap: 8px;
 }
 
+/* ion-app is capped at 480px, so viewport-wide breakpoints must not
+   switch the review rows into a 3-column table — that crushed the
+   title/description cell beside a 220px actions column. */
 @media (min-width: 720px) {
   .page {
     padding-left: 16px;
     padding-right: 16px;
-  }
-
-  .records-table__head {
-    display: grid;
-    grid-template-columns: 48px minmax(0, 1fr) 220px;
-    gap: 12px;
-    padding: 10px 12px;
-    background: var(--xcron-wash);
-    border-bottom: 1px solid var(--xcron-line);
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--xcron-muted);
-  }
-
-  .record-row {
-    grid-template-columns: 48px minmax(0, 1fr) 220px;
-    align-items: start;
-  }
-
-  .record-row__actions {
-    grid-column: auto;
-    flex-direction: column;
-  }
-
-  .action-btn {
-    width: 100%;
   }
 
   .fields {

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Theme demo 1 — Bright & friendly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --accent: #fbbf24;
+        --wash: #eff6ff;
+        --line: #dbeafe;
+        --radius: 14px;
+        --font-display: Outfit, system-ui, sans-serif;
+        --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--font-body);
+        color: var(--ink);
+        background:
+          radial-gradient(900px 420px at 10% -10%, #dbeafe 0%, transparent 55%),
+          radial-gradient(700px 360px at 100% 0%, #fef3c7 0%, transparent 50%),
+          var(--bg);
+      }
+      .wrap {
+        max-width: 440px;
+        margin: 0 auto;
+        padding: 28px 18px 48px;
+      }
+      .tag {
+        display: inline-block;
+        margin-bottom: 10px;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid var(--line);
+        color: var(--primary);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .brand {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: -0.06em;
+        line-height: 0.95;
+        color: var(--primary);
+      }
+      .jobs {
+        margin: 0.45rem 0 1.1rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        font-family: var(--font-display);
+        font-size: 1.45rem;
+        letter-spacing: -0.03em;
+      }
+      .lead {
+        margin: 0 0 1.25rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .search {
+        display: grid;
+        gap: 0.65rem;
+        padding: 0.9rem;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        box-shadow: 0 12px 28px rgba(37, 99, 235, 0.08);
+        margin-bottom: 1.25rem;
+      }
+      label {
+        display: grid;
+        gap: 0.3rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      input {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: var(--wash);
+        border-radius: 10px;
+        padding: 0.8rem 0.85rem;
+        font: inherit;
+        color: var(--ink);
+      }
+      .btn {
+        border: 0;
+        border-radius: 10px;
+        min-height: 44px;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .btn:hover { background: var(--primary-hover); }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+      }
+      .card h2 {
+        margin: 0 0 0.25rem;
+        font-size: 1.05rem;
+        font-family: var(--font-display);
+      }
+      .card p { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.92rem; }
+      .meta {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.75rem;
+      }
+      .chip {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 0.25rem 0.5rem;
+        border-radius: 999px;
+        background: var(--wash);
+        color: var(--primary);
+      }
+      .chip--accent {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .link {
+        color: var(--primary);
+        font-weight: 700;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="tag">Demo 1 / 4 · Bright & friendly</span>
+      <p class="brand">X Cron</p>
+      <p class="jobs">Jobs</p>
+      <h1>Find work near you</h1>
+      <p class="lead">Local roles with clear pay, city filters, and unlock when you’re ready.</p>
+      <form class="search" onsubmit="return false">
+        <label>Role<input value="Warehouse helper" /></label>
+        <label>Location<input value="Palani" /></label>
+        <button class="btn" type="button">Search roles</button>
+      </form>
+      <article class="card">
+        <div class="meta">
+          <span class="chip">Full-time</span>
+          <span class="chip chip--accent">New</span>
+        </div>
+        <h2>Warehouse helper</h2>
+        <p>Sunrise Logistics · ₹16k–18k · Palani</p>
+        <a class="link" href="#">View role →</a>
+      </article>
+      <article class="card">
+        <div class="meta"><span class="chip">Part-time</span></div>
+        <h2>Cafe cashier</h2>
+        <p>Bean Street · ₹12k · Dindigul</p>
+        <a class="link" href="#">View role →</a>
+      </article>
+    </div>
+  </body>
+</html>

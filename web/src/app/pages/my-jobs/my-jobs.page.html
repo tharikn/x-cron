@@ -4,16 +4,16 @@
     History table of jobs you posted. Use Options for edit, activate / deactivate, or hide.
   </p>
 
-  @if (!isSignedIn() || !isAdmin()) {
+  @if (!isSignedIn() || !isEmployer()) {
     <div class="gate">
       <p>
         @if (!isSignedIn()) {
-          Admins must sign in to manage posted jobs.
+          Employers must sign in to manage posted jobs.
         } @else {
-          This account is not an admin. Use admin&#64;xcron.local.
+          This account is not an employer. Create an employer profile or use an employer account.
         }
       </p>
-      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+      <a class="btn" routerLink="/settings/account">Go to Sign in</a>
     </div>
   } @else {
     <div class="toolbar">
@@ -121,6 +121,9 @@
                           }
                           <button type="button" role="menuitem" [disabled]="busy()" (click)="hide(job)">
                             Hide
+                          </button>
+                          <button type="button" role="menuitem" [disabled]="busy()" (click)="renew(job)">
+                            Renew +30 days
                           </button>
                         </div>
                       }

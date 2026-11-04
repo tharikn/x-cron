@@ -162,6 +162,7 @@ export class PreferencesService {
       languages: (remote.languages as UserPreferences['languages']) ?? ['en', 'ta'],
       salaryMin: remote.salaryMin ?? null,
       remotePreferred: !!remote.remotePreferred,
+      sort: (remote.sort as UserPreferences['sort']) || 'newest',
       interfaceLocale:
         typeof remote.interfaceLocale === 'string' && remote.interfaceLocale.trim()
           ? remote.interfaceLocale.trim()

@@ -9,7 +9,7 @@ import { SeekerStore } from './seeker.store';
 
 @Module({
   imports: [
-    JobsModule,
+    forwardRef(() => JobsModule),
     PreferencesModule,
     SiteModule,
     forwardRef(() => AdsModule),

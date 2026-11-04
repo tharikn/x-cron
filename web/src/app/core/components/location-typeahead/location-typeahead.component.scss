@@ -4,12 +4,17 @@
 
 .loc input {
   width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
   border: 1px solid var(--xcron-line);
   background: var(--xcron-wash);
   color: var(--xcron-ink);
   padding: 0.78rem 0.9rem;
   border-radius: var(--xcron-radius-sm);
   outline: none;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
   transition:
     border-color 160ms var(--xcron-ease),
     box-shadow 160ms var(--xcron-ease);

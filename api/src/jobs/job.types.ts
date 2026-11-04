@@ -30,6 +30,9 @@ export interface JobLocation {
   city: string;
   locality?: string;
   remote?: boolean;
+  /** Optional precise coords; otherwise search may use city centroid. */
+  lat?: number;
+  lng?: number;
 }
 
 export interface JobContactMask {
@@ -73,7 +76,11 @@ export interface JobRecord {
   contact: JobContactMask;
   reportCount?: number;
   moderationNote?: string;
-  /** Private — never returned by public DTOs */
+  /** Walk-in interview datetime (ISO), if any. */
+  walkInAt?: string;
+  /** Application deadline (ISO), if any. */
+  applyBy?: string;
+  /** Canonical contact values — also exposed on public job DTOs (no unlock gate). */
   privateContact?: {
     phone?: string;
     email?: string;
@@ -90,12 +97,26 @@ export interface JobSearchQuery {
   category?: string;
   language?: string;
   salaryMin?: number | null;
+  /** When true, only remote/WFH jobs. */
+  remote?: boolean | null;
+  /** Limit to jobs published within this window. */
+  postedWithin?: '1d' | '7d' | '30d' | null;
+  /** Nearby search origin (degrees). */
+  nearLat?: number | null;
+  nearLng?: number | null;
+  /** Radius in km around nearLat/nearLng. */
+  radiusKm?: number | null;
+  /** Exclude job ids (hidden / not interested). */
+  excludeJobIds?: string[];
+  /** When true, only jobs with walkInAt set. */
+  walkInOnly?: boolean | null;
   sort?:
     | 'relevance'
     | 'newest'
     | 'oldest'
     | 'salary-desc'
-    | 'salary-asc';
+    | 'salary-asc'
+    | 'distance';
   cursor?: string;
   limit?: number;
 }
@@ -124,4 +145,9 @@ export interface CreateJobInput {
   effectiveFrom?: string;
   expiresAt?: string;
   priority?: number;
+  remote?: boolean;
+  walkInAt?: string;
+  applyBy?: string;
+  locationLat?: number;
+  locationLng?: number;
 }

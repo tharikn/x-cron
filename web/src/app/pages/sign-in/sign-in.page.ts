@@ -67,7 +67,7 @@ export class SignInPage implements OnInit, AfterViewInit {
     this.seo.setPage({
       title: 'Sign in',
       description: 'Sign in to X Cron Jobs with Google, or admin password for ops.',
-      path: '/sign-in',
+      path: '/settings/account',
     });
     await this.auth.ensureSession();
     if (this.needsAdminLogin()) {
@@ -160,7 +160,7 @@ export class SignInPage implements OnInit, AfterViewInit {
       await this.auth.signInWithGoogle({ idToken });
       await this.redirectAfterSignIn();
     } catch {
-      this.error.set('Google sign-in failed. Is the API running on port 3000?');
+      this.error.set("Google sign-in didn't work. Please try again.");
     } finally {
       this.busy.set(false);
     }
@@ -180,7 +180,7 @@ export class SignInPage implements OnInit, AfterViewInit {
       });
       await this.redirectAfterSignIn();
     } catch {
-      this.error.set('Admin sign-in failed. Check credentials and API status.');
+      this.error.set("Couldn't sign in. Check your email and password.");
     } finally {
       this.busy.set(false);
     }
@@ -204,7 +204,7 @@ export class SignInPage implements OnInit, AfterViewInit {
       });
       await this.redirectAfterSignIn();
     } catch {
-      this.error.set('Sign-in failed. Is the API running on port 3000?');
+      this.error.set("Sign-in didn't work. Please try again.");
     } finally {
       this.busy.set(false);
     }

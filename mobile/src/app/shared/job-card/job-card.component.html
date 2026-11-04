@@ -7,12 +7,10 @@
           <ion-badge color="medium">{{ job.promotionBadge || 'Promoted' }}</ion-badge>
         }
       </div>
-      <ion-text color="medium">
-        <small>{{ formatPostedDate(job.publishedAt) }}</small>
-      </ion-text>
+      <time class="job-card__time">{{ formatPostedDate(job.publishedAt) }}</time>
     </div>
-    <ion-card-title>{{ job.title }}</ion-card-title>
-    <ion-card-subtitle>
+    <ion-card-title class="job-card__title">{{ job.title }}</ion-card-title>
+    <ion-card-subtitle class="job-card__employer">
       {{ job.employerName }}
       @if (job.verifiedEmployer) {
         <span class="verified">Verified</span>

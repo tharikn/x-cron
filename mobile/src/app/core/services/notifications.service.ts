@@ -88,12 +88,21 @@ export class NotificationsService {
     return this.stubToken();
   }
 
+  /**
+   * Link this device's FCM token to the signed-in user.
+   * Job system pushes only target linked devices while a refresh session is alive.
+   */
   async registerDevice(): Promise<void> {
     try {
       // OS tray must work even when FCM/Firebase is absent.
       await this.ensureOsTrayPermission();
       if (Capacitor.isNativePlatform() && environment.fcmEnabled) {
         await this.ensureRemotePush();
+      }
+      // Anonymous devices never receive job fan-out — wait until signed in.
+      if (!this.auth.isSignedIn()) {
+        this.deviceRegistered.set(false);
+        return;
       }
       const platform = Capacitor.getPlatform();
       const fcmToken = this.currentPushToken();
@@ -122,6 +131,26 @@ export class NotificationsService {
       this.deviceRegistered.set(true);
       this.remotePushReady.set(!fcmToken.startsWith('stub_fcm_'));
     } catch {
+      this.deviceRegistered.set(false);
+    }
+  }
+
+  /**
+   * Detach FCM from the user so system job pushes stop after logout / session death.
+   * Uses deviceId + fcmToken proof (works without a live Bearer token).
+   */
+  async unlinkDevice(): Promise<void> {
+    try {
+      const fcmToken = localStorage.getItem(FCM_TOKEN_KEY) || this.stubToken();
+      await firstValueFrom(
+        this.http.post(`${environment.apiUrl}/devices/unlink`, {
+          deviceId: this.preferences.deviceId(),
+          fcmToken,
+        }),
+      );
+    } catch {
+      // best-effort — server also suppresses pushes when refresh session is gone
+    } finally {
       this.deviceRegistered.set(false);
     }
   }
@@ -386,7 +415,7 @@ export class NotificationsService {
     });
 
     await PushNotifications.addListener('pushNotificationActionPerformed', () => {
-      void this.refreshInbox({ announce: false });
+      void this.onForegroundResume();
     });
   }
 
@@ -399,22 +428,33 @@ export class NotificationsService {
     }
   }
 
+  /** Silent access refresh + inbox when the app (or a push tap) comes to foreground. */
+  private async onForegroundResume(): Promise<void> {
+    try {
+      await this.auth.ensureSession();
+    } catch {
+      // session clear handled inside auth
+    }
+    if (!this.auth.isSignedIn()) return;
+    await this.tick();
+  }
+
   private bindLifecycleListeners(): void {
     if (this.listenersBound || typeof document === 'undefined') return;
     this.listenersBound = true;
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        void this.tick();
+        void this.onForegroundResume();
       }
     });
     window.addEventListener('focus', () => {
-      void this.tick();
+      void this.onForegroundResume();
     });
 
     if (Capacitor.isNativePlatform()) {
       void App.addListener('appStateChange', ({ isActive }) => {
-        if (isActive) void this.tick();
+        if (isActive) void this.onForegroundResume();
       });
     }
   }

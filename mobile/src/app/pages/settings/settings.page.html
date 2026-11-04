@@ -1,0 +1,44 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'nav.settings' | t }}</ion-title>
+  </ion-toolbar>
+  <ion-toolbar class="settings-tabs">
+    <ion-segment
+      [value]="tab()"
+      (ionChange)="onTabChange($event.detail.value)"
+      scrollable="true"
+    >
+      <ion-segment-button value="language">
+        <ion-label>{{ 'nav.language' | t }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="preferences">
+        <ion-label>{{ 'nav.prefs' | t }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="account">
+        <ion-label>{{ 'nav.account' | t }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="saved">
+        <ion-label>{{ 'nav.saved' | t }}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="settings-body">
+    @switch (tab()) {
+      @case ('language') {
+        <app-language />
+      }
+      @case ('preferences') {
+        <app-preferences />
+      }
+      @case ('account') {
+        <app-account />
+      }
+      @case ('saved') {
+        <app-saved-jobs />
+      }
+    }
+  </div>
+</ion-content>

@@ -24,6 +24,7 @@ export class MyJobsPage implements OnInit {
   readonly languages = this.locale.languages;
   readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
+  readonly isEmployer = this.auth.isEmployer;
   readonly jobs = signal<Job[]>([]);
   readonly busy = signal(false);
   readonly message = signal<string | null>(null);
@@ -57,7 +58,7 @@ export class MyJobsPage implements OnInit {
     if (!this.locale.ready()) {
       await this.locale.hydrate();
     }
-    if (this.auth.isSignedIn() && this.auth.isAdmin()) {
+    if (this.auth.isSignedIn() && this.auth.isEmployer()) {
       await this.reload();
     }
   }
@@ -195,6 +196,21 @@ export class MyJobsPage implements OnInit {
       await this.reload();
     } catch {
       this.error.set('Deactivate failed.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async renew(job: Job): Promise<void> {
+    this.busy.set(true);
+    this.error.set(null);
+    this.optionsOpenId.set(null);
+    try {
+      await this.jobsService.renewMyJob(job.id);
+      this.message.set(`“${job.title}” renewed for 30 days.`);
+      await this.reload();
+    } catch {
+      this.error.set('Renew failed.');
     } finally {
       this.busy.set(false);
     }

@@ -120,9 +120,11 @@
   background: var(--xcron-bg-elevated);
   border-radius: var(--xcron-radius);
   box-shadow: var(--xcron-shadow);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
   transition:
-    transform 180ms var(--xcron-ease),
-    box-shadow 180ms var(--xcron-ease);
+    transform 160ms var(--xcron-ease),
+    box-shadow 160ms var(--xcron-ease);
   animation: xcron-rise 420ms var(--xcron-ease) both;
   animation-delay: calc(var(--i, 0) * 45ms);
 }
@@ -209,9 +211,11 @@
   margin: 8px 0 0;
   padding: 22px 16px;
   text-align: center;
-  border: 1px dashed var(--xcron-line-strong);
+  border: 1px solid var(--xcron-line);
   border-radius: var(--xcron-radius);
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--xcron-wash);
+  color: var(--xcron-muted);
+  box-shadow: var(--xcron-shadow);
 }
 
 @media (prefers-reduced-motion: reduce) {

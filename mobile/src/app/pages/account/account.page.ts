@@ -5,16 +5,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   AlertController,
   IonButton,
-  IonContent,
-  IonHeader,
+  IonInput,
   IonItem,
   IonLabel,
   IonList,
   IonNote,
   IonSelect,
   IonSelectOption,
-  IonTitle,
-  IonToolbar,
+  IonToggle,
   ToastController,
 } from '@ionic/angular';
 import type { Job } from '../../core/models/job.model';
@@ -34,17 +32,15 @@ import { SeekerService } from '../../core/services/seeker.service';
     DatePipe,
     FormsModule,
     RouterLink,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonContent,
     IonList,
     IonItem,
     IonLabel,
     IonNote,
     IonButton,
+    IonInput,
     IonSelect,
     IonSelectOption,
+    IonToggle,
   ],
 })
 export class AccountPage implements OnInit {
@@ -68,6 +64,14 @@ export class AccountPage implements OnInit {
   readonly inbox = this.notifications.items;
   readonly savedJobs = this.seeker.saved;
   readonly feedJobs = this.seeker.feed;
+  readonly applications = this.seeker.applications;
+  readonly savedSearches = this.seeker.savedSearches;
+  readonly profile = this.seeker.profile;
+  readonly isEmployer = this.auth.isEmployer;
+  profileSkills = '';
+  profileCities = '';
+  profileBand: 'fresher' | '0-1' | '1-3' | '3-5' | '5+' | '' = '';
+  openToWork = true;
   readonly plans = signal<
     Array<{ id: string; name: string; description: string; pricePaise: number }>
   >([]);
@@ -78,7 +82,6 @@ export class AccountPage implements OnInit {
     const wantsAdmin =
       modeParam === 'admin' ||
       returnUrl.startsWith('/tabs/post') ||
-      returnUrl.startsWith('/tabs/ads') ||
       returnUrl.startsWith('/tabs/import') ||
       returnUrl.startsWith('/tabs/job-fare');
     return wantsAdmin && !this.isAdmin();
@@ -105,7 +108,7 @@ export class AccountPage implements OnInit {
   async signInAsAdmin(): Promise<void> {
     const alert = await this.alertController.create({
       header: 'Admin sign in',
-      message: 'Use the SUPER_ADMIN email and password for Post, Ads, and moderation.',
+      message: 'Use the SUPER_ADMIN email and password for Post and moderation.',
       inputs: [
         {
           name: 'email',
@@ -141,7 +144,7 @@ export class AccountPage implements OnInit {
         await this.afterSignIn();
         await this.showToast(
           this.isAdmin()
-            ? 'Signed in as admin. Post and Ads tabs unlocked.'
+            ? 'Signed in as admin. Post tab unlocked.'
             : 'Signed in with Google.',
         );
         await this.redirectIfNeeded();
@@ -202,7 +205,7 @@ export class AccountPage implements OnInit {
       await this.showToast('Signed in as super admin.');
       await this.redirectIfNeeded();
     } catch {
-      await this.showToast('Admin sign-in failed. Check credentials and API.');
+      await this.showToast("Couldn't sign in. Check your email and password.");
     }
   }
 
@@ -221,12 +224,12 @@ export class AccountPage implements OnInit {
       await this.afterSignIn();
       await this.showToast(
         this.isAdmin()
-          ? 'Signed in as admin. Post and Ads tabs unlocked.'
+          ? 'Signed in as admin. Post tab unlocked.'
           : 'Signed in with Google.',
       );
       await this.redirectIfNeeded();
     } catch {
-      await this.showToast('Google sign-in failed. Is the API running?');
+      await this.showToast("Google sign-in didn't work. Please try again.");
     }
   }
 
@@ -300,16 +303,61 @@ export class AccountPage implements OnInit {
       );
       await this.seeker.loadSaved();
       await this.seeker.loadFeed();
+      await this.seeker.loadApplications();
+      await this.seeker.loadSavedSearches();
+      const profile = await this.seeker.loadProfile();
+      this.profileSkills = profile.skills.join(', ');
+      this.profileCities = profile.preferredCities.join(', ');
+      this.profileBand = profile.experienceBand ?? '';
+      this.openToWork = profile.openToWork;
     } catch {
       // API optional for account chrome
     }
     if (this.isAdmin()) await this.reloadQueue();
   }
 
+  async saveProfile(): Promise<void> {
+    try {
+      await this.seeker.saveProfile({
+        experienceBand: this.profileBand || undefined,
+        skills: this.profileSkills
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        preferredCities: this.profileCities
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        openToWork: this.openToWork,
+      });
+      await this.showToast('Profile saved.');
+    } catch {
+      await this.showToast('Could not save profile.');
+    }
+  }
+
+  async deleteSavedSearch(id: string): Promise<void> {
+    try {
+      await this.seeker.deleteSavedSearch(id);
+      await this.showToast('Saved search removed.');
+    } catch {
+      await this.showToast('Could not remove saved search.');
+    }
+  }
+
+  async removeSavedJob(jobId: string): Promise<void> {
+    try {
+      await this.seeker.unsave(jobId);
+      await this.showToast('Removed from saved jobs.');
+    } catch {
+      await this.showToast('Could not remove saved job.');
+    }
+  }
+
   private async redirectIfNeeded(): Promise<void> {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
     if (!returnUrl?.startsWith('/') || returnUrl.startsWith('//')) return;
-    if (!this.isAdmin()) return;
+    if (!this.isAdmin() && !this.isEmployer()) return;
     await this.router.navigateByUrl(returnUrl);
   }
 

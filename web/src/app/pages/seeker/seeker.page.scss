@@ -1,0 +1,53 @@
+.seeker {
+  padding: 1.5rem var(--xcron-pad-x) 3rem;
+  max-width: var(--xcron-content-max);
+  margin: 0 auto;
+}
+
+.list {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.list a {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  text-decoration: none;
+  color: inherit;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.row a {
+  flex: 1;
+  min-width: 0;
+}
+
+.remove {
+  flex-shrink: 0;
+  min-height: var(--xcron-btn-height, 44px);
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--xcron-line);
+  background: transparent;
+  color: var(--xcron-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.remove:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #f43f5e;
+}

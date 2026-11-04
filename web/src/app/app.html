@@ -94,34 +94,44 @@
         {{ 'nav.home' | t }}
       </a>
       @if (isAdmin()) {
-        <a routerLink="/post" routerLinkActive="is-active" (click)="closeMenu()">
-          {{ 'nav.post' | t }}
-        </a>
+        <div class="drawer__group">
+          <a routerLink="/post" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.post' | t }}
+          </a>
+          <div class="drawer__sub" role="group" [attr.aria-label]="'nav.post' | t">
+            <a routerLink="/admin/job-fare" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.jobFare' | t }}
+            </a>
+            <a routerLink="/import" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.import' | t }}
+            </a>
+          </div>
+        </div>
         <a routerLink="/admin" routerLinkActive="is-active" (click)="closeMenu()">
           {{ 'nav.admin' | t }}
         </a>
         <a routerLink="/admin/payments" routerLinkActive="is-active" (click)="closeMenu()">
           {{ 'nav.payments' | t }}
         </a>
-        <a routerLink="/admin/notifications" routerLinkActive="is-active" (click)="closeMenu()">
-          {{ 'nav.notifAdmin' | t }}
-        </a>
-        <a routerLink="/admin/job-fare" routerLinkActive="is-active" (click)="closeMenu()">
-          {{ 'nav.jobFare' | t }}
-        </a>
-        <a routerLink="/import" routerLinkActive="is-active" (click)="closeMenu()">
-          {{ 'nav.import' | t }}
-        </a>
-        <a routerLink="/my-jobs" routerLinkActive="is-active" (click)="closeMenu()">
-          {{ 'nav.myJobs' | t }}
-        </a>
+        <div class="drawer__group">
+          <p class="drawer__label">{{ 'nav.logs' | t }}</p>
+          <div class="drawer__sub" role="group" [attr.aria-label]="'nav.logs' | t">
+            <a routerLink="/admin/notifications" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.notifAdmin' | t }}
+            </a>
+            <a routerLink="/my-jobs" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.myJobs' | t }}
+            </a>
+          </div>
+        </div>
         <a routerLink="/blog-approval" routerLinkActive="is-active" (click)="closeMenu()">
           {{ 'nav.blogApproval' | t }}
         </a>
-        <a routerLink="/settings" routerLinkActive="is-active" (click)="closeMenu()">
-          {{ 'nav.settings' | t }}
-        </a>
       }
+      <a routerLink="/settings" routerLinkActive="is-active" (click)="closeMenu()">
+        {{ 'nav.settings' | t }}
+        <span class="drawer__meta">{{ languageLabel() }}</span>
+      </a>
       <a
         routerLink="/notifications"
         routerLinkActive="is-active"
@@ -136,15 +146,8 @@
           </span>
         }
       </a>
-      <a routerLink="/preferences" routerLinkActive="is-active" (click)="closeMenu()">
-        {{ 'nav.preferences' | t }}
-      </a>
-      <a routerLink="/language" routerLinkActive="is-active" (click)="closeMenu()">
-        {{ 'nav.language' | t }}
-        <span class="drawer__meta">{{ languageLabel() }}</span>
-      </a>
-      <a routerLink="/sign-in" routerLinkActive="is-active" (click)="closeMenu()">
-        {{ isSignedIn() ? ('nav.account' | t) : ('nav.signIn' | t) }}
+      <a routerLink="/me" routerLinkActive="is-active" (click)="closeMenu()">
+        {{ 'nav.saved' | t }}
       </a>
       @if (!isAdmin()) {
         <app-get-app-cta variant="link" (click)="closeMenu()" />

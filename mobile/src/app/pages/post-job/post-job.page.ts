@@ -26,6 +26,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { LocationTypeaheadComponent } from '../../shared/location-typeahead/location-typeahead.component';
+import {
+  type FieldErrors,
+  parseVacancies,
+  validateQuickPostFields,
+} from '../../core/utils/job-form.validation';
 
 type PostMode = 'quick' | 'paste';
 
@@ -74,6 +79,7 @@ export class PostJobPage implements OnInit {
   locationCity = 'Palani';
   jobType: JobType = 'full-time';
   salaryText = '';
+  vacancies = '';
   description = '';
   contentLanguage = 'en';
   contactPhone = '';
@@ -82,6 +88,7 @@ export class PostJobPage implements OnInit {
   pasteText = '';
   promoteJobId = 'job_001';
   promotePackageId = 'featured_7d';
+  readonly fieldErrors = signal<FieldErrors>({});
 
   async ngOnInit(): Promise<void> {
     if (!this.locale.ready()) {
@@ -100,26 +107,49 @@ export class PostJobPage implements OnInit {
     }
   }
 
+  clearFieldError(key: string): void {
+    if (!this.fieldErrors()[key]) return;
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      delete next[key];
+      return next;
+    });
+  }
+
   async submitQuick(): Promise<void> {
     if (!(await this.ensureEmployerReady())) return;
-    if (!this.title.trim() || !this.employerName.trim() || !this.description.trim()) {
-      await this.showToast('Title, employer and description are required.');
+    const errors = validateQuickPostFields({
+      title: this.title,
+      employerName: this.employerName,
+      locationCity: this.locationCity,
+      salaryText: this.salaryText,
+      description: this.description,
+      contactPhone: this.contactPhone,
+      contactEmail: this.contactEmail,
+      contactWebsite: this.contactWebsite,
+      vacancies: this.vacancies,
+    });
+    this.fieldErrors.set(errors);
+    if (Object.keys(errors).length) {
+      await this.showToast(Object.values(errors)[0] ?? 'Fix the highlighted fields.');
       return;
     }
 
     try {
       const published = await this.jobsService.createQuickPost({
-        title: this.title,
-        employerName: this.employerName,
-        locationCity: this.locationCity,
+        title: this.title.trim(),
+        employerName: this.employerName.trim(),
+        locationCity: this.locationCity.trim(),
         jobType: this.jobType,
-        salaryText: this.salaryText,
-        description: this.description,
+        salaryText: this.salaryText.trim() || undefined,
+        vacancies: parseVacancies(this.vacancies),
+        description: this.description.trim(),
         contentLanguage: this.contentLanguage,
-        contactPhone: this.contactPhone,
+        contactPhone: this.contactPhone.trim() || undefined,
         contactEmail: this.contactEmail.trim() || undefined,
         contactWebsite: this.contactWebsite.trim() || undefined,
       });
+      this.fieldErrors.set({});
       await this.showToast('Submitted for moderation. Admins must approve before it appears in search.');
       await this.router.navigate(['/tabs/account']);
       void published;

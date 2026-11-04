@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Theme demo 6 — High-end premium colors</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Sans:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #07080a;
+        --surface: #111318;
+        --surface-2: #171a21;
+        --ink: #f4f5f7;
+        --muted: #9aa3af;
+        --faint: #6b7380;
+        --line: rgba(255, 255, 255, 0.08);
+        --line-strong: rgba(255, 255, 255, 0.14);
+        --accent: #d4af57;
+        --accent-soft: rgba(212, 175, 87, 0.16);
+        --accent-text: #f0d78c;
+        --radius: 16px;
+        --font-display: 'Instrument Sans', system-ui, sans-serif;
+        --font-body: Geist, system-ui, sans-serif;
+      }
+
+      /* A Champagne gold */
+      [data-theme='champagne'] {
+        --bg: #09090b;
+        --surface: #131316;
+        --surface-2: #1a1a1f;
+        --accent: #d4af57;
+        --accent-soft: rgba(212, 175, 87, 0.16);
+        --accent-text: #f0d78c;
+      }
+
+      /* B Emerald */
+      [data-theme='emerald'] {
+        --bg: #060b09;
+        --surface: #0e1613;
+        --surface-2: #13201b;
+        --accent: #10b981;
+        --accent-soft: rgba(16, 185, 129, 0.16);
+        --accent-text: #6ee7b7;
+      }
+
+      /* C Copper rose */
+      [data-theme='copper'] {
+        --bg: #0c0909;
+        --surface: #161111;
+        --surface-2: #1f1716;
+        --accent: #e11d48;
+        --accent-soft: rgba(225, 29, 72, 0.16);
+        --accent-text: #fb7185;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--font-body);
+        color: var(--ink);
+        background:
+          radial-gradient(900px 520px at 15% -20%, var(--accent-soft) 0%, transparent 55%),
+          radial-gradient(700px 420px at 100% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 45%),
+          var(--bg);
+        transition: background 220ms ease;
+      }
+      .wrap {
+        max-width: 440px;
+        margin: 0 auto;
+        padding: 28px 18px 56px;
+      }
+      .picker {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .picker button {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--muted);
+        border-radius: 999px;
+        min-height: 40px;
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .picker button.is-active {
+        color: var(--ink);
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .swatches {
+        display: flex;
+        gap: 0.45rem;
+        margin-bottom: 1.1rem;
+      }
+      .swatch {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid var(--line-strong);
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-bottom: 18px;
+        padding: 0.4rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .tag i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 10px var(--accent);
+      }
+      .brand {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: clamp(3rem, 12vw, 3.6rem);
+        font-weight: 700;
+        letter-spacing: -0.06em;
+        line-height: 0.92;
+      }
+      .jobs {
+        margin: 0.55rem 0 1.35rem;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--accent-text);
+      }
+      h1 {
+        margin: 0 0 0.55rem;
+        font-family: var(--font-display);
+        font-size: 1.55rem;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        max-width: 11ch;
+        line-height: 1.1;
+      }
+      .lead {
+        margin: 0 0 1.5rem;
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 0.98rem;
+        max-width: 32ch;
+      }
+      .search {
+        display: grid;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        margin-bottom: 1.35rem;
+      }
+      label {
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.66rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      input {
+        width: 100%;
+        border: 1px solid var(--line-strong);
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 0.85rem 0.9rem;
+        font: inherit;
+        color: var(--ink);
+        outline: none;
+      }
+      input:focus {
+        border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .btn {
+        border: 0;
+        border-radius: 999px;
+        min-height: 48px;
+        background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent));
+        color: #0a0a0a;
+        font-weight: 700;
+        font-family: inherit;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+      }
+      [data-theme='copper'] .btn { color: #fff; }
+      .section-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin: 0 0 0.85rem;
+        color: var(--faint);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .section-label strong {
+        color: var(--ink);
+        font-size: 0.95rem;
+        letter-spacing: -0.02em;
+        text-transform: none;
+      }
+      .card {
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.05rem;
+        margin-bottom: 0.75rem;
+      }
+      .card h2 {
+        margin: 0 0 0.28rem;
+        font-size: 1.08rem;
+        font-family: var(--font-display);
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+      .card p {
+        margin: 0 0 0.85rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .meta {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.75rem;
+      }
+      .chip {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--muted);
+        border: 1px solid var(--line);
+      }
+      .chip--accent {
+        background: var(--accent-soft);
+        color: var(--accent-text);
+        border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+      }
+      .link {
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 0.92rem;
+      }
+      .link span { color: var(--accent-text); }
+      .note {
+        margin-top: 1.5rem;
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+      .note b { color: var(--ink); font-weight: 600; }
+    </style>
+  </head>
+  <body data-theme="champagne">
+    <div class="wrap">
+      <div class="picker" role="tablist" aria-label="Premium color sets">
+        <button type="button" class="is-active" data-set="champagne">Champagne</button>
+        <button type="button" data-set="emerald">Emerald</button>
+        <button type="button" data-set="copper">Copper</button>
+      </div>
+      <div class="swatches" aria-hidden="true">
+        <span class="swatch" id="sw1" style="background:#d4af57"></span>
+        <span class="swatch" id="sw2" style="background:#1a1a1f"></span>
+        <span class="swatch" id="sw3" style="background:#f4f5f7"></span>
+      </div>
+      <span class="tag"><i></i> Demo 6 · Same UI, premium colors</span>
+      <p class="brand">X Cron</p>
+      <p class="jobs">Jobs</p>
+      <h1>Find work near you</h1>
+      <p class="lead">Local roles with clear pay. Browse free — unlock contact when ready.</p>
+      <form class="search" onsubmit="return false">
+        <label>Role<input value="Warehouse helper" /></label>
+        <label>Location<input value="Palani" /></label>
+        <button class="btn" type="button">Search roles</button>
+      </form>
+      <div class="section-label"><strong>Open roles</strong><span>Nearby</span></div>
+      <article class="card">
+        <div class="meta">
+          <span class="chip">Full-time</span>
+          <span class="chip chip--accent">Matched</span>
+        </div>
+        <h2>Warehouse helper</h2>
+        <p>Sunrise Logistics · ₹16k–18k · Palani</p>
+        <a class="link" href="#">View role <span>→</span></a>
+      </article>
+      <article class="card">
+        <div class="meta"><span class="chip">Part-time</span></div>
+        <h2>Cafe cashier</h2>
+        <p>Bean Street · ₹12k · Dindigul</p>
+        <a class="link" href="#">View role <span>→</span></a>
+      </article>
+      <p class="note">
+        <b>Same high-end structure as Demo 5.</b>
+        Tap Champagne / Emerald / Copper to compare premium accents only.
+      </p>
+    </div>
+    <script>
+      const swatches = {
+        champagne: ['#d4af57', '#1a1a1f', '#f4f5f7'],
+        emerald: ['#10b981', '#13201b', '#f4f5f7'],
+        copper: ['#e11d48', '#1f1716', '#f4f5f7'],
+      };
+      const buttons = document.querySelectorAll('.picker button');
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const set = btn.dataset.set;
+          document.body.dataset.theme = set;
+          buttons.forEach((b) => b.classList.toggle('is-active', b === btn));
+          const [a, b, c] = swatches[set];
+          document.getElementById('sw1').style.background = a;
+          document.getElementById('sw2').style.background = b;
+          document.getElementById('sw3').style.background = c;
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -42,8 +42,8 @@ Telegram groups  --(Bot API, free)------------->  Telegram adapter
 
 | Surface | Route |
 | --- | --- |
-| **Web** (drawer nav → Job Fare) | `/admin/job-fare` |
-| **Mobile** | `/tabs/job-fare` (Account → Job Fare pull) |
+| **Web** (drawer → Post → Job Fare) | `/admin/job-fare` |
+| **Mobile** | `/tabs/job-fare` (Post → Job Fare pull) |
 
 Both are admin-guarded and share the same `/v1/channels/*` API.
 

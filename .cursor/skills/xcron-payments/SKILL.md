@@ -23,11 +23,14 @@ controllers, job unlock UI, or entitlement grants.
    **inside** the adapter; keep webhook handling **idempotent**.
 5. **Free-first** — prefer ₹0 / sandbox paths for MVP: `stub`, then `upi`
    (merchant VPA), then live PSP. Do not assume paid Razorpay/Cashfree keys.
-6. **Contacts stay private** — unlock never returns phone/email/WhatsApp until
-   entitlement is granted after a verified paid (or stub) event.
-7. **Client payment section** — unlock must open an in-app payment panel (UPI QR
-   + UPI ID / hosted checkout). Never auto-confirm or deep-link UPI without that
-   panel. Confirm only after explicit “I have paid” (or verified webhook).
+6. **Job contact unlock is retired from seeker UI** — public job DTOs expose
+   phone/email/WhatsApp/website directly. Keep legacy `job_contact_unlock` /
+   `GET …/contact` paths working for entitlements/history, but do not re-add
+   unlock CTAs on job detail.
+7. **Client payment section** — when collecting post-job or subscription fees,
+   open an in-app payment panel (UPI QR + UPI ID / hosted checkout). Never
+   auto-confirm or deep-link UPI without that panel. Confirm only after
+   explicit “I have paid” (or verified webhook).
 8. **History** — every create / confirm_attempt / confirm_failed / paid / free_grant
    must append `PaymentHistoryEvent` (admin `/admin/payments`, CSV+PDF export).
 9. **Confirm hardening** — client confirm blocked in production; ownership + TTL

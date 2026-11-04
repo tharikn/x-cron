@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { cityCentroid } from './geo';
 import {
   CreateJobInput,
   JobRecord,
@@ -13,6 +14,11 @@ import {
   toPrismaJobStatus,
   toPrismaJobType,
 } from './jobs.prisma-map';
+import {
+  filterJobs,
+  paginateHits,
+  sortJobHits,
+} from './jobs-search.util';
 import { JobsStore } from './jobs.store';
 import { SEED_JOBS } from './seed-jobs';
 
@@ -166,55 +172,14 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
   async search(
     query: JobSearchQuery,
   ): Promise<{ items: JobRecord[]; nextCursor?: string; total: number }> {
-    const keyword = query.keyword?.trim().toLowerCase() ?? '';
-    const locationText = query.locationText?.trim().toLowerCase() ?? '';
-    const limit = Math.min(Math.max(query.limit ?? 20, 1), 50);
-
-    let results = (await this.listPublished()).filter((job) => {
-      const haystack = [
-        job.title,
-        job.employerName,
-        job.category,
-        job.description.about,
-        ...(job.skills ?? []),
-      ]
-        .join(' ')
-        .toLowerCase();
-      const locationHaystack = [
-        job.location.city,
-        job.location.district,
-        job.location.state,
-        job.location.locality ?? '',
-      ]
-        .join(' ')
-        .toLowerCase();
-
-      return (
-        (!keyword || haystack.includes(keyword)) &&
-        (!locationText || locationHaystack.includes(locationText)) &&
-        (!query.jobType || job.jobType === query.jobType) &&
-        (!query.category || job.category === query.category) &&
-        (!query.language || job.contentLanguage === query.language) &&
-        (query.salaryMin == null ||
-          (job.salary?.max ?? job.salary?.min ?? 0) >= query.salaryMin)
-      );
-    });
-
-    results = this.sortJobs(results, query.sort ?? 'newest', !!keyword);
-
-    const total = results.length;
-
-    if (query.cursor) {
-      const index = results.findIndex((job) => job.id === query.cursor);
-      if (index >= 0) {
-        results = results.slice(index + 1);
-      }
-    }
-
-    const page = results.slice(0, limit);
-    const nextCursor =
-      results.length > limit ? page[page.length - 1]?.id : undefined;
-    return { items: page, nextCursor, total };
+    const published = await this.listPublished();
+    const filtered = filterJobs(published, query);
+    const sorted = sortJobHits(
+      filtered,
+      query.sort ?? 'newest',
+      query.keyword ?? '',
+    );
+    return paginateHits(sorted, query.cursor, query.limit);
   }
 
   async related(job: JobRecord, limit = 3): Promise<JobRecord[]> {
@@ -287,6 +252,9 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
         state,
         district,
         city,
+        remote: !!input.remote,
+        lat: input.locationLat ?? cityCentroid(city)?.lat,
+        lng: input.locationLng ?? cityCentroid(city)?.lng,
       },
       jobType: input.jobType,
       salary,
@@ -307,6 +275,8 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
       priority: input.priority ?? 0,
       status,
       reportCount: 0,
+      walkInAt: input.walkInAt,
+      applyBy: input.applyBy,
       contact: {
         hasPhone: !!phone,
         hasEmail: !!email,
@@ -340,6 +310,8 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
         city: job.location.city,
         locality: job.location.locality,
         remote: !!job.location.remote,
+        lat: job.location.lat,
+        lng: job.location.lng,
         ...salaryFields,
         salaryCurrency: 'INR',
         experienceLabel: job.experienceLabel,
@@ -353,6 +325,8 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
         publishedAt: new Date(job.publishedAt),
         effectiveFrom: new Date(job.effectiveFrom),
         expiresAt: new Date(job.expiresAt),
+        walkInAt: job.walkInAt ? new Date(job.walkInAt) : null,
+        applyBy: job.applyBy ? new Date(job.applyBy) : null,
         priority: job.priority,
         reportCount: 0,
         contactSecret: {
@@ -501,6 +475,16 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
     if (patch.effectiveFrom) job.effectiveFrom = patch.effectiveFrom;
     if (patch.expiresAt) job.expiresAt = patch.expiresAt;
     if (patch.priority !== undefined) job.priority = patch.priority;
+    if (patch.remote !== undefined) job.location.remote = patch.remote;
+    if (patch.walkInAt !== undefined) job.walkInAt = patch.walkInAt || undefined;
+    if (patch.applyBy !== undefined) job.applyBy = patch.applyBy || undefined;
+    if (patch.locationCity?.trim()) {
+      const c = cityCentroid(job.location.city);
+      if (c && job.location.lat == null) {
+        job.location.lat = c.lat;
+        job.location.lng = c.lng;
+      }
+    }
     if (patch.status) {
       job.status = patch.status;
       if (patch.status === 'published' && !job.publishedAt) {
@@ -553,6 +537,9 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
         district: job.location.district,
         city: job.location.city,
         locality: job.location.locality,
+        remote: !!job.location.remote,
+        lat: job.location.lat ?? null,
+        lng: job.location.lng ?? null,
         ...salaryFields,
         experienceLabel: job.experienceLabel,
         vacancies: job.vacancies,
@@ -564,6 +551,8 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
         publishedAt: new Date(job.publishedAt),
         effectiveFrom: new Date(job.effectiveFrom),
         expiresAt: new Date(job.expiresAt),
+        walkInAt: job.walkInAt ? new Date(job.walkInAt) : null,
+        applyBy: job.applyBy ? new Date(job.applyBy) : null,
         priority: job.priority,
         contactSecret: {
           upsert: {

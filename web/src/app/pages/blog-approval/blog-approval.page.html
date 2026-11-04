@@ -14,7 +14,7 @@
           This account is not an admin. Use admin&#64;xcron.local.
         }
       </p>
-      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+      <a class="btn" routerLink="/settings/account">Go to Sign in</a>
     </div>
   } @else {
     <div class="layout" [class.layout--preview]="!!previewJob()">
@@ -76,8 +76,8 @@
                 <p class="desk__eyebrow">Moderator desk</p>
                 <h2>Clean · map · preview</h2>
                 <p class="desk__hint">
-                  Big boxes for fields · AI chat for corrections · web/mobile preview · contacts stay
-                  masked for seekers
+                  Big boxes for fields · AI chat for corrections · web/mobile preview · contacts shown
+                  to seekers
                 </p>
               </div>
               <button type="button" class="secondary" (click)="closePreview()">Close</button>
@@ -313,32 +313,30 @@
 
                         <section class="panel contact">
                           <h4>Employer contact</h4>
-                          <p class="masked">
-                            @if (view.contact.hasPhone) {
-                              Phone: ••••• •••••
-                            }
-                            @if (view.contact.hasWhatsapp) {
-                              · WhatsApp: locked
-                            }
-                            @if (view.contact.hasEmail) {
-                              · HR email: locked
-                            }
-                            @if (view.contact.hasWebsite) {
-                              · Website to apply: locked
-                            }
-                            @if (
-                              !view.contact.hasPhone &&
-                              !view.contact.hasWhatsapp &&
-                              !view.contact.hasEmail &&
-                              !view.contact.hasWebsite
-                            ) {
-                              No contact channels on this post.
-                            }
-                          </p>
-                          <p class="unlock">{{ view.contact.unlockLabel }}</p>
-                          <p class="note">
-                            Public pages never expose raw contact data — same mask seekers will see.
-                          </p>
+                          @if (
+                            view.contact.phone ||
+                            view.contact.whatsapp ||
+                            view.contact.email ||
+                            view.contact.website
+                          ) {
+                            <ul class="revealed">
+                              @if (view.contact.phone) {
+                                <li>Phone: {{ view.contact.phone }}</li>
+                              }
+                              @if (view.contact.whatsapp) {
+                                <li>WhatsApp: {{ view.contact.whatsapp }}</li>
+                              }
+                              @if (view.contact.email) {
+                                <li>HR email: {{ view.contact.email }}</li>
+                              }
+                              @if (view.contact.website) {
+                                <li>Website: {{ view.contact.website }}</li>
+                              }
+                            </ul>
+                          } @else {
+                            <p class="note">No contact channels on this post.</p>
+                          }
+                          <p class="note">Same contact details seekers see on the public job page.</p>
                         </section>
                       </article>
                     </section>

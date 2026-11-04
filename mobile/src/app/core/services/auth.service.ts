@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -44,6 +44,8 @@ const EMPLOYER_KEY = 'xcron.employer';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  /** Lazy — avoids circular DI with NotificationsService. */
+  private readonly injector = inject(Injector);
   private ensurePromise: Promise<void> | null = null;
   private refreshPromise: Promise<boolean> | null = null;
 
@@ -86,6 +88,7 @@ export class AuthService {
     email?: string;
     displayName?: string;
   }): Promise<void> {
+    // Google idToken is exchanged once — never persisted client-side.
     const response = await firstValueFrom(
       this.http.post<AuthSessionResponse>(
         `${environment.apiUrl}/auth/google`,
@@ -99,6 +102,7 @@ export class AuthService {
       response.employer,
     );
     this.sessionValidated.set(true);
+    await this.linkPushDevice();
   }
 
   async signInAsAdmin(input: { email: string; password: string }): Promise<void> {
@@ -115,6 +119,7 @@ export class AuthService {
       response.employer,
     );
     this.sessionValidated.set(true);
+    await this.linkPushDevice();
   }
 
   async refreshMe(): Promise<void> {
@@ -166,6 +171,7 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
+    await this.unlinkPushDevice();
     try {
       if (this.token()) {
         await firstValueFrom(
@@ -177,11 +183,14 @@ export class AuthService {
         );
       }
     } finally {
-      this.clearSession();
+      this.clearSession({ unlinkPush: false });
     }
   }
 
-  clearSession(): void {
+  clearSession(options?: { unlinkPush?: boolean }): void {
+    if (options?.unlinkPush !== false) {
+      void this.unlinkPushDevice();
+    }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
@@ -191,6 +200,24 @@ export class AuthService {
     this.user.set(null);
     this.employer.set(null);
     this.sessionValidated.set(true);
+  }
+
+  private async linkPushDevice(): Promise<void> {
+    try {
+      const { NotificationsService } = await import('./notifications.service');
+      await this.injector.get(NotificationsService).registerDevice();
+    } catch {
+      // Prefs / Account / boot also re-register
+    }
+  }
+
+  private async unlinkPushDevice(): Promise<void> {
+    try {
+      const { NotificationsService } = await import('./notifications.service');
+      await this.injector.get(NotificationsService).unlinkDevice();
+    } catch {
+      // server suppresses pushes when refresh session is gone
+    }
   }
 
   private async runEnsureSession(): Promise<void> {

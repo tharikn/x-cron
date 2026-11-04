@@ -20,7 +20,7 @@ export class LanguagePage implements OnInit {
     this.seo.setPage({
       title: 'Language',
       description: 'Choose your interface language on X Cron Jobs.',
-      path: '/language',
+      path: '/settings/language',
     });
     if (!this.locale.ready()) {
       await this.locale.hydrate();

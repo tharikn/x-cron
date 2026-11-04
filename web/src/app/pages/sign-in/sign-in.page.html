@@ -105,14 +105,12 @@
       <div class="form google-panel">
         @if (googleReady) {
           <div #googleBtnHost class="google-btn-host" aria-label="Continue with Google"></div>
-          <button type="button" class="secondary" [disabled]="busy()" (click)="continueWithGoogle()">
-            @if (busy()) {
+          @if (busy()) {
+            <p class="hint inline">
               <span class="spinner spinner--inline" aria-hidden="true"></span>
               Signing in…
-            } @else {
-              Continue with Google
-            }
-          </button>
+            </p>
+          }
         } @else {
           <form (ngSubmit)="signIn()">
             <label>
