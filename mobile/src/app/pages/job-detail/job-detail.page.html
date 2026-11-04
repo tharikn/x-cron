@@ -171,12 +171,64 @@
       </section>
 
       <div class="actions">
+        @if (appliedId(); as appId) {
+          <ion-button
+            expand="block"
+            fill="solid"
+            color="primary"
+            [routerLink]="['/tabs/applications', appId]"
+          >
+            View application timeline
+          </ion-button>
+        } @else {
+          @if (applyProfilesList().length) {
+            <ion-list lines="none" class="panel apply-version">
+              <ion-item>
+                <ion-select
+                  label="Apply as"
+                  labelPlacement="stacked"
+                  interface="popover"
+                  [(ngModel)]="selectedProfileId"
+                  [disabled]="applyBusy()"
+                >
+                  @for (p of applyProfilesList(); track p.id) {
+                    <ion-select-option [value]="p.id">
+                      {{ p.name }}{{ p.isDefault ? ' (default)' : '' }}
+                    </ion-select-option>
+                  }
+                </ion-select>
+              </ion-item>
+            </ion-list>
+          } @else if (auth.isSignedIn()) {
+            <p class="hint">
+              Create a profile version in Account (skills / projects / portfolio — no CV) before
+              applying.
+            </p>
+            <ion-button
+              expand="block"
+              fill="outline"
+              color="dark"
+              routerLink="/tabs/account"
+            >
+              Manage apply profiles
+            </ion-button>
+          }
+          <ion-button
+            expand="block"
+            fill="solid"
+            color="primary"
+            [disabled]="applyBusy() || (auth.isSignedIn() && !selectedProfileId)"
+            (click)="applyToJob()"
+          >
+            Easy apply
+          </ion-button>
+        }
         <div class="actions__row">
           <ion-button
             class="action-save"
             expand="block"
-            fill="solid"
-            color="primary"
+            fill="outline"
+            color="dark"
             (click)="toggleSave()"
           >
             {{ saved() ? 'Saved' : 'Save' }}

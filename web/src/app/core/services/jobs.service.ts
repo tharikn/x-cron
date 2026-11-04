@@ -107,6 +107,8 @@ export class JobsService {
     effectiveFrom?: string;
     expiresAt?: string;
     priority?: number;
+    /** Recruiter live publish — skips Blog Approval. */
+    directPublish?: boolean;
   }): Promise<Job> {
     return firstValueFrom(
       this.http.post<Job>(`${environment.apiUrl}/employers/jobs`, input, {
@@ -204,11 +206,19 @@ export class JobsService {
     );
   }
 
-  createFromPaste(rawText: string, contentLanguage: string): Promise<Job> {
+  createFromPaste(
+    rawText: string,
+    contentLanguage: string,
+    options?: { directPublish?: boolean },
+  ): Promise<Job> {
     return firstValueFrom(
       this.http.post<Job>(
         `${environment.apiUrl}/employers/jobs/paste`,
-        { text: rawText, contentLanguage },
+        {
+          text: rawText,
+          contentLanguage,
+          directPublish: options?.directPublish,
+        },
         { headers: this.auth.authHeaders() },
       ),
     );

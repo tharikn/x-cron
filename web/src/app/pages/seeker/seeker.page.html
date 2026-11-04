@@ -1,12 +1,104 @@
 <section class="seeker">
   <h1>Saved jobs</h1>
   @if (!isSignedIn()) {
-    <p>Sign in to see saved jobs and your personalised feed.</p>
-    <a routerLink="/settings/account">Sign in</a>
+    <p>Sign in to see saved jobs, apply profiles, and your personalised feed.</p>
+    <a routerLink="/sign-in">Sign in</a>
   } @else {
     @if (error()) {
       <p class="error">{{ error() }}</p>
     }
+
+    <article class="score-callout">
+      <h2>Performance Score</h2>
+      <p>
+        New trust signal for seekers and recruiters: apply to roles that fit (≥50%), reply in chat,
+        and keep your band Rising. Fit under 50% lowers your score.
+      </p>
+      <a routerLink="/performance">View my Performance Score</a>
+    </article>
+
+    <h2>Apply profile versions</h2>
+    <p class="hint">
+      Build Frontend / Backend versions with skills and portfolio links — no CV. Choose a version
+      when you easy-apply.
+    </p>
+    @if (!applyProfiles().length) {
+      <p class="empty">Add your first version to unlock easy apply.</p>
+    }
+    <div class="list">
+      @for (p of applyProfiles(); track p.id) {
+        <div class="row version-row">
+          <div class="version-meta">
+            <strong>{{ p.name }}</strong>
+            {{ p.isDefault ? ' · default' : '' }}
+            @if (p.skills.length) {
+              <div class="skill-badges" aria-label="Skills">
+                @for (skill of p.skills.slice(0, skillMax); track skill) {
+                  <span class="skill-badge">{{ skill }}</span>
+                }
+              </div>
+            } @else {
+              <span class="muted"> · No skills</span>
+            }
+          </div>
+          <span class="row-actions">
+            @if (!p.isDefault) {
+              <button type="button" class="remove" (click)="setDefault(p.id)">Default</button>
+            }
+            <button type="button" class="remove" (click)="removeVersion(p.id)">Remove</button>
+          </span>
+        </div>
+      }
+    </div>
+    <div class="version-form">
+      <label>
+        <span>Version name *</span>
+        <input [(ngModel)]="versionName" placeholder="e.g. Frontend developer" />
+      </label>
+      <label>
+        <span>Headline</span>
+        <input [(ngModel)]="versionHeadline" placeholder="React · TypeScript" />
+      </label>
+      <div class="skill-field">
+        <span>Skills ({{ skillMin }}–{{ skillMax }})</span>
+        <div class="skill-badges" role="list" aria-label="Selected skills">
+          @for (skill of versionSkills; track skill) {
+            <button
+              type="button"
+              class="skill-badge skill-badge--removable"
+              role="listitem"
+              (click)="removeVersionSkill(skill)"
+              [attr.aria-label]="'Remove ' + skill"
+            >
+              {{ skill }}
+              <span aria-hidden="true">×</span>
+            </button>
+          }
+        </div>
+        @if (versionSkills.length < skillMax) {
+          <div class="skill-add">
+            <input
+              [(ngModel)]="versionSkillDraft"
+              placeholder="e.g. React"
+              (keyup.enter)="addVersionSkill()"
+            />
+            <button type="button" class="remove" (click)="addVersionSkill()">Add</button>
+          </div>
+        }
+        <p class="skill-hint">{{ versionSkills.length }}/{{ skillMax }} · click a badge to remove</p>
+      </div>
+      <label>
+        <span>Summary</span>
+        <input [(ngModel)]="versionSummary" />
+      </label>
+      <label>
+        <span>Portfolio (Label|https://… per line)</span>
+        <textarea rows="2" [(ngModel)]="versionLinks"></textarea>
+      </label>
+      <button type="button" class="btn" [disabled]="versionBusy" (click)="saveVersion()">
+        Add version
+      </button>
+    </div>
 
     @if (viewed.items().length) {
       <h2>Continue browsing</h2>
@@ -37,6 +129,26 @@
         </div>
       } @empty {
         <p>No saved jobs yet. Save a role from a job page.</p>
+      }
+    </div>
+
+    <h2>Applications</h2>
+    <div class="list">
+      @for (row of jobApps(); track row.id) {
+        <div class="row">
+          <a [routerLink]="['/me/applications', row.id]">
+            {{ row.job?.title || row.jobId }} · {{ row.statusLabel }}
+            @if (row.matchPercent != null) {
+              · fit {{ row.matchPercent }}%
+            }
+            @if (row.reputation; as rep) {
+              · recruiter {{ rep.score }}
+            }
+            · {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+          </a>
+        </div>
+      } @empty {
+        <p>Apply from a job page to track status and timeline here.</p>
       }
     </div>
   }

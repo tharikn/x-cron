@@ -26,7 +26,12 @@ export abstract class JobsStore {
   abstract createFromPaste(
     rawText: string,
     contentLanguage: string,
-    meta?: { employerId?: string; ownerUserId?: string; employerName?: string },
+    meta?: {
+      employerId?: string;
+      ownerUserId?: string;
+      employerName?: string;
+      status?: JobRecord['status'];
+    },
   ): Promise<JobRecord>;
   abstract listByStatus(status?: string): Promise<JobRecord[]>;
   abstract listByOwner(userId: string): Promise<JobRecord[]>;

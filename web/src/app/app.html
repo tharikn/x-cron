@@ -6,39 +6,41 @@
     </a>
 
     <div class="top__actions">
-      <a
-        routerLink="/notifications"
-        class="notif-btn"
-        [class.notif-btn--hot]="notifUnread() > 0"
-        [attr.aria-label]="
-          notifUnread() > 0
-            ? ('nav.notifications' | t) + ', ' + notifUnread() + ' unread'
-            : ('nav.notifications' | t)
-        "
-        (click)="closeMenu()"
-      >
-        <svg class="notif-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path
-            d="M6.5 9.5a5.5 5.5 0 0 1 11 0c0 4.2 1.5 5.5 1.5 5.5H5s1.5-1.3 1.5-5.5Z"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M10 18.2a2 2 0 0 0 4 0"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          />
-        </svg>
-        @if (notifUnread() > 0) {
-          <span class="notif-btn__count" aria-hidden="true">
-            {{ notifUnread() > 99 ? '99+' : notifUnread() }}
-          </span>
-        }
-      </a>
+      @if (isSignedIn()) {
+        <a
+          routerLink="/notifications"
+          class="notif-btn"
+          [class.notif-btn--hot]="notifUnread() > 0"
+          [attr.aria-label]="
+            notifUnread() > 0
+              ? ('nav.notifications' | t) + ', ' + notifUnread() + ' unread'
+              : ('nav.notifications' | t)
+          "
+          (click)="closeMenu()"
+        >
+          <svg class="notif-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M6.5 9.5a5.5 5.5 0 0 1 11 0c0 4.2 1.5 5.5 1.5 5.5H5s1.5-1.3 1.5-5.5Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M10 18.2a2 2 0 0 0 4 0"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          @if (notifUnread() > 0) {
+            <span class="notif-btn__count" aria-hidden="true">
+              {{ notifUnread() > 99 ? '99+' : notifUnread() }}
+            </span>
+          }
+        </a>
+      }
 
       <button
         type="button"
@@ -93,20 +95,29 @@
       <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
         {{ 'nav.home' | t }}
       </a>
-      @if (isAdmin()) {
+      @if (isEmployer()) {
         <div class="drawer__group">
           <a routerLink="/post" routerLinkActive="is-active" (click)="closeMenu()">
             {{ 'nav.post' | t }}
           </a>
-          <div class="drawer__sub" role="group" [attr.aria-label]="'nav.post' | t">
-            <a routerLink="/admin/job-fare" routerLinkActive="is-active" (click)="closeMenu()">
-              {{ 'nav.jobFare' | t }}
-            </a>
-            <a routerLink="/import" routerLinkActive="is-active" (click)="closeMenu()">
-              {{ 'nav.import' | t }}
-            </a>
-          </div>
+          @if (isAdmin()) {
+            <div class="drawer__sub" role="group" [attr.aria-label]="'nav.post' | t">
+              <a routerLink="/admin/job-fare" routerLinkActive="is-active" (click)="closeMenu()">
+                {{ 'nav.jobFare' | t }}
+              </a>
+              <a routerLink="/import" routerLinkActive="is-active" (click)="closeMenu()">
+                {{ 'nav.import' | t }}
+              </a>
+            </div>
+          }
         </div>
+        @if (!isAdmin()) {
+          <a routerLink="/my-jobs" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.myJobs' | t }}
+          </a>
+        }
+      }
+      @if (isAdmin()) {
         <a routerLink="/admin" routerLinkActive="is-active" (click)="closeMenu()">
           {{ 'nav.admin' | t }}
         </a>
@@ -128,31 +139,58 @@
           {{ 'nav.blogApproval' | t }}
         </a>
       }
-      <a routerLink="/settings" routerLinkActive="is-active" (click)="closeMenu()">
-        {{ 'nav.settings' | t }}
-        <span class="drawer__meta">{{ languageLabel() }}</span>
-      </a>
-      <a
-        routerLink="/notifications"
-        routerLinkActive="is-active"
-        class="drawer__link--alerts"
-        [class.drawer__link--hot]="notifUnread() > 0"
-        (click)="closeMenu()"
-      >
-        {{ 'nav.notifications' | t }}
-        @if (notifUnread() > 0) {
-          <span class="notif-badge" [attr.aria-label]="notifUnread() + ' unread'">
-            {{ notifUnread() > 99 ? '99+' : notifUnread() }}
-          </span>
-        }
-      </a>
-      <a routerLink="/me" routerLinkActive="is-active" (click)="closeMenu()">
-        {{ 'nav.saved' | t }}
-      </a>
-      @if (!isAdmin()) {
-        <app-get-app-cta variant="link" (click)="closeMenu()" />
+      @if (isSignedIn()) {
+        <a routerLink="/settings" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.settings' | t }}
+          <span class="drawer__meta">{{ languageLabel() }}</span>
+        </a>
+        <a
+          routerLink="/notifications"
+          routerLinkActive="is-active"
+          class="drawer__link--alerts"
+          [class.drawer__link--hot]="notifUnread() > 0"
+          (click)="closeMenu()"
+        >
+          {{ 'nav.notifications' | t }}
+          @if (notifUnread() > 0) {
+            <span class="notif-badge" [attr.aria-label]="notifUnread() + ' unread'">
+              {{ notifUnread() > 99 ? '99+' : notifUnread() }}
+            </span>
+          }
+        </a>
+        <a routerLink="/performance" routerLinkActive="is-active" (click)="closeMenu()">
+          Performance Score
+        </a>
+        <a routerLink="/me" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.saved' | t }}
+        </a>
+      }
+      @if (isSignedIn()) {
+        <div class="drawer__account">
+          <a
+            routerLink="/sign-in"
+            routerLinkActive="is-active"
+            class="drawer__profile"
+            (click)="closeMenu()"
+          >
+            <span class="drawer__avatar" aria-hidden="true">{{ profileInitials() }}</span>
+            <span class="drawer__profile-name">{{ profileLabel() || ('nav.account' | t) }}</span>
+          </a>
+          <button type="button" class="drawer__logout" (click)="logout()">
+            {{ 'nav.logOut' | t }}
+          </button>
+        </div>
+      } @else {
+        <a routerLink="/sign-in" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.signIn' | t }}
+        </a>
       }
     </nav>
+    @if (!isAdmin()) {
+      <div class="drawer__foot">
+        <app-get-app-cta variant="link" (click)="closeMenu()" />
+      </div>
+    }
   </aside>
 
   <main>
@@ -176,7 +214,7 @@
             <h2 class="foot__heading">{{ footerText('footer.headings.quickLinks', foot.headings.quickLinks) }}</h2>
             <ul class="foot__list">
               @for (link of foot.quickLinks; track link.id) {
-                @if (link.href !== '/post' || isAdmin()) {
+                @if ((link.href !== '/post' || isEmployer()) && showFooterQuickLink(link.href, link.id)) {
                   <li>
                     @if (isInternalHref(link.href)) {
                       <a [routerLink]="link.href" (click)="closeMenu()">{{ footerItemLabel(link.id, link.label) }}</a>
@@ -256,6 +294,7 @@
       <button
         type="button"
         class="toast"
+        [class.toast--success]="toast.tone === 'success' || toast.tone === 'default'"
         [class.toast--error]="toast.tone === 'error'"
         (click)="dismissToast(toast.id)"
       >

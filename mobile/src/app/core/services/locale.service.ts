@@ -21,10 +21,13 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'nav.post': 'Post',
       'nav.prefs': 'Prefs',
       'nav.account': 'Account',
+      'nav.signIn': 'Sign in',
       'nav.saved': 'Saved',
       'nav.language': 'Language',
       'nav.settings': 'Settings',
       'nav.notifications': 'Alerts',
+      'settings.signInForMore':
+        'Sign in to unlock Prefs and Saved. Language works without an account.',
       'saved.lead': 'Jobs you saved from a role — open them again or remove anytime.',
       'saved.signIn': 'Sign in to see and manage your saved jobs.',
       'saved.refresh': 'Refresh',

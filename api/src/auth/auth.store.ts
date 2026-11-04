@@ -1,10 +1,12 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from 'crypto';
+import { Prisma } from '@prisma/client';
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   AuthTokens,
   AuthUser,
   EmployerProfile,
-  OtpChallenge,
+  IssueSessionOptions,
   SessionRecord,
   UserRole,
 } from './auth.types';
@@ -14,17 +16,29 @@ export interface SignInEvent {
   at: string;
 }
 
+function resolveAuthStoreMode(): 'prisma' | 'memory' {
+  const dedicated = (process.env.AUTH_STORE ?? '').trim().toLowerCase();
+  if (dedicated === 'prisma' || dedicated === 'memory') return dedicated;
+  return (process.env.JOBS_STORE ?? 'memory').toLowerCase() === 'prisma'
+    ? 'prisma'
+    : 'memory';
+}
+
 @Injectable()
 export class AuthStore implements OnModuleInit {
   private readonly users = new Map<string, AuthUser>();
   private readonly sessions = new Map<string, SessionRecord>();
   /** refreshToken → accessToken */
   private readonly refreshIndex = new Map<string, string>();
-  private readonly otps = new Map<string, OtpChallenge>();
   private readonly employers = new Map<string, EmployerProfile>();
-  private readonly identityIndex = new Map<string, string>(); // phone:x / email:x -> userId
+  /** username:x / phone:x / email:x -> userId */
+  private readonly identityIndex = new Map<string, string>();
   private readonly signInEvents: SignInEvent[] = [];
   private readonly adminLoginAttempts = new Map<
+    string,
+    { count: number; lockedUntil?: number }
+  >();
+  private readonly passwordLoginAttempts = new Map<
     string,
     { count: number; lockedUntil?: number }
   >();
@@ -34,10 +48,14 @@ export class AuthStore implements OnModuleInit {
   /** Access token TTL (Bearer). Env AUTH_ACCESS_TTL_MINUTES, default 15. */
   private accessTtlMs = this.resolveAccessTtlMs();
   /** Refresh token TTL — synced from SiteConfig `auth` (defaults match seed). */
-  private sessionTtlMs = 30 * 24 * 60 * 60 * 1000;
+  private sessionTtlMs = 90 * 24 * 60 * 60 * 1000;
+  /** Kept for SiteConfig auth TTL sync (OTP removed; value unused). */
   private otpTtlMs = 10 * 60 * 1000;
+  private readonly persistenceEnabled = resolveAuthStoreMode() === 'prisma';
 
-  onModuleInit() {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async onModuleInit() {
     const email = this.resolveSuperAdminEmail();
     const password = process.env.SUPER_ADMIN_PASSWORD?.trim();
     this.superAdminEmail = email;
@@ -52,17 +70,23 @@ export class AuthStore implements OnModuleInit {
       );
     }
 
+    if (this.persistenceEnabled) {
+      await this.hydrateFromDb();
+    }
+
     const admin = this.upsertUser({
       email,
       displayName: 'X Cron Super Admin',
       roles: ['admin', 'employer', 'seeker'],
     });
     this.createEmployer(admin.id, 'X Cron Moderation Desk');
+    await this.flushPending();
   }
 
   signInSuperAdmin(
     email: string,
     password: string,
+    options?: IssueSessionOptions,
   ): { user: AuthUser } & AuthTokens {
     const normalized = this.normalizeDestination('email', email);
     this.assertAdminLoginAllowed(normalized);
@@ -99,42 +123,97 @@ export class AuthStore implements OnModuleInit {
       roles.add('seeker');
       user.roles = [...roles];
       this.users.set(user.id, user);
+      void this.persistUser(user);
     }
     if (!this.getEmployerByOwner(user.id)) {
       this.createEmployer(user.id, 'X Cron Moderation Desk');
     }
-    const tokens = this.createSession(user.id);
+    const tokens = this.createSession(user.id, options);
     return { user, ...tokens };
   }
 
-  startOtp(input: {
-    channel: 'phone' | 'email';
-    destination: string;
-    intendedRole: UserRole;
-  }): { challengeId: string; expiresAt: string; devCode?: string } {
-    const destination = this.normalizeDestination(input.channel, input.destination);
-    const code = this.isDev() ? '123456' : String(randomInt(100000, 999999));
-    const challenge: OtpChallenge = {
-      id: randomUUID(),
-      channel: input.channel,
-      destination,
-      code,
-      intendedRole: input.intendedRole === 'admin' ? 'seeker' : input.intendedRole,
-      expiresAt: new Date(Date.now() + this.otpTtlMs).toISOString(),
-      attempts: 0,
-    };
-    this.otps.set(challenge.id, challenge);
-    return {
-      challengeId: challenge.id,
-      expiresAt: challenge.expiresAt,
-      ...(this.isDev() ? { devCode: code } : {}),
-    };
+  registerWithPassword(
+    input: {
+      username: string;
+      password: string;
+      intendedRole?: UserRole;
+    },
+    options?: IssueSessionOptions,
+  ): { user: AuthUser } & AuthTokens {
+    const username = this.normalizeUsername(input.username);
+    if (!username) {
+      throw new Error('invalid_username');
+    }
+    if (input.password.length < 8) {
+      throw new Error('weak_password');
+    }
+    const key = `username:${username}`;
+    if (this.identityIndex.has(key)) {
+      throw new Error('username_taken');
+    }
+    const { saltHex, hashHex } = this.hashPassword(input.password);
+    const intended =
+      input.intendedRole === 'employer' ? 'employer' : 'seeker';
+    const user = this.upsertUser({
+      username,
+      displayName: username,
+      passwordHash: hashHex,
+      passwordSalt: saltHex,
+      roles: this.mergePublicRoles(undefined, intended),
+    });
+    const tokens = this.createSession(user.id, options);
+    return { user, ...tokens };
   }
 
-  signInWithGoogle(input: {
-    email: string;
-    displayName?: string;
-  }): { user: AuthUser } & AuthTokens {
+  loginWithPassword(
+    input: {
+      username: string;
+      password: string;
+      intendedRole?: UserRole;
+    },
+    options?: IssueSessionOptions,
+  ): { user: AuthUser } & AuthTokens {
+    const username = this.normalizeUsername(input.username);
+    if (!username) {
+      throw new Error('invalid_credentials');
+    }
+    this.assertPasswordLoginAllowed(username);
+
+    const userId = this.identityIndex.get(`username:${username}`);
+    const user = userId ? this.users.get(userId) : undefined;
+    if (
+      !user ||
+      user.status !== 'active' ||
+      !user.passwordHash ||
+      !user.passwordSalt
+    ) {
+      this.recordPasswordLoginFailure(username);
+      throw new Error('invalid_credentials');
+    }
+    if (!this.verifyPassword(input.password, user.passwordSalt, user.passwordHash)) {
+      this.recordPasswordLoginFailure(username);
+      throw new Error('invalid_credentials');
+    }
+
+    this.passwordLoginAttempts.delete(username);
+    const intended =
+      input.intendedRole === 'employer' ? 'employer' : 'seeker';
+    user.roles = this.mergePublicRoles(user.roles, intended);
+    this.users.set(user.id, user);
+    void this.persistUser(user);
+
+    const tokens = this.createSession(user.id, options);
+    return { user, ...tokens };
+  }
+
+  signInWithGoogle(
+    input: {
+      email: string;
+      displayName?: string;
+      intendedRole?: UserRole;
+    },
+    options?: IssueSessionOptions,
+  ): { user: AuthUser; isNewUser: boolean } & AuthTokens {
     const email = this.normalizeDestination('email', input.email);
     if (!email.includes('@')) {
       throw new Error('invalid_email');
@@ -142,68 +221,33 @@ export class AuthStore implements OnModuleInit {
     const key = `email:${email}`;
     let userId = this.identityIndex.get(key);
     let user = userId ? this.users.get(userId) : undefined;
-    const roles = this.resolveRoles(email, 'seeker');
+    const intended =
+      input.intendedRole === 'employer' ? 'employer' : 'seeker';
+    let isNewUser = false;
 
     if (!user) {
+      isNewUser = true;
       user = this.upsertUser({
         email,
         displayName: input.displayName || email.split('@')[0],
-        roles,
+        roles: this.mergePublicRoles(undefined, intended),
       });
     } else {
-      // Google never grants admin — password login only for Dashboard / History.
-      user.roles = roles;
+      // Google never grants admin — password login only. Keep employer if already held.
+      user.roles = this.mergePublicRoles(user.roles, intended);
       if (input.displayName) user.displayName = input.displayName;
       this.users.set(user.id, user);
+      void this.persistUser(user);
     }
 
-    const tokens = this.createSession(user.id);
-    return { user, ...tokens };
+    const tokens = this.createSession(user.id, options);
+    return { user, isNewUser, ...tokens };
   }
 
-  verifyOtp(
-    challengeId: string,
-    code: string,
-  ): { user: AuthUser } & AuthTokens {
-    const challenge = this.otps.get(challengeId);
-    if (!challenge) {
-      throw new Error('invalid_challenge');
-    }
-    if (new Date(challenge.expiresAt).getTime() < Date.now()) {
-      this.otps.delete(challengeId);
-      throw new Error('expired_challenge');
-    }
-    challenge.attempts += 1;
-    if (challenge.attempts > 5) {
-      this.otps.delete(challengeId);
-      throw new Error('too_many_attempts');
-    }
-    if (challenge.code !== code.trim()) {
-      throw new Error('invalid_code');
-    }
-
-    this.otps.delete(challengeId);
-    const key = `${challenge.channel}:${challenge.destination}`;
-    let userId = this.identityIndex.get(key);
-    let user = userId ? this.users.get(userId) : undefined;
-
-    if (!user) {
-      user = this.upsertUser({
-        phone: challenge.channel === 'phone' ? challenge.destination : undefined,
-        email: challenge.channel === 'email' ? challenge.destination : undefined,
-        roles: this.resolveRoles(challenge.destination, challenge.intendedRole),
-      });
-    } else {
-      // OTP never grants admin — password login only for Dashboard / History.
-      user.roles = this.resolveRoles(challenge.destination, challenge.intendedRole);
-      this.users.set(user.id, user);
-    }
-
-    const tokens = this.createSession(user.id);
-    return { user, ...tokens };
-  }
-
-  getUserByToken(token?: string): AuthUser | undefined {
+  getUserByToken(
+    token?: string,
+    options?: { tabId?: string; enforceTab?: boolean },
+  ): AuthUser | undefined {
     if (!token) return undefined;
     const session = this.sessions.get(token);
     if (!session) return undefined;
@@ -216,11 +260,25 @@ export class AuthStore implements OnModuleInit {
     if (new Date(session.expiresAt).getTime() < now) {
       return undefined;
     }
+    if (options?.enforceTab) {
+      this.assertTabBinding(session, options.tabId);
+    }
     return this.users.get(session.userId);
   }
 
-  /** Rotate tokens; old refresh is invalidated. */
-  refreshSession(refreshToken: string): AuthTokens {
+  getAccessTtlSeconds(): number {
+    return Math.floor(this.accessTtlMs / 1000);
+  }
+
+  getRefreshTtlSeconds(): number {
+    return Math.floor(this.sessionTtlMs / 1000);
+  }
+
+  /** Rotate tokens; old refresh is invalidated. Sliding refresh TTL from now. */
+  refreshSession(
+    refreshToken: string,
+    options?: IssueSessionOptions,
+  ): AuthTokens {
     const accessToken = this.refreshIndex.get(refreshToken);
     if (!accessToken) {
       throw new Error('invalid_refresh_token');
@@ -239,8 +297,13 @@ export class AuthStore implements OnModuleInit {
       this.revokeSession(session);
       throw new Error('invalid_refresh_token');
     }
+    const tabId = options?.tabId?.trim() || session.tabId;
     this.revokeSession(session);
-    return this.issueTokens(user.id, { recordSignIn: false });
+    return this.issueTokens(user.id, {
+      recordSignIn: false,
+      tabId,
+      revokeOtherSessions: false,
+    });
   }
 
   getUser(id: string): AuthUser | undefined {
@@ -297,6 +360,7 @@ export class AuthStore implements OnModuleInit {
       if (employer.ownerUserId === userId) this.employers.delete(id);
     }
     this.users.delete(userId);
+    void this.deleteUserPersisted(userId);
     return true;
   }
 
@@ -309,7 +373,9 @@ export class AuthStore implements OnModuleInit {
       if (owner && !owner.roles.includes('employer')) {
         owner.roles = [...owner.roles, 'employer'];
         this.users.set(owner.id, owner);
+        void this.persistUser(owner);
       }
+      void this.persistEmployer(existing);
       return existing;
     }
 
@@ -333,7 +399,9 @@ export class AuthStore implements OnModuleInit {
     if (owner && !owner.roles.includes('employer')) {
       owner.roles = [...owner.roles, 'employer'];
       this.users.set(owner.id, owner);
+      void this.persistUser(owner);
     }
+    void this.persistEmployer(profile);
     return profile;
   }
 
@@ -351,6 +419,7 @@ export class AuthStore implements OnModuleInit {
       status: user.status,
       preferredLocale: user.preferredLocale,
       roles: user.roles,
+      username: user.username,
       phone: user.phone ? this.maskPhone(user.phone) : undefined,
       email: user.email ? this.maskEmail(user.email) : undefined,
       displayName: user.displayName,
@@ -359,24 +428,73 @@ export class AuthStore implements OnModuleInit {
   }
 
   private upsertUser(input: {
+    username?: string;
     phone?: string;
     email?: string;
     displayName?: string;
+    passwordHash?: string;
+    passwordSalt?: string;
     roles: UserRole[];
   }): AuthUser {
+    if (input.username) {
+      const existingId = this.identityIndex.get(`username:${input.username}`);
+      const existing = existingId ? this.users.get(existingId) : undefined;
+      if (existing) {
+        existing.roles = [...new Set([...existing.roles, ...input.roles])];
+        if (input.displayName) existing.displayName = input.displayName;
+        if (input.passwordHash) existing.passwordHash = input.passwordHash;
+        if (input.passwordSalt) existing.passwordSalt = input.passwordSalt;
+        this.users.set(existing.id, existing);
+        void this.persistUser(existing);
+        return existing;
+      }
+    }
+    if (input.email) {
+      const existingId = this.identityIndex.get(`email:${input.email}`);
+      const existing = existingId ? this.users.get(existingId) : undefined;
+      if (existing) {
+        existing.roles = [...new Set([...existing.roles, ...input.roles])];
+        if (input.displayName) existing.displayName = input.displayName;
+        if (input.phone && !existing.phone) existing.phone = input.phone;
+        this.users.set(existing.id, existing);
+        void this.persistUser(existing);
+        return existing;
+      }
+    }
+    if (input.phone) {
+      const existingId = this.identityIndex.get(`phone:${input.phone}`);
+      const existing = existingId ? this.users.get(existingId) : undefined;
+      if (existing) {
+        existing.roles = [...new Set([...existing.roles, ...input.roles])];
+        if (input.displayName) existing.displayName = input.displayName;
+        if (input.email && !existing.email) {
+          existing.email = input.email;
+          this.identityIndex.set(`email:${input.email}`, existing.id);
+        }
+        this.users.set(existing.id, existing);
+        void this.persistUser(existing);
+        return existing;
+      }
+    }
+
     const user: AuthUser = {
       id: `usr_${randomUUID().slice(0, 8)}`,
       status: 'active',
       preferredLocale: 'en',
       roles: [...new Set(input.roles)],
+      username: input.username,
+      passwordHash: input.passwordHash,
+      passwordSalt: input.passwordSalt,
       phone: input.phone,
       email: input.email,
       displayName: input.displayName,
       createdAt: new Date().toISOString(),
     };
     this.users.set(user.id, user);
+    if (input.username) this.identityIndex.set(`username:${input.username}`, user.id);
     if (input.phone) this.identityIndex.set(`phone:${input.phone}`, user.id);
     if (input.email) this.identityIndex.set(`email:${input.email}`, user.id);
+    void this.persistUser(user);
     return user;
   }
 
@@ -386,14 +504,62 @@ export class AuthStore implements OnModuleInit {
     this.otpTtlMs = input.otpTtlMinutes * 60 * 1000;
   }
 
-  private createSession(userId: string): AuthTokens {
-    return this.issueTokens(userId, { recordSignIn: true });
+  private createSession(
+    userId: string,
+    options?: IssueSessionOptions,
+  ): AuthTokens {
+    return this.issueTokens(userId, {
+      recordSignIn: true,
+      tabId: options?.tabId,
+      revokeOtherSessions: options?.revokeOtherSessions,
+    });
+  }
+
+  private singleSessionEnabled(): boolean {
+    return (process.env.AUTH_SINGLE_SESSION ?? '1') !== '0';
+  }
+
+  private singleTabEnabled(): boolean {
+    return (process.env.AUTH_SINGLE_TAB ?? '1') !== '0';
+  }
+
+  private assertTabBinding(session: SessionRecord, tabId?: string): void {
+    if (!this.singleTabEnabled()) return;
+    // Native / automation may omit tab id when session was issued without one.
+    if (!session.tabId) {
+      if (tabId?.trim()) {
+        session.tabId = tabId.trim();
+      }
+      return;
+    }
+    if (!tabId?.trim() || tabId.trim() !== session.tabId) {
+      throw new Error('session_tab_mismatch');
+    }
+  }
+
+  private revokeOtherSessions(userId: string, keepToken?: string): void {
+    if (!this.singleSessionEnabled()) return;
+    for (const session of [...this.sessions.values()]) {
+      if (session.userId === userId && session.token !== keepToken) {
+        this.revokeSession(session);
+      }
+    }
   }
 
   private issueTokens(
     userId: string,
-    options: { recordSignIn: boolean },
+    options: {
+      recordSignIn: boolean;
+      tabId?: string;
+      revokeOtherSessions?: boolean;
+    },
   ): AuthTokens {
+    const shouldRevoke =
+      options.revokeOtherSessions !== false && this.singleSessionEnabled();
+    if (shouldRevoke) {
+      this.revokeOtherSessions(userId);
+    }
+
     const token = randomUUID();
     const refreshToken = randomUUID();
     const createdAt = new Date().toISOString();
@@ -401,6 +567,7 @@ export class AuthStore implements OnModuleInit {
     const refreshExpiresAt = new Date(
       Date.now() + this.sessionTtlMs,
     ).toISOString();
+    const tabId = options.tabId?.trim() || undefined;
     const session: SessionRecord = {
       token,
       refreshToken,
@@ -408,18 +575,77 @@ export class AuthStore implements OnModuleInit {
       createdAt,
       expiresAt,
       refreshExpiresAt,
+      tabId,
     };
     this.sessions.set(token, session);
     this.refreshIndex.set(refreshToken, token);
     if (options.recordSignIn) {
       this.signInEvents.push({ userId, at: createdAt });
     }
+    void this.persistSession(session);
     return { token, refreshToken, expiresAt };
   }
 
   private revokeSession(session: SessionRecord) {
     this.sessions.delete(session.token);
     this.refreshIndex.delete(session.refreshToken);
+    void this.deleteSessionPersisted(session);
+  }
+
+  private mergePublicRoles(
+    existing: UserRole[] | undefined,
+    intended: UserRole,
+  ): UserRole[] {
+    const roles = new Set<UserRole>(['seeker']);
+    if (existing?.includes('employer')) roles.add('employer');
+    if (intended === 'employer') roles.add('employer');
+    // Admin only via SUPER_ADMIN password login — never username/Google.
+    return [...roles];
+  }
+
+  private hashPassword(password: string): { saltHex: string; hashHex: string } {
+    const salt = randomBytes(16);
+    const hash = scryptSync(password, salt, 64);
+    return { saltHex: salt.toString('hex'), hashHex: hash.toString('hex') };
+  }
+
+  private verifyPassword(
+    password: string,
+    saltHex: string,
+    hashHex: string,
+  ): boolean {
+    try {
+      const salt = Buffer.from(saltHex, 'hex');
+      const expected = Buffer.from(hashHex, 'hex');
+      const candidate = scryptSync(password, salt, expected.length);
+      if (candidate.length !== expected.length) return false;
+      return timingSafeEqual(candidate, expected);
+    } catch {
+      return false;
+    }
+  }
+
+  private normalizeUsername(value: string): string | null {
+    const normalized = value.trim().toLowerCase();
+    if (!/^[a-z0-9_]{3,32}$/.test(normalized)) return null;
+    return normalized;
+  }
+
+  private assertPasswordLoginAllowed(username: string) {
+    const state = this.passwordLoginAttempts.get(username);
+    if (state?.lockedUntil && state.lockedUntil > Date.now()) {
+      throw new Error('too_many_attempts');
+    }
+  }
+
+  private recordPasswordLoginFailure(username: string) {
+    const state = this.passwordLoginAttempts.get(username) ?? { count: 0 };
+    state.count += 1;
+    if (state.count >= 5) {
+      state.lockedUntil = Date.now() + 15 * 60 * 1000;
+      state.count = 0;
+    }
+    this.passwordLoginAttempts.set(username, state);
   }
 
   private resolveAccessTtlMs(): number {
@@ -427,13 +653,6 @@ export class AuthStore implements OnModuleInit {
     const minutes =
       Number.isFinite(raw) && raw >= 1 && raw <= 24 * 60 ? raw : 15;
     return minutes * 60 * 1000;
-  }
-
-  private resolveRoles(_destination: string, intended: UserRole): UserRole[] {
-    const roles = new Set<UserRole>(['seeker']);
-    if (intended === 'employer') roles.add('employer');
-    // Admin role is only via SUPER_ADMIN email/password login.
-    return [...roles];
   }
 
   private resolveSuperAdminEmail(): string {
@@ -487,11 +706,320 @@ export class AuthStore implements OnModuleInit {
     return `${name.slice(0, 1)}***@${domain}`;
   }
 
-  private isDev(): boolean {
-    return !this.isProd();
-  }
-
   private isProd(): boolean {
     return (process.env.NODE_ENV ?? 'development') === 'production';
+  }
+
+  private parseRoles(value: Prisma.JsonValue | null | undefined): UserRole[] {
+    if (!Array.isArray(value)) return ['seeker'];
+    const out = new Set<UserRole>();
+    for (const item of value) {
+      if (item === 'seeker' || item === 'employer' || item === 'admin') {
+        out.add(item);
+      }
+    }
+    if (!out.size) out.add('seeker');
+    return [...out];
+  }
+
+  private async hydrateFromDb(): Promise<void> {
+    try {
+      const now = new Date();
+      const [dbUsers, dbEmployers, dbSessions] = await Promise.all([
+        this.prisma.user.findMany({
+          include: { identities: true },
+        }),
+        this.prisma.employer.findMany(),
+        this.prisma.authSession.findMany({
+          where: { refreshExpiresAt: { gt: now } },
+        }),
+      ]);
+
+      for (const row of dbUsers) {
+        const user: AuthUser = {
+          id: row.id,
+          status: row.status === 'DISABLED' ? 'disabled' : 'active',
+          preferredLocale: row.preferredLocale || 'en',
+          roles: this.parseRoles(row.rolesJson),
+          username: row.username ?? undefined,
+          passwordHash: row.passwordHash ?? undefined,
+          passwordSalt: row.passwordSalt ?? undefined,
+          phone: row.phone ?? undefined,
+          email: row.email ?? undefined,
+          displayName: row.displayName ?? undefined,
+          createdAt: row.createdAt.toISOString(),
+        };
+        this.users.set(user.id, user);
+        if (user.username) {
+          this.identityIndex.set(`username:${user.username}`, user.id);
+        }
+        if (user.phone) this.identityIndex.set(`phone:${user.phone}`, user.id);
+        if (user.email) this.identityIndex.set(`email:${user.email}`, user.id);
+        for (const identity of row.identities) {
+          if (
+            identity.provider === 'phone' ||
+            identity.provider === 'email' ||
+            identity.provider === 'username'
+          ) {
+            this.identityIndex.set(
+              `${identity.provider}:${identity.providerSubject}`,
+              user.id,
+            );
+          } else if (identity.provider === 'google') {
+            this.identityIndex.set(`email:${identity.providerSubject}`, user.id);
+          }
+        }
+      }
+
+      for (const row of dbEmployers) {
+        const profile: EmployerProfile = {
+          id: row.id,
+          name: row.name,
+          slug: row.slug ?? undefined,
+          about: row.about ?? undefined,
+          logoUrl: row.logoUrl ?? undefined,
+          verificationStatus: (row.verificationStatus as EmployerProfile['verificationStatus']) ||
+            'unverified',
+          ownerUserId: row.ownerUserId,
+          createdAt: row.createdAt.toISOString(),
+        };
+        this.employers.set(profile.id, profile);
+      }
+
+      for (const row of dbSessions) {
+        const session: SessionRecord = {
+          token: row.accessToken,
+          refreshToken: row.refreshToken,
+          userId: row.userId,
+          createdAt: row.createdAt.toISOString(),
+          expiresAt: row.expiresAt.toISOString(),
+          refreshExpiresAt: row.refreshExpiresAt.toISOString(),
+        };
+        this.sessions.set(session.token, session);
+        this.refreshIndex.set(session.refreshToken, session.token);
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[auth] hydrateFromDb failed — continuing with memory seed only',
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  private async flushPending(): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    for (const user of this.users.values()) {
+      await this.persistUser(user);
+    }
+    for (const employer of this.employers.values()) {
+      await this.persistEmployer(employer);
+    }
+  }
+
+  private async persistUser(user: AuthUser): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    try {
+      await this.prisma.user.upsert({
+        where: { id: user.id },
+        create: {
+          id: user.id,
+          status: user.status === 'disabled' ? 'DISABLED' : 'ACTIVE',
+          preferredLocale: user.preferredLocale,
+          displayName: user.displayName,
+          username: user.username,
+          passwordHash: user.passwordHash,
+          passwordSalt: user.passwordSalt,
+          phone: user.phone,
+          email: user.email,
+          rolesJson: user.roles,
+          createdAt: new Date(user.createdAt),
+        },
+        update: {
+          status: user.status === 'disabled' ? 'DISABLED' : 'ACTIVE',
+          preferredLocale: user.preferredLocale,
+          displayName: user.displayName,
+          username: user.username,
+          passwordHash: user.passwordHash,
+          passwordSalt: user.passwordSalt,
+          phone: user.phone,
+          email: user.email,
+          rolesJson: user.roles,
+        },
+      });
+      if (user.username) {
+        await this.prisma.userIdentity.upsert({
+          where: {
+            provider_providerSubject: {
+              provider: 'username',
+              providerSubject: user.username,
+            },
+          },
+          create: {
+            id: randomUUID(),
+            userId: user.id,
+            provider: 'username',
+            providerSubject: user.username,
+            verifiedAt: new Date(),
+          },
+          update: { userId: user.id, verifiedAt: new Date() },
+        });
+      }
+      if (user.email) {
+        await this.prisma.userIdentity.upsert({
+          where: {
+            provider_providerSubject: {
+              provider: 'email',
+              providerSubject: user.email,
+            },
+          },
+          create: {
+            id: randomUUID(),
+            userId: user.id,
+            provider: 'email',
+            providerSubject: user.email,
+            verifiedAt: new Date(),
+          },
+          update: { userId: user.id, verifiedAt: new Date() },
+        });
+      }
+      if (user.phone) {
+        await this.prisma.userIdentity.upsert({
+          where: {
+            provider_providerSubject: {
+              provider: 'phone',
+              providerSubject: user.phone,
+            },
+          },
+          create: {
+            id: randomUUID(),
+            userId: user.id,
+            provider: 'phone',
+            providerSubject: user.phone,
+            verifiedAt: new Date(),
+          },
+          update: { userId: user.id, verifiedAt: new Date() },
+        });
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[auth] persistUser failed',
+        user.id,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  private async persistEmployer(profile: EmployerProfile): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    try {
+      await this.ensureUserRow(profile.ownerUserId);
+      await this.prisma.employer.upsert({
+        where: { id: profile.id },
+        create: {
+          id: profile.id,
+          name: profile.name,
+          slug: profile.slug,
+          about: profile.about ?? '',
+          logoUrl: profile.logoUrl,
+          verificationStatus: profile.verificationStatus,
+          ownerUserId: profile.ownerUserId,
+          createdAt: new Date(profile.createdAt),
+        },
+        update: {
+          name: profile.name,
+          slug: profile.slug,
+          about: profile.about ?? '',
+          logoUrl: profile.logoUrl,
+          verificationStatus: profile.verificationStatus,
+          ownerUserId: profile.ownerUserId,
+        },
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[auth] persistEmployer failed',
+        profile.id,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  private async persistSession(session: SessionRecord): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    try {
+      // Fire-and-forget persistUser may create the same id concurrently.
+      await this.ensureUserRow(session.userId);
+      await this.prisma.authSession.create({
+        data: {
+          id: randomUUID(),
+          userId: session.userId,
+          accessToken: session.token,
+          refreshToken: session.refreshToken,
+          createdAt: new Date(session.createdAt),
+          expiresAt: new Date(session.expiresAt),
+          refreshExpiresAt: new Date(session.refreshExpiresAt),
+        },
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[auth] persistSession failed',
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  /** Upsert a bare User row; ignore P2002 when a concurrent persist already inserted it. */
+  private async ensureUserRow(userId: string): Promise<void> {
+    try {
+      await this.prisma.user.upsert({
+        where: { id: userId },
+        create: { id: userId },
+        update: {},
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private async deleteSessionPersisted(session: SessionRecord): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    try {
+      await this.prisma.authSession.deleteMany({
+        where: {
+          OR: [
+            { accessToken: session.token },
+            { refreshToken: session.refreshToken },
+          ],
+        },
+      });
+    } catch {
+      // ignore missing rows
+    }
+  }
+
+  private async deleteUserPersisted(userId: string): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    try {
+      await this.prisma.authSession.deleteMany({ where: { userId } });
+      await this.prisma.employer.deleteMany({ where: { ownerUserId: userId } });
+      await this.prisma.userIdentity.deleteMany({ where: { userId } });
+      await this.prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[auth] deleteUserPersisted failed',
+        userId,
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 }

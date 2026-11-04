@@ -451,11 +451,9 @@
 }
 
 .get-app--link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
   margin: 0.35rem 0.65rem 0.15rem;
   border-radius: var(--xcron-radius-sm);
   border: 1px solid var(--xcron-line-strong);
@@ -484,11 +482,21 @@
 }
 
 .get-app__link-meta {
+  display: grid;
+  gap: 0.15rem;
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.78);
+}
+
+.get-app__link-released {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.68);
 }
 
 @keyframes get-app-shine {

@@ -3,9 +3,11 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
   ValidateNested,
@@ -102,6 +104,95 @@ export class UpsertSeekerProfileDto {
   @IsString()
   @MaxLength(80)
   displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  mobile?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  email?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  showContact?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(240)
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(12)
+  pincode?: string;
+
+  @IsOptional()
+  @IsIn(['fresher', 'experienced'])
+  careerStage?: 'fresher' | 'experienced';
+
+  @IsOptional()
+  @IsIn(['pursuing', 'completed'])
+  educationStatus?: 'pursuing' | 'completed';
+
+  @IsOptional()
+  @IsBoolean()
+  openToInternship?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  courseDetails?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  branchStudied?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  academicScore?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  experienceYears?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(11)
+  experienceMonths?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  companyName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  companyArea?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  currentSalary?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  expectedSalary?: string;
+
+  @IsOptional()
+  @IsIn(['serving', '1', '2', '3', 'immediate'])
+  noticePeriod?: 'serving' | '1' | '2' | '3' | 'immediate';
 
   @IsOptional()
   @IsIn(['fresher', '0-1', '1-3', '3-5', '5+'])

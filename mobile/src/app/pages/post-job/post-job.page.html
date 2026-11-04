@@ -1,212 +1,426 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>Post a job</ion-title>
+    <ion-title>Recruiter</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
   <div class="page">
+    <p class="brand-mark">X Cron</p>
     <p class="lead">
-      Admin-only posting. Use a quick form, paste a message, or bulk import.
-      Contacts stay private by default. New posts go to moderation before search.
+      Recruiter desk — compose, review with AI, preview for seekers, then post live.
+      Your posts go live directly (not Blog Approval). Admin import queue stays separate.
     </p>
 
     @if (!isSignedIn()) {
       <div class="auth-gate">
-        <p>Admins must sign in with the admin email and password before posting.</p>
+        <p>Sign in as a recruiter to post a job.</p>
         <ion-button
           expand="block"
           color="dark"
-          routerLink="/tabs/settings"
-          [queryParams]="{ tab: 'account', mode: 'admin' }"
+          routerLink="/tabs/account"
+          [queryParams]="{ mode: 'employer' }"
         >
-          Go to admin sign in
+          Go to Sign in
         </ion-button>
       </div>
     }
 
-    <ion-segment [value]="mode()" (ionChange)="setMode($event.detail.value)">
-      <ion-segment-button value="quick">
-        <ion-label>Quick form</ion-label>
+    <ion-segment [value]="panel()" (ionChange)="setPanel($event.detail.value)">
+      <ion-segment-button value="compose">
+        <ion-label>Compose</ion-label>
       </ion-segment-button>
-      <ion-segment-button value="paste">
-        <ion-label>Paste message</ion-label>
+      <ion-segment-button value="review">
+        <ion-label>Review</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="preview">
+        <ion-label>Preview</ion-label>
       </ion-segment-button>
     </ion-segment>
 
     <div class="upload-row">
-      <ion-button expand="block" color="dark" routerLink="/tabs/import">
-        Bulk import (CSV / camera / clipboard)
+      <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/employer-applications">
+        Review applications
       </ion-button>
-      <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/job-fare">
-        Job Fare pull
-      </ion-button>
+      @if (isAdmin()) {
+        <ion-button expand="block" color="dark" routerLink="/tabs/import">
+          Bulk import (admin)
+        </ion-button>
+        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/job-fare">
+          Job Fare pull (admin)
+        </ion-button>
+      }
     </div>
 
-    @if (mode() === 'quick') {
-      <ion-list lines="full" class="form">
-        <ion-item [class.field-invalid]="!!fieldErrors()['title']">
-          <ion-input
-            label="Job title"
-            labelPlacement="stacked"
-            [(ngModel)]="title"
-            (ngModelChange)="clearFieldError('title')"
-          ></ion-input>
-        </ion-item>
-        @if (fieldErrors()['title']; as err) {
-          <p class="field-error">{{ err }}</p>
-        }
-        <ion-item [class.field-invalid]="!!fieldErrors()['employerName']">
-          <ion-input
-            label="Employer / business name"
-            labelPlacement="stacked"
-            [(ngModel)]="employerName"
-            (ngModelChange)="clearFieldError('employerName')"
-          ></ion-input>
-        </ion-item>
-        @if (fieldErrors()['employerName']; as err) {
-          <p class="field-error">{{ err }}</p>
-        }
-        <ion-item lines="none" class="loc-item" [class.field-invalid]="!!fieldErrors()['locationCity']">
-          <ion-label position="stacked">Location (city)</ion-label>
-          <app-location-typeahead
-            [(value)]="locationCity"
-            (valueChange)="clearFieldError('locationCity')"
-            placeholder="City or district"
-          />
-        </ion-item>
-        @if (fieldErrors()['locationCity']; as err) {
-          <p class="field-error">{{ err }}</p>
-        }
-        <ion-item>
-          <ion-select
-            label="Job type"
-            labelPlacement="stacked"
-            interface="popover"
-            [(ngModel)]="jobType"
+    @if (panel() === 'compose') {
+      <ion-segment [value]="mode()" (ionChange)="setMode($event.detail.value)">
+        <ion-segment-button value="quick">
+          <ion-label>Quick form</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="paste">
+          <ion-label>Paste message</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      @if (mode() === 'quick') {
+        <ion-list lines="full" class="form">
+          <ion-item [class.field-invalid]="!!fieldErrors()['title']">
+            <ion-input
+              label="Job title"
+              labelPlacement="stacked"
+              [(ngModel)]="title"
+              (ngModelChange)="clearFieldError('title')"
+            ></ion-input>
+          </ion-item>
+          @if (fieldErrors()['title']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+          <ion-item [class.field-invalid]="!!fieldErrors()['employerName']">
+            <ion-input
+              label="Employer / business name"
+              labelPlacement="stacked"
+              [(ngModel)]="employerName"
+              (ngModelChange)="clearFieldError('employerName')"
+            ></ion-input>
+          </ion-item>
+          @if (fieldErrors()['employerName']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+          <ion-item lines="none" class="loc-item" [class.field-invalid]="!!fieldErrors()['locationCity']">
+            <ion-label position="stacked">Location (city)</ion-label>
+            <app-location-typeahead
+              [(value)]="locationCity"
+              (valueChange)="clearFieldError('locationCity')"
+              placeholder="City or district"
+            />
+          </ion-item>
+          @if (fieldErrors()['locationCity']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+          <ion-item>
+            <ion-select
+              label="Job type"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="jobType"
+            >
+              @for (entry of jobTypeEntries; track entry[0]) {
+                <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
+              }
+            </ion-select>
+          </ion-item>
+          <ion-item [class.field-invalid]="!!fieldErrors()['salaryText']">
+            <ion-input
+              label="Salary (optional)"
+              labelPlacement="stacked"
+              placeholder="e.g. 12000-15000 / month"
+              [(ngModel)]="salaryText"
+              (ngModelChange)="clearFieldError('salaryText')"
+            ></ion-input>
+          </ion-item>
+          @if (fieldErrors()['salaryText']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+          <ion-item [class.field-invalid]="!!fieldErrors()['vacancies']">
+            <ion-input
+              label="Vacancies (optional)"
+              labelPlacement="stacked"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              placeholder="e.g. 2"
+              [(ngModel)]="vacancies"
+              (ngModelChange)="clearFieldError('vacancies')"
+            ></ion-input>
+          </ion-item>
+          @if (fieldErrors()['vacancies']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+          <ion-item>
+            <ion-select
+              [label]="'post.contentLanguage' | t"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="contentLanguage"
+            >
+              @for (lang of languages(); track lang.code) {
+                <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
+              }
+            </ion-select>
+          </ion-item>
+          <ion-item [class.field-invalid]="!!fieldErrors()['description']">
+            <ion-textarea
+              label="Description / duties"
+              labelPlacement="stacked"
+              autoGrow="true"
+              [(ngModel)]="description"
+              (ngModelChange)="clearFieldError('description')"
+            ></ion-textarea>
+          </ion-item>
+          @if (fieldErrors()['description']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+          <ion-item [class.field-invalid]="!!fieldErrors()['contactPhone']">
+            <ion-input
+              label="Contact phone"
+              labelPlacement="stacked"
+              type="tel"
+              placeholder="10-digit or +91…"
+              [(ngModel)]="contactPhone"
+              (ngModelChange)="clearFieldError('contactPhone')"
+            ></ion-input>
+          </ion-item>
+          @if (fieldErrors()['contactPhone']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+          <ion-item [class.field-invalid]="!!fieldErrors()['contactEmail']">
+            <ion-input
+              label="HR email"
+              labelPlacement="stacked"
+              type="email"
+              [(ngModel)]="contactEmail"
+              (ngModelChange)="clearFieldError('contactEmail')"
+            ></ion-input>
+          </ion-item>
+          @if (fieldErrors()['contactEmail']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+          <ion-item [class.field-invalid]="!!fieldErrors()['contactWebsite']">
+            <ion-input
+              label="Website to apply"
+              labelPlacement="stacked"
+              type="url"
+              placeholder="https://"
+              [(ngModel)]="contactWebsite"
+              (ngModelChange)="clearFieldError('contactWebsite')"
+            ></ion-input>
+          </ion-item>
+          @if (fieldErrors()['contactWebsite']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+        </ion-list>
+        <div class="desk-actions">
+          <ion-button expand="block" fill="outline" color="dark" (click)="goReview()">
+            Review
+          </ion-button>
+          <ion-button expand="block" fill="outline" color="dark" (click)="goPreview()">
+            Preview
+          </ion-button>
+          <ion-button expand="block" color="dark" (click)="requestPost()" [disabled]="postBusy()">
+            Post job
+          </ion-button>
+        </div>
+      } @else {
+        <ion-list lines="full" class="form">
+          <ion-item>
+            <ion-select
+              [label]="'post.contentLanguage' | t"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="contentLanguage"
+            >
+              @for (lang of languages(); track lang.code) {
+                <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
+              }
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-textarea
+              label="Paste WhatsApp / Telegram text"
+              labelPlacement="stacked"
+              autoGrow="true"
+              rows="10"
+              [(ngModel)]="pasteText"
+              placeholder="Paste the full message. Then extract into Review."
+            ></ion-textarea>
+          </ion-item>
+        </ion-list>
+        <ion-button
+          expand="block"
+          color="dark"
+          (click)="extractPasteToReview()"
+          [disabled]="aiBusy()"
+        >
+          @if (aiBusy()) {
+            Extracting…
+          } @else {
+            Extract to Review
+          }
+        </ion-button>
+      }
+    }
+
+    @if (panel() === 'review') {
+      <section class="review-panel">
+        <div class="review-toolbar">
+          <ion-button
+            size="small"
+            color="dark"
+            (click)="improveWithAi()"
+            [disabled]="aiBusy() || !aiEnabled()"
           >
-            @for (entry of jobTypeEntries; track entry[0]) {
-              <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
+            @if (aiBusy()) {
+              Improving…
+            } @else {
+              Improve with AI
             }
-          </ion-select>
-        </ion-item>
-        <ion-item [class.field-invalid]="!!fieldErrors()['salaryText']">
-          <ion-input
-            label="Salary (optional)"
-            labelPlacement="stacked"
-            placeholder="e.g. 12000-15000 / month"
-            [(ngModel)]="salaryText"
-            (ngModelChange)="clearFieldError('salaryText')"
-          ></ion-input>
-        </ion-item>
-        @if (fieldErrors()['salaryText']; as err) {
-          <p class="field-error">{{ err }}</p>
-        }
-        <ion-item [class.field-invalid]="!!fieldErrors()['vacancies']">
-          <ion-input
-            label="Vacancies (optional)"
-            labelPlacement="stacked"
-            type="number"
-            inputmode="numeric"
-            min="1"
-            placeholder="e.g. 2"
-            [(ngModel)]="vacancies"
-            (ngModelChange)="clearFieldError('vacancies')"
-          ></ion-input>
-        </ion-item>
-        @if (fieldErrors()['vacancies']; as err) {
-          <p class="field-error">{{ err }}</p>
-        }
-        <ion-item>
-          <ion-select
-            [label]="'post.contentLanguage' | t"
-            labelPlacement="stacked"
-            interface="popover"
-            [(ngModel)]="contentLanguage"
+          </ion-button>
+          @if (!aiEnabled()) {
+            <span class="ai-off">AI off on API</span>
+          }
+        </div>
+
+        <ion-list lines="full" class="form">
+          <ion-item>
+            <ion-input label="Job title" labelPlacement="stacked" [(ngModel)]="title"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Employer / business name"
+              labelPlacement="stacked"
+              [(ngModel)]="employerName"
+            ></ion-input>
+          </ion-item>
+          <ion-item lines="none" class="loc-item">
+            <ion-label position="stacked">Location (city)</ion-label>
+            <app-location-typeahead [(value)]="locationCity" placeholder="City or district" />
+          </ion-item>
+          <ion-item>
+            <ion-select
+              label="Job type"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="jobType"
+            >
+              @for (entry of jobTypeEntries; track entry[0]) {
+                <ion-select-option [value]="entry[0]">{{ entry[1] }}</ion-select-option>
+              }
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Salary" labelPlacement="stacked" [(ngModel)]="salaryText"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-textarea
+              label="Description"
+              labelPlacement="stacked"
+              autoGrow="true"
+              rows="8"
+              [(ngModel)]="description"
+            ></ion-textarea>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Apply / website"
+              labelPlacement="stacked"
+              [(ngModel)]="contactWebsite"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Phone" labelPlacement="stacked" [(ngModel)]="contactPhone"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="HR email" labelPlacement="stacked" [(ngModel)]="contactEmail"></ion-input>
+          </ion-item>
+        </ion-list>
+
+        <section class="chat" aria-label="AI assistant">
+          <h2>AI assistant</h2>
+          <p class="chat-hint">
+            Ask for fixes — e.g. “keep English only”, “move last date into description”, “fix salary”.
+          </p>
+          <div class="chat-log" role="log">
+            @for (msg of chat(); track $index) {
+              <p class="chat-bubble" [class.chat-bubble--user]="msg.role === 'user'">
+                {{ msg.text }}
+              </p>
+            } @empty {
+              <p class="chat-empty">No chat yet. Use Improve with AI or send a note.</p>
+            }
+          </div>
+          <ion-list lines="none" class="form chat-compose">
+            <ion-item>
+              <ion-textarea
+                label="Instruction for AI"
+                labelPlacement="stacked"
+                rows="3"
+                [ngModel]="chatInput()"
+                (ngModelChange)="chatInput.set($event)"
+                [disabled]="aiBusy() || !aiEnabled()"
+              ></ion-textarea>
+            </ion-item>
+          </ion-list>
+          <ion-button
+            expand="block"
+            fill="outline"
+            color="dark"
+            (click)="sendChat()"
+            [disabled]="aiBusy() || !aiEnabled() || !chatInput().trim()"
           >
-            @for (lang of languages(); track lang.code) {
-              <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
+            Send to AI
+          </ion-button>
+        </section>
+
+        <div class="desk-actions">
+          <ion-button expand="block" fill="outline" color="dark" (click)="goPreview()">
+            Preview
+          </ion-button>
+          <ion-button expand="block" color="dark" (click)="requestPost()" [disabled]="postBusy()">
+            Post job
+          </ion-button>
+        </div>
+      </section>
+    }
+
+    @if (panel() === 'preview') {
+      <section class="preview-panel" aria-label="Seeker preview">
+        <p class="preview-label">How seekers see it in search</p>
+        <article class="preview-card">
+          <div class="preview-card__meta">
+            <span class="badge">{{ languageLabel(contentLanguage) }}</span>
+            <time>{{ formatPostedDate(nowIso) }}</time>
+          </div>
+          <h2>{{ title || 'Job title' }}</h2>
+          <p class="employer">{{ employerName || 'Employer' }}</p>
+          <p class="facts">{{ locationCity || 'City' }}</p>
+          <p class="facts facts--pay">{{ previewFacts() }}</p>
+          <p class="about">{{ description || 'Description will appear here.' }}</p>
+          <span class="preview-cta">View role</span>
+        </article>
+
+        <p class="preview-label">Job page contact</p>
+        <article class="preview-card preview-card--detail">
+          <h3>Employer contact</h3>
+          @if (contactPhone || contactEmail || contactWebsite) {
+            <ul>
+              @if (contactPhone) {
+                <li>Phone: {{ contactPhone }}</li>
+              }
+              @if (contactEmail) {
+                <li>HR email: {{ contactEmail }}</li>
+              }
+              @if (contactWebsite) {
+                <li>Website: {{ contactWebsite }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="muted">No contact channels on this post yet.</p>
+          }
+        </article>
+
+        <div class="desk-actions">
+          <ion-button expand="block" fill="outline" color="dark" (click)="setPanel('review')">
+            Back to Review
+          </ion-button>
+          <ion-button expand="block" color="dark" (click)="requestPost()" [disabled]="postBusy()">
+            @if (postBusy()) {
+              Posting…
+            } @else {
+              Post job live
             }
-          </ion-select>
-        </ion-item>
-        <ion-item [class.field-invalid]="!!fieldErrors()['description']">
-          <ion-textarea
-            label="Description / duties"
-            labelPlacement="stacked"
-            autoGrow="true"
-            [(ngModel)]="description"
-            (ngModelChange)="clearFieldError('description')"
-          ></ion-textarea>
-        </ion-item>
-        @if (fieldErrors()['description']; as err) {
-          <p class="field-error">{{ err }}</p>
-        }
-        <ion-item [class.field-invalid]="!!fieldErrors()['contactPhone']">
-          <ion-input
-            label="Private contact phone"
-            labelPlacement="stacked"
-            type="tel"
-            placeholder="10-digit or +91…"
-            [(ngModel)]="contactPhone"
-            (ngModelChange)="clearFieldError('contactPhone')"
-          ></ion-input>
-        </ion-item>
-        @if (fieldErrors()['contactPhone']; as err) {
-          <p class="field-error">{{ err }}</p>
-        }
-        <ion-item [class.field-invalid]="!!fieldErrors()['contactEmail']">
-          <ion-input
-            label="HR email"
-            labelPlacement="stacked"
-            type="email"
-            [(ngModel)]="contactEmail"
-            (ngModelChange)="clearFieldError('contactEmail')"
-          ></ion-input>
-        </ion-item>
-        @if (fieldErrors()['contactEmail']; as err) {
-          <p class="field-error">{{ err }}</p>
-        }
-        <ion-item [class.field-invalid]="!!fieldErrors()['contactWebsite']">
-          <ion-input
-            label="Website to apply"
-            labelPlacement="stacked"
-            type="url"
-            placeholder="https://"
-            [(ngModel)]="contactWebsite"
-            (ngModelChange)="clearFieldError('contactWebsite')"
-          ></ion-input>
-        </ion-item>
-        @if (fieldErrors()['contactWebsite']; as err) {
-          <p class="field-error">{{ err }}</p>
-        }
-      </ion-list>
-      <ion-button expand="block" color="dark" (click)="submitQuick()">Submit job</ion-button>
-    } @else {
-      <ion-list lines="full" class="form">
-        <ion-item>
-          <ion-select
-            [label]="'post.contentLanguage' | t"
-            labelPlacement="stacked"
-            interface="popover"
-            [(ngModel)]="contentLanguage"
-          >
-            @for (lang of languages(); track lang.code) {
-              <ion-select-option [value]="lang.code">{{ lang.nativeName || lang.name }}</ion-select-option>
-            }
-          </ion-select>
-        </ion-item>
-        <ion-item>
-          <ion-textarea
-            label="Paste WhatsApp / Telegram text"
-            labelPlacement="stacked"
-            autoGrow="true"
-            rows="10"
-            [(ngModel)]="pasteText"
-            placeholder="Paste the full message. Phone numbers are extracted privately."
-          ></ion-textarea>
-        </ion-item>
-      </ion-list>
-      <ion-button expand="block" color="dark" (click)="submitPaste()">Extract and publish</ion-button>
+          </ion-button>
+        </div>
+      </section>
     }
 
     <section class="promo-panel">

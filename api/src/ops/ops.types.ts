@@ -21,6 +21,7 @@ export interface OpsMetricCounters {
   jobPublishes: number;
   contactUnlocks: number;
   importBatches: number;
+  jobApplies: number;
   ocrPages: number;
   notificationsSent: number;
   adImpressions: number;

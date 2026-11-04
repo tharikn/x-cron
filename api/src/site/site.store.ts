@@ -190,25 +190,15 @@ export class SiteStore implements OnModuleInit {
     const obj = value as Record<string, unknown>;
     const unlock = Number(obj.unlockPricePaise);
     if (!Number.isFinite(unlock) || unlock < 100) return null;
-    const postFee = Number(obj.postJobPricePaise ?? SEED_COMMERCE.postJobPricePaise);
-    const modeRaw = String(
-      obj.postJobPaymentMode ?? SEED_COMMERCE.postJobPaymentMode,
-    );
-    const postJobPaymentMode =
-      modeRaw === 'mandatory' || modeRaw === 'optional' || modeRaw === 'none'
-        ? modeRaw
-        : SEED_COMMERCE.postJobPaymentMode;
     return {
       unlockPricePaise: Math.round(unlock),
       paymentsEnabled:
         typeof obj.paymentsEnabled === 'boolean'
           ? obj.paymentsEnabled
           : SEED_COMMERCE.paymentsEnabled,
-      postJobPaymentMode,
-      postJobPricePaise:
-        Number.isFinite(postFee) && postFee >= 0
-          ? Math.round(postFee)
-          : SEED_COMMERCE.postJobPricePaise,
+      // Post-job fee removed — coerce any stored optional/mandatory to none.
+      postJobPaymentMode: 'none',
+      postJobPricePaise: 0,
     };
   }
 

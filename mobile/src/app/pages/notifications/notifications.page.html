@@ -22,10 +22,9 @@
       <ion-button
         expand="block"
         color="dark"
-        routerLink="/tabs/settings"
-        [queryParams]="{ tab: 'account' }"
+        routerLink="/tabs/account"
       >
-        {{ 'nav.account' | t }}
+        {{ 'nav.signIn' | t }}
       </ion-button>
     } @else {
       <section class="inbox">
@@ -61,14 +60,14 @@
             <p>{{ item.body }}</p>
             <p class="hint meta">{{ item.status }} · {{ item.createdAt | date: 'short' }}</p>
             <div class="card__actions">
-              @if (item.jobId) {
+              @if (actionPath(item); as path) {
                 <ion-button
                   size="small"
                   fill="outline"
                   color="dark"
-                  [routerLink]="['/tabs/jobs', item.jobId]"
+                  [routerLink]="path"
                 >
-                  Open
+                  {{ actionLabel(item) }}
                 </ion-button>
               }
               @if (item.status !== 'read') {

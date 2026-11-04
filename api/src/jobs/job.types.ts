@@ -80,6 +80,8 @@ export interface JobRecord {
   walkInAt?: string;
   /** Application deadline (ISO), if any. */
   applyBy?: string;
+  /** Optional question seekers must answer when applying (anti mass-apply). */
+  screeningQuestion?: string;
   /** Canonical contact values — also exposed on public job DTOs (no unlock gate). */
   privateContact?: {
     phone?: string;
@@ -148,6 +150,8 @@ export interface CreateJobInput {
   remote?: boolean;
   walkInAt?: string;
   applyBy?: string;
+  /** Empty string clears an existing question on update. */
+  screeningQuestion?: string;
   locationLat?: number;
   locationLng?: number;
 }

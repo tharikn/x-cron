@@ -1,17 +1,13 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { JOB_TYPE_LABELS, type Job, type JobType } from '../../core/models/job.model';
-import type { PostJobPaymentMode } from '../../core/models/site.model';
+import { AiService } from '../../core/services/ai.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
-import {
-  PaymentsService,
-  type CheckoutDto,
-} from '../../core/services/payments.service';
 import { SeoService } from '../../core/services/seo.service';
-import { SiteService } from '../../core/services/site.service';
+import { formatPostedDate } from '../../core/utils/format';
 import {
   type FieldErrors,
   parseVacancies,
@@ -19,6 +15,12 @@ import {
 } from '../../core/utils/job-form.validation';
 
 type PostMode = 'quick' | 'paste';
+type DeskPanel = 'compose' | 'review' | 'preview';
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  text: string;
+}
 
 @Component({
   selector: 'app-post-job',
@@ -29,34 +31,40 @@ type PostMode = 'quick' | 'paste';
 export class PostJobPage implements OnInit {
   private readonly jobsService = inject(JobsService);
   private readonly auth = inject(AuthService);
+  private readonly ai = inject(AiService);
   private readonly seo = inject(SeoService);
   private readonly router = inject(Router);
   private readonly locale = inject(LocaleService);
-  private readonly site = inject(SiteService);
-  private readonly payments = inject(PaymentsService);
 
   readonly languages = this.locale.languages;
-
   readonly mode = signal<PostMode>('quick');
+  readonly panel = signal<DeskPanel>('compose');
   readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
+  readonly isEmployer = this.auth.isEmployer;
   readonly busy = signal(false);
-  readonly confirmingPay = signal(false);
+  readonly aiBusy = signal(false);
+  readonly aiEnabled = signal(false);
+  readonly didPreview = signal(false);
+  readonly confirmOpen = signal(false);
   readonly message = signal<string | null>(null);
   readonly error = signal<string | null>(null);
+  readonly chatInput = signal('');
+  readonly chat = signal<ChatMessage[]>([]);
+  readonly fieldErrors = signal<FieldErrors>({});
   readonly jobTypeEntries = Object.entries(JOB_TYPE_LABELS) as Array<[JobType, string]>;
-  readonly pendingCheckout = signal<{
-    orderId: string;
-    jobId: string;
-    checkout: CheckoutDto;
-    mode: PostJobPaymentMode;
-  } | null>(null);
+  readonly nowIso = new Date().toISOString();
+  readonly formatPostedDate = formatPostedDate;
+  readonly languageLabel = (code: string) => this.locale.label(code);
 
-  paymentsEnabled = true;
-  postJobPaymentMode: PostJobPaymentMode = 'none';
+  readonly previewFacts = computed(() => {
+    const typeLabel = JOB_TYPE_LABELS[this.jobType] ?? this.jobType;
+    const pay = this.salaryText.trim() || 'Salary not provided';
+    return `${typeLabel} · ${pay}`;
+  });
 
   title = '';
-  employerName = 'X Cron Moderation Desk';
+  employerName = '';
   locationCity = 'Palani';
   jobType: JobType = 'full-time';
   salaryText = '';
@@ -70,23 +78,21 @@ export class PostJobPage implements OnInit {
   priority = 0;
   effectiveFromLocal = this.defaultEffectiveLocal();
   expiresAtLocal = this.defaultExpiresLocal();
-  readonly fieldErrors = signal<FieldErrors>({});
 
   async ngOnInit(): Promise<void> {
     this.seo.setPage({
-      title: 'Post a job',
-      description: 'Admin job posting for X Cron Jobs. Quick form or paste a message.',
+      title: 'Recruiter desk',
+      description: 'Post a job on X Cron Jobs. Review, preview, then publish live.',
       path: '/post',
     });
     if (!this.locale.ready()) {
       await this.locale.hydrate();
     }
     try {
-      const commerce = await this.site.hydrateCommerce();
-      this.paymentsEnabled = commerce.paymentsEnabled !== false;
-      this.postJobPaymentMode = commerce.postJobPaymentMode ?? 'none';
+      const status = await this.ai.status();
+      this.aiEnabled.set(!!status.enabled);
     } catch {
-      /* fallbacks */
+      this.aiEnabled.set(false);
     }
   }
 
@@ -94,6 +100,19 @@ export class PostJobPage implements OnInit {
     this.mode.set(value);
     this.message.set(null);
     this.error.set(null);
+  }
+
+  setPanel(value: DeskPanel): void {
+    if (value !== 'compose' && !this.canLeaveCompose()) {
+      this.error.set('Fill required fields before Review / Preview.');
+      this.panel.set('compose');
+      return;
+    }
+    this.panel.set(value);
+    this.error.set(null);
+    if (value === 'preview') {
+      this.didPreview.set(true);
+    }
   }
 
   clearFieldError(key: string): void {
@@ -105,25 +124,177 @@ export class PostJobPage implements OnInit {
     });
   }
 
-  async submitQuick(): Promise<void> {
-    if (!this.ensureAdminReady()) return;
-    const errors = validateQuickPostFields({
-      title: this.title,
-      employerName: this.employerName,
-      locationCity: this.locationCity,
-      salaryText: this.salaryText,
-      description: this.description,
-      contactPhone: this.contactPhone,
-      contactEmail: this.contactEmail,
-      contactWebsite: this.contactWebsite,
-      vacancies: this.vacancies,
-    });
-    this.fieldErrors.set(errors);
-    if (Object.keys(errors).length) {
-      this.error.set(Object.values(errors)[0] ?? 'Fix the highlighted fields.');
+  goReview(): void {
+    if (!this.validateCompose()) return;
+    this.panel.set('review');
+  }
+
+  goPreview(): void {
+    if (!this.validateCompose()) return;
+    this.didPreview.set(true);
+    this.panel.set('preview');
+  }
+
+  async extractPasteToReview(): Promise<void> {
+    if (!this.ensurePosterReady()) return;
+    if (!this.pasteText.trim()) {
+      this.error.set('Paste a WhatsApp/Telegram job message first.');
       return;
     }
 
+    this.aiBusy.set(true);
+    this.error.set(null);
+    try {
+      if (this.aiEnabled()) {
+        const result = await this.ai.enrichJob({
+          rawText: this.pasteText.trim(),
+          description: this.pasteText.trim(),
+          contentLanguage: this.contentLanguage,
+          employerName: this.employerName || undefined,
+          instruction:
+            'Extract a clean job post: fill title, employer, city, salary, apply link, and description. Remove chat noise.',
+        });
+        this.title = result.title || this.title || 'Hiring';
+        this.employerName = result.employerName || this.employerName;
+        this.locationCity = result.locationCity || this.locationCity || 'Palani';
+        if (result.jobType && result.jobType in JOB_TYPE_LABELS) {
+          this.jobType = result.jobType as JobType;
+        }
+        this.salaryText = result.salaryText || this.salaryText;
+        this.description = result.description || this.pasteText.trim();
+        this.contentLanguage = result.contentLanguage || this.contentLanguage;
+        this.contactWebsite = result.contactWebsite || this.contactWebsite;
+        if (result.vacancies != null) {
+          this.vacancies = String(result.vacancies);
+        }
+        this.chat.set([
+          {
+            role: 'assistant',
+            text:
+              result.notes?.filter(Boolean).slice(0, 2).join(' · ') ||
+              'Extracted into Review. Edit fields or chat corrections.',
+          },
+        ]);
+      } else {
+        const lines = this.pasteText
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .filter(Boolean);
+        this.title = (lines[0] || 'Hiring').slice(0, 80);
+        this.description = this.pasteText.trim();
+        this.chat.set([
+          {
+            role: 'assistant',
+            text: 'AI is off on the API. Pasted text is in Description — edit manually.',
+          },
+        ]);
+      }
+      this.mode.set('quick');
+      this.panel.set('review');
+      this.message.set('Ready to review — then Preview before posting live.');
+    } catch {
+      this.error.set('Extract failed. Check AI settings or edit manually.');
+    } finally {
+      this.aiBusy.set(false);
+    }
+  }
+
+  async improveWithAi(instruction?: string): Promise<void> {
+    if (!this.aiEnabled()) {
+      this.error.set('AI enrich is off. Set AI_ENRICH_ENABLED=1 on the API.');
+      return;
+    }
+    const prompt = (instruction ?? '').trim();
+    if (prompt) {
+      this.chat.update((messages) => [...messages, { role: 'user', text: prompt }]);
+      this.chatInput.set('');
+    }
+
+    this.aiBusy.set(true);
+    this.error.set(null);
+    try {
+      const result = await this.ai.enrichJob({
+        title: this.title,
+        employerName: this.employerName,
+        locationCity: this.locationCity,
+        jobType: this.jobType,
+        salaryText: this.salaryText,
+        contactWebsite: this.contactWebsite,
+        description: this.description,
+        contentLanguage: this.contentLanguage,
+        rawText: this.description || this.pasteText,
+        instruction:
+          prompt ||
+          'Clean the post, detect language, and fill title, employer, city, salary, apply link, and description.',
+      });
+      this.title = result.title || this.title;
+      this.employerName = result.employerName || this.employerName;
+      this.locationCity = result.locationCity || this.locationCity;
+      if (result.jobType && result.jobType in JOB_TYPE_LABELS) {
+        this.jobType = result.jobType as JobType;
+      }
+      this.salaryText = result.salaryText || this.salaryText;
+      this.description = result.description || this.description;
+      this.contentLanguage = result.contentLanguage || this.contentLanguage;
+      this.contactWebsite = result.contactWebsite || this.contactWebsite;
+      if (result.vacancies != null) {
+        this.vacancies = String(result.vacancies);
+      }
+      const note =
+        result.notes?.filter(Boolean).slice(0, 3).join(' · ') ||
+        (result.cleaned
+          ? 'Cleaned and mapped into the form boxes.'
+          : 'AI ran — review fields carefully.');
+      this.chat.update((messages) => [...messages, { role: 'assistant', text: note }]);
+      this.message.set(
+        result.cleaned ? 'AI updated the review fields' : 'AI finished — review carefully',
+      );
+    } catch {
+      this.chat.update((messages) => [
+        ...messages,
+        {
+          role: 'assistant',
+          text: 'AI failed. Check AI_ENRICH_* on the API and try again.',
+        },
+      ]);
+      this.error.set('AI cleanup failed.');
+    } finally {
+      this.aiBusy.set(false);
+    }
+  }
+
+  async sendChat(): Promise<void> {
+    const text = this.chatInput().trim();
+    if (!text || this.aiBusy()) return;
+    await this.improveWithAi(text);
+  }
+
+  requestPost(): void {
+    if (!this.ensurePosterReady()) return;
+    if (!this.validateCompose()) {
+      this.panel.set('compose');
+      return;
+    }
+    this.confirmOpen.set(true);
+  }
+
+  closeConfirm(): void {
+    this.confirmOpen.set(false);
+  }
+
+  openPreviewFromConfirm(): void {
+    this.confirmOpen.set(false);
+    this.didPreview.set(true);
+    this.panel.set('preview');
+  }
+
+  async confirmPostLive(): Promise<void> {
+    this.confirmOpen.set(false);
+    await this.publishLive();
+  }
+
+  private async publishLive(): Promise<void> {
+    if (this.busy()) return;
     this.busy.set(true);
     this.error.set(null);
     this.message.set(null);
@@ -143,106 +314,22 @@ export class PostJobPage implements OnInit {
         priority: Number(this.priority) || 0,
         effectiveFrom: this.fromLocalInput(this.effectiveFromLocal),
         expiresAt: this.fromLocalInput(this.expiresAtLocal),
+        directPublish: true,
       });
       this.fieldErrors.set({});
       this.resetQuickForm();
-      await this.afterJobCreated(job);
+      this.afterJobCreated(job);
     } catch {
-      this.error.set('Post failed. Sign in as admin@xcron.local and ensure the API is running.');
+      this.error.set('Post failed. Sign in as a recruiter and ensure the API is running.');
     } finally {
       this.busy.set(false);
     }
   }
 
-  async submitPaste(): Promise<void> {
-    if (!this.ensureAdminReady()) return;
-    if (!this.pasteText.trim()) {
-      this.error.set('Paste a WhatsApp/Telegram job message first.');
-      return;
-    }
-
-    this.busy.set(true);
-    this.error.set(null);
-    this.message.set(null);
-    try {
-      const job = await this.jobsService.createFromPaste(
-        this.pasteText.trim(),
-        this.contentLanguage,
-      );
-      this.pasteText = '';
-      await this.afterJobCreated(job);
-    } catch {
-      this.error.set('Paste publish failed. Sign in as admin first.');
-    } finally {
-      this.busy.set(false);
-    }
-  }
-
-  cancelCheckout(): void {
-    this.pendingCheckout.set(null);
+  private afterJobCreated(_job: Job): void {
     this.message.set(
-      'Job queued for Blog Approval. Post fee skipped (optional mode) or cancelled.',
+      'Posted live. Seekers can find it in search now — no Blog Approval queue for recruiter posts.',
     );
-  }
-
-  upiQrSrc(checkout: CheckoutDto): string | null {
-    const payload = checkout.upi?.qrPayload;
-    if (!payload) return null;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(payload)}`;
-  }
-
-  openUpiApp(): void {
-    const uri = this.pendingCheckout()?.checkout.upi?.intentUri;
-    if (uri) window.location.href = uri;
-  }
-
-  async confirmCheckoutPayment(): Promise<void> {
-    const pending = this.pendingCheckout();
-    if (!pending || this.confirmingPay()) return;
-    this.confirmingPay.set(true);
-    try {
-      await this.payments.confirmDevPayment(pending.orderId);
-      this.pendingCheckout.set(null);
-      this.message.set('Post fee paid. Job remains in Blog Approval until published.');
-    } catch {
-      this.error.set('Payment confirm failed. Check Payment history for confirm_failed.');
-    } finally {
-      this.confirmingPay.set(false);
-    }
-  }
-
-  private async afterJobCreated(job: Job): Promise<void> {
-    const needsPay =
-      this.paymentsEnabled &&
-      (this.postJobPaymentMode === 'mandatory' ||
-        this.postJobPaymentMode === 'optional');
-    if (!needsPay) {
-      this.message.set('Submitted for Blog Approval. Approve it before it appears in search.');
-      return;
-    }
-    try {
-      const pay = await this.payments.createPostJobOrder(job.id);
-      this.pendingCheckout.set({
-        orderId: pay.order.id,
-        jobId: job.id,
-        checkout: pay.checkout,
-        mode: (pay.mode as PostJobPaymentMode) || this.postJobPaymentMode,
-      });
-      this.message.set(
-        pay.mode === 'mandatory'
-          ? 'Job created. Complete the mandatory post fee below.'
-          : 'Job created. Optional post fee — pay or skip.',
-      );
-      queueMicrotask(() => {
-        document
-          .getElementById('post-payment-checkout')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    } catch {
-      this.message.set(
-        'Job created for Blog Approval. Post-fee checkout unavailable — check Settings.',
-      );
-    }
   }
 
   private resetQuickForm(): void {
@@ -253,19 +340,62 @@ export class PostJobPage implements OnInit {
     this.contactPhone = '';
     this.contactEmail = '';
     this.contactWebsite = '';
+    this.pasteText = '';
     this.priority = 0;
     this.effectiveFromLocal = this.defaultEffectiveLocal();
     this.expiresAtLocal = this.defaultExpiresLocal();
+    this.chat.set([]);
+    this.chatInput.set('');
+    this.didPreview.set(false);
+    this.panel.set('compose');
+    this.mode.set('quick');
   }
 
-  private ensureAdminReady(): boolean {
-    if (!this.auth.isSignedIn()) {
-      this.error.set('Admins must sign in before posting.');
-      void this.router.navigateByUrl('/sign-in');
+  private canLeaveCompose(): boolean {
+    const errors = validateQuickPostFields({
+      title: this.title,
+      employerName: this.employerName,
+      locationCity: this.locationCity,
+      salaryText: this.salaryText,
+      description: this.description,
+      contactPhone: this.contactPhone,
+      contactEmail: this.contactEmail,
+      contactWebsite: this.contactWebsite,
+      vacancies: this.vacancies,
+    });
+    return Object.keys(errors).length === 0;
+  }
+
+  private validateCompose(): boolean {
+    const errors = validateQuickPostFields({
+      title: this.title,
+      employerName: this.employerName,
+      locationCity: this.locationCity,
+      salaryText: this.salaryText,
+      description: this.description,
+      contactPhone: this.contactPhone,
+      contactEmail: this.contactEmail,
+      contactWebsite: this.contactWebsite,
+      vacancies: this.vacancies,
+    });
+    this.fieldErrors.set(errors);
+    if (Object.keys(errors).length) {
+      this.error.set(Object.values(errors)[0] ?? 'Fix the highlighted fields.');
       return false;
     }
-    if (!this.auth.isAdmin()) {
-      this.error.set('Posting is admin-only. Use admin@xcron.local on Sign in.');
+    return true;
+  }
+
+  private ensurePosterReady(): boolean {
+    if (!this.auth.isSignedIn()) {
+      this.error.set('Sign in as a recruiter before posting.');
+      void this.router.navigate(['/sign-in'], {
+        queryParams: { mode: 'employer' },
+      });
+      return false;
+    }
+    if (!this.auth.isEmployer()) {
+      this.error.set('Posting needs a recruiter account.');
       return false;
     }
     return true;
@@ -294,4 +424,5 @@ export class PostJobPage implements OnInit {
     if (Number.isNaN(d.getTime())) return undefined;
     return d.toISOString();
   }
+
 }

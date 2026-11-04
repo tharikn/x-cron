@@ -7,6 +7,7 @@ import type { SiteCommerceConfig } from './site.types';
 export const SEED_COMMERCE: Omit<SiteCommerceConfig, 'updatedAt'> = {
   unlockPricePaise: 500,
   paymentsEnabled: true,
-  postJobPaymentMode: 'optional',
-  postJobPricePaise: 500,
+  /** Post-job fee removed — always free; fields kept for SiteConfig shape. */
+  postJobPaymentMode: 'none',
+  postJobPricePaise: 0,
 };

@@ -25,6 +25,16 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 5. Channels: in-app always (if enabled); push/mail when not quiet
 6. Each attempt → `NotificationDelivery` log + inbox/`NotificationRecord` for in-app
 
+**ATS applications:** `onApplicationEvent(...)` (trigger `application_event`) — targeted fan-out to seeker or employer on apply / first view / status change / offer letter / note / withdraw. Called from `applications` module only.
+
+**Onboarding (welcome + profile complete):**
+
+1. Account create + first login (`POST /auth/register`, or Google when `isNewUser`) → `AuthService` → `onUserFirstLogin(userId)`
+2. Sends **welcome** (`user_welcome`, dedupe `welcome:{userId}`) + **day-0 profile nudge** (`profile_complete`, dedupe `profile_complete:{userId}:day0`) when seeker profile is incomplete (needs `experienceBand` + skills + preferredCities)
+3. `NotificationsScheduler` (hourly by default) → `runProfileCompleteReminders()` for seekers created within `PROFILE_REMINDER_MAX_DAYS` (default **2**) — day 1…N nudges while still incomplete
+4. Inbox `data.action`: `browse_jobs` | `complete_profile` (clients deep-link Account / Discover)
+5. In-app always written for onboarding; push/mail still respect prefs + quiet hours
+
 ## Env (free-first)
 
 | Key | Default | Notes |
@@ -37,6 +47,9 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 | `MAIL_PROVIDER` | `stub` | Log-only; `console` alias; `smtp` → stub until `MAIL_SMTP_URL` |
 | `NOTIFICATION_FANOUT_BATCH` | `25` | Yield between batches for large user sets |
 | `NOTIFICATION_MODE` | — | Legacy push mode alias |
+| `PROFILE_REMINDER_SCHEDULE_ENABLED` | `1` | `0` disables day 1–N profile nudge watcher |
+| `PROFILE_REMINDER_MAX_DAYS` | `2` | Auto profile nudges while account age ≤ N days (day 0 = first login) |
+| `PROFILE_REMINDER_TICK_MS` | `3600000` | Scheduler interval (min 60s) |
 
 ## Session ↔ push contract
 
@@ -52,7 +65,7 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 - `GET|PUT|POST /v1/notifications/preferences` — channel toggles + quiet hours + daily cap
 - `GET /v1/notifications` · `POST /v1/notifications/:id/read` — in-app inbox
 - `GET /v1/admin/notification-dispatches` · `.../:id` — trigger + delivery history
-- `POST /v1/notifications/dev/send` · `.../dev/dispatch-published/:jobId`
+- `POST /v1/notifications/dev/send` · `.../dev/dispatch-published/:jobId` — **admin** + `@SensitiveThrottle` (1/hour); not public
 
 ## UI
 

@@ -57,9 +57,21 @@ model User {
   id              String           @id @default(uuid())
   status          UserStatus       @default(ACTIVE)
   preferredLocale String           @default("en")
+  displayName     String?
+  /// Local username/password auth (unique, case-insensitive via lowercase storage).
+  username        String?
+  /// scrypt hash hex — never returned on public DTOs.
+  passwordHash    String?
+  /// scrypt salt hex — never returned on public DTOs.
+  passwordSalt    String?
+  phone           String?
+  email           String?
+  /// JSON array of roles: seeker | employer | admin
+  rolesJson       Json             @default("[\"seeker\"]")
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   identities      UserIdentity[]
+  sessions        AuthSession[]
   preferences     UserPreference?
   entitlements    Entitlement[]
   payments        Payment[]
@@ -74,9 +86,71 @@ model User {
   notificationDeliveries NotificationDelivery[]
   seekerProfile   SeekerProfile?
   applications    SeekerApplication[]
+  applyProfiles   ApplyProfile[]
+  jobApplications JobApplication[]    @relation("JobApplicationSeeker")
+  ownedJobApplications JobApplication[] @relation("JobApplicationOwner")
+  applicationEvents ApplicationEvent[] @relation("ApplicationEventActor")
+  applicationMessages ApplicationMessage[] @relation("ApplicationMessageSender")
   hiddenJobs      HiddenJob[]
   savedSearches   SavedSearch[]
+  reputations     UserReputation[]
+  reputationEvents ReputationEvent[]
 
+  @@unique([username])
+  @@index([email])
+  @@index([phone])
+  @@schema("xcron")
+}
+
+/// Performance Score per user × role (seeker | employer). Starts at 50.
+model UserReputation {
+  id        String   @id @default(uuid())
+  userId    String
+  /// seeker | employer
+  role      String
+  score     Int      @default(50)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([score])
+  @@schema("xcron")
+}
+
+/// Ledger of Performance Score changes (apply fit, chat reply, review, etc.).
+model ReputationEvent {
+  id            String   @id @default(uuid())
+  userId        String
+  role          String
+  type          String
+  delta         Int
+  scoreAfter    Int
+  applicationId String?
+  jobId         String?
+  matchPercent  Int?
+  note          String?
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, role, createdAt])
+  @@index([type, createdAt])
+  @@schema("xcron")
+}
+
+/// Long-lived refresh + short access pair. Survives API restart when AUTH_STORE=prisma.
+model AuthSession {
+  id               String   @id @default(uuid())
+  userId           String
+  accessToken      String   @unique
+  refreshToken     String   @unique
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime
+  refreshExpiresAt DateTime
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshExpiresAt])
   @@schema("xcron")
 }
 
@@ -182,6 +256,8 @@ model Job {
   expiresAt            DateTime?
   walkInAt             DateTime?
   applyBy              DateTime?
+  /// Optional anti-spam / intent question shown on apply (seeker must answer).
+  screeningQuestion    String?
   priority             Int               @default(0)
   reportCount          Int               @default(0)
   moderationNote       String?
@@ -194,6 +270,7 @@ model Job {
   importRecords        ImportRecord[]
   savedBy              SavedJob[]
   applications         SeekerApplication[]
+  jobApplications      JobApplication[]
   hiddenBy             HiddenJob[]
 
   @@index([employerId])
@@ -219,18 +296,57 @@ model SavedJob {
   @@schema("xcron")
 }
 
-/// Light seeker profile (not a resume vault).
+/// Seeker profile — personal / location / career (not a CV vault).
 model SeekerProfile {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  displayName      String?
-  experienceBand   String?
-  skillsJson       Json     @default("[]")
-  preferredCitiesJson Json  @default("[]")
-  openToWork       Boolean  @default(true)
-  updatedAt        DateTime @updatedAt
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  displayName         String?
+  mobile              String?
+  email               String?
+  showContact         Boolean  @default(false)
+  address             String?
+  pincode             String?
+  careerStage         String?
+  educationStatus     String?
+  openToInternship    Boolean?
+  courseDetails       String?
+  branchStudied       String?
+  academicScore       String?
+  experienceYears     Int?
+  experienceMonths    Int?
+  companyName         String?
+  companyArea         String?
+  currentSalary       String?
+  expectedSalary      String?
+  noticePeriod        String?
+  experienceBand      String?
+  skillsJson          Json     @default("[]")
+  preferredCitiesJson Json     @default("[]")
+  openToWork          Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@schema("xcron")
+}
+
+/// Multi-version apply profile (skills/projects/portfolio) — no CV/resume upload.
+model ApplyProfile {
+  id                 String   @id @default(uuid())
+  userId             String
+  name               String
+  headline           String?
+  summary            String?
+  experienceBand     String?
+  skillsJson         Json     @default("[]")
+  projectsJson       Json     @default("[]")
+  portfolioLinksJson Json     @default("[]")
+  isDefault          Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isDefault])
   @@schema("xcron")
 }
 
@@ -249,6 +365,86 @@ model SeekerApplication {
   @@unique([userId, jobId])
   @@index([userId])
   @@index([jobId])
+  @@schema("xcron")
+}
+
+/// Formal ATS application (apply → offer letter timeline). No CV — apply profile snapshot.
+model JobApplication {
+  id                   String   @id @default(uuid())
+  jobId                String
+  employerId           String
+  seekerUserId         String
+  ownerUserId          String
+  status               String   @default("applied")
+  coverNote            String?
+  /// Deprecated — unused; kept for older rows. Prefer applyProfileSnapshotJson.
+  resumeUrl            String?
+  applyProfileId       String?
+  applyProfileSnapshotJson Json?
+  seekerName           String?
+  seekerPhone          String?
+  seekerEmail          String?
+  /// Answer to Job.screeningQuestion when the job requires one.
+  screeningAnswer      String?
+  /// Snapshot at apply time — employer “Likely spam” badge (not a hard block).
+  likelySpam           Boolean  @default(false)
+  spamReasonsJson      Json     @default("[]")
+  offerLetterText      String?
+  viewedAt             DateTime?
+  /// Skills/experience fit % vs job at apply (Performance Score input).
+  matchPercent         Int?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  job                  Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  seeker               User     @relation("JobApplicationSeeker", fields: [seekerUserId], references: [id], onDelete: Cascade)
+  owner                User     @relation("JobApplicationOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  events               ApplicationEvent[]
+  messages             ApplicationMessage[]
+
+  @@unique([seekerUserId, jobId])
+  @@index([jobId])
+  @@index([employerId])
+  @@index([ownerUserId])
+  @@index([status])
+  @@index([seekerUserId, createdAt])
+  @@index([applyProfileId])
+  @@index([likelySpam])
+  @@schema("xcron")
+}
+
+/// In-app chat on a formal application (seeker ↔ recruiter).
+model ApplicationMessage {
+  id            String   @id @default(uuid())
+  applicationId String
+  senderUserId  String
+  senderRole    String
+  body          String
+  createdAt     DateTime @default(now())
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  sender        User     @relation("ApplicationMessageSender", fields: [senderUserId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+  @@index([senderUserId])
+  @@schema("xcron")
+}
+
+/// Append-only Naukri-style timeline (ISO datetime with hour).
+model ApplicationEvent {
+  id            String   @id @default(uuid())
+  applicationId String
+  type          String
+  fromStatus    String?
+  toStatus      String?
+  actorUserId   String?
+  actorRole     String
+  note          String?
+  metaJson      Json?
+  at            DateTime @default(now())
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actor         User?    @relation("ApplicationEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, at])
+  @@index([actorUserId])
   @@schema("xcron")
 }
 

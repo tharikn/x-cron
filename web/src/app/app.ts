@@ -4,6 +4,7 @@ import {
   OnDestroy,
   OnInit,
   PLATFORM_ID,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -74,6 +75,28 @@ export class App implements OnInit, OnDestroy {
   readonly toasts = this.toastService.messages;
   readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
+  readonly isEmployer = this.auth.isEmployer;
+  /** Drawer label when signed in: display name → username → email. */
+  readonly profileLabel = computed(() => {
+    const u = this.auth.user();
+    if (!u) return '';
+    return (
+      u.displayName?.trim() ||
+      u.username?.trim() ||
+      u.email?.trim() ||
+      ''
+    );
+  });
+  /** Default avatar initials when no photo URL exists. */
+  readonly profileInitials = computed(() => {
+    const label = this.profileLabel();
+    if (!label) return '?';
+    const parts = label.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase();
+    }
+    return label.slice(0, 2).toUpperCase();
+  });
   readonly languageLabel = this.locale.languageLabel;
   readonly footer = this.site.footer;
   readonly notifUnread = this.notifications.unreadCount;
@@ -123,12 +146,35 @@ export class App implements OnInit, OnDestroy {
     this.unlockBody();
   }
 
+  async logout(): Promise<void> {
+    this.closeMenu();
+    await this.auth.logout();
+    void this.router.navigateByUrl('/');
+  }
+
   dismissToast(id: number): void {
     this.toastService.dismiss(id);
   }
 
   isInternalHref(href: string): boolean {
     return this.site.isInternalHref(href);
+  }
+
+  /** Guest chrome: hide account-only quick links (settings/prefs/saved/alerts/score). */
+  showFooterQuickLink(href: string, id: string): boolean {
+    if (this.isSignedIn()) return true;
+    const authOnlyIds = new Set([
+      'ql_settings',
+      'ql_prefs',
+      'ql_saved',
+      'ql_notifications',
+      'ql_performance',
+    ]);
+    if (authOnlyIds.has(id)) return false;
+    const path = href.split('?')[0] ?? href;
+    return !['/settings', '/preferences', '/me', '/notifications', '/performance'].some(
+      (p) => path === p || path.startsWith(`${p}/`),
+    );
   }
 
   /** Translate footer chrome; fall back to CMS English when key is missing. */

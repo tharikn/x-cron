@@ -15,7 +15,10 @@ import {
   IonToolbar,
   ToastController,
 } from '@ionic/angular';
+import { FormsModule } from '@angular/forms';
 import type { Job } from '../../core/models/job.model';
+import { ApplicationsService } from '../../core/services/applications.service';
+import { ApplyProfilesService } from '../../core/services/apply-profiles.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
@@ -32,14 +35,19 @@ import {
   GoogleSignInSheetComponent,
   type GoogleSignInReason,
 } from '../../shared/google-sign-in-sheet/google-sign-in-sheet.component';
+import {
+  IonSelect,
+  IonSelectOption,
+} from '@ionic/angular';
 
-type PendingAction = 'save' | 'share';
+type PendingAction = 'save' | 'share' | 'apply';
 
 @Component({
   selector: 'app-job-detail',
   templateUrl: './job-detail.page.html',
   styleUrls: ['./job-detail.page.scss'],
   imports: [
+    FormsModule,
     RouterLink,
     IonHeader,
     IonToolbar,
@@ -53,6 +61,8 @@ type PendingAction = 'save' | 'share';
     IonItem,
     IonLabel,
     IonNote,
+    IonSelect,
+    IonSelectOption,
     JobCardComponent,
     GoogleSignInSheetComponent,
   ],
@@ -61,7 +71,9 @@ export class JobDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly jobsService = inject(JobsService);
   private readonly seeker = inject(SeekerService);
-  private readonly auth = inject(AuthService);
+  private readonly applications = inject(ApplicationsService);
+  private readonly applyProfiles = inject(ApplyProfilesService);
+  readonly auth = inject(AuthService);
   private readonly toastController = inject(ToastController);
   private readonly locale = inject(LocaleService);
   private readonly viewed = inject(ViewedJobsService);
@@ -69,8 +81,12 @@ export class JobDetailPage implements OnInit {
   readonly job = signal<Job | undefined>(undefined);
   readonly related = signal<Job[]>([]);
   readonly saved = signal(false);
+  readonly appliedId = signal<string | null>(null);
+  readonly applyBusy = signal(false);
+  readonly applyProfilesList = this.applyProfiles.items;
   readonly signInOpen = signal(false);
   readonly signInReason = signal<GoogleSignInReason>('generic');
+  selectedProfileId = '';
 
   private pendingAction: PendingAction | null = null;
 
@@ -94,7 +110,64 @@ export class JobDetailPage implements OnInit {
         } catch {
           this.saved.set(false);
         }
+        try {
+          const apps = await this.applications.listMine();
+          const mine = apps.find((a) => a.jobId === job.id && a.status !== 'withdrawn');
+          this.appliedId.set(mine?.id ?? null);
+        } catch {
+          this.appliedId.set(null);
+        }
+        await this.loadApplyProfiles();
       }
+    }
+  }
+
+  private async loadApplyProfiles(): Promise<void> {
+    try {
+      const list = await this.applyProfiles.list();
+      const preferred =
+        list.find((p) => p.id === this.selectedProfileId) ??
+        list.find((p) => p.isDefault) ??
+        list[0];
+      this.selectedProfileId = preferred?.id ?? '';
+    } catch {
+      this.selectedProfileId = '';
+    }
+  }
+
+  async applyToJob(): Promise<void> {
+    const job = this.job();
+    if (!job) return;
+    if (!this.auth.isSignedIn()) {
+      this.openSignIn('apply');
+      return;
+    }
+    if (!this.selectedProfileId) {
+      await this.showToast(
+        'Create an apply profile version in Account first (no CV — skills & portfolio).',
+      );
+      return;
+    }
+    this.applyBusy.set(true);
+    try {
+      const app = await this.applications.apply(job.id, {
+        applyProfileId: this.selectedProfileId,
+      });
+      this.appliedId.set(app.id);
+      await this.showToast('Application submitted with your selected profile version.');
+    } catch (err: unknown) {
+      const msg =
+        err &&
+        typeof err === 'object' &&
+        'error' in err &&
+        err.error &&
+        typeof err.error === 'object' &&
+        'message' in err.error
+          ? String((err.error as { message: unknown }).message)
+          : 'Could not apply. Check limits or if you already applied.';
+      await this.showToast(msg);
+    } finally {
+      this.applyBusy.set(false);
     }
   }
 
@@ -144,9 +217,11 @@ export class JobDetailPage implements OnInit {
       } catch {
         /* ignore */
       }
+      await this.loadApplyProfiles();
     }
     if (action === 'save') await this.toggleSave();
     else if (action === 'share') await this.shareJob();
+    else if (action === 'apply') await this.applyToJob();
   }
 
   async toggleSave(): Promise<void> {

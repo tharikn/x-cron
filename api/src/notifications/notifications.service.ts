@@ -261,6 +261,401 @@ export class NotificationsService {
   }
 
   /**
+   * First successful login after account creation:
+   * welcome + day-0 “complete your profile” nudge (deduped).
+   */
+  async onUserFirstLogin(userId: string) {
+    const user = this.auth.getUser(userId);
+    if (!user || user.status !== 'active') {
+      return { welcome: null, profile: null };
+    }
+    const welcome = await this.sendWelcome(userId, user.displayName);
+    const profile = await this.sendProfileCompleteNudge(userId, 0);
+    return { welcome, profile };
+  }
+
+  /**
+   * Auto-trigger profile-complete reminders for accounts created in the
+   * last PROFILE_REMINDER_MAX_DAYS (default 2). Day 0 is sent on first login;
+   * this covers day 1…N while the seeker profile is still incomplete.
+   */
+  async runProfileCompleteReminders() {
+    const maxDays = Math.max(
+      1,
+      Number(process.env.PROFILE_REMINDER_MAX_DAYS ?? '2') || 2,
+    );
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    let considered = 0;
+    let sent = 0;
+    let skipped = 0;
+
+    for (const user of this.auth.listUsers()) {
+      if (user.status !== 'active') continue;
+      if (!user.roles.includes('seeker')) continue;
+      const created = new Date(user.createdAt).getTime();
+      if (!Number.isFinite(created)) continue;
+      const ageDays = Math.floor((now - created) / dayMs);
+      if (ageDays < 1 || ageDays > maxDays) continue;
+      considered += 1;
+      const result = await this.sendProfileCompleteNudge(user.id, ageDays);
+      if (result && 'sent' in result && result.sent) sent += 1;
+      else skipped += 1;
+    }
+
+    return { considered, sent, skipped, maxDays };
+  }
+
+  private async sendWelcome(userId: string, displayName?: string) {
+    const dedupeKey = `welcome:${userId}`;
+    if (await this.store.hasDedupe(`${dedupeKey}:in_app`)) {
+      return { skipped: true as const, reason: 'already_sent' };
+    }
+    const name = displayName?.trim() || 'there';
+    return this.sendLifecycleAlert({
+      userId,
+      triggerType: 'user_welcome',
+      template: 'user_welcome',
+      title: 'Welcome to X Cron Jobs',
+      body: `Hey ${name} — you're in. Browse local roles and turn on alerts that fit you.`,
+      dedupeKey,
+      data: { action: 'browse_jobs' },
+      meta: { kind: 'welcome' },
+    });
+  }
+
+  private async sendProfileCompleteNudge(userId: string, dayIndex: number) {
+    const user = this.auth.getUser(userId);
+    if (!user || user.status !== 'active') {
+      return { skipped: true as const, reason: 'user_inactive' };
+    }
+    if (!user.roles.includes('seeker')) {
+      return { skipped: true as const, reason: 'not_seeker' };
+    }
+    if (this.isSeekerProfileComplete(userId)) {
+      return { skipped: true as const, reason: 'profile_complete' };
+    }
+    const dedupeKey = `profile_complete:${userId}:day${dayIndex}`;
+    if (await this.store.hasDedupe(`${dedupeKey}:in_app`)) {
+      return { skipped: true as const, reason: 'already_sent' };
+    }
+    const dayHint =
+      dayIndex <= 0
+        ? 'Add skills, cities, and experience so we can match better roles.'
+        : dayIndex === 1
+          ? 'Still missing profile basics — finish skills, cities, and experience today.'
+          : 'Last nudge for now: complete your profile to unlock better job matches.';
+    return this.sendLifecycleAlert({
+      userId,
+      triggerType: 'profile_complete',
+      template: 'profile_complete',
+      title: 'Complete your profile',
+      body: dayHint,
+      dedupeKey,
+      data: { action: 'complete_profile', day: String(dayIndex) },
+      meta: { kind: 'profile_complete', dayIndex },
+    });
+  }
+
+  private isSeekerProfileComplete(userId: string): boolean {
+    if (!this.seeker) return false;
+    const profile = this.seeker.getProfile({ id: userId } as AuthUser);
+    return Boolean(
+      profile.experienceBand &&
+        profile.skills.length > 0 &&
+        profile.preferredCities.length > 0,
+    );
+  }
+
+  /**
+   * Targeted lifecycle fan-out (welcome / profile) — in-app + push + mail.
+   */
+  private async sendLifecycleAlert(input: {
+    userId: string;
+    triggerType: 'user_welcome' | 'profile_complete';
+    template: string;
+    title: string;
+    body: string;
+    dedupeKey: string;
+    data?: Record<string, string>;
+    meta?: Record<string, string | number | boolean | null>;
+  }) {
+    const dispatch = await this.store.startDispatch({
+      triggerType: input.triggerType,
+      meta: {
+        ...input.meta,
+        userId: input.userId,
+        pushProvider: this.push.name,
+        mailProvider: this.mail.name,
+      },
+    });
+
+    const prefs = await this.store.getNotificationPrefs(input.userId);
+    const quiet = this.inQuietHours(
+      prefs.quietHoursStart,
+      prefs.quietHoursEnd,
+    );
+    const data = input.data ?? {};
+    let sent = 0;
+    let suppressed = 0;
+    let failed = 0;
+
+    // Onboarding always lands in the in-app inbox (dedupe marker).
+    await this.recordChannel({
+      userId: input.userId,
+      channel: 'in_app',
+      template: input.template,
+      title: input.title,
+      body: input.body,
+      data,
+      dedupeKey: `${input.dedupeKey}:in_app`,
+      dispatchId: dispatch.id,
+      status: 'sent',
+      provider: 'in_app',
+    });
+    sent += 1;
+
+    if (prefs.pushAlertsEnabled !== false && !quiet) {
+      const devices = await this.store.listDevicesForUser(input.userId);
+      if (!devices.length) {
+        await this.logDelivery(dispatch.id, {
+          userId: input.userId,
+          channel: 'push',
+          status: 'suppressed',
+          title: input.title,
+          body: input.body,
+          dedupeKey: `${input.dedupeKey}:push`,
+          error: 'no_device',
+        });
+        suppressed += 1;
+      } else {
+        for (const device of devices) {
+          const result = await this.push.send({
+            token: device.fcmToken,
+            title: input.title,
+            body: input.body,
+            data,
+          });
+          await this.recordChannel({
+            userId: input.userId,
+            channel: 'push',
+            template: input.template,
+            title: input.title,
+            body: input.body,
+            data,
+            dedupeKey: `${input.dedupeKey}:push:${device.id}`,
+            dispatchId: dispatch.id,
+            status: result.ok ? 'sent' : 'failed',
+            error: result.error,
+            provider: this.push.name,
+            providerMessageId: result.providerMessageId,
+          });
+          if (result.ok) sent += 1;
+          else failed += 1;
+        }
+      }
+    } else if (quiet) {
+      suppressed += 1;
+    }
+
+    if (prefs.emailAlertsEnabled !== false && !quiet) {
+      const user = this.auth.getUser(input.userId);
+      if (user?.email) {
+        const result = await this.mail.send({
+          to: user.email,
+          subject: input.title,
+          text: input.body,
+        });
+        await this.recordChannel({
+          userId: input.userId,
+          channel: 'mail',
+          template: input.template,
+          title: input.title,
+          body: input.body,
+          data,
+          dedupeKey: `${input.dedupeKey}:mail`,
+          dispatchId: dispatch.id,
+          status: result.ok ? 'sent' : 'failed',
+          error: result.error,
+          provider: this.mail.name,
+          providerMessageId: result.providerMessageId,
+        });
+        if (result.ok) sent += 1;
+        else failed += 1;
+      } else {
+        suppressed += 1;
+      }
+    }
+
+    await this.store.updateDispatch(dispatch.id, {
+      matchedCount: 1,
+      sentCount: sent,
+      suppressedCount: suppressed,
+      failedCount: failed,
+    });
+    await this.store.finishDispatch(dispatch.id, 'completed');
+    return {
+      sent: true as const,
+      dispatchId: dispatch.id,
+      sentCount: sent,
+      suppressed,
+      failed,
+    };
+  }
+
+  /**
+   * Targeted in-app + push + mail for ATS application actions
+   * (apply, view, status change, offer letter, withdraw, note).
+   */
+  async onApplicationEvent(input: {
+    applicationId: string;
+    jobId: string;
+    jobTitle: string;
+    jobSlug: string;
+    city: string;
+    status: string;
+    recipientUserId: string;
+    recipientRole: 'seeker' | 'employer';
+    title: string;
+    body: string;
+    eventType: string;
+  }) {
+    const dispatch = await this.store.startDispatch({
+      triggerType: 'application_event',
+      jobId: input.jobId,
+      meta: {
+        applicationId: input.applicationId,
+        eventType: input.eventType,
+        status: input.status,
+        recipientRole: input.recipientRole,
+        pushProvider: this.push.name,
+        mailProvider: this.mail.name,
+      },
+    });
+
+    const prefs = await this.store.getNotificationPrefs(input.recipientUserId);
+    const quiet = this.inQuietHours(
+      prefs.quietHoursStart,
+      prefs.quietHoursEnd,
+    );
+    const data: Record<string, string> = {
+      jobId: input.jobId,
+      slug: input.jobSlug,
+      applicationId: input.applicationId,
+      eventType: input.eventType,
+      status: input.status,
+    };
+    const dedupeKey = `application:${input.applicationId}:${input.eventType}:${input.status}:${Date.now()}`;
+
+    let sent = 0;
+    let suppressed = 0;
+    let failed = 0;
+
+    if (prefs.inAppEnabled !== false) {
+      await this.recordChannel({
+        userId: input.recipientUserId,
+        channel: 'in_app',
+        template: `application_${input.eventType}`,
+        title: input.title,
+        body: input.body,
+        data,
+        jobId: input.jobId,
+        dedupeKey: `${dedupeKey}:in_app`,
+        dispatchId: dispatch.id,
+        status: 'sent',
+        provider: 'in_app',
+      });
+      sent += 1;
+    } else {
+      suppressed += 1;
+    }
+
+    if (prefs.pushAlertsEnabled !== false && !quiet) {
+      const devices = await this.store.listDevicesForUser(input.recipientUserId);
+      if (!devices.length) {
+        await this.logDelivery(dispatch.id, {
+          userId: input.recipientUserId,
+          channel: 'push',
+          status: 'suppressed',
+          title: input.title,
+          body: input.body,
+          dedupeKey: `${dedupeKey}:push`,
+          jobId: input.jobId,
+          error: 'no_device',
+        });
+        suppressed += 1;
+      } else {
+        for (const device of devices) {
+          const result = await this.push.send({
+            token: device.fcmToken,
+            title: input.title,
+            body: input.body,
+            data,
+          });
+          await this.recordChannel({
+            userId: input.recipientUserId,
+            channel: 'push',
+            template: `application_${input.eventType}`,
+            title: input.title,
+            body: input.body,
+            data,
+            jobId: input.jobId,
+            dedupeKey: `${dedupeKey}:push:${device.id}`,
+            dispatchId: dispatch.id,
+            status: result.ok ? 'sent' : 'failed',
+            error: result.error,
+            provider: this.push.name,
+            providerMessageId: result.providerMessageId,
+          });
+          if (result.ok) sent += 1;
+          else failed += 1;
+        }
+      }
+    } else if (quiet) {
+      suppressed += 1;
+    }
+
+    if (prefs.emailAlertsEnabled !== false && !quiet) {
+      const user = this.auth.getUser(input.recipientUserId);
+      if (user?.email) {
+        const result = await this.mail.send({
+          to: user.email,
+          subject: input.title,
+          text: `${input.body}\n\nRole: ${input.jobTitle} · ${input.city}`,
+        });
+        await this.recordChannel({
+          userId: input.recipientUserId,
+          channel: 'mail',
+          template: `application_${input.eventType}`,
+          title: input.title,
+          body: input.body,
+          data,
+          jobId: input.jobId,
+          dedupeKey: `${dedupeKey}:mail`,
+          dispatchId: dispatch.id,
+          status: result.ok ? 'sent' : 'failed',
+          error: result.error,
+          provider: this.mail.name,
+          providerMessageId: result.providerMessageId,
+        });
+        if (result.ok) sent += 1;
+        else failed += 1;
+      } else {
+        suppressed += 1;
+      }
+    }
+
+    await this.store.updateDispatch(dispatch.id, {
+      matchedCount: 1,
+      sentCount: sent,
+      suppressedCount: suppressed,
+      failedCount: failed,
+    });
+    await this.store.finishDispatch(dispatch.id, 'completed');
+    return { dispatchId: dispatch.id, sent, suppressed, failed };
+  }
+
+  /**
    * Subscribers = users with job prefs and/or explicit notification prefs.
    * Empty job filters + jobAlertsEnabled ⇒ subscribed to all new jobs (capped).
    */

@@ -100,22 +100,6 @@ export class PaymentsService {
     );
   }
 
-  createPostJobOrder(jobId: string): Promise<{
-    order: PaymentOrderDto;
-    checkout: CheckoutDto;
-    mode: string;
-  }> {
-    return firstValueFrom(
-      this.http.post<{
-        order: PaymentOrderDto;
-        checkout: CheckoutDto;
-        mode: string;
-      }>(`${environment.apiUrl}/jobs/${jobId}/post-orders`, {}, {
-        headers: this.auth.authHeaders(),
-      }),
-    );
-  }
-
   listAdminHistory(params: {
     status?: string;
     from?: string;

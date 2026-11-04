@@ -18,6 +18,9 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `.github/workflows/api-build.yml` | CI: API build |
 | `.github/workflows/mobile-build.yml` | CI: mobile build |
 | `.github/workflows/web-build.yml` | CI: web build |
+| `.cursor/skills/xcron-claude-md/SKILL.md` | Keep CLAUDE.md + docs/env/Prisma in sync on every change |
+| `.cursor/skills/xcron-payments/SKILL.md` | Payment gateway Strategy/Adapter + UPI rules |
+| `.cursor/skills/xcron-ui-auth/SKILL.md` | Guest vs signed-in nav/chrome (Settings/Notifications/Saved/Score) |
 
 ---
 
@@ -31,6 +34,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `docs/COST_MODEL.md` | Low-cost ops / budget planning |
 | `docs/MOBILE_MVP.md` | Early mobile MVP notes / AC mapping |
 | `docs/FILE_MAP.md` | This file — folder-wise inventory |
+| `docs/CHANNEL_PULL.md` | Job Fare Telegram / WA bridge design |
+| `docs/PERFORMANCE_SCORE.md` | Seeker + recruiter Performance Score + E2E diagram |
 
 ---
 
@@ -76,13 +81,13 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Path | Purpose |
 | --- | --- |
 | `auth.module.ts` | Global auth module |
-| `auth.controller.ts` | OTP start/verify, Google, admin login, refresh, me, logout; employers routes |
+| `auth.controller.ts` | register/login (username+password), Google, admin login, refresh, me, logout; employers routes |
 | `auth.service.ts` | Auth business logic |
-| `auth.store.ts` | In-memory users, OTP, access+refresh sessions, employers |
+| `auth.store.ts` | In-memory users, password digests, access+refresh sessions, employers |
 | `auth.types.ts` | User / role / session / AuthTokens types |
 | `auth.guard.ts` | Global Bearer access-token guard |
 | `decorators.ts` | `@Public`, `@Roles`, `@CurrentUser`, `@AccessToken` |
-| `dto/auth.dto.ts` | OTP / employer / Google DTOs |
+| `dto/auth.dto.ts` | Register / login / employer / Google DTOs |
 
 #### `api/src/jobs/`
 
@@ -92,8 +97,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `jobs.controller.ts` | Search, detail, related, report, employer post, admin moderation |
 | `jobs.service.ts` | Job use-cases; hooks ads boosts + notifications on publish |
 | `jobs.memory-store.ts` | In-memory job repository |
-| `jobs.mapper.ts` | Public DTO mapper (never leaks `privateContact`) |
-| `job.types.ts` | Job domain types |
+| `jobs.mapper.ts` | Public DTO mapper (contacts + optional `screeningQuestion`) |
+| `job.types.ts` | Job domain types (+ optional screening question) |
 | `seed-jobs.ts` | Seed published jobs with private contacts |
 | `dto/create-job.dto.ts` | Quick/paste create DTOs |
 | `dto/search-jobs.dto.ts` | Search query DTO |
@@ -159,7 +164,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | --- | --- |
 | `notifications.module.ts` | In-app + push + mail notifications |
 | `notifications.controller.ts` | Devices, prefs, inbox, read, admin dispatch history, dev |
-| `notifications.service.ts` | Subscriber match → fan-out; quiet hours / daily cap |
+| `notifications.service.ts` | Subscriber match → fan-out; welcome/profile onboarding; quiet hours / daily cap |
+| `notifications.scheduler.ts` | Hourly tick — profile-complete nudges for first N days |
 | `notifications.store.ts` | Devices, prefs, inbox, dispatch + delivery history |
 | `notifications.types.ts` | Notification domain types |
 | `dto/notifications.dto.ts` | Device/prefs/dev DTOs |
@@ -198,9 +204,44 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Path | Purpose |
 | --- | --- |
 | `seeker.module.ts` | Seeker saved jobs + feed |
-| `seeker.controller.ts` | `/v1/feed`, `/v1/me/saved-jobs` |
-| `seeker.service.ts` | Save/unsave + prefs-based feed |
-| `seeker.store.ts` | In-memory saved-job sets |
+| `seeker.controller.ts` | `/v1/feed`, `/v1/me/saved-jobs`, `/v1/me/profile`, applications/hidden/saved-searches |
+| `seeker.service.ts` | Save/unsave + prefs-based feed + profile career upsert |
+| `seeker.store.ts` | In-memory saved jobs + profile (personal/location/career) |
+| `seeker.types.ts` | SeekerProfile career/personal fields |
+| `dto/seeker.dto.ts` | UpsertSeekerProfileDto + saved-search DTOs |
+
+#### `api/src/applications/`
+
+| Path | Purpose |
+| --- | --- |
+| `applications.module.ts` | ATS apply → offer letter |
+| `applications.controller.ts` | Seeker apply (`@ApplyThrottle`) + employer review APIs |
+| `applications.service.ts` | Status machine + timeline + notify + anti-spam + reputation hooks |
+| `applications.*.store.ts` | Memory / Prisma dual store (quota counts + cover-note history + matchPercent) |
+| `applications.types.ts` | Statuses, events, transitions |
+| `dto/applications.dto.ts` | Apply / transition / note DTOs |
+
+#### `api/src/reputation/`
+
+| Path | Purpose |
+| --- | --- |
+| `reputation.module.ts` | Performance Score (seeker + employer) |
+| `reputation.controller.ts` | `GET /v1/reputation/me`, `GET /v1/reputation/users/:id` |
+| `reputation.service.ts` | Event deltas, tips, bands |
+| `match-score.util.ts` | Apply-time skills/experience fit % |
+| `reputation.*.store.ts` | Memory / Prisma dual store |
+| `reputation.types.ts` | Score / event / band helpers |
+| `CLAUDE.md` | Agent guide |
+
+#### `api/src/apply-profiles/`
+
+| Path | Purpose |
+| --- | --- |
+| `apply-profiles.module.ts` | Multi-version apply profiles (no CV) |
+| `apply-profiles.controller.ts` | `/v1/me/apply-profiles` CRUD |
+| `apply-profiles.service.ts` | Versions + `assertReadyForApply` |
+| `apply-profiles.*.store.ts` | Memory / Prisma dual store |
+| `apply-profiles.types.ts` | Profile + snapshot helpers; skill limits 2–7 |
 
 #### `api/src/account/`
 
@@ -208,7 +249,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | --- | --- |
 | `account.module.ts` | Account deletion |
 | `account.controller.ts` | `DELETE /v1/me`, `DELETE /v1/auth/me` |
-| `account.service.ts` | Wipe payments/prefs/seeker + auth user |
+| `account.service.ts` | Wipe payments/prefs/seeker/apply-profiles/applications/reputation + auth user |
 
 #### `api/src/site/`
 
@@ -284,7 +325,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 
 | Path | Purpose |
 | --- | --- |
-| `tabs.page.ts/html/scss` | Bottom tabs: Discover / Post / Prefs / Account |
+| `tabs.page.ts/html/scss` | Bottom tabs: Discover / Post / Alerts / Settings / Sign in (Profile last) |
 
 #### `mobile/src/app/core/`
 
@@ -293,15 +334,17 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `models/job.model.ts` | Job / prefs client models |
 | `data/mock-jobs.ts` | Offline fallback jobs |
 | `utils/format.ts` | Salary/location/unlock formatters |
-| `services/auth.service.ts` | OTP auth client |
-| `services/jobs.service.ts` | Search/post/moderation API client |
+| `utils/friendly-http-message.ts` | Map network/HTTP noise to end-user toast copy |
+| `services/auth.service.ts` | Username/password + Google + admin auth client |
+| `services/jobs.service.ts` | Search/post/moderation API client (`directPublish` on create) |
+| `services/ai.service.ts` | Job enrich / AI chat client (`/v1/ai/*`) for Recruiter desk |
 | `services/preferences.service.ts` | Local + API prefs sync/claim |
 | `services/ingestion.service.ts` | Bulk import API client |
 | `services/channels.service.ts` | Job Fare channel pull API client |
 | `services/payments.service.ts` | Unlock + subscription client |
 | `services/notifications.service.ts` | Device + inbox client |
 | `services/ads.service.ts` | Ad slots + promote packages |
-| `services/seeker.service.ts` | Saved jobs, feed, account delete |
+| `services/seeker.service.ts` | Saved jobs, feed, profile, contacted apps, saved searches, account delete |
 | `services/app-update.service.ts` | Native APK update check vs GitHub Releases latest |
 
 #### `mobile/src/app/pages/`
@@ -310,12 +353,15 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | --- | --- |
 | `discover/*` | Guest search + labelled ad slot + pref prompt |
 | `job-detail/*` | Detail, unlock, save, share, report, footer ad |
-| `post-job/*` | Quick/paste post + promote packages |
+| `post-job/*` | Recruiter desk: Compose / Review / Preview + AI chat + direct publish confirm |
 | `import-batch/*` | CSV / camera / clipboard import UI |
 | `job-fare/*` | Admin Job Fare channel pull workflow (pipeline + schedule) |
 | `preferences/*` | Job prefs + notification toggles |
 | `notifications/*` | Inbox + channel toggles (tab) |
-| `account/*` | OTP, employer, subscription, feed, saved, moderation, delete |
+| `account/*` | Username/password account, employer, subscription, feed, saved, moderation, delete |
+| `performance/*` | Performance Score screen (seeker + recruiter) |
+| `employer-applications/*` | Employer applicant inbox (score + fit badges) |
+| `application-detail/*` | ATS timeline + chat + score/fit |
 
 #### `mobile/src/app/shared/`
 
@@ -387,7 +433,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 
 | Path | Purpose |
 | --- | --- |
-| `app.ts` / `app.html` / `app.scss` | Root app |
+| `app.ts` / `app.html` / `app.scss` | Root shell; drawer last item Sign in / profile name → `/sign-in` |
 | `app.config.ts` | Client app config |
 | `app.config.server.ts` | Server app config |
 | `app.routes.ts` | Client routes |
@@ -399,9 +445,16 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `core/services/site.service.ts` | Public footer config client (`GET /site/footer`) |
 | `core/models/site.model.ts` | Footer config types |
 | `core/utils/format.ts` | Display helpers |
+| `core/utils/friendly-http-message.ts` | Map network/HTTP noise to end-user toast copy |
+| `core/services/toast.service.ts` | Shell toast stack (premium error = red panel) |
 | `pages/home/*` | SEO home + search + ad rail |
-| `shared/get-app-cta/*` | Android APK download CTA + GitHub version list (home / footer / drawer) |
+| `pages/post-job/*` | Recruiter desk: Compose / Review / Preview + AI chat + direct publish |
+| `pages/sign-in/*` | Guest auth + signed-in Account hub (Profile / Apply / Activity / Rating / Account) |
+| `pages/seeker/*` | `/me` Saved jobs + apply versions + applications list |
+| `shared/get-app-cta/*` | Android APK download CTA (home panel / footer band / drawer foot link with version + published datetime) |
 | `core/services/apk-releases.service.ts` | GitHub Releases API client for APK versions / notes |
+| `core/services/seeker.service.ts` | Saved jobs, feed, profile, contacted apps, saved searches, account delete |
+| `core/services/apply-profiles.service.ts` | Multi-version apply profiles client |
 | `pages/job-detail/*` | Public job page |
 | `pages/location/*` | Location landing page |
 | `pages/notifications/*` | User inbox + channel toggles |

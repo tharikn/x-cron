@@ -25,3 +25,19 @@ ion-segment-button {
 .settings-body {
   min-height: 100%;
 }
+
+.guest-hint {
+  margin: 1.25rem 1rem 2rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+  text-align: center;
+}
+
+.guest-hint p {
+  margin: 0 0 0.85rem;
+  color: var(--xcron-muted);
+  font-size: var(--xcron-text-meta);
+  line-height: var(--xcron-leading-body);
+}

@@ -25,13 +25,13 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'account',
+        redirectTo: 'language',
         pathMatch: 'full',
       },
       {
         path: 'account',
-        loadComponent: () =>
-          import('./pages/sign-in/sign-in.page').then((m) => m.SignInPage),
+        redirectTo: ({ queryParams }) => withQuery('/sign-in', queryParams),
+        pathMatch: 'full',
       },
       {
         path: 'language',
@@ -63,8 +63,8 @@ export const routes: Routes = [
   },
   {
     path: 'sign-in',
-    redirectTo: ({ queryParams }) => withQuery('/settings/account', queryParams),
-    pathMatch: 'full',
+    loadComponent: () =>
+      import('./pages/sign-in/sign-in.page').then((m) => m.SignInPage),
   },
   {
     path: 'notifications',
@@ -92,9 +92,31 @@ export const routes: Routes = [
       import('./pages/my-jobs/my-jobs.page').then((m) => m.MyJobsPage),
   },
   {
+    path: 'employer-applications',
+    canActivate: [employerGuard],
+    loadComponent: () =>
+      import('./pages/employer-applications/employer-applications.page').then(
+        (m) => m.EmployerApplicationsPage,
+      ),
+  },
+  {
     path: 'me',
     loadComponent: () =>
       import('./pages/seeker/seeker.page').then((m) => m.SeekerPage),
+  },
+  {
+    path: 'performance',
+    loadComponent: () =>
+      import('./pages/performance/performance.page').then(
+        (m) => m.PerformancePage,
+      ),
+  },
+  {
+    path: 'me/applications/:id',
+    loadComponent: () =>
+      import('./pages/application-detail/application-detail.page').then(
+        (m) => m.ApplicationDetailPage,
+      ),
   },
   {
     path: 'employers/:id',

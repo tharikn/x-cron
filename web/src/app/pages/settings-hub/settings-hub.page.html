@@ -5,13 +5,6 @@
   <div class="layout">
     <nav class="tabs" aria-label="Settings">
       <a
-        routerLink="/settings/account"
-        routerLinkActive="is-active"
-        class="tabs__btn"
-      >
-        {{ 'nav.account' | t }}
-      </a>
-      <a
         routerLink="/settings/language"
         routerLinkActive="is-active"
         class="tabs__btn"
@@ -19,13 +12,15 @@
         {{ 'nav.language' | t }}
         <span class="tabs__meta">{{ languageLabel() }}</span>
       </a>
-      <a
-        routerLink="/settings/preferences"
-        routerLinkActive="is-active"
-        class="tabs__btn"
-      >
-        {{ 'nav.preferences' | t }}
-      </a>
+      @if (isSignedIn()) {
+        <a
+          routerLink="/settings/preferences"
+          routerLinkActive="is-active"
+          class="tabs__btn"
+        >
+          {{ 'nav.preferences' | t }}
+        </a>
+      }
       @if (isAdmin()) {
         <a
           routerLink="/settings/site"

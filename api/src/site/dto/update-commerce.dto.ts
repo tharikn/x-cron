@@ -11,11 +11,12 @@ export class UpdateCommerceDto {
   @IsBoolean()
   paymentsEnabled!: boolean;
 
-  /** Post-job payment: mandatory | optional | none */
+  /** Deprecated — post-job fee removed; accepted then forced to `none`. */
+  @IsOptional()
   @IsIn(['mandatory', 'optional', 'none'])
-  postJobPaymentMode!: 'mandatory' | 'optional' | 'none';
+  postJobPaymentMode?: 'mandatory' | 'optional' | 'none';
 
-  /** Post-job fee in whole rupees. */
+  /** Deprecated — post-job fee removed; accepted then forced to 0. */
   @IsOptional()
   @IsInt()
   @Min(0)

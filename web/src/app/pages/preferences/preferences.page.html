@@ -26,7 +26,7 @@
     @if (!isSignedIn()) {
       <p class="hint">Sign in to manage job match, inbox, push, and email alerts.</p>
       <a
-        routerLink="/settings/account"
+        routerLink="/sign-in"
         [queryParams]="{ returnUrl: '/settings/preferences' }"
         class="link"
       >
@@ -55,7 +55,7 @@
           [ngModel]="notifPrefs().pushAlertsEnabled"
           (ngModelChange)="toggleAlert('pushAlertsEnabled', $event)"
         />
-        <span>Push (stub / FCM)</span>
+        <span>Push alerts</span>
       </label>
       <label class="check">
         <input
@@ -63,7 +63,7 @@
           [ngModel]="notifPrefs().emailAlertsEnabled"
           (ngModelChange)="toggleAlert('emailAlertsEnabled', $event)"
         />
-        <span>Email (stub / SMTP)</span>
+        <span>Email alerts</span>
       </label>
       <p class="ok">
         Inbox stays on

@@ -12,39 +12,77 @@
       <h2>{{ copy().title }}</h2>
       <p class="body">{{ copy().body }}</p>
 
-      @if (googleReady) {
-        <div #googleBtnHost class="google-btn-host" aria-label="Continue with Google"></div>
-        @if (busy()) {
-          <p class="hint">Signing in…</p>
-        }
-      } @else {
-        <form class="form" (ngSubmit)="continueWithGoogle()">
+      <div class="mode-tabs" role="tablist" aria-label="Account form">
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="formMode() === 'login'"
+          [class.active]="formMode() === 'login'"
+          (click)="setFormMode('login')"
+        >
+          Sign in
+        </button>
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="formMode() === 'register'"
+          [class.active]="formMode() === 'register'"
+          (click)="setFormMode('register')"
+        >
+          Create account
+        </button>
+      </div>
+
+      <form class="form" (ngSubmit)="submit()">
+        <label>
+          <span>Username</span>
+          <input
+            type="text"
+            [(ngModel)]="username"
+            name="sheetUsername"
+            placeholder="Enter Username"
+            required
+            minlength="3"
+            maxlength="32"
+            autocomplete="username"
+          />
+        </label>
+        <label>
+          <span>Password</span>
+          <input
+            type="password"
+            [(ngModel)]="password"
+            name="sheetPassword"
+            placeholder="••••••••"
+            required
+            minlength="8"
+            [attr.autocomplete]="formMode() === 'register' ? 'new-password' : 'current-password'"
+          />
+        </label>
+        @if (formMode() === 'register') {
           <label>
-            <span>Google email</span>
+            <span>Confirm password</span>
             <input
-              type="email"
-              [(ngModel)]="email"
-              name="sheetEmail"
-              placeholder="you@gmail.com"
+              type="password"
+              [(ngModel)]="confirmPassword"
+              name="sheetConfirmPassword"
+              placeholder="••••••••"
               required
-              autocomplete="username"
+              minlength="8"
+              autocomplete="new-password"
             />
           </label>
-          <label>
-            <span>Display name (optional)</span>
-            <input [(ngModel)]="displayName" name="sheetDisplayName" placeholder="Your name" />
-          </label>
-          <button type="submit" [disabled]="busy()">
-            {{ busy() ? 'Signing in…' : 'Continue with Google' }}
-          </button>
-        </form>
-      }
+        }
+        <button type="submit" [disabled]="busy()">
+          @if (busy()) {
+            Working…
+          } @else {
+            {{ formMode() === 'register' ? 'Create account' : 'Sign in' }}
+          }
+        </button>
+      </form>
 
       <button type="button" class="ghost" [disabled]="busy()" (click)="dismiss()">Not now</button>
-
-      @if (error()) {
-        <p class="error">{{ error() }}</p>
-      }
     </div>
   </div>
 }

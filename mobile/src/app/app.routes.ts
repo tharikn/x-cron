@@ -4,7 +4,7 @@ import { employerGuard } from './core/guards/employer.guard';
 import { TabsPage } from './tabs/tabs.page';
 
 function settingsRedirect(
-  tab: 'language' | 'preferences' | 'account' | 'saved',
+  tab: 'language' | 'preferences' | 'saved',
   queryParams: Record<string, string>,
 ): string {
   const q = new URLSearchParams();
@@ -62,8 +62,8 @@ export const routes: Routes = [
       },
       {
         path: 'account',
-        redirectTo: ({ queryParams }) => settingsRedirect('account', queryParams),
-        pathMatch: 'full',
+        loadComponent: () =>
+          import('./pages/account/account.page').then((m) => m.AccountPage),
       },
       {
         path: 'saved',
@@ -81,6 +81,28 @@ export const routes: Routes = [
         path: 'jobs/:id',
         loadComponent: () =>
           import('./pages/job-detail/job-detail.page').then((m) => m.JobDetailPage),
+      },
+      {
+        path: 'applications/:id',
+        loadComponent: () =>
+          import('./pages/application-detail/application-detail.page').then(
+            (m) => m.ApplicationDetailPage,
+          ),
+      },
+      {
+        path: 'employer-applications',
+        canActivate: [employerGuard],
+        loadComponent: () =>
+          import('./pages/employer-applications/employer-applications.page').then(
+            (m) => m.EmployerApplicationsPage,
+          ),
+      },
+      {
+        path: 'performance',
+        loadComponent: () =>
+          import('./pages/performance/performance.page').then(
+            (m) => m.PerformancePage,
+          ),
       },
       {
         path: '',

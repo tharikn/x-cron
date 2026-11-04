@@ -1,45 +1,57 @@
 import {
   BadRequestException,
+  ConflictException,
+  Inject,
   Injectable,
+  Logger,
+  Optional,
   UnauthorizedException,
+  forwardRef,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
+import { NotificationsService } from '../notifications/notifications.service';
+import {
+  clearAuthCookies,
+  setAuthCookies,
+} from '../security/auth-cookies';
 import { AuthStore } from './auth.store';
 import {
   AdminLoginDto,
   CreateEmployerDto,
   GoogleAuthDto,
-  RefreshTokenDto,
-  StartOtpDto,
-  VerifyOtpDto,
+  LoginDto,
+  RegisterDto,
 } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly googleClient = new OAuth2Client();
 
-  constructor(private readonly store: AuthStore) {}
+  constructor(
+    private readonly store: AuthStore,
+    @Optional()
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notifications?: NotificationsService,
+  ) {}
 
-  startOtp(dto: StartOtpDto) {
-    if (dto.channel === 'email' && !dto.destination.includes('@')) {
-      throw new BadRequestException('Valid email required');
+  register(dto: RegisterDto, res: Response, tabId?: string) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
     }
-    if (dto.channel === 'phone' && dto.destination.replace(/\D/g, '').length < 10) {
-      throw new BadRequestException('Valid phone required');
-    }
-    return this.store.startOtp({
-      channel: dto.channel,
-      destination: dto.destination,
-      intendedRole: dto.intendedRole ?? 'seeker',
-    });
-  }
-
-  verifyOtp(dto: VerifyOtpDto) {
     try {
-      const { user, token, refreshToken, expiresAt } = this.store.verifyOtp(
-        dto.challengeId,
-        dto.code,
-      );
+      const { user, token, refreshToken, expiresAt } =
+        this.store.registerWithPassword(
+          {
+            username: dto.username,
+            password: dto.password,
+            intendedRole: dto.intendedRole ?? 'seeker',
+          },
+          { tabId },
+        );
+      this.attachSessionCookies(res, token, refreshToken);
+      this.fireFirstLoginNotifications(user.id);
       return {
         token,
         refreshToken,
@@ -48,14 +60,51 @@ export class AuthService {
         employer: this.store.getEmployerByOwner(user.id) ?? null,
       };
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'invalid_code';
+      const reason = error instanceof Error ? error.message : 'register_failed';
+      if (reason === 'username_taken') {
+        throw new ConflictException('Username already taken');
+      }
+      if (reason === 'invalid_username' || reason === 'weak_password') {
+        throw new BadRequestException(reason);
+      }
+      throw new BadRequestException(reason);
+    }
+  }
+
+  login(dto: LoginDto, res: Response, tabId?: string) {
+    try {
+      const { user, token, refreshToken, expiresAt } =
+        this.store.loginWithPassword(
+          {
+            username: dto.username,
+            password: dto.password,
+            intendedRole: dto.intendedRole ?? 'seeker',
+          },
+          { tabId },
+        );
+      this.attachSessionCookies(res, token, refreshToken);
+      return {
+        token,
+        refreshToken,
+        expiresAt,
+        user: this.store.toPublicUser(user),
+        employer: this.store.getEmployerByOwner(user.id) ?? null,
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'invalid_credentials';
       throw new UnauthorizedException(reason);
     }
   }
 
-  refresh(dto: RefreshTokenDto) {
+  refresh(refreshToken: string | undefined, res: Response, tabId?: string) {
+    const token = refreshToken?.trim();
+    if (!token) {
+      throw new UnauthorizedException('invalid_refresh_token');
+    }
     try {
-      return this.store.refreshSession(dto.refreshToken.trim());
+      const next = this.store.refreshSession(token, { tabId });
+      this.attachSessionCookies(res, next.token, next.refreshToken);
+      return next;
     } catch (error) {
       const reason =
         error instanceof Error ? error.message : 'invalid_refresh_token';
@@ -72,8 +121,9 @@ export class AuthService {
     };
   }
 
-  logout(token?: string) {
+  logout(token: string | undefined, res: Response) {
     if (token) this.store.logout(token);
+    clearAuthCookies(res);
     return { ok: true };
   }
 
@@ -86,11 +136,21 @@ export class AuthService {
     };
   }
 
-  async google(dto: GoogleAuthDto) {
+  async google(dto: GoogleAuthDto, res: Response, tabId?: string) {
     const identity = await this.resolveGoogleIdentity(dto);
     try {
-      const { user, token, refreshToken, expiresAt } =
-        this.store.signInWithGoogle(identity);
+      const { user, token, refreshToken, expiresAt, isNewUser } =
+        this.store.signInWithGoogle(
+          {
+            ...identity,
+            intendedRole: dto.intendedRole ?? 'seeker',
+          },
+          { tabId },
+        );
+      this.attachSessionCookies(res, token, refreshToken);
+      if (isNewUser) {
+        this.fireFirstLoginNotifications(user.id);
+      }
       return {
         token,
         refreshToken,
@@ -104,10 +164,23 @@ export class AuthService {
     }
   }
 
-  adminLogin(dto: AdminLoginDto) {
+  /** Welcome + day-0 profile nudge after account creation (fire-and-forget). */
+  private fireFirstLoginNotifications(userId: string) {
+    if (!this.notifications) return;
+    void this.notifications.onUserFirstLogin(userId).catch((err) => {
+      this.logger.warn(
+        `First-login notifications failed for ${userId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    });
+  }
+
+  adminLogin(dto: AdminLoginDto, res: Response, tabId?: string) {
     try {
       const { user, token, refreshToken, expiresAt } =
-        this.store.signInSuperAdmin(dto.email, dto.password);
+        this.store.signInSuperAdmin(dto.email, dto.password, { tabId });
+      this.attachSessionCookies(res, token, refreshToken);
       return {
         token,
         refreshToken,
@@ -119,6 +192,19 @@ export class AuthService {
       const reason = error instanceof Error ? error.message : 'invalid_credentials';
       throw new UnauthorizedException(reason);
     }
+  }
+
+  private attachSessionCookies(
+    res: Response,
+    token: string,
+    refreshToken: string,
+  ) {
+    setAuthCookies(res, {
+      token,
+      refreshToken,
+      accessMaxAgeSec: this.store.getAccessTtlSeconds(),
+      refreshMaxAgeSec: this.store.getRefreshTtlSeconds(),
+    });
   }
 
   private async resolveGoogleIdentity(dto: GoogleAuthDto): Promise<{

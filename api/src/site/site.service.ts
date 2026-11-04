@@ -47,20 +47,17 @@ export class SiteService {
       postJobPriceInr: number;
     }
   > {
-    const postJobPriceInr =
-      dto.postJobPriceInr === undefined
-        ? Math.round(this.store.getCommerce().postJobPricePaise / 100)
-        : dto.postJobPriceInr;
+    // Post-job fee removed product-wide — ignore client mode/price.
     const doc = await this.store.putCommerce({
       unlockPricePaise: dto.unlockPriceInr * 100,
       paymentsEnabled: dto.paymentsEnabled,
-      postJobPaymentMode: dto.postJobPaymentMode,
-      postJobPricePaise: postJobPriceInr * 100,
+      postJobPaymentMode: 'none',
+      postJobPricePaise: 0,
     });
     return {
       ...doc,
       unlockPriceInr: dto.unlockPriceInr,
-      postJobPriceInr,
+      postJobPriceInr: 0,
     };
   }
 

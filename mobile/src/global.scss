@@ -268,6 +268,64 @@ ion-spinner {
   }
 }
 
+/* Premium floating toasts — always bottom-center; success = primary, error = red */
+ion-toast.xcron-toast {
+  --width: min(22rem, calc(100% - 1.5rem));
+  --max-width: min(22rem, calc(100% - 1.5rem));
+  --border-radius: 12px;
+  --box-shadow:
+    0 16px 40px rgba(88, 28, 135, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 0 28px rgba(124, 92, 255, 0.28);
+  --background: linear-gradient(
+    135deg,
+    rgba(124, 92, 255, 0.96),
+    rgba(149, 128, 255, 0.9)
+  );
+  --color: #fff;
+  font-family: var(--xcron-sans);
+  font-size: var(--xcron-text-meta);
+  font-weight: var(--xcron-weight-semibold, 600);
+  letter-spacing: 0.01em;
+}
+
+ion-toast.xcron-toast::part(container) {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(196, 181, 255, 0.35);
+  padding: 0.35rem 0.15rem;
+  margin-inline: auto;
+}
+
+ion-toast.xcron-toast::part(message) {
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+ion-toast.xcron-toast--success {
+  --background: linear-gradient(
+    135deg,
+    rgba(124, 92, 255, 0.96),
+    rgba(149, 128, 255, 0.9)
+  );
+  --color: #fff;
+}
+
+ion-toast.xcron-toast--error {
+  --background: linear-gradient(135deg, rgba(190, 24, 62, 0.96), rgba(244, 63, 94, 0.92));
+  --color: #fff;
+  --box-shadow:
+    0 18px 42px rgba(136, 19, 55, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 0 28px rgba(244, 63, 94, 0.22);
+}
+
+ion-toast.xcron-toast--error::part(container) {
+  border-color: rgba(255, 180, 196, 0.28);
+}
+
 ion-modal.import-record-modal {
   --width: min(720px, 100%);
   --height: min(90vh, 920px);

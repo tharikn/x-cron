@@ -42,7 +42,7 @@ npm start
 
 ### Bulk import demo (Step 4)
 
-1. Sign in as employer (OTP).
+1. Sign in as employer (username/password, `intendedRole=employer`).
 2. Mobile → Post → **Bulk import**.
 3. Upload a CSV (`title,employer,location,jobType,salary,description,phone`) or paste WhatsApp text / take a screenshot.
 4. Review extracted rows (contacts masked) → Approve selected → jobs enter admin moderation.
@@ -74,7 +74,7 @@ OCR for images/PDF is a stub provider (`OCR_PROVIDER`) — no invented facts; re
 
 ### Contact unlock demo (Step 5)
 
-1. Sign in as seeker (OTP).
+1. Sign in as seeker (username/password).
 2. Open a published job → **Unlock contact** (₹5 / 500 paise).
 3. Default `PAYMENT_MODE=stub` confirms via `POST /v1/payments/dev/confirm` (no real Razorpay charge).
 4. `GET /v1/jobs/{id}/contact` returns phone/email/WhatsApp only after entitlement; responses are `no-store`.
@@ -83,9 +83,9 @@ OCR for images/PDF is a stub provider (`OCR_PROVIDER`) — no invented facts; re
 ### Auth demo (Step 2)
 
 - Guest browse/search stays public.
-- OTP: use any email/phone; in development the API returns `devCode` (`123456`).
-- Admin: sign in as `admin@xcron.local` to approve/reject the moderation queue.
-- Employer posts require OTP sign-in and enter `needs-review` until approved.
+- Local auth: `POST /v1/auth/register` then `POST /v1/auth/login` with username + password (no email/SMS OTP).
+- Admin: `POST /v1/auth/admin/login` with `SUPER_ADMIN_EMAIL` + `SUPER_ADMIN_PASSWORD`.
+- Employer posts require employer register/login and enter `needs-review` until approved.
 
 ```bash
 # Optional Postgres (for upcoming Prisma store)

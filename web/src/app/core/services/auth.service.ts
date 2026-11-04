@@ -10,12 +10,23 @@ import {
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { csrfHeaders } from '../utils/csrf';
+import { TabSessionService } from './tab-session.service';
 
 export interface AuthUser {
   id: string;
   roles: Array<'seeker' | 'employer' | 'admin'>;
+  username?: string;
   email?: string;
   displayName?: string;
+}
+
+export interface EmployerProfile {
+  id: string;
+  name: string;
+  verificationStatus: string;
+  ownerUserId: string;
+  createdAt: string;
 }
 
 interface AuthSessionResponse {
@@ -23,6 +34,7 @@ interface AuthSessionResponse {
   refreshToken: string;
   expiresAt?: string;
   user: AuthUser;
+  employer?: EmployerProfile | null;
 }
 
 interface TokenPairResponse {
@@ -31,28 +43,30 @@ interface TokenPairResponse {
   expiresAt?: string;
 }
 
-const TOKEN_KEY = 'xcron.web.authToken';
-const REFRESH_KEY = 'xcron.web.refreshToken';
+/** Profile only in storage. Refresh may live in sessionStorage as cross-origin fallback. */
 const USER_KEY = 'xcron.web.authUser';
+const SESSION_REFRESH_KEY = 'xcron.web.sessionRefresh';
+const LEGACY_TOKEN_KEY = 'xcron.web.authToken';
+const LEGACY_REFRESH_KEY = 'xcron.web.refreshToken';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly tabs = inject(TabSessionService);
   /** Lazy — avoids circular DI with NotificationsService. */
   private readonly injector = inject(Injector);
   private ensurePromise: Promise<void> | null = null;
   private refreshPromise: Promise<boolean> | null = null;
-  private storageHydrated = false;
 
-  /** Null until browser hydrate; never trust SSR for auth chrome. */
+  /** In-memory access token (also mirrored via HttpOnly cookie when same-site). */
   readonly token = signal<string | null>(null);
   readonly refreshToken = signal<string | null>(null);
   readonly user = signal<AuthUser | null>(null);
-  /** True after local hydrate + optional `/auth/me` round-trip. */
+  /** True after browser hydrate + optional `/auth/me` round-trip. */
   readonly sessionValidated = signal(false);
 
-  readonly isSignedIn = computed(() => !!this.token() && !!this.user());
+  readonly isSignedIn = computed(() => !!this.user() && (!!this.token() || this.hasCookieSession()));
   /** Admin UI/nav — only after backend session validation. */
   readonly isAdmin = computed(
     () =>
@@ -65,15 +79,25 @@ export class AuthService {
         !!this.user()?.roles.includes('admin')),
   );
 
+  /** True when API set HttpOnly cookies (cross-check via CSRF twin). */
+  hasCookieSession(): boolean {
+    if (!isPlatformBrowser(this.platformId)) return false;
+    return document.cookie.split(';').some((part) => part.trim().startsWith('xcron_csrf='));
+  }
+
   authHeaders(): Record<string, string> {
     const token = this.token();
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    return {
+      ...this.tabs.headers(),
+      ...csrfHeaders(),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
   }
 
   /**
-   * Hydrate from localStorage, then confirm the session with the API.
+   * Hydrate profile, claim one-tab lock, confirm session with the API.
    * Stale tokens (e.g. after API restart) are cleared — do not show admin chrome
-   * from localStorage alone.
+   * from storage alone.
    */
   ensureSession(): Promise<void> {
     if (this.ensurePromise) return this.ensurePromise;
@@ -83,16 +107,56 @@ export class AuthService {
     return this.ensurePromise;
   }
 
+  async register(input: {
+    username: string;
+    password: string;
+    confirmPassword: string;
+    intendedRole?: 'seeker' | 'employer';
+  }): Promise<void> {
+    this.tabs.forceClaim();
+    const response = await firstValueFrom(
+      this.http.post<AuthSessionResponse>(
+        `${environment.apiUrl}/auth/register`,
+        input,
+        { withCredentials: true, headers: this.authHeaders() },
+      ),
+    );
+    this.persist(response.token, response.refreshToken, response.user);
+    this.sessionValidated.set(true);
+    await this.linkPushDevice();
+  }
+
+  async login(input: {
+    username: string;
+    password: string;
+    intendedRole?: 'seeker' | 'employer';
+  }): Promise<void> {
+    this.tabs.forceClaim();
+    const response = await firstValueFrom(
+      this.http.post<AuthSessionResponse>(
+        `${environment.apiUrl}/auth/login`,
+        input,
+        { withCredentials: true, headers: this.authHeaders() },
+      ),
+    );
+    this.persist(response.token, response.refreshToken, response.user);
+    this.sessionValidated.set(true);
+    await this.linkPushDevice();
+  }
+
   async signInWithGoogle(input: {
     idToken?: string;
     email?: string;
     displayName?: string;
+    intendedRole?: 'seeker' | 'employer';
   }): Promise<void> {
+    this.tabs.forceClaim();
     // Google idToken is exchanged once — never persisted client-side.
     const response = await firstValueFrom(
       this.http.post<AuthSessionResponse>(
         `${environment.apiUrl}/auth/google`,
         input,
+        { withCredentials: true, headers: this.authHeaders() },
       ),
     );
     this.persist(response.token, response.refreshToken, response.user);
@@ -101,10 +165,12 @@ export class AuthService {
   }
 
   async signInAsAdmin(input: { email: string; password: string }): Promise<void> {
+    this.tabs.forceClaim();
     const response = await firstValueFrom(
       this.http.post<AuthSessionResponse>(
         `${environment.apiUrl}/auth/admin/login`,
         input,
+        { withCredentials: true, headers: this.authHeaders() },
       ),
     );
     this.persist(response.token, response.refreshToken, response.user);
@@ -112,9 +178,22 @@ export class AuthService {
     await this.linkPushDevice();
   }
 
+  async createEmployer(name: string): Promise<void> {
+    const response = await firstValueFrom(
+      this.http.post<{ employer: EmployerProfile; user: AuthUser }>(
+        `${environment.apiUrl}/employers`,
+        { name },
+        { withCredentials: true, headers: this.authHeaders() },
+      ),
+    );
+    this.user.set(response.user);
+    if (isPlatformBrowser(this.platformId)) {
+      sessionStorage.setItem(USER_KEY, JSON.stringify(response.user));
+    }
+  }
+
   /**
-   * Rotate access token via refresh token. Shared promise avoids stampedes.
-   * Returns false when refresh is missing or rejected.
+   * Rotate access token via refresh token / cookie. Shared promise avoids stampedes.
    */
   refreshAccessToken(): Promise<boolean> {
     if (this.refreshPromise) return this.refreshPromise;
@@ -126,17 +205,14 @@ export class AuthService {
 
   async logout(): Promise<void> {
     await this.unlinkPushDevice();
-    const token = this.token();
     try {
-      if (token) {
-        await firstValueFrom(
-          this.http.post(
-            `${environment.apiUrl}/auth/logout`,
-            {},
-            { headers: { Authorization: `Bearer ${token}` } },
-          ),
-        );
-      }
+      await firstValueFrom(
+        this.http.post(
+          `${environment.apiUrl}/auth/logout`,
+          {},
+          { withCredentials: true, headers: this.authHeaders() },
+        ),
+      );
     } catch {
       // still clear local session
     } finally {
@@ -153,10 +229,13 @@ export class AuthService {
     this.refreshToken.set(null);
     this.user.set(null);
     this.sessionValidated.set(true);
+    this.tabs.release();
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(REFRESH_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(SESSION_REFRESH_KEY);
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(LEGACY_TOKEN_KEY);
+      localStorage.removeItem(LEGACY_REFRESH_KEY);
     }
   }
 
@@ -186,8 +265,19 @@ export class AuthService {
       return;
     }
 
-    this.hydrateFromStorage();
-    if (!this.token() && !this.refreshToken()) {
+    this.scrubLegacyTokenStorage();
+    this.hydrateUser();
+    this.hydrateSessionRefresh();
+
+    if (!this.tabs.claim()) {
+      // Another tab owns the session — do not call authenticated APIs here.
+      this.token.set(null);
+      this.refreshToken.set(null);
+      this.sessionValidated.set(true);
+      return;
+    }
+
+    if (!this.token() && !this.refreshToken() && !this.hasCookieSession()) {
       this.sessionValidated.set(true);
       return;
     }
@@ -211,39 +301,32 @@ export class AuthService {
   }
 
   private async fetchMe(): Promise<void> {
-    const token = this.token();
-    if (!token) throw new Error('no_access_token');
     const response = await firstValueFrom(
       this.http.get<{ user: AuthUser }>(`${environment.apiUrl}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+        headers: this.authHeaders(),
       }),
     );
-    const refresh = this.refreshToken();
-    if (refresh) {
-      this.persist(token, refresh, response.user);
-    } else {
-      this.user.set(response.user);
-      if (isPlatformBrowser(this.platformId)) {
-        localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-      }
+    this.user.set(response.user);
+    if (isPlatformBrowser(this.platformId)) {
+      sessionStorage.setItem(USER_KEY, JSON.stringify(response.user));
     }
   }
 
   private async runRefreshAccessToken(): Promise<boolean> {
     const refreshToken = this.refreshToken();
-    if (!refreshToken) return false;
     try {
       const response = await firstValueFrom(
         this.http.post<TokenPairResponse>(
           `${environment.apiUrl}/auth/refresh`,
-          { refreshToken },
+          refreshToken ? { refreshToken } : {},
+          { withCredentials: true, headers: this.authHeaders() },
         ),
       );
       this.token.set(response.token);
       this.refreshToken.set(response.refreshToken);
       if (isPlatformBrowser(this.platformId)) {
-        localStorage.setItem(TOKEN_KEY, response.token);
-        localStorage.setItem(REFRESH_KEY, response.refreshToken);
+        sessionStorage.setItem(SESSION_REFRESH_KEY, response.refreshToken);
       }
       return true;
     } catch {
@@ -251,12 +334,23 @@ export class AuthService {
     }
   }
 
-  private hydrateFromStorage(): void {
-    if (this.storageHydrated || !isPlatformBrowser(this.platformId)) return;
-    this.storageHydrated = true;
-    this.token.set(this.read(TOKEN_KEY));
-    this.refreshToken.set(this.read(REFRESH_KEY));
-    this.user.set(this.readJson<AuthUser>(USER_KEY));
+  private hydrateUser(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const raw =
+      sessionStorage.getItem(USER_KEY) || localStorage.getItem(USER_KEY);
+    if (!raw) return;
+    try {
+      this.user.set(JSON.parse(raw) as AuthUser);
+    } catch {
+      sessionStorage.removeItem(USER_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
+  }
+
+  private hydrateSessionRefresh(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const refresh = sessionStorage.getItem(SESSION_REFRESH_KEY);
+    if (refresh) this.refreshToken.set(refresh);
   }
 
   private persist(token: string, refreshToken: string, user: AuthUser): void {
@@ -264,23 +358,16 @@ export class AuthService {
     this.refreshToken.set(refreshToken);
     this.user.set(user);
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(REFRESH_KEY, refreshToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+      sessionStorage.setItem(SESSION_REFRESH_KEY, refreshToken);
+      localStorage.removeItem(LEGACY_TOKEN_KEY);
+      localStorage.removeItem(LEGACY_REFRESH_KEY);
     }
   }
 
-  private read(key: string): string | null {
-    if (!isPlatformBrowser(this.platformId)) return null;
-    return localStorage.getItem(key);
-  }
-
-  private readJson<T>(key: string): T | null {
-    try {
-      const raw = this.read(key);
-      return raw ? (JSON.parse(raw) as T) : null;
-    } catch {
-      return null;
-    }
+  private scrubLegacyTokenStorage(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_REFRESH_KEY);
   }
 }

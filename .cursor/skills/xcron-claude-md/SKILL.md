@@ -1,18 +1,25 @@
 ---
 name: xcron-claude-md
 description: >-
-  Keep X Cron CLAUDE.md agent guides, env files, and Prisma DDL migrations in
-  sync whenever code changes. Use when editing api/, mobile/, web/, docs/,
-  env keys (.env, .env.example, env-dev), prisma schema, APK sideload /
-  version.json updates, or a new feature module — especially AI enrich, OCR,
-  ingestion, jobs, payments/UPI gateways, seeker retention.
+  Keep X Cron CLAUDE.md agent guides, technical docs (features/bugs/releases),
+  env files, and Prisma DDL migrations in sync whenever code changes. Use when
+  editing api/, mobile/, web/, docs/, env keys (.env, .env.example, env-dev),
+  prisma schema, APK sideload / version.json updates, shipping a release, fixing
+  a bug, or a new feature module — especially AI enrich, OCR, ingestion, jobs,
+  payments/UPI gateways, seeker retention.
 ---
 
-# X Cron — update CLAUDE.md on every change
+# X Cron — update CLAUDE.md + technical docs on every change
 
 ## Rule (verbatim)
 
 wherever you make changes just add claude.md file
+
+## Technical project documents (verbatim rule)
+
+Pls do have project document, whatver any changes done or feature implementation made should keep the technical document updated for every feature any bugs releases that should preserve.
+
+Code is not done until the **project technical docs** reflect it. Preserve a durable record of features, bug fixes, and releases — do not leave `docs/` stale.
 
 ## What to do
 
@@ -23,9 +30,31 @@ wherever you make changes just add claude.md file
    - [mobile/CLAUDE.md](../../../mobile/CLAUDE.md)
    - [web/CLAUDE.md](../../../web/CLAUDE.md)
    - root [CLAUDE.md](../../../CLAUDE.md) for monorepo-wide rules
-4. Keep env files aligned (see **Env files** below); never commit real secrets into `.env.example`.
-5. Keep **Prisma DDL** aligned (see **Prisma / migrations** below) whenever persisted shape changes.
-6. Prefer short, accurate deltas — do not rewrite unrelated sections.
+4. **Update technical project docs** (see **Technical docs map** below) for every feature, bug fix, and release.
+5. Keep env files aligned (see **Env files** below); never commit real secrets into `.env.example`.
+6. Keep **Prisma DDL** aligned (see **Prisma / migrations** below) whenever persisted shape changes.
+7. Prefer short, accurate deltas — do not rewrite unrelated sections.
+
+## Technical docs map
+
+Canonical project docs live under [`docs/`](../../../docs/). Update the matching file(s) in the **same change** as the code:
+
+| Change type | Update |
+| --- | --- |
+| New / changed feature (API, mobile, web) | [`docs/DEVELOPER.md`](../../../docs/DEVELOPER.md) — add/adjust under **What was implemented**; note stubs vs live |
+| New release step / status | [`docs/ROADMAP.md`](../../../docs/ROADMAP.md) — scope + Done/In progress |
+| New files / folders of record | [`docs/FILE_MAP.md`](../../../docs/FILE_MAP.md) — inventory rows |
+| MVP include / defer list changes | [`docs/MVP_COMPLETE.md`](../../../docs/MVP_COMPLETE.md) |
+| Bug fix (user-visible or shipped) | `docs/DEVELOPER.md` — short note under the relevant release/area (what broke, what fixed); APK bug-fix → also release notes via `scripts/release-apk.mjs` / GitHub Release body |
+| APK / client release | Follow **Android APK sideload** below; keep version + notes preservable on GitHub Releases |
+| Feature needs its own design/runbook | Add or update a focused doc under `docs/` (e.g. `CHANNEL_PULL.md`, `FCM_SETUP.md`) and link it from `DEVELOPER.md` |
+| Cost / ops model | [`docs/COST_MODEL.md`](../../../docs/COST_MODEL.md) when quotas/pricing/ops change |
+
+**Do not:**
+
+- Ship a feature or bugfix with only code/`CLAUDE.md` and leave `docs/DEVELOPER.md` (and FILE_MAP when files moved) unchanged.
+- Delete historical release/feature notes — **preserve** prior entries; append or mark superseded.
+- Invent a parallel docs tree outside `docs/` + package `CLAUDE.md` files.
 
 ## Prisma / migrations (verbatim rule)
 
@@ -111,6 +140,13 @@ Docs: `web/public/downloads/README.md`, `web/CLAUDE.md`, `mobile/CLAUDE.md`.
 - Providers: `stub` | `groq` (free tier) | `ollama` (local free) | `openai`
 - Wired into bulk ingestion + quick/paste job create; preview via `POST /v1/ai/job-enrich`
 - Docs of record: [api/src/ai/CLAUDE.md](../../../api/src/ai/CLAUDE.md)
+
+## Guest vs signed-in chrome (web + mobile)
+
+- Follow project skill [xcron-ui-auth](../xcron-ui-auth/SKILL.md) when adding
+  drawer, tab, header, footer, or account menu links.
+- Auth-only until login: Settings, Notifications, Performance Score, Saved jobs
+  (plus header notif bell / matching footer quick links).
 
 ## Payments / UPI (`api/src/payments/`)
 

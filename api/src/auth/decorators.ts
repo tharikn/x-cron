@@ -1,4 +1,6 @@
 import { createParamDecorator, ExecutionContext, SetMetadata } from '@nestjs/common';
+import type { Request } from 'express';
+import { extractAccessToken } from '../security/token.util';
 import { AuthUser, UserRole } from './auth.types';
 
 export const IS_PUBLIC_KEY = 'isPublic';
@@ -16,9 +18,7 @@ export const CurrentUser = createParamDecorator(
 
 export const AccessToken = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): string | undefined => {
-    const request = ctx.switchToHttp().getRequest<{ headers: Record<string, string> }>();
-    const header = request.headers['authorization'] || request.headers['Authorization'];
-    if (!header?.startsWith('Bearer ')) return undefined;
-    return header.slice('Bearer '.length).trim();
+    const request = ctx.switchToHttp().getRequest<Request>();
+    return extractAccessToken(request);
   },
 );

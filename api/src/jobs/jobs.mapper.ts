@@ -33,6 +33,7 @@ export function toPublicJob(
     status: job.status,
     walkInAt: job.walkInAt ?? null,
     applyBy: job.applyBy ?? null,
+    screeningQuestion: job.screeningQuestion ?? null,
     promoted: !!boost,
     promotionBadge: boost?.badge ?? null,
     promotionEndsAt: boost?.endsAt ?? null,

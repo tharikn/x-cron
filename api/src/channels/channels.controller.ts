@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { CurrentUser, Public, Roles } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
+import { AuthThrottle } from '../security/decorators';
 import { ChannelsService } from './channels.service';
 import {
   CreateChannelSourceDto,
@@ -77,6 +78,7 @@ export class ChannelsController {
   }
 
   @Roles('admin')
+  @AuthThrottle()
   @Post('pull')
   pullNow(@CurrentUser() user: AuthUser, @Body() dto: PullNowDto) {
     return this.channels.pullNow(user, 'manual', {
@@ -115,6 +117,7 @@ export class ChannelsController {
 
   /** Free Telegram Bot API webhook (optional; default is long-poll). */
   @Public()
+  @AuthThrottle()
   @Post('telegram/webhook')
   telegramWebhook(
     @Body() body: Record<string, unknown>,

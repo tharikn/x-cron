@@ -68,9 +68,30 @@ export class SeekerService {
   }
 
   upsertProfile(user: AuthUser, dto: UpsertSeekerProfileDto) {
+    const experienceBand =
+      dto.experienceBand ??
+      this.deriveExperienceBand(dto.careerStage, dto.experienceYears);
     return this.store.upsertProfile(user.id, {
-      displayName: dto.displayName,
-      experienceBand: dto.experienceBand,
+      displayName: dto.displayName?.trim() || undefined,
+      mobile: dto.mobile?.trim() || undefined,
+      email: dto.email?.trim() || undefined,
+      showContact: dto.showContact,
+      address: dto.address?.trim() || undefined,
+      pincode: dto.pincode?.trim() || undefined,
+      careerStage: dto.careerStage,
+      educationStatus: dto.educationStatus,
+      openToInternship: dto.openToInternship,
+      courseDetails: dto.courseDetails?.trim() || undefined,
+      branchStudied: dto.branchStudied?.trim() || undefined,
+      academicScore: dto.academicScore?.trim() || undefined,
+      experienceYears: dto.experienceYears,
+      experienceMonths: dto.experienceMonths,
+      companyName: dto.companyName?.trim() || undefined,
+      companyArea: dto.companyArea?.trim() || undefined,
+      currentSalary: dto.currentSalary?.trim() || undefined,
+      expectedSalary: dto.expectedSalary?.trim() || undefined,
+      noticePeriod: dto.noticePeriod,
+      experienceBand,
       skills: dto.skills?.map((s) => s.trim()).filter(Boolean).slice(0, 40),
       preferredCities: dto.preferredCities
         ?.map((s) => s.trim())
@@ -78,6 +99,18 @@ export class SeekerService {
         .slice(0, 20),
       openToWork: dto.openToWork,
     });
+  }
+
+  private deriveExperienceBand(
+    careerStage?: 'fresher' | 'experienced',
+    years?: number,
+  ): 'fresher' | '0-1' | '1-3' | '3-5' | '5+' | undefined {
+    if (careerStage === 'fresher') return 'fresher';
+    if (careerStage !== 'experienced' || years == null) return undefined;
+    if (years < 1) return '0-1';
+    if (years < 3) return '1-3';
+    if (years < 5) return '3-5';
+    return '5+';
   }
 
   async listApplications(user: AuthUser) {

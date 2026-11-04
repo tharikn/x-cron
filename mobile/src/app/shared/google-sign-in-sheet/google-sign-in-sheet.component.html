@@ -1,7 +1,7 @@
 <ion-modal
   [isOpen]="open()"
-  [initialBreakpoint]="0.42"
-  [breakpoints]="[0, 0.42, 0.65]"
+  [initialBreakpoint]="0.55"
+  [breakpoints]="[0, 0.55, 0.8]"
   handle="true"
   (didDismiss)="dismiss()"
 >
@@ -12,24 +12,58 @@
         <h2>{{ copy().title }}</h2>
         <p class="body">{{ copy().body }}</p>
 
-        @if (!googleReady) {
+        <div class="auth-tabs">
+          <ion-button
+            size="small"
+            [fill]="formMode() === 'login' ? 'solid' : 'outline'"
+            color="dark"
+            (click)="setFormMode('login')"
+          >
+            Sign in
+          </ion-button>
+          <ion-button
+            size="small"
+            [fill]="formMode() === 'register' ? 'solid' : 'outline'"
+            color="dark"
+            (click)="setFormMode('register')"
+          >
+            Create account
+          </ion-button>
+        </div>
+
+        <ion-item lines="full" class="field">
+          <ion-input
+            label="Username"
+            labelPlacement="stacked"
+            type="text"
+            [(ngModel)]="username"
+            placeholder="Enter Username"
+            autocomplete="username"
+            minlength="3"
+            maxlength="32"
+          ></ion-input>
+        </ion-item>
+        <ion-item lines="full" class="field">
+          <ion-input
+            label="Password"
+            labelPlacement="stacked"
+            type="password"
+            [(ngModel)]="password"
+            placeholder="••••••••"
+            [autocomplete]="formMode() === 'register' ? 'new-password' : 'current-password'"
+            minlength="8"
+          ></ion-input>
+        </ion-item>
+        @if (formMode() === 'register') {
           <ion-item lines="full" class="field">
             <ion-input
-              label="Google email"
+              label="Confirm password"
               labelPlacement="stacked"
-              type="email"
-              [(ngModel)]="email"
-              placeholder="you@gmail.com"
-              autocomplete="username"
-            ></ion-input>
-          </ion-item>
-          <ion-item lines="full" class="field">
-            <ion-input
-              label="Display name (optional)"
-              labelPlacement="stacked"
-              type="text"
-              [(ngModel)]="displayName"
-              placeholder="Your name"
+              type="password"
+              [(ngModel)]="confirmPassword"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              minlength="8"
             ></ion-input>
           </ion-item>
         }
@@ -39,18 +73,19 @@
           color="dark"
           class="google-btn"
           [disabled]="busy()"
-          (click)="continueWithGoogle()"
+          (click)="submit()"
         >
-          {{ busy() ? 'Signing in…' : 'Continue with Google' }}
+          @if (busy()) {
+            Working…
+          } @else {
+            {{ formMode() === 'register' ? 'Create account' : 'Sign in' }}
+          }
         </ion-button>
 
         <ion-button expand="block" fill="clear" color="dark" [disabled]="busy()" (click)="dismiss()">
           Not now
         </ion-button>
 
-        @if (error()) {
-          <p class="error">{{ error() }}</p>
-        }
       </div>
     </ion-content>
   </ng-template>

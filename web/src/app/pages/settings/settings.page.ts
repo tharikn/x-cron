@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import type { PostJobPaymentMode } from '../../core/models/site.model';
 import { AuthService } from '../../core/services/auth.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { SeoService } from '../../core/services/seo.service';
@@ -32,8 +31,6 @@ export class SettingsPage implements OnInit {
 
   unlockPriceInr = 5;
   paymentsEnabled = true;
-  postJobPaymentMode: PostJobPaymentMode = 'optional';
-  postJobPriceInr = 5;
   sessionTtlDays = 30;
   otpTtlMinutes = 10;
 
@@ -54,8 +51,6 @@ export class SettingsPage implements OnInit {
       ]);
       this.unlockPriceInr = commerce.unlockPriceInr;
       this.paymentsEnabled = commerce.paymentsEnabled !== false;
-      this.postJobPaymentMode = commerce.postJobPaymentMode ?? 'optional';
-      this.postJobPriceInr = commerce.postJobPriceInr ?? 5;
       this.sessionTtlDays = authCfg.sessionTtlDays;
       this.otpTtlMinutes = authCfg.otpTtlMinutes;
     }
@@ -63,13 +58,8 @@ export class SettingsPage implements OnInit {
 
   async saveCommerce(): Promise<void> {
     const value = Math.round(Number(this.unlockPriceInr));
-    const postFee = Math.round(Number(this.postJobPriceInr));
     if (!Number.isFinite(value) || value < 1 || value > 9999) {
       this.commerceError.set('Unlock price must be 1–9999 rupees.');
-      return;
-    }
-    if (!Number.isFinite(postFee) || postFee < 0 || postFee > 9999) {
-      this.commerceError.set('Post-job fee must be 0–9999 rupees.');
       return;
     }
 
@@ -80,17 +70,15 @@ export class SettingsPage implements OnInit {
       const doc = await this.site.updateCommerce({
         unlockPriceInr: value,
         paymentsEnabled: this.paymentsEnabled,
-        postJobPaymentMode: this.postJobPaymentMode,
-        postJobPriceInr: postFee,
+        postJobPaymentMode: 'none',
+        postJobPriceInr: 0,
       });
       this.unlockPriceInr = doc.unlockPriceInr;
       this.paymentsEnabled = doc.paymentsEnabled;
-      this.postJobPaymentMode = doc.postJobPaymentMode;
-      this.postJobPriceInr = doc.postJobPriceInr;
       this.commerceSaved.set(true);
       this.toast.show(
         doc.paymentsEnabled
-          ? `Payments on · unlock ₹${doc.unlockPriceInr} · post ${doc.postJobPaymentMode}`
+          ? `Payments on · unlock ₹${doc.unlockPriceInr}`
           : 'Payments turned off globally',
       );
     } catch {

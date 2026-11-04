@@ -295,6 +295,7 @@ export class OpsService {
     const ocrCap = Number(process.env.OCR_MONTHLY_PAGE_CAP ?? 5000);
     const importCap = Number(process.env.IMPORT_DAILY_BATCH_CAP ?? 50);
     const unlockCap = Number(process.env.UNLOCK_DAILY_CAP ?? 200);
+    const applyCap = Number(process.env.APPLY_DAILY_CAP ?? 20);
     const counters = this.store.snapshot();
     return {
       items: [
@@ -318,6 +319,13 @@ export class OpsService {
           limit: unlockCap,
           window: 'day',
           used: counters.contactUnlocks,
+        },
+        {
+          key: 'seeker_applies',
+          label: 'Seeker applies (per-user cap; used = process total)',
+          limit: applyCap,
+          window: 'day',
+          used: counters.jobApplies,
         },
       ],
     };
@@ -361,6 +369,10 @@ export class OpsService {
 
   recordUnlock() {
     this.store.bump('contactUnlocks');
+  }
+
+  recordApply() {
+    this.store.bump('jobApplies');
   }
 
   recordImport(pages = 0) {

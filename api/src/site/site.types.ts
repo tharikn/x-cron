@@ -64,18 +64,18 @@ export interface SiteFooterConfig {
   updatedAt: string;
 }
 
-/** How payment is offered on the post-job flow. */
+/** Legacy post-job fee mode — always coerced to `none` (fee removed). */
 export type PostJobPaymentMode = 'mandatory' | 'optional' | 'none';
 
 /** Global commerce settings (SiteConfig key `commerce`). */
 export interface SiteCommerceConfig {
   /** Contact unlock price in paise (₹1 = 100). */
   unlockPricePaise: number;
-  /** Master switch — when false, no unlock/post payments are collected. */
+  /** Master switch — when false, unlock payments are not collected. */
   paymentsEnabled: boolean;
-  /** Post-job checkout behavior when paymentsEnabled is true. */
+  /** Always `none` — post-job fee removed. */
   postJobPaymentMode: PostJobPaymentMode;
-  /** Fee for posting a job (paise). Used when postJobPaymentMode is mandatory/optional. */
+  /** Always 0 — post-job fee removed. */
   postJobPricePaise: number;
   updatedAt: string;
 }

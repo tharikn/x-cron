@@ -50,6 +50,7 @@ Keep **web (`:4201`)** and **mobile (`:4200`)** visually aligned. Prefer modern 
 - First viewport: brand + one headline + one short lead + search/CTA — avoid clutter (no stat strips, promo stickers on hero media).
 - Job rows/cards are the interactive containers; hover/press lift + optional “View role” cue.
 - Guest browse is first-class; employer contact (phone/email/WhatsApp/website) is shown directly on job detail — no unlock paywall.
+- **Guest chrome:** hide Settings, Notifications, Performance Score, and Saved jobs (plus header notif bell / auth-only footer quick links) until `isSignedIn()` after `/auth/me`. Guests keep Home/Discover, Get the app, and Sign in. Follow [`.cursor/skills/xcron-ui-auth/SKILL.md`](.cursor/skills/xcron-ui-auth/SKILL.md).
 - House ad slots / Ads admin UI are removed from clients; promoted jobs may still use an explicit badge when the API returns one.
 - Respect `prefers-reduced-motion`; keep motion intentional (enter rise, hover lift, drawer/tab transitions) — 2–3 motions, not noise.
 
@@ -65,12 +66,13 @@ When changing UI, update **both** clients unless the change is package-specific 
 ## Shared rules for agents
 
 - Prefer **small, focused changes**; do not drive-by refactor or fix unrelated lint.
-- **RBAC:** API `AuthGuard` + `RolesGuard` are authoritative (`@Roles` / `@Public`). Clients hide admin nav and block routes only after `GET /v1/auth/me` confirms the session — never trust localStorage roles alone; clear on 401.
+- **RBAC / security:** API `SecurityModule` (rate limit + CSRF) + `AuthGuard` + `RolesGuard` are authoritative (`@Roles` / `@Public`). Cookie sessions + Bearer fallback; one browser tab via `X-Tab-Id`; `@SensitiveThrottle` = **1/hour** on admin login / account wipe / payment+notification dev. Clients hide admin nav only after `GET /v1/auth/me` — never trust localStorage roles alone; clear on 401.
 - Job contact values are public on job DTOs / detail UI. Keep phone/email/WhatsApp out of SEO meta and JSON-LD.
 - Payments use Strategy/Adapter (`PAYMENT_GATEWAY=stub|upi|razorpay`). Free path: stub or UPI VPA/QR (`upi` + `PAYMENT_UPI_VPA`). Follow [`.cursor/skills/xcron-payments/SKILL.md`](.cursor/skills/xcron-payments/SKILL.md). Notifications use the same adapter pattern (`PUSH_PROVIDER=stub|fcm`, `MAIL_PROVIDER=stub|console|smtp`) — job publish fans out in-app + push + mail with dispatch/delivery history; stubs are ₹0. Image OCR uses free local Tesseract (`OCR_PROVIDER=tesseract`; `stub` to disable). Do not assume live Razorpay/Firebase.
 - Optional AI job-text enrich is **off by default** (`AI_ENRICH_ENABLED=0`). Prefer free Groq or local Ollama — see `api/src/ai/CLAUDE.md`. Never invent contacts in public descriptions.
 - Job Fare channel pull is **free-first**: Telegram Bot API + WhatsApp paste bridge only — never unofficial WA scrapers. See [docs/CHANNEL_PULL.md](docs/CHANNEL_PULL.md) · [api/src/channels/CLAUDE.md](api/src/channels/CLAUDE.md).
-- When you change a package or feature folder, update that package’s `CLAUDE.md` (and add a folder `CLAUDE.md` for new modules).
+- When you change a package or feature folder, update that package’s `CLAUDE.md` (and add a folder `CLAUDE.md` for new modules). Keep technical project docs current for every feature, bug fix, and release (`docs/DEVELOPER.md`, `ROADMAP.md`, `FILE_MAP.md`, etc.) — follow [`.cursor/skills/xcron-claude-md/SKILL.md`](.cursor/skills/xcron-claude-md/SKILL.md).
+- Guest vs signed-in menus/nav: follow [`.cursor/skills/xcron-ui-auth/SKILL.md`](.cursor/skills/xcron-ui-auth/SKILL.md) whenever adding drawer, tab, header, or account links.
 - Default data store is **in-memory**; Prisma schema exists but is not the live path yet.
 - Node **22.22.3+**. Install API with `npm install --legacy-peer-deps` if peers complain.
 - After substantive API/mobile/web work: `npm run build` in that package.
@@ -82,7 +84,8 @@ When changing UI, update **both** clients unless the change is package-specific 
 - [docs/FILE_MAP.md](docs/FILE_MAP.md) — folder-wise file inventory  
 - [docs/ROADMAP.md](docs/ROADMAP.md) — R0–R5 + MVP+  
 - [docs/MVP_COMPLETE.md](docs/MVP_COMPLETE.md) — MVP vs production gaps  
-- [docs/CHANNEL_PULL.md](docs/CHANNEL_PULL.md) — Job Fare Telegram/WA bridge design  
+- [docs/CHANNEL_PULL.md](docs/CHANNEL_PULL.md) — Job Fare Telegram/WA bridge design
+- [docs/PERFORMANCE_SCORE.md](docs/PERFORMANCE_SCORE.md) — seeker + recruiter Performance Score  
 
 ## Release reality
 

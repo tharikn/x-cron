@@ -27,16 +27,17 @@ controllers, job unlock UI, or entitlement grants.
    phone/email/WhatsApp/website directly. Keep legacy `job_contact_unlock` /
    `GET …/contact` paths working for entitlements/history, but do not re-add
    unlock CTAs on job detail.
-7. **Client payment section** — when collecting post-job or subscription fees,
+7. **Client payment section** — when collecting subscription fees,
    open an in-app payment panel (UPI QR + UPI ID / hosted checkout). Never
    auto-confirm or deep-link UPI without that panel. Confirm only after
-   explicit “I have paid” (or verified webhook).
+   explicit “I have paid” (or verified webhook). **Post-job fee is removed**
+   (jobs post free; do not reintroduce a post fee panel).
 8. **History** — every create / confirm_attempt / confirm_failed / paid / free_grant
    must append `PaymentHistoryEvent` (admin `/admin/payments`, CSV+PDF export).
 9. **Confirm hardening** — client confirm blocked in production; ownership + TTL
    + attempt cap; log failures with IP/UA. Never skip history on failure.
-10. **Commerce config** — respect `paymentsEnabled` and `postJobPaymentMode`
-    (`mandatory` | `optional` | `none`) from SiteConfig; Settings UI is source of truth.
+10. **Commerce config** — respect `paymentsEnabled` from SiteConfig; Settings UI
+    is source of truth for unlock. `postJobPaymentMode` is forced `none` (retired).
 11. **Update docs** — `api/src/payments/CLAUDE.md`, `api/CLAUDE.md`, `.env.example`
     when adding a gateway or env key (see `xcron-claude-md` skill).
 

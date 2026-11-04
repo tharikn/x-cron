@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { Public, Roles } from '../auth/decorators';
+import { AuthThrottle } from '../security/decorators';
 import { AiService } from './ai.service';
 import { EnrichJobDto } from './dto/enrich-job.dto';
 
@@ -17,8 +18,10 @@ export class AiController {
   /**
    * Preview / chatbot-style cleanup for a single job paste.
    * Does not publish; employer/admin can apply the result before create/import.
+   * Costly LLM — auth throttle (monthly cap still in AiService).
    */
   @Roles('employer', 'admin')
+  @AuthThrottle()
   @Post('job-enrich')
   enrich(@Body() dto: EnrichJobDto) {
     return this.ai.enrichJob(dto);

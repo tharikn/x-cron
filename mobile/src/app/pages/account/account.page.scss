@@ -1,6 +1,181 @@
+.profile-accordions {
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.profile-accordions ion-accordion {
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+  box-shadow: var(--xcron-shadow);
+  overflow: hidden;
+}
+
+.profile-accordions ion-item[slot='header'] {
+  --background: transparent;
+  --color: var(--xcron-ink);
+  --padding-start: 14px;
+  --inner-padding-end: 10px;
+  font-family: var(--xcron-display);
+  font-size: var(--xcron-text-title);
+  font-weight: 600;
+}
+
+.accordion-body {
+  padding: 0 12px 14px;
+}
+
+.accordion-body .panel {
+  margin: 0 0 12px;
+}
+
+.accordion-body .role-choice {
+  margin: 0 0 12px;
+}
+
+.notice-block {
+  margin: 4px 0 8px;
+}
+
+.notice-hint {
+  margin: 0 0 0.65rem;
+}
+
+.notice-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.notice-badge {
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--xcron-line-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--xcron-ink-soft);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-label);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.notice-badge--active {
+  border-color: rgba(124, 92, 255, 0.7);
+  background: rgba(124, 92, 255, 0.22);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(124, 92, 255, 0.2);
+}
+
+.account-tabs {
+  --background: transparent;
+  --border-width: 0;
+  padding-bottom: 0.35rem;
+}
+
+.account-tabs ion-segment {
+  margin: 0 0.65rem;
+  min-height: 40px;
+  --background: var(--xcron-wash);
+}
+
+.account-tabs ion-segment-button {
+  --color: var(--xcron-muted);
+  --color-checked: #fff;
+  --indicator-color: var(--xcron-primary);
+  --indicator-box-shadow: none;
+  min-height: 36px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
 .page {
   padding: 16px 16px 36px;
   animation: xcron-rise 480ms var(--xcron-ease) both;
+}
+
+.page--auth {
+  max-width: 22.5rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.page--auth .brand-block {
+  text-align: center;
+}
+
+.page--auth .lead,
+.page--auth .hint {
+  text-align: center;
+}
+
+.auth-stack {
+  display: grid;
+  gap: 0.95rem;
+  width: 100%;
+}
+
+.auth-panel {
+  text-align: left;
+}
+
+.auth-block {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.role-choice {
+  display: grid;
+  gap: 0.45rem;
+  text-align: left;
+}
+
+.role-choice__label {
+  margin: 0;
+  font-size: var(--xcron-text-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.role-choice__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.role-choice__btn {
+  min-height: var(--xcron-btn-height);
+  padding: 0 0.75rem;
+  border: 1px solid var(--xcron-line-strong);
+  border-radius: var(--xcron-radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--xcron-ink);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-button);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.role-choice__btn--active {
+  border-color: rgba(124, 92, 255, 0.7);
+  background: rgba(124, 92, 255, 0.22);
+  box-shadow: 0 0 0 2px rgba(124, 92, 255, 0.2);
+}
+
+.auth-block__label {
+  margin: 0;
+  font-size: var(--xcron-text-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
 }
 
 .brand-block {
@@ -91,6 +266,89 @@
 .mod-card__actions {
   display: flex;
   gap: 8px;
+}
+
+.skill-field-item {
+  --inner-padding-end: 12px;
+  --padding-start: 12px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  align-items: flex-start;
+}
+
+.skill-field {
+  width: 100%;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.15rem 0 0.35rem;
+}
+
+.skill-field__label {
+  margin: 0;
+  font-size: var(--xcron-text-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.skill-field__hint {
+  margin: 0;
+  font-size: var(--xcron-text-meta);
+  color: var(--xcron-muted);
+}
+
+.skill-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.skill-badges--readonly {
+  margin: 0.35rem 0 0.55rem;
+}
+
+.skill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.85rem;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid rgba(124, 92, 255, 0.45);
+  border-radius: 999px;
+  background: rgba(124, 92, 255, 0.18);
+  color: #fff;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-label);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+}
+
+.skill-badge--removable {
+  cursor: pointer;
+}
+
+.skill-badge--removable span {
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.skill-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.skill-add ion-input {
+  --background: rgba(255, 255, 255, 0.06);
+  --padding-start: 10px;
+  --padding-end: 10px;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  min-height: 2.4rem;
 }
 
 .hint {

@@ -3,17 +3,247 @@
   animation: xcron-rise 480ms var(--xcron-ease) both;
 }
 
+.brand-mark {
+  margin: 0 0 0.2rem;
+  font-family: var(--xcron-font-display);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  color: var(--xcron-ink);
+}
+
 h1 {
   margin: 0 0 0.4rem;
   font-family: var(--xcron-font-display);
-  font-size: clamp(1.7rem, 4vw, 2.3rem);
-  letter-spacing: -0.045em;
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  letter-spacing: -0.03em;
+  color: var(--xcron-ink-soft);
 }
 
 .lead {
   margin: 0 0 1.5rem;
   color: var(--xcron-muted);
   max-width: 48rem;
+}
+
+.panels {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  padding: 0.3rem;
+  background: var(--xcron-wash);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+}
+
+.panels button {
+  border: 0;
+  background: transparent;
+  color: var(--xcron-muted);
+  padding: 0.55rem 0.95rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  border-radius: var(--xcron-radius-sm);
+  cursor: pointer;
+}
+
+.panels button.is-active {
+  background: var(--xcron-cta-gradient, var(--xcron-primary));
+  color: #fff;
+}
+
+.review-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.review-toolbar button,
+.chat__compose button,
+.form__actions .btn,
+.form__actions .btn--ghost {
+  border: 0;
+  border-radius: var(--xcron-radius-sm);
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: var(--xcron-btn-height);
+}
+
+.review-toolbar button,
+.chat__compose button,
+.form__actions .btn {
+  background: var(--xcron-cta-gradient, var(--xcron-primary));
+  color: #fff;
+}
+
+.ai-off {
+  color: var(--xcron-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.chat {
+  margin: 1.25rem 0;
+  padding: 1.1rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-wash);
+}
+
+.chat h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--xcron-font-display);
+  font-size: 1.05rem;
+}
+
+.chat__hint,
+.muted {
+  margin: 0 0 0.75rem;
+  color: var(--xcron-muted);
+  font-size: 0.9rem;
+}
+
+.chat__log {
+  display: grid;
+  gap: 0.55rem;
+  max-height: 240px;
+  overflow: auto;
+  margin-bottom: 0.75rem;
+}
+
+.chat__bubble {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink-soft);
+}
+
+.chat__bubble--user {
+  background: color-mix(in srgb, var(--xcron-primary) 28%, transparent);
+  color: var(--xcron-ink);
+}
+
+.chat__empty {
+  margin: 0;
+  color: var(--xcron-faint);
+  font-size: 0.9rem;
+}
+
+.chat__compose {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.preview__label {
+  margin: 0.5rem 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.preview-card {
+  margin-bottom: 1rem;
+  padding: 1.1rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+  box-shadow: var(--xcron-shadow);
+  max-width: 28rem;
+}
+
+.preview-card h2,
+.preview-card h3 {
+  margin: 0.4rem 0;
+  font-family: var(--xcron-font-display);
+  font-size: 1.1rem;
+}
+
+.preview-card__meta {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  color: var(--xcron-faint);
+  font-size: 0.85rem;
+}
+
+.preview-card .badge {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--xcron-wash);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.preview-card .employer,
+.preview-card .facts,
+.preview-card .about {
+  margin: 0.25rem 0 0;
+  color: var(--xcron-ink-soft);
+}
+
+.preview-card .about {
+  white-space: pre-wrap;
+  margin-top: 0.75rem;
+}
+
+.preview-cta {
+  display: inline-block;
+  margin-top: 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--xcron-accent);
+}
+
+.preview-card ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--xcron-ink-soft);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 4, 18, 0.72);
+  z-index: 40;
+}
+
+.modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 41;
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 1.35rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+  box-shadow: var(--xcron-shadow);
+}
+
+.modal h2 {
+  margin: 0 0 0.55rem;
+  font-family: var(--xcron-font-display);
+  font-size: 1.2rem;
+}
+
+.modal p {
+  margin: 0 0 1rem;
+  color: var(--xcron-ink-soft);
+}
+
+.modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
 }
 
 .gate {
@@ -213,17 +443,6 @@ button[type='submit']:disabled {
   color: var(--xcron-ink);
 }
 
-.pay-panel {
-  display: grid;
-  gap: 0.75rem;
-  width: min(100%, 28rem);
-  margin: 1.25rem 0;
-  padding: 1rem;
-  border: 1px solid var(--xcron-line-strong);
-  border-radius: var(--xcron-radius);
-  background: var(--xcron-wash);
-}
-
 @media (max-width: 900px) {
   .form:not(.form--paste) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -234,54 +453,6 @@ button[type='submit']:disabled {
   .form {
     grid-template-columns: 1fr;
   }
-}
-
-.pay-panel__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 0.75rem;
-}
-
-.pay-panel__head h2 {
-  margin: 0;
-  font-family: var(--xcron-font-display);
-  font-size: 1.05rem;
-}
-
-.pay-panel__amount {
-  margin: 0;
-  font-weight: 700;
-  font-family: var(--xcron-font-display);
-}
-
-.pay-panel__desc,
-.pay-panel__mode {
-  margin: 0;
-  color: var(--xcron-muted);
-  font-size: 0.9rem;
-}
-
-.pay-panel__upi {
-  display: grid;
-  justify-items: center;
-  gap: 0.5rem;
-}
-
-.pay-panel__qr {
-  border-radius: 12px;
-  border: 1px solid var(--xcron-line);
-  background: var(--xcron-bg-elevated);
-}
-
-.pay-panel__vpa {
-  margin: 0;
-  font-weight: 600;
-}
-
-.pay-panel__actions {
-  display: grid;
-  gap: 0.5rem;
 }
 
 .btn {

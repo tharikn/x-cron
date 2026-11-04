@@ -11,15 +11,14 @@
       <ion-segment-button value="language">
         <ion-label>{{ 'nav.language' | t }}</ion-label>
       </ion-segment-button>
-      <ion-segment-button value="preferences">
-        <ion-label>{{ 'nav.prefs' | t }}</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="account">
-        <ion-label>{{ 'nav.account' | t }}</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="saved">
-        <ion-label>{{ 'nav.saved' | t }}</ion-label>
-      </ion-segment-button>
+      @if (isSignedIn()) {
+        <ion-segment-button value="preferences">
+          <ion-label>{{ 'nav.prefs' | t }}</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="saved">
+          <ion-label>{{ 'nav.saved' | t }}</ion-label>
+        </ion-segment-button>
+      }
     </ion-segment>
   </ion-toolbar>
 </ion-header>
@@ -33,12 +32,18 @@
       @case ('preferences') {
         <app-preferences />
       }
-      @case ('account') {
-        <app-account />
-      }
       @case ('saved') {
         <app-saved-jobs />
       }
+    }
+
+    @if (!isSignedIn()) {
+      <div class="guest-hint">
+        <p>Sign in to unlock Prefs and Saved. Language works without an account.</p>
+        <ion-button expand="block" color="dark" routerLink="/tabs/account">
+          {{ 'nav.signIn' | t }}
+        </ion-button>
+      </div>
     }
   </div>
 </ion-content>

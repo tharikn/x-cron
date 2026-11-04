@@ -78,4 +78,21 @@ export class NotificationsPage implements OnInit {
     if (slug) return `/jobs/${slug}`;
     return item.jobId ? `/jobs/${item.jobId}` : null;
   }
+
+  actionPath(item: {
+    jobId: string | null;
+    data?: Record<string, string> | null;
+  }): string | null {
+    const action = item.data?.['action']?.trim();
+    if (action === 'complete_profile') return '/settings/account';
+    if (action === 'browse_jobs') return '/';
+    return this.jobPath(item);
+  }
+
+  actionLabel(item: { data?: Record<string, string> | null }): string {
+    const action = item.data?.['action']?.trim();
+    if (action === 'complete_profile') return 'Complete profile';
+    if (action === 'browse_jobs') return 'Browse jobs';
+    return 'View role';
+  }
 }

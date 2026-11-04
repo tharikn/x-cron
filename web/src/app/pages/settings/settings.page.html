@@ -1,7 +1,7 @@
 <section class="page">
   <h1>Site</h1>
   <p class="lead">
-    Global payments switch, post-job fee mode, unlock pricing, and auth token TTLs.
+    Global payments switch, unlock pricing, and auth token TTLs. Job posting is free.
   </p>
 
   @if (!isSignedIn() || !isAdmin()) {
@@ -13,7 +13,7 @@
           This account is not an admin. Use admin&#64;xcron.local.
         }
       </p>
-      <a class="btn" routerLink="/settings/account">Go to Sign in</a>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
     </div>
   } @else {
     <div class="panels">
@@ -30,8 +30,8 @@
           <span>Enable payments (global)</span>
         </label>
         <p class="hint form__wide">
-          Off = no unlock/post checkout; contact unlock is granted free. On = collect via
-          stub/UPI/PSP per <code>PAYMENT_GATEWAY</code>.
+          Off = contact unlock is granted free. On = collect via stub/UPI/PSP per
+          <code>PAYMENT_GATEWAY</code>. Job posting has no fee.
         </p>
 
         <label>
@@ -48,37 +48,6 @@
               inputmode="numeric"
               [disabled]="commerceBusy() || !paymentsEnabled"
               required
-            />
-          </div>
-        </label>
-
-        <label>
-          <span>Post-job payment</span>
-          <select
-            class="plain"
-            [(ngModel)]="postJobPaymentMode"
-            name="postJobPaymentMode"
-            [disabled]="commerceBusy() || !paymentsEnabled"
-          >
-            <option value="mandatory">Mandatory — must pay after post</option>
-            <option value="optional">Optional — show pay, allow skip</option>
-            <option value="none">No payment — hide post fee</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Post-job fee (₹)</span>
-          <div class="rupee">
-            <span class="rupee__mark" aria-hidden="true">₹</span>
-            <input
-              [(ngModel)]="postJobPriceInr"
-              name="postJobPriceInr"
-              type="number"
-              min="0"
-              max="9999"
-              step="1"
-              inputmode="numeric"
-              [disabled]="commerceBusy() || !paymentsEnabled || postJobPaymentMode === 'none'"
             />
           </div>
         </label>

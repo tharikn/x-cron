@@ -7,6 +7,19 @@ async function bootstrap() {
   // rawBody required for Razorpay webhook HMAC verification
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
+  // CommonJS middleware (avoid TS callability issues with esModuleInterop).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const helmetMw = require('helmet');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const cookieParserMw = require('cookie-parser');
+  app.use(
+    helmetMw({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+  app.use(cookieParserMw());
+
   const origins = (process.env.CORS_ORIGINS ?? 'http://localhost:4200,http://localhost:4201')
     .split(',')
     .map((value) => value.trim())
@@ -15,6 +28,15 @@ async function bootstrap() {
   app.enableCors({
     origin: origins,
     credentials: true,
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-CSRF-Token',
+      'X-Tab-Id',
+      'X-Retry-After-Refresh',
+      'X-Requested-With',
+    ],
+    exposedHeaders: ['Retry-After', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'],
   });
 
   app.useGlobalPipes(

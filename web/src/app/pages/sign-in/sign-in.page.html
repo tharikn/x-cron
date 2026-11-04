@@ -1,156 +1,63 @@
 <section class="page">
-  <h1>
-    @if (needsAdminLogin()) {
-      Admin sign in
-    } @else if (isSignedIn()) {
-      Account
-    } @else {
-      Sign in
-    }
-  </h1>
-  <p class="lead">
-    @if (needsAdminLogin()) {
-      Dashboard, History, Post, and settings need the admin email and password.
-    } @else if (isSignedIn()) {
-      Manage your session. Browse and search stay open without signing in.
-    } @else {
-      Browse jobs freely. Sign in with Google to save, share, unlock, and sync preferences.
-      Admin password unlocks Dashboard and History.
-    }
-  </p>
-
-  @if (isSignedIn() && isAdmin() && !needsAdminLogin()) {
-    <div class="panel">
-      <p>Signed in as {{ user()?.email || user()?.displayName }}</p>
-      <p class="role">Admin · Dashboard and History unlocked</p>
-      <a class="link" routerLink="/admin">Dashboard</a>
-      <a class="link" routerLink="/my-jobs">History</a>
-      <a class="link" routerLink="/post">Post a job</a>
-      <a class="link" routerLink="/blog-approval">Blog Approval</a>
-      <button type="button" class="secondary" (click)="logout()">Sign out</button>
-    </div>
-  } @else if (isSignedIn() && needsAdminLogin()) {
-    <div class="panel">
-      <p>Signed in as {{ user()?.email || user()?.displayName }}</p>
-      <p class="role">This session is not admin. Enter the admin password below for Dashboard / History.</p>
-      <button type="button" class="secondary" (click)="logout()">Sign out</button>
-    </div>
-    <form class="form" (ngSubmit)="signIn()">
-      <label>
-        <span>Admin email</span>
-        <input
-          type="email"
-          [(ngModel)]="email"
-          name="email"
-          placeholder="superadmin@xcron.app"
-          required
-          autocomplete="username"
-        />
-      </label>
-      <label>
-        <span>Password</span>
-        <input
-          type="password"
-          [(ngModel)]="password"
-          name="password"
-          placeholder="••••••••"
-          required
-          minlength="8"
-          autocomplete="current-password"
-        />
-      </label>
-      <button type="submit" [disabled]="busy()">
-        @if (busy()) {
-          <span class="spinner spinner--inline" aria-hidden="true"></span>
-          Signing in…
+  <div
+    class="stack"
+    [class.stack--hub]="isSignedIn() && !isAdmin() && !needsAdminLogin()"
+  >
+    <header class="stack__head">
+      <p class="stack__brand">X Cron</p>
+      <h1>
+        @if (needsAdminLogin()) {
+          Admin sign in
+        } @else if (isSignedIn() && !isAdmin()) {
+          {{ profileName() || 'Account' }}
+        } @else if (isSignedIn()) {
+          Account
+        } @else if (accountForm() === 'register') {
+          Create account
         } @else {
-          Switch to admin
+          Sign in
         }
-      </button>
-    </form>
-    @if (error()) {
-      <p class="error">{{ error() }}</p>
-    }
-  } @else if (isSignedIn()) {
-    <div class="panel">
-      <p>Signed in as {{ user()?.email || user()?.displayName }}</p>
-      <p class="role">Google · saved jobs, unlocks, and preferences sync here</p>
-      <button type="button" class="secondary" (click)="logout()">Sign out</button>
-    </div>
-  } @else {
-    @if (!needsAdminLogin()) {
-      <div class="mode-tabs" role="tablist" aria-label="Sign-in method">
-        <button
-          type="button"
-          role="tab"
-          [attr.aria-selected]="mode() === 'google'"
-          [class.active]="mode() === 'google'"
-          (click)="setMode('google')"
-        >
-          Google
-        </button>
-        <button
-          type="button"
-          role="tab"
-          [attr.aria-selected]="mode() === 'admin'"
-          [class.active]="mode() === 'admin'"
-          (click)="setMode('admin')"
-        >
-          Admin
-        </button>
-      </div>
-    }
-
-    @if (mode() === 'google' && !needsAdminLogin()) {
-      <div class="form google-panel">
-        @if (googleReady) {
-          <div #googleBtnHost class="google-btn-host" aria-label="Continue with Google"></div>
-          @if (busy()) {
-            <p class="hint inline">
-              <span class="spinner spinner--inline" aria-hidden="true"></span>
-              Signing in…
-            </p>
-          }
+      </h1>
+      <p class="lead">
+        @if (needsAdminLogin()) {
+          Dashboard, Import, and Job Fare need the admin email and password.
+        } @else if (needsEmployerSignIn()) {
+          Create an account or sign in to post jobs. Employer access is limited — no admin menus.
+        } @else if (isSignedIn() && !isAdmin()) {
+          Manage your profile, apply versions, and account.
+        } @else if (isSignedIn()) {
+          Manage your session. Browse and search stay open without signing in.
+        } @else if (accountForm() === 'register') {
+          Pick a username and password to save jobs and sync preferences.
         } @else {
-          <form (ngSubmit)="signIn()">
-            <label>
-              <span>Google email</span>
-              <input
-                type="email"
-                [(ngModel)]="email"
-                name="email"
-                placeholder="you@gmail.com"
-                required
-                autocomplete="username"
-              />
-            </label>
-            <label>
-              <span>Display name (optional)</span>
-              <input [(ngModel)]="displayName" name="displayName" placeholder="Your name" />
-            </label>
-            <button type="submit" [disabled]="busy()">
-              @if (busy()) {
-                <span class="spinner spinner--inline" aria-hidden="true"></span>
-                Signing in…
-              } @else {
-                Continue with Google
-              }
-            </button>
-          </form>
-          <p class="hint inline">
-            Local stub — set <code>googleClientId</code> in web environment and
-            <code>GOOGLE_CLIENT_ID</code> on the API for real Google Identity.
-          </p>
+          Browse jobs freely. Sign in to save roles and sync preferences.
         }
+      </p>
+    </header>
+
+    @if (isSignedIn() && isAdmin() && !needsAdminLogin()) {
+      <div class="panel">
+        <p>Signed in as {{ profileName() }}</p>
+        <p class="role">Admin · Dashboard and History unlocked</p>
+        <a class="link" routerLink="/admin">Dashboard</a>
+        <a class="link" routerLink="/my-jobs">History</a>
+        <a class="link" routerLink="/post">Post a job</a>
+        <a class="link" routerLink="/blog-approval">Blog Approval</a>
+        <button type="button" class="secondary" (click)="logout()">Sign out</button>
       </div>
-    } @else {
-      <form class="form" (ngSubmit)="signIn()">
+    } @else if (isSignedIn() && needsAdminLogin()) {
+      <div class="panel">
+        <p>Signed in as {{ profileName() }}</p>
+        <p class="role">This session is not admin. Enter the admin password below for Dashboard / History.</p>
+        <button type="button" class="secondary" (click)="logout()">Sign out</button>
+      </div>
+      <form class="form" (ngSubmit)="signInAdmin()">
         <label>
           <span>Admin email</span>
           <input
             type="email"
-            [(ngModel)]="email"
-            name="email"
+            [(ngModel)]="adminEmail"
+            name="adminEmail"
             placeholder="superadmin@xcron.app"
             required
             autocomplete="username"
@@ -160,8 +67,593 @@
           <span>Password</span>
           <input
             type="password"
-            [(ngModel)]="password"
-            name="password"
+            [(ngModel)]="adminPassword"
+            name="adminPassword"
+            placeholder="••••••••"
+            required
+            minlength="8"
+            autocomplete="current-password"
+          />
+        </label>
+        <button type="submit" [disabled]="busy()">
+          @if (busy()) {
+            <span class="spinner spinner--inline" aria-hidden="true"></span>
+            Signing in…
+          } @else {
+            Switch to admin
+          }
+        </button>
+      </form>
+    } @else if (isSignedIn() && mode() !== 'admin') {
+      <nav class="hub-tabs" aria-label="Account sections">
+        <button
+          type="button"
+          class="hub-tabs__btn"
+          [class.is-active]="tab() === 'profile'"
+          (click)="setTab('profile')"
+        >
+          Profile
+        </button>
+        <button
+          type="button"
+          class="hub-tabs__btn"
+          [class.is-active]="tab() === 'apply'"
+          (click)="setTab('apply')"
+        >
+          Apply
+        </button>
+        <button
+          type="button"
+          class="hub-tabs__btn"
+          [class.is-active]="tab() === 'activity'"
+          (click)="setTab('activity')"
+        >
+          Activity
+        </button>
+        <button
+          type="button"
+          class="hub-tabs__btn"
+          [class.is-active]="tab() === 'rating'"
+          (click)="setTab('rating')"
+        >
+          Rating
+        </button>
+        <button
+          type="button"
+          class="hub-tabs__btn"
+          [class.is-active]="tab() === 'account'"
+          (click)="setTab('account')"
+        >
+          Account
+        </button>
+      </nav>
+
+      @switch (tab()) {
+        @case ('profile') {
+          <section class="hub-section">
+            <h2>Your profile</h2>
+            <p class="hint">Update personal details and career info. Apply versions stay on Apply.</p>
+
+            <div class="profile-accordions">
+              <details class="profile-acc" [open]="profileOpen.personal">
+                <summary
+                  class="profile-acc__summary"
+                  (click)="$event.preventDefault(); toggleProfileSection('personal')"
+                >
+                  Personal information
+                </summary>
+                @if (profileOpen.personal) {
+                  <div class="profile-acc__body form">
+                    <label>
+                      <span>Name</span>
+                      <input
+                        [(ngModel)]="profileDisplayName"
+                        name="profileDisplayName"
+                        autocomplete="name"
+                        placeholder="Your full name"
+                      />
+                    </label>
+                    <label>
+                      <span>Mobile</span>
+                      <input
+                        type="tel"
+                        [(ngModel)]="profileMobile"
+                        name="profileMobile"
+                        autocomplete="tel"
+                        placeholder="10-digit mobile"
+                      />
+                    </label>
+                    <label>
+                      <span>Email</span>
+                      <input
+                        type="email"
+                        [(ngModel)]="profileEmail"
+                        name="profileEmail"
+                        autocomplete="email"
+                        placeholder="you@example.com"
+                      />
+                    </label>
+                    <label class="toggle-row">
+                      <span>Show my contact</span>
+                      <input type="checkbox" [(ngModel)]="showContact" name="showContact" />
+                    </label>
+                  </div>
+                }
+              </details>
+
+              <details class="profile-acc" [open]="profileOpen.location">
+                <summary
+                  class="profile-acc__summary"
+                  (click)="$event.preventDefault(); toggleProfileSection('location')"
+                >
+                  Location
+                </summary>
+                @if (profileOpen.location) {
+                  <div class="profile-acc__body form">
+                    <label>
+                      <span>Address</span>
+                      <input
+                        [(ngModel)]="profileAddress"
+                        name="profileAddress"
+                        autocomplete="street-address"
+                        placeholder="Area, city"
+                      />
+                    </label>
+                    <label>
+                      <span>Pincode</span>
+                      <input
+                        [(ngModel)]="profilePincode"
+                        name="profilePincode"
+                        inputmode="numeric"
+                        maxlength="6"
+                        placeholder="6-digit pincode"
+                      />
+                    </label>
+                  </div>
+                }
+              </details>
+
+              <details class="profile-acc" [open]="profileOpen.career">
+                <summary
+                  class="profile-acc__summary"
+                  (click)="$event.preventDefault(); toggleProfileSection('career')"
+                >
+                  Career info
+                </summary>
+                @if (profileOpen.career) {
+                  <div class="profile-acc__body">
+                    <fieldset class="role-choice">
+                      <legend>Experience</legend>
+                      <div class="role-choice__options">
+                        <label class="role-choice__option">
+                          <input
+                            type="radio"
+                            name="careerStage"
+                            [checked]="careerStage === 'fresher'"
+                            (change)="setCareerStage('fresher')"
+                          />
+                          Fresher
+                        </label>
+                        <label class="role-choice__option">
+                          <input
+                            type="radio"
+                            name="careerStage"
+                            [checked]="careerStage === 'experienced'"
+                            (change)="setCareerStage('experienced')"
+                          />
+                          Experienced
+                        </label>
+                      </div>
+                    </fieldset>
+
+                    <fieldset class="role-choice">
+                      <legend>Education</legend>
+                      <div class="role-choice__options">
+                        <label class="role-choice__option">
+                          <input
+                            type="radio"
+                            name="educationStatus"
+                            [checked]="educationStatus === 'pursuing'"
+                            (change)="setEducationStatus('pursuing')"
+                          />
+                          Currently studying
+                        </label>
+                        <label class="role-choice__option">
+                          <input
+                            type="radio"
+                            name="educationStatus"
+                            [checked]="educationStatus === 'completed'"
+                            (change)="setEducationStatus('completed')"
+                          />
+                          Degree completed
+                        </label>
+                      </div>
+                    </fieldset>
+
+                    @if (careerStage === 'fresher') {
+                      <div class="form">
+                        <label class="toggle-row">
+                          <span>Open to internships</span>
+                          <input
+                            type="checkbox"
+                            [(ngModel)]="openToInternship"
+                            name="openToInternship"
+                          />
+                        </label>
+                        <label>
+                          <span>Course</span>
+                          <input
+                            [(ngModel)]="courseDetails"
+                            name="courseDetails"
+                            placeholder="e.g. B.E. / B.Tech / B.Sc"
+                          />
+                        </label>
+                        <label>
+                          <span>Branch / specialization</span>
+                          <input
+                            [(ngModel)]="branchStudied"
+                            name="branchStudied"
+                            placeholder="e.g. Computer Science"
+                          />
+                        </label>
+                        <label>
+                          <span>CGPA / percentage</span>
+                          <input
+                            [(ngModel)]="academicScore"
+                            name="academicScore"
+                            placeholder="e.g. 8.2 CGPA or 78%"
+                          />
+                        </label>
+                      </div>
+                    }
+
+                    @if (careerStage === 'experienced') {
+                      <div class="form">
+                        <div class="form-row-2">
+                          <label>
+                            <span>Years</span>
+                            <input
+                              type="number"
+                              [(ngModel)]="experienceYears"
+                              name="experienceYears"
+                              min="0"
+                              max="50"
+                              placeholder="0"
+                            />
+                          </label>
+                          <label>
+                            <span>Months</span>
+                            <input
+                              type="number"
+                              [(ngModel)]="experienceMonths"
+                              name="experienceMonths"
+                              min="0"
+                              max="11"
+                              placeholder="0–11"
+                            />
+                          </label>
+                        </div>
+                        <label>
+                          <span>Current / previous company</span>
+                          <input
+                            [(ngModel)]="companyName"
+                            name="companyName"
+                            placeholder="Company name"
+                          />
+                        </label>
+                        <label>
+                          <span>Company area</span>
+                          <input
+                            [(ngModel)]="companyArea"
+                            name="companyArea"
+                            placeholder="Industry or domain"
+                          />
+                        </label>
+                        <label>
+                          <span>Current salary</span>
+                          <input
+                            [(ngModel)]="currentSalary"
+                            name="currentSalary"
+                            placeholder="₹ / month or LPA"
+                          />
+                        </label>
+                        <label>
+                          <span>Expected salary</span>
+                          <input
+                            [(ngModel)]="expectedSalary"
+                            name="expectedSalary"
+                            placeholder="₹ / month or LPA"
+                          />
+                        </label>
+                      </div>
+
+                      <div class="notice-block">
+                        <p class="notice-block__label">Notice period</p>
+                        <p class="hint notice-hint">
+                          Pick one. “Serving” means notice has started; check your company T&amp;C.
+                        </p>
+                        <div class="notice-badges" role="radiogroup" aria-label="Notice period">
+                          @for (opt of noticeOptions; track opt.value) {
+                            <button
+                              type="button"
+                              class="notice-badge"
+                              [class.notice-badge--active]="noticePeriod === opt.value"
+                              (click)="setNoticePeriod(opt.value)"
+                            >
+                              {{ opt.label }}
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </details>
+            </div>
+
+            <button type="button" class="save-profile-btn" (click)="saveProfile()">
+              Save profile
+            </button>
+          </section>
+        }
+        @case ('apply') {
+          <section class="hub-section">
+            <h2>Apply profile versions</h2>
+            <p class="hint">
+              Create Frontend / Backend versions with skills, summary, and portfolio links. Pick one
+              when you easy-apply. No resume upload.
+            </p>
+            @if (!applyProfiles().length) {
+              <p class="empty">Add your first version to unlock easy apply.</p>
+            }
+            @for (p of applyProfiles(); track p.id) {
+              <article class="hub-card">
+                <strong>{{ p.name }}{{ p.isDefault ? ' · default' : '' }}</strong>
+                @if (p.headline) {
+                  <p>{{ p.headline }}</p>
+                }
+                @if (p.skills.length) {
+                  <div class="skill-badges" aria-label="Skills">
+                    @for (skill of p.skills.slice(0, applySkillMax); track skill) {
+                      <span class="skill-badge">{{ skill }}</span>
+                    }
+                  </div>
+                } @else {
+                  <p>No skills yet</p>
+                }
+                <div class="hub-card__actions">
+                  <button type="button" class="secondary" (click)="startEditApply(p.id)">Edit</button>
+                  @if (!p.isDefault) {
+                    <button type="button" class="secondary" (click)="setDefaultApply(p.id)">
+                      Default
+                    </button>
+                  }
+                  <button type="button" class="secondary" (click)="deleteApply(p.id)">Delete</button>
+                </div>
+              </article>
+            }
+            <div class="form">
+              <label>
+                <span>Version name *</span>
+                <input
+                  [(ngModel)]="applyName"
+                  name="applyName"
+                  placeholder="e.g. Frontend developer"
+                />
+              </label>
+              <label>
+                <span>Headline</span>
+                <input
+                  [(ngModel)]="applyHeadline"
+                  name="applyHeadline"
+                  placeholder="React · TypeScript"
+                />
+              </label>
+              <label>
+                <span>Experience band</span>
+                <select [(ngModel)]="applyBand" name="applyBand">
+                  <option value="">—</option>
+                  <option value="fresher">Fresher</option>
+                  <option value="0-1">0–1 years</option>
+                  <option value="1-3">1–3 years</option>
+                  <option value="3-5">3–5 years</option>
+                  <option value="5+">5+ years</option>
+                </select>
+              </label>
+              <div class="skill-field">
+                <span>Skills ({{ applySkillMin }}–{{ applySkillMax }})</span>
+                <div class="skill-badges" role="list" aria-label="Selected skills">
+                  @for (skill of applySkills; track skill) {
+                    <button
+                      type="button"
+                      class="skill-badge skill-badge--removable"
+                      role="listitem"
+                      (click)="removeApplySkill(skill)"
+                      [attr.aria-label]="'Remove ' + skill"
+                    >
+                      {{ skill }}
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  }
+                </div>
+                @if (applySkills.length < applySkillMax) {
+                  <div class="skill-add">
+                    <input
+                      [(ngModel)]="applySkillDraft"
+                      name="applySkillDraft"
+                      placeholder="e.g. React"
+                      (keyup.enter)="addApplySkill()"
+                    />
+                    <button type="button" class="secondary" (click)="addApplySkill()">Add</button>
+                  </div>
+                }
+                <p class="skill-hint">
+                  {{ applySkills.length }}/{{ applySkillMax }} · click a badge to remove
+                </p>
+              </div>
+              <label>
+                <span>Summary</span>
+                <input [(ngModel)]="applySummary" name="applySummary" />
+              </label>
+              <label>
+                <span>Portfolio (one per line: Label|https://…)</span>
+                <textarea rows="2" [(ngModel)]="applyPortfolio" name="applyPortfolio"></textarea>
+              </label>
+              <button type="button" [disabled]="applyBusy" (click)="saveApplyProfile()">
+                {{ editingApplyId ? 'Update version' : 'Add version' }}
+              </button>
+              @if (editingApplyId) {
+                <button type="button" class="secondary" (click)="startEditApply()">
+                  Cancel edit
+                </button>
+              }
+            </div>
+          </section>
+        }
+        @case ('activity') {
+          <section class="hub-section">
+            <h2>Your feed</h2>
+            @for (job of feedJobs(); track job.id) {
+              <article class="hub-card">
+                <strong>{{ job.title }}</strong>
+                <p>{{ job.employerName }}</p>
+                <a class="link" [routerLink]="jobPath(job)">Open</a>
+              </article>
+            } @empty {
+              <p class="empty">Save preferences to personalise this feed.</p>
+            }
+          </section>
+
+          <section class="hub-section">
+            <div class="hub-section__head">
+              <h2>Saved jobs</h2>
+              <a class="link" routerLink="/me">Open saved</a>
+            </div>
+            @for (job of savedJobs(); track job.id) {
+              <article class="hub-card">
+                <strong>{{ job.title }}</strong>
+                <p>{{ job.employerName }}</p>
+                <div class="hub-card__actions">
+                  <a class="link" [routerLink]="jobPath(job)">Open</a>
+                  <button type="button" class="secondary" (click)="removeSavedJob(job.id)">
+                    Remove
+                  </button>
+                </div>
+              </article>
+            } @empty {
+              <p class="empty">No saved jobs yet. Save a role from job detail.</p>
+            }
+          </section>
+
+          <section class="hub-section">
+            <h2>Applications</h2>
+            @for (row of jobApps(); track row.id) {
+              <article class="hub-card">
+                <strong>{{ row.job?.title || row.jobId }}</strong>
+                <p>
+                  {{ row.statusLabel }} ·
+                  {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+                </p>
+                <a class="link" [routerLink]="['/me/applications', row.id]">Timeline</a>
+              </article>
+            } @empty {
+              <p class="empty">Apply from a job page to track status here.</p>
+            }
+          </section>
+
+          <section class="hub-section">
+            <h2>Contacted</h2>
+            @for (row of contacted(); track row.jobId) {
+              <article class="hub-card">
+                <strong>{{ row.job?.title || row.jobId }}</strong>
+                <p>{{ row.status }}{{ row.channel ? ' · ' + row.channel : '' }}</p>
+                @if (row.job) {
+                  <a class="link" [routerLink]="jobPath(row.job)">Open</a>
+                }
+              </article>
+            } @empty {
+              <p class="empty">Tap phone / WhatsApp / email on a job to track it here.</p>
+            }
+          </section>
+
+          <section class="hub-section">
+            <h2>Saved searches</h2>
+            @for (row of savedSearches(); track row.id) {
+              <article class="hub-card">
+                <strong>{{ row.name }}</strong>
+                <p>{{ row.alertEnabled ? 'Alerts on' : 'Alerts off' }}</p>
+                <button type="button" class="secondary" (click)="deleteSavedSearch(row.id)">
+                  Remove
+                </button>
+              </article>
+            } @empty {
+              <p class="empty">Save a search from Discover to get alerts.</p>
+            }
+          </section>
+        }
+        @case ('rating') {
+          <section class="hub-section score-callout">
+            <h2>Rating</h2>
+            <p class="hint">
+              Build trust with fit-aware applies and responsive chat. Recruiters and seekers both see
+              your band (Rising / Steady / Needs care).
+            </p>
+            <a class="btn-link" routerLink="/performance">View my rating</a>
+          </section>
+        }
+        @case ('account') {
+          <section class="hub-section">
+            <div class="panel">
+              <p>Signed in as {{ profileName() }}</p>
+              <p class="role">Roles · {{ user()?.roles?.join(', ') || 'seeker' }}</p>
+              <a class="link" routerLink="/settings">Open settings</a>
+            </div>
+
+            @if (isEmployer()) {
+              <div class="hub-section">
+                <h2>Recruiter desk</h2>
+                <p class="hint">
+                  Separate from admin Blog Approval. Compose, review with AI, preview, then post live.
+                </p>
+                <a class="btn-link" routerLink="/post">Open Recruiter desk</a>
+                <a class="btn-link btn-link--outline" routerLink="/employer-applications">
+                  Review applications
+                </a>
+              </div>
+            }
+
+            <button type="button" class="secondary" (click)="logout()">Sign out</button>
+            <button type="button" class="text-link danger" (click)="deleteAccount()">
+              Delete account
+            </button>
+            @if (!isEmployer()) {
+              <p class="hint">Want to post jobs? Sign in again as employer from Post.</p>
+            }
+            <button type="button" class="secondary" (click)="setMode('admin')">
+              Admin password login
+            </button>
+          </section>
+        }
+      }
+    } @else if (needsAdminLogin() || mode() === 'admin') {
+      <form class="form" (ngSubmit)="signInAdmin()">
+        <label>
+          <span>Admin email</span>
+          <input
+            type="email"
+            [(ngModel)]="adminEmail"
+            name="adminEmail"
+            placeholder="superadmin@xcron.app"
+            required
+            autocomplete="username"
+          />
+        </label>
+        <label>
+          <span>Password</span>
+          <input
+            type="password"
+            [(ngModel)]="adminPassword"
+            name="adminPassword"
             placeholder="••••••••"
             required
             minlength="8"
@@ -177,10 +669,150 @@
           }
         </button>
       </form>
-    }
+      @if (!needsAdminLogin()) {
+        <button type="button" class="text-link" (click)="setMode('account')">
+          ← Back to account sign in
+        </button>
+      }
+    } @else {
+      @if (accountForm() === 'login') {
+        <form class="form" (ngSubmit)="submitAccount()">
+          <label>
+            <span>Username</span>
+            <input
+              type="text"
+              [(ngModel)]="username"
+              name="username"
+              placeholder="Enter Username"
+              required
+              minlength="3"
+              maxlength="32"
+              autocomplete="username"
+            />
+          </label>
+          <label>
+            <span>Password</span>
+            <input
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="••••••••"
+              required
+              minlength="8"
+              autocomplete="current-password"
+            />
+          </label>
+          <button type="submit" [disabled]="busy()">
+            @if (busy()) {
+              <span class="spinner spinner--inline" aria-hidden="true"></span>
+              Signing in…
+            } @else if (needsEmployerSignIn()) {
+              Employer sign in
+            } @else {
+              Login
+            }
+          </button>
+        </form>
 
-    @if (error()) {
-      <p class="error">{{ error() }}</p>
+        <div class="signup-block">
+          <p class="signup-block__label">New here?</p>
+          <button type="button" class="secondary signup-block__btn" (click)="setAccountForm('register')">
+            Sign Up → Create new account
+          </button>
+        </div>
+      } @else {
+        <form class="form" (ngSubmit)="submitAccount()">
+          <label>
+            <span>Username</span>
+            <input
+              type="text"
+              [(ngModel)]="username"
+              name="username"
+              placeholder="Enter Username"
+              required
+              minlength="3"
+              maxlength="32"
+              autocomplete="username"
+            />
+          </label>
+          <label>
+            <span>Password</span>
+            <input
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="••••••••"
+              required
+              minlength="8"
+              autocomplete="new-password"
+            />
+          </label>
+          <label>
+            <span>Confirm password</span>
+            <input
+              type="password"
+              [(ngModel)]="confirmPassword"
+              name="confirmPassword"
+              placeholder="••••••••"
+              required
+              minlength="8"
+              autocomplete="new-password"
+            />
+          </label>
+          <fieldset class="role-choice">
+            <legend>I am a</legend>
+            <div class="role-choice__options">
+              <label class="role-choice__option">
+                <input
+                  type="radio"
+                  name="intendedRole"
+                  value="seeker"
+                  [(ngModel)]="intendedRoleChoice"
+                />
+                <span>Job Seeker</span>
+              </label>
+              <label class="role-choice__option">
+                <input
+                  type="radio"
+                  name="intendedRole"
+                  value="employer"
+                  [(ngModel)]="intendedRoleChoice"
+                />
+                <span>Recruiter</span>
+              </label>
+            </div>
+          </fieldset>
+          <button type="submit" [disabled]="busy()">
+            @if (busy()) {
+              <span class="spinner spinner--inline" aria-hidden="true"></span>
+              Creating…
+            } @else if (intendedRoleChoice === 'employer') {
+              Create recruiter account
+            } @else {
+              Create account
+            }
+          </button>
+        </form>
+
+        <button type="button" class="text-link" (click)="setAccountForm('login')">
+          ← Back to Login
+        </button>
+      }
+
+      <div class="guest-block">
+        <p class="guest-block__label">Guest use</p>
+        @if (googleConfigured()) {
+          <div #googleHost class="google-btn-host" aria-label="Sign in with Google"></div>
+        } @else {
+          <button type="button" class="secondary google-fallback" [disabled]="busy()" (click)="signInWithGoogleStub()">
+            Sign in with Google
+          </button>
+        }
+      </div>
+
+      <button type="button" class="text-link" (click)="forgotPassword()">
+        Forgot password?
+      </button>
     }
-  }
+  </div>
 </section>

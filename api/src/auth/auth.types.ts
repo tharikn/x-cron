@@ -5,6 +5,11 @@ export interface AuthUser {
   status: 'active' | 'disabled';
   preferredLocale: string;
   roles: UserRole[];
+  username?: string;
+  /** scrypt hash hex — never expose on public DTOs. */
+  passwordHash?: string;
+  /** scrypt salt hex — never expose on public DTOs. */
+  passwordSalt?: string;
   phone?: string;
   email?: string;
   displayName?: string;
@@ -23,9 +28,9 @@ export interface EmployerProfile {
 }
 
 export interface SessionRecord {
-  /** Short-lived access token (Bearer). */
+  /** Short-lived access token (cookie / Bearer). */
   token: string;
-  /** Long-lived refresh token (POST /v1/auth/refresh only). */
+  /** Long-lived refresh token (cookie or POST /v1/auth/refresh body). */
   refreshToken: string;
   userId: string;
   createdAt: string;
@@ -33,6 +38,11 @@ export interface SessionRecord {
   expiresAt: string;
   /** Refresh token expiry (SiteConfig sessionTtlDays). */
   refreshExpiresAt: string;
+  /**
+   * Bound browser tab id (`X-Tab-Id`). When set, AuthGuard rejects other tabs.
+   * Empty means pre-binding / non-browser clients until first authenticated call.
+   */
+  tabId?: string;
 }
 
 export interface AuthTokens {
@@ -41,12 +51,8 @@ export interface AuthTokens {
   expiresAt: string;
 }
 
-export interface OtpChallenge {
-  id: string;
-  channel: 'phone' | 'email';
-  destination: string;
-  code: string;
-  intendedRole: UserRole;
-  expiresAt: string;
-  attempts: number;
+export interface IssueSessionOptions {
+  tabId?: string;
+  /** When false, keep other sessions (rare). Default: revoke siblings. */
+  revokeOtherSessions?: boolean;
 }

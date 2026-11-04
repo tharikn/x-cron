@@ -1,0 +1,187 @@
+.page {
+  width: min(1080px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-display);
+  color: var(--xcron-ink);
+}
+
+.lead {
+  margin: 0.35rem 0 0.35rem;
+  font-family: var(--xcron-font-body);
+  color: var(--xcron-ink-soft);
+}
+
+.hint {
+  margin: 0 0 1.25rem;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  color: var(--xcron-ink-soft);
+}
+
+.hint a {
+  color: var(--xcron-primary-hover);
+}
+
+.score-pill {
+  display: inline-block;
+  font-size: var(--xcron-text-label);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xcron-accent);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.layout {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.4fr);
+  }
+}
+
+.list-panel,
+.detail-panel {
+  border-radius: var(--xcron-radius-lg, 14px);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  padding: 0.75rem;
+}
+
+.row {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 0.45rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  cursor: pointer;
+  font-family: var(--xcron-font-body);
+}
+
+.row.is-active,
+.row:hover {
+  border-color: var(--xcron-primary);
+}
+
+.row .status,
+.status {
+  color: var(--xcron-primary-hover);
+  text-transform: uppercase;
+  font-size: var(--xcron-text-label);
+  letter-spacing: 0.04em;
+}
+
+.row time {
+  color: var(--xcron-faint);
+  font-size: var(--xcron-text-meta);
+}
+
+.form {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.form label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: var(--xcron-text-label);
+  color: var(--xcron-ink-soft);
+}
+
+.form select,
+.form textarea {
+  border-radius: 10px;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.timeline {
+  margin-top: 1.25rem;
+}
+
+.timeline ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 2px solid var(--xcron-line);
+}
+
+.timeline li {
+  position: relative;
+  padding: 0 0 1rem 1rem;
+  margin-left: 0.35rem;
+}
+
+.timeline li::before {
+  content: '';
+  position: absolute;
+  left: -0.45rem;
+  top: 0.3rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--xcron-cta-gradient);
+}
+
+.timeline time {
+  display: block;
+  color: var(--xcron-faint);
+  font-size: var(--xcron-text-meta);
+}
+
+.timeline strong {
+  text-transform: capitalize;
+}
+
+.actor {
+  margin-left: 0.4rem;
+  font-size: var(--xcron-text-label);
+  text-transform: uppercase;
+  color: var(--xcron-ink-soft);
+}
+
+.note {
+  color: var(--xcron-ink-soft);
+}
+
+.ok {
+  color: #22c55e;
+}
+
+.error {
+  color: #f43f5e;
+}
+
+.empty,
+.gate {
+  color: var(--xcron-ink-soft);
+}

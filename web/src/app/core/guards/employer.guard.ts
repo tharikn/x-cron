@@ -9,7 +9,7 @@ export const employerGuard: CanActivateFn = async (_route, state) => {
   if (auth.isSignedIn() && (auth.isEmployer() || auth.isAdmin())) {
     return true;
   }
-  return router.createUrlTree(['/settings/account'], {
+  return router.createUrlTree(['/sign-in'], {
     queryParams: { returnUrl: state.url, mode: 'employer' },
   });
 };

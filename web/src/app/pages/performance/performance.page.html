@@ -1,0 +1,110 @@
+<section class="performance">
+  <p class="brand-mark">X Cron</p>
+  <p class="descriptor">Jobs</p>
+  <h1>Performance Score</h1>
+  <p class="lead">
+    A shared trust signal for job seekers and recruiters. Apply to roles that fit, reply in chat,
+    and keep your process moving — both sides see the score.
+  </p>
+
+  @if (!isSignedIn()) {
+    <p class="hint">
+      <a routerLink="/sign-in">Sign in</a> to view your score and tips.
+    </p>
+  } @else {
+    @if (isEmployer()) {
+      <div class="role-tabs">
+        <button
+          type="button"
+          class="role-tab"
+          [class.active]="activeRole() === 'seeker'"
+          (click)="selectRole('seeker')"
+        >
+          As seeker
+        </button>
+        <button
+          type="button"
+          class="role-tab"
+          [class.active]="activeRole() === 'employer'"
+          (click)="selectRole('employer')"
+        >
+          As recruiter
+        </button>
+      </div>
+    }
+
+    <div class="toolbar">
+      <button type="button" class="btn-secondary" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </button>
+    </div>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    @if (active(); as score) {
+      <div class="hero-score" [attr.data-band]="bandClass(score)">
+        <p class="hero-score__label">Your score</p>
+        <p class="hero-score__value">{{ score.score }}</p>
+        <p class="hero-score__band">{{ score.bandLabel }}</p>
+        <p class="hero-score__scale">0–100 · starts at 50</p>
+      </div>
+
+      <article class="panel callout">
+        <h2>Why this matters</h2>
+        <p>
+          Recruiters use your score to spot disciplined seekers. Seekers use recruiter scores to
+          find employers who review applications and reply. Fit under 50% lowers a seeker score;
+          strong fits and replies raise it.
+        </p>
+      </article>
+
+      <div class="grid">
+        <article class="panel">
+          <h2>How it works</h2>
+          <ul>
+            @for (line of score.howItWorks; track line) {
+              <li>{{ line }}</li>
+            }
+          </ul>
+        </article>
+        <article class="panel">
+          <h2>Tips for you</h2>
+          <ul>
+            @for (tip of score.tips; track tip) {
+              <li>{{ tip }}</li>
+            }
+          </ul>
+        </article>
+      </div>
+
+      <article class="panel">
+        <h2>Recent activity</h2>
+        @for (ev of score.events; track ev.id) {
+          <div class="event">
+            <div class="event__top">
+              <strong>{{ ev.typeLabel }}</strong>
+              <span class="delta" [class]="deltaClass(ev.delta)">
+                {{ ev.delta > 0 ? '+' : '' }}{{ ev.delta }}
+              </span>
+            </div>
+            @if (ev.note) {
+              <p class="meta">{{ ev.note }}</p>
+            }
+            @if (ev.matchPercent != null) {
+              <p class="meta">Role fit {{ ev.matchPercent }}%</p>
+            }
+            <p class="time">
+              {{ ev.createdAt | date: 'dd MMM yyyy, HH:mm' }} · score {{ ev.scoreAfter }}
+            </p>
+          </div>
+        } @empty {
+          <p class="empty">No score events yet — apply or reply in chat to start building.</p>
+        }
+      </article>
+    } @else if (!busy()) {
+      <p class="empty">No score yet.</p>
+    }
+  }
+</section>

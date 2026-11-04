@@ -55,7 +55,12 @@ export interface NotificationRecord {
   error?: string;
 }
 
-export type NotificationTriggerType = 'job_published' | 'dev_test';
+export type NotificationTriggerType =
+  | 'job_published'
+  | 'application_event'
+  | 'user_welcome'
+  | 'profile_complete'
+  | 'dev_test';
 
 export type NotificationDispatchStatus =
   | 'running'

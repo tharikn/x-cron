@@ -1,6 +1,6 @@
 # CLAUDE.md — `api/src/payments/`
 
-Seeker subscriptions + post-job fees (legacy `job_contact_unlock` still in store; seeker UI shows contacts on the public job DTO with no unlock). **Entitlements are separate from the PSP.**
+Seeker subscriptions (legacy `job_contact_unlock` + `job_post` fee still in store/history; seeker UI shows contacts on the public job DTO with no unlock; post-job fee removed — `POST …/post-orders` rejects). **Entitlements are separate from the PSP.**
 
 Agents: follow [`.cursor/skills/xcron-payments/SKILL.md`](../../../.cursor/skills/xcron-payments/SKILL.md).
 
@@ -13,7 +13,7 @@ Agents: follow [`.cursor/skills/xcron-payments/SKILL.md`](../../../.cursor/skill
   - `payments.prisma-store.ts` — `Payment` / `Entitlement` / `AuditEvent` / `PaymentHistory`
 - Factory in `payments.module.ts` ← `PAYMENTS_STORE` (falls back to `JOBS_STORE` when unset)
 - History: structured `PaymentHistoryEvent` rows (admin table + CSV/PDF export)
-- Site master switch: `SiteCommerceConfig.paymentsEnabled` (+ `postJobPaymentMode`)
+- Site master switch: `SiteCommerceConfig.paymentsEnabled` (`postJobPaymentMode` forced `none`; post fee retired)
 - Confirm-attempt counters + webhook idempotency sets stay **process-local** even on prisma (reset on restart)
 
 ## Confirm security (`POST /v1/payments/dev/confirm`)
@@ -36,7 +36,7 @@ Every failure writes `confirm_failed` history (reason, IP, UA).
 
 ## Products
 
-`job_contact_unlock` (legacy / unused by job-detail UI) | `subscription` | `job_post`
+`job_contact_unlock` (legacy / unused by job-detail UI) | `subscription` | `job_post` (retired — create rejects)
 
 ## Env
 

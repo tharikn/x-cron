@@ -10,20 +10,26 @@
         <ion-label>{{ 'nav.post' | t }}</ion-label>
       </ion-tab-button>
     }
-    <ion-tab-button
-      tab="notifications"
-      href="/tabs/notifications"
-      [class.tab--hot]="unread() > 0"
-    >
-      <ion-icon name="notifications-outline"></ion-icon>
-      <ion-label>{{ 'nav.notifications' | t }}</ion-label>
-      @if (unread() > 0) {
-        <ion-badge class="tab-badge">{{ unread() > 99 ? '99+' : unread() }}</ion-badge>
-      }
-    </ion-tab-button>
-    <ion-tab-button tab="settings" href="/tabs/settings">
-      <ion-icon name="settings-outline"></ion-icon>
-      <ion-label>{{ 'nav.settings' | t }}</ion-label>
+    @if (isSignedIn()) {
+      <ion-tab-button
+        tab="notifications"
+        href="/tabs/notifications"
+        [class.tab--hot]="unread() > 0"
+      >
+        <ion-icon name="notifications-outline"></ion-icon>
+        <ion-label>{{ 'nav.notifications' | t }}</ion-label>
+        @if (unread() > 0) {
+          <ion-badge class="tab-badge">{{ unread() > 99 ? '99+' : unread() }}</ion-badge>
+        }
+      </ion-tab-button>
+      <ion-tab-button tab="settings" href="/tabs/settings">
+        <ion-icon name="settings-outline"></ion-icon>
+        <ion-label>{{ 'nav.settings' | t }}</ion-label>
+      </ion-tab-button>
+    }
+    <ion-tab-button tab="account" href="/tabs/account" class="tab--profile">
+      <ion-icon [name]="isSignedIn() ? 'person' : 'person-outline'"></ion-icon>
+      <ion-label>{{ profileTabLabel() }}</ion-label>
     </ion-tab-button>
   </ion-tab-bar>
 </ion-tabs>

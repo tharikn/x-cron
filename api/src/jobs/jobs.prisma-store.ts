@@ -277,6 +277,7 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
       reportCount: 0,
       walkInAt: input.walkInAt,
       applyBy: input.applyBy,
+      screeningQuestion: input.screeningQuestion?.trim() || undefined,
       contact: {
         hasPhone: !!phone,
         hasEmail: !!email,
@@ -327,6 +328,7 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
         expiresAt: new Date(job.expiresAt),
         walkInAt: job.walkInAt ? new Date(job.walkInAt) : null,
         applyBy: job.applyBy ? new Date(job.applyBy) : null,
+        screeningQuestion: job.screeningQuestion ?? null,
         priority: job.priority,
         reportCount: 0,
         contactSecret: {
@@ -346,7 +348,12 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
   async createFromPaste(
     rawText: string,
     contentLanguage: string,
-    meta?: { employerId?: string; ownerUserId?: string; employerName?: string },
+    meta?: {
+      employerId?: string;
+      ownerUserId?: string;
+      employerName?: string;
+      status?: JobRecord['status'];
+    },
   ): Promise<JobRecord> {
     const lines = rawText
       .split(/\r?\n/)
@@ -370,7 +377,7 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
       contactPhone: phoneMatch?.[0],
       employerId: meta?.employerId,
       ownerUserId: meta?.ownerUserId,
-      status: 'needs-review',
+      status: meta?.status ?? 'needs-review',
     });
   }
 
@@ -478,6 +485,9 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
     if (patch.remote !== undefined) job.location.remote = patch.remote;
     if (patch.walkInAt !== undefined) job.walkInAt = patch.walkInAt || undefined;
     if (patch.applyBy !== undefined) job.applyBy = patch.applyBy || undefined;
+    if (patch.screeningQuestion !== undefined) {
+      job.screeningQuestion = patch.screeningQuestion.trim() || undefined;
+    }
     if (patch.locationCity?.trim()) {
       const c = cityCentroid(job.location.city);
       if (c && job.location.lat == null) {
@@ -553,6 +563,7 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
         expiresAt: new Date(job.expiresAt),
         walkInAt: job.walkInAt ? new Date(job.walkInAt) : null,
         applyBy: job.applyBy ? new Date(job.applyBy) : null,
+        screeningQuestion: job.screeningQuestion ?? null,
         priority: job.priority,
         contactSecret: {
           upsert: {

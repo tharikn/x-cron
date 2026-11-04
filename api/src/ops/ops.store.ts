@@ -9,6 +9,7 @@ export class OpsStore {
     jobPublishes: 0,
     contactUnlocks: 0,
     importBatches: 0,
+    jobApplies: 0,
     ocrPages: 0,
     notificationsSent: 0,
     adImpressions: 0,

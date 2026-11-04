@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
@@ -121,6 +122,20 @@ export class CreateJobDto {
   @IsOptional()
   @IsISO8601()
   applyBy?: string;
+
+  /** Optional intent question; seekers must answer when applying. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(280)
+  screeningQuestion?: string;
+
+  /**
+   * Recruiter privilege: publish live immediately (skips Blog Approval queue).
+   * Admin import / channel pulls still use needs-review without this flag.
+   */
+  @IsOptional()
+  @IsBoolean()
+  directPublish?: boolean;
 }
 
 export class UpdateJobDto {
@@ -248,6 +263,12 @@ export class UpdateJobDto {
   @IsOptional()
   @IsISO8601()
   applyBy?: string;
+
+  /** Empty string clears the question. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(280)
+  screeningQuestion?: string;
 }
 
 export class PasteJobDto {
@@ -258,4 +279,9 @@ export class PasteJobDto {
   @IsOptional()
   @IsString()
   contentLanguage?: string;
+
+  /** Recruiter privilege: publish live immediately (skips Blog Approval). */
+  @IsOptional()
+  @IsBoolean()
+  directPublish?: boolean;
 }

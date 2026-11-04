@@ -1,6 +1,6 @@
 import { Injectable, DestroyRef, inject, signal } from '@angular/core';
 
-export type ToastTone = 'default' | 'error';
+export type ToastTone = 'default' | 'success' | 'error';
 
 export interface ToastMessage {
   id: number;
@@ -23,11 +23,15 @@ export class ToastService {
     });
   }
 
-  show(text: string, tone: ToastTone = 'default', durationMs = 3200): void {
+  show(text: string, tone: ToastTone = 'success', durationMs = 3200): void {
     const id = this.nextId++;
     this.messages.update((list) => [...list, { id, text, tone }]);
     const timer = setTimeout(() => this.dismiss(id), durationMs);
     this.timers.set(id, timer);
+  }
+
+  success(text: string, durationMs = 3200): void {
+    this.show(text, 'success', durationMs);
   }
 
   error(text: string, durationMs = 4200): void {

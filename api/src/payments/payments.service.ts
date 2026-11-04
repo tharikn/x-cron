@@ -227,62 +227,10 @@ export class PaymentsService {
     };
   }
 
-  async createPostJobOrder(user: AuthUser, jobId: string) {
-    this.assertPaymentsEnabled();
-    const commerce = this.site.getCommerce();
-    if (commerce.postJobPaymentMode === 'none') {
-      throw new BadRequestException('Post-job payment is disabled');
-    }
-    const job = await this.jobs.findById(jobId);
-    if (!job) throw new NotFoundException('Job not found');
-    if (
-      job.ownerUserId &&
-      job.ownerUserId !== user.id &&
-      !user.roles.includes('admin')
-    ) {
-      throw new ForbiddenException('Not your job');
-    }
-
-    const amountPaise = commerce.postJobPricePaise || 500;
-    const gateway = await this.provider.createOrder({
-      amountPaise,
-      currency: 'INR',
-      receipt: `post_${jobId}_${user.id}`.slice(0, 40),
-      notes: { jobId, userId: user.id, product: 'job_post' },
-    });
-
-    const order = await this.store.createOrder({
-      userId: user.id,
-      jobId,
-      gateway: this.provider.name,
-      gatewayOrderId: gateway.gatewayOrderId,
-      amountPaise,
-      currency: 'INR',
-      product: 'job_post',
-    });
-
-    await this.recordHistory({
-      status: 'created',
-      orderId: order.id,
-      userId: user.id,
-      actorId: user.id,
-      jobId,
-      product: 'job_post',
-      gateway: order.gateway,
-      gatewayOrderId: order.gatewayOrderId,
-      amountPaise,
-      currency: 'INR',
-      metadata: { postJobPaymentMode: commerce.postJobPaymentMode },
-    });
-
-    return {
-      order: this.toOrderDto(order),
-      checkout: this.toCheckoutDto(
-        gateway,
-        `Job post fee – ₹${(amountPaise / 100).toFixed(0)}`,
-      ),
-      mode: commerce.postJobPaymentMode,
-    };
+  async createPostJobOrder(_user: AuthUser, _jobId: string) {
+    throw new BadRequestException(
+      'Post-job fee has been removed. Jobs post free (moderation still applies).',
+    );
   }
 
   async confirmDevPayment(

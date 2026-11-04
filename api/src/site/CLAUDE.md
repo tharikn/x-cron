@@ -7,7 +7,7 @@ Public site chrome + admin-tunable config. Runtime is **Prisma `SiteConfig`** (J
 | Key | Shape | Public GET | Admin PUT |
 | --- | --- | --- | --- |
 | `footer` | brand, addresses, social, links | `GET /v1/site/footer` | `PUT /v1/admin/site/footer` |
-| `commerce` | `unlockPricePaise` | `GET /v1/site/commerce` | `PUT /v1/admin/site/commerce` |
+| `commerce` | `unlockPricePaise`, `paymentsEnabled` (`postJob*` forced none/0) | `GET /v1/site/commerce` | `PUT /v1/admin/site/commerce` |
 | `auth` | `sessionTtlDays`, `otpTtlMinutes` | `GET /v1/site/auth` | `PUT /v1/admin/site/auth` |
 
 ## Persistence
@@ -18,7 +18,7 @@ Public site chrome + admin-tunable config. Runtime is **Prisma `SiteConfig`** (J
 
 ## Auth TTLs
 
-- Defaults (seed only): 30 days session, 10 minutes OTP.
+- Defaults (seed only): **90** days session (sliding on refresh), 10 minutes OTP.
 - Bounds: session 1–365 days; OTP 1–60 minutes.
 - `SiteStore` syncs TTLs into `AuthStore.setAuthTtls()` on boot and on admin update.
 - Changing TTLs does **not** rewrite existing session `expiresAt` values.

@@ -1,6 +1,7 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
+  IonButton,
   IonContent,
   IonHeader,
   IonLabel,
@@ -10,12 +11,12 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { TranslatePipe } from '../../core/pipes/translate.pipe';
-import { AccountPage } from '../account/account.page';
+import { AuthService } from '../../core/services/auth.service';
 import { LanguagePage } from '../language/language.page';
 import { PreferencesPage } from '../preferences/preferences.page';
 import { SavedJobsPage } from '../saved-jobs/saved-jobs.page';
 
-export type SettingsTab = 'language' | 'preferences' | 'account' | 'saved';
+export type SettingsTab = 'language' | 'preferences' | 'saved';
 
 @Component({
   selector: 'app-settings',
@@ -29,18 +30,34 @@ export type SettingsTab = 'language' | 'preferences' | 'account' | 'saved';
     IonSegment,
     IonSegmentButton,
     IonLabel,
+    IonButton,
+    RouterLink,
     TranslatePipe,
     LanguagePage,
     PreferencesPage,
-    AccountPage,
     SavedJobsPage,
   ],
 })
 export class SettingsPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
-  readonly tab = signal<SettingsTab>('preferences');
+  readonly isSignedIn = this.auth.isSignedIn;
+  readonly tab = signal<SettingsTab>('language');
+
+  constructor() {
+    effect(() => {
+      if (!this.auth.isSignedIn() && this.tab() !== 'language') {
+        this.tab.set('language');
+        void this.router.navigate(['/tabs/settings'], {
+          queryParams: { tab: 'language' },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
+    });
+  }
 
   ngOnInit(): void {
     const initial = this.readTab(this.route.snapshot.queryParamMap.get('tab'));
@@ -61,14 +78,26 @@ export class SettingsPage implements OnInit {
   }
 
   private readTab(raw: string | null): SettingsTab {
-    if (
-      raw === 'language' ||
-      raw === 'preferences' ||
-      raw === 'account' ||
-      raw === 'saved'
-    ) {
+    if (raw === 'account') {
+      void this.router.navigate(['/tabs/account'], {
+        queryParamsHandling: 'preserve',
+        replaceUrl: true,
+      });
+      return this.auth.isSignedIn() ? 'preferences' : 'language';
+    }
+    if (raw === 'preferences' || raw === 'saved') {
+      if (!this.auth.isSignedIn()) {
+        void this.router.navigate(['/tabs/account'], {
+          queryParams: {
+            returnUrl: `/tabs/settings?tab=${raw}`,
+          },
+          replaceUrl: true,
+        });
+        return 'language';
+      }
       return raw;
     }
-    return 'preferences';
+    if (raw === 'language') return 'language';
+    return this.auth.isSignedIn() ? 'preferences' : 'language';
   }
 }

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import {
   IonBadge,
   IonIcon,
@@ -13,10 +13,13 @@ import {
   createOutline,
   homeOutline,
   notificationsOutline,
+  person,
+  personOutline,
   settingsOutline,
 } from 'ionicons/icons';
 import { TranslatePipe } from '../core/pipes/translate.pipe';
 import { AuthService } from '../core/services/auth.service';
+import { LocaleService } from '../core/services/locale.service';
 import { NotificationsService } from '../core/services/notifications.service';
 
 @Component({
@@ -34,9 +37,25 @@ import { NotificationsService } from '../core/services/notifications.service';
   ],
 })
 export class TabsPage {
-  readonly auth = inject(AuthService);
+  private readonly auth = inject(AuthService);
+  private readonly locale = inject(LocaleService);
+
   readonly isEmployer = this.auth.isEmployer;
+  readonly isSignedIn = this.auth.isSignedIn;
   readonly unread = inject(NotificationsService).unreadCount;
+  readonly profileTabLabel = computed(() => {
+    if (!this.auth.isSignedIn()) {
+      return this.locale.t('nav.signIn') || 'Sign in';
+    }
+    const u = this.auth.user();
+    const name =
+      u?.displayName?.trim() ||
+      u?.username?.trim() ||
+      u?.email?.trim() ||
+      this.locale.t('nav.account') ||
+      'Account';
+    return name.length > 12 ? `${name.slice(0, 11)}…` : name;
+  });
 
   constructor() {
     addIcons({
@@ -45,6 +64,8 @@ export class TabsPage {
       settingsOutline,
       briefcaseOutline,
       notificationsOutline,
+      personOutline,
+      person,
     });
   }
 }

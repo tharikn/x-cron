@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { CurrentUser, Public, Roles } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
+import { AuthThrottle, SensitiveThrottle } from '../security/decorators';
 import {
   DevSendNotificationDto,
   NotificationPreferencesDto,
@@ -34,6 +35,7 @@ export class NotificationsController {
 
   /** Detach FCM device from user (logout / refresh expiry). Public + device proof. */
   @Public()
+  @AuthThrottle()
   @Post('devices/unlink')
   unlinkDevice(@Body() dto: UnlinkDeviceDto) {
     return this.notificationsService.unlinkDevice(dto);
@@ -86,13 +88,16 @@ export class NotificationsController {
     return this.notificationsService.getDispatch(id);
   }
 
-  @Public()
+  /** Dev fan-out only — admin + 1/hour. */
+  @Roles('admin')
+  @SensitiveThrottle()
   @Post('notifications/dev/send')
   devSend(@Body() dto: DevSendNotificationDto) {
     return this.notificationsService.devSend(dto);
   }
 
-  @Public()
+  @Roles('admin')
+  @SensitiveThrottle()
   @Post('notifications/dev/dispatch-published/:jobId')
   dispatchPublished(@Param('jobId') jobId: string) {
     return this.notificationsService.onJobPublished(jobId);

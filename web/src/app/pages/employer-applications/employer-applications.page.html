@@ -1,0 +1,145 @@
+<section class="page">
+  <h1>Applicant review</h1>
+  <p class="lead">
+    Track every action with date and hour — from apply through offer / job letter. Seeker
+    Performance Score and role fit appear on each application.
+  </p>
+  <p class="hint">
+    <a routerLink="/performance">Your recruiter Performance Score</a>
+  </p>
+
+  @if (!isSignedIn() || !isEmployer()) {
+    <div class="gate">
+      <p>Employers must sign in to review applications.</p>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <button type="button" class="btn secondary" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </button>
+      <a class="link-btn" routerLink="/my-jobs">Posted jobs</a>
+      <a class="link-btn" routerLink="/post">Post a job</a>
+    </div>
+
+    <div class="layout">
+      <div class="list-panel">
+        @for (row of items(); track row.id) {
+          <button
+            type="button"
+            class="row"
+            [class.is-active]="selected()?.id === row.id"
+            [disabled]="busy()"
+            (click)="open(row.id)"
+          >
+            <strong>{{ row.seekerName || 'Seeker' }}</strong>
+            <span>{{ row.job?.title || row.jobId }}</span>
+            <span class="status">{{ row.statusLabel }}</span>
+            @if (row.reputation; as rep) {
+              <span class="score-pill">Score {{ rep.score }} · {{ rep.bandLabel }}</span>
+            }
+            @if (row.matchPercent != null) {
+              <span class="score-pill">Fit {{ row.matchPercent }}%</span>
+            }
+            <time>{{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}</time>
+          </button>
+        } @empty {
+          <p class="empty">No applications yet.</p>
+        }
+      </div>
+
+      <div class="detail-panel">
+        @if (selected(); as app) {
+          <header>
+            <h2>{{ app.seekerName || 'Applicant' }}</h2>
+            <p class="meta">
+              {{ app.job?.title }} ·
+              <span class="status">{{ app.statusLabel }}</span>
+              @if (app.reputation; as rep) {
+                · score {{ rep.score }} ({{ rep.bandLabel }})
+              }
+              @if (app.matchPercent != null) {
+                · fit {{ app.matchPercent }}%
+              }
+            </p>
+            @if (app.seekerPhone) {
+              <p><a [href]="'tel:' + app.seekerPhone">{{ app.seekerPhone }}</a></p>
+            }
+            @if (app.seekerEmail) {
+              <p><a [href]="'mailto:' + app.seekerEmail">{{ app.seekerEmail }}</a></p>
+            }
+            @if (app.coverNote) {
+              <p class="note">{{ app.coverNote }}</p>
+            }
+          </header>
+
+          <form class="form" (ngSubmit)="transition()">
+            <label>
+              <span>Next status</span>
+              <select [(ngModel)]="nextStatus" name="nextStatus" [disabled]="busy()">
+                <option value="under_review">Under review</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="interview">Interview</option>
+                <option value="offered">Offer / job letter</option>
+                <option value="hired">Hired</option>
+                <option value="rejected">Rejected</option>
+                <option value="applied">Back to applied</option>
+              </select>
+            </label>
+            @if (nextStatus === 'offered') {
+              <label class="wide">
+                <span>Offer / job letter</span>
+                <textarea
+                  rows="4"
+                  [(ngModel)]="offerLetterText"
+                  name="offerLetter"
+                  [disabled]="busy()"
+                ></textarea>
+              </label>
+            }
+            <label class="wide">
+              <span>Note</span>
+              <textarea rows="2" [(ngModel)]="note" name="note" [disabled]="busy()"></textarea>
+            </label>
+            <div class="actions">
+              <button type="submit" [disabled]="busy()">Update status</button>
+              <button type="button" class="btn secondary" [disabled]="busy()" (click)="addNote()">
+                Add note only
+              </button>
+            </div>
+          </form>
+
+          <section class="timeline">
+            <h3>Timeline</h3>
+            <ol>
+              @for (ev of app.timeline || []; track ev.id) {
+                <li>
+                  <time>{{ ev.at | date: 'dd MMM yyyy, HH:mm' }}</time>
+                  <strong>
+                    {{ ev.toStatusLabel || eventLabel(ev.type) }}
+                  </strong>
+                  <span class="actor">{{ ev.actorRole }}</span>
+                  @if (ev.fromStatusLabel && ev.toStatusLabel) {
+                    <p>{{ ev.fromStatusLabel }} → {{ ev.toStatusLabel }}</p>
+                  }
+                  @if (ev.note) {
+                    <p class="note">{{ ev.note }}</p>
+                  }
+                </li>
+              }
+            </ol>
+          </section>
+        } @else {
+          <p class="empty">Select an application to review the timeline.</p>
+        }
+      </div>
+    </div>
+  }
+
+  @if (message()) {
+    <p class="ok">{{ message() }}</p>
+  }
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</section>

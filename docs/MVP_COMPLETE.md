@@ -7,7 +7,7 @@ This marks the **product MVP slice** as complete for local demo and iteration. I
 | Area | Status |
 | --- | --- |
 | Guest search + monochrome UI | Done |
-| OTP auth, employer post, admin moderation | Done |
+| Username/password auth, employer post, admin moderation | Done |
 | SSR SEO job pages + sitemap | Done |
 | Bulk import (CSV/text/OCR stub) | Done |
 | ₹5 contact unlock + Razorpay webhook stub | Done |
@@ -35,5 +35,5 @@ cd api && npm run start:dev
 cd mobile && npm start
 ```
 
-Seeker: OTP → Preferences → Account subscribe / save jobs / feed.  
-Employer: OTP → Post → promote. Admin: `admin@xcron.local`.
+Seeker: username/password → Preferences → Account subscribe / save jobs / feed.
+Employer: username/password (`intendedRole=employer`) → Post → promote. Admin: `SUPER_ADMIN_*` password login.

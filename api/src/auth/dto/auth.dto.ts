@@ -1,25 +1,55 @@
-import { IsIn, IsOptional, IsString, MinLength, ValidateIf } from 'class-validator';
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 
-export class StartOtpDto {
-  @IsIn(['phone', 'email'])
-  channel!: 'phone' | 'email';
+/** Create account — username + password (+ confirm on client/server). */
+export class RegisterDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(32)
+  @Matches(/^[a-zA-Z0-9_]+$/, {
+    message: 'Username may only use letters, numbers, and underscore',
+  })
+  username!: string;
 
   @IsString()
-  @MinLength(5)
-  destination!: string;
+  @MinLength(8)
+  @MaxLength(128)
+  password!: string;
 
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  confirmPassword!: string;
+
+  /** seeker (default) or employer — never admin via register. */
   @IsOptional()
   @IsIn(['seeker', 'employer'])
   intendedRole?: 'seeker' | 'employer';
 }
 
-export class VerifyOtpDto {
+/** Sign in with local username + password. */
+export class LoginDto {
   @IsString()
-  challengeId!: string;
+  @MinLength(3)
+  @MaxLength(32)
+  username!: string;
 
   @IsString()
-  @MinLength(4)
-  code!: string;
+  @MinLength(8)
+  @MaxLength(128)
+  password!: string;
+
+  /** seeker (default) or employer — never admin via login. */
+  @IsOptional()
+  @IsIn(['seeker', 'employer'])
+  intendedRole?: 'seeker' | 'employer';
 }
 
 export class CreateEmployerDto {
@@ -43,6 +73,11 @@ export class GoogleAuthDto {
   @IsOptional()
   @IsString()
   displayName?: string;
+
+  /** seeker (default) or employer — never admin via Google. */
+  @IsOptional()
+  @IsIn(['seeker', 'employer'])
+  intendedRole?: 'seeker' | 'employer';
 }
 
 /** Password login for the configured SUPER_ADMIN_* identity. */
@@ -56,9 +91,10 @@ export class AdminLoginDto {
   password!: string;
 }
 
-/** Rotate access + refresh tokens. */
+/** Rotate access + refresh tokens (body optional when HttpOnly refresh cookie is set). */
 export class RefreshTokenDto {
+  @IsOptional()
   @IsString()
   @MinLength(16)
-  refreshToken!: string;
+  refreshToken?: string;
 }

@@ -1,0 +1,116 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/account"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Performance Score</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" color="dark" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="brand-mark">X Cron</p>
+    <p class="descriptor">Jobs</p>
+    <h1>Performance Score</h1>
+    <p class="lead">
+      Build trust with thoughtful applies and responsive chat. Recruiters and seekers both see this
+      score.
+    </p>
+
+    @if (!isSignedIn()) {
+      <p class="hint">Sign in to see your score and how to improve it.</p>
+    } @else {
+      @if (isEmployer()) {
+        <div class="role-tabs">
+          <button
+            type="button"
+            class="role-tab"
+            [class.active]="activeRole() === 'seeker'"
+            (click)="selectRole('seeker')"
+          >
+            As seeker
+          </button>
+          <button
+            type="button"
+            class="role-tab"
+            [class.active]="activeRole() === 'employer'"
+            (click)="selectRole('employer')"
+          >
+            As recruiter
+          </button>
+        </div>
+      }
+
+      @if (error()) {
+        <p class="error">{{ error() }}</p>
+      }
+
+      @if (active(); as score) {
+        <section class="hero-score" [attr.data-band]="bandClass(score)">
+          <p class="hero-score__label">Your score</p>
+          <p class="hero-score__value">{{ score.score }}</p>
+          <p class="hero-score__band">{{ score.bandLabel }}</p>
+          <p class="hero-score__scale">0–100 · starts at 50</p>
+        </section>
+
+        <section class="panel callout">
+          <h2>Why this matters</h2>
+          <p>
+            A higher score signals discipline: you apply to roles that fit, and you reply when the
+            other side reaches out. That confidence helps both sides move faster.
+          </p>
+        </section>
+
+        <section class="panel">
+          <h2>How it works</h2>
+          <ul class="bullets">
+            @for (line of score.howItWorks; track line) {
+              <li>{{ line }}</li>
+            }
+          </ul>
+        </section>
+
+        <section class="panel">
+          <h2>Tips for you</h2>
+          <ul class="bullets">
+            @for (tip of score.tips; track tip) {
+              <li>{{ tip }}</li>
+            }
+          </ul>
+        </section>
+
+        <section class="panel">
+          <h2>Recent activity</h2>
+          @for (ev of score.events; track ev.id) {
+            <article class="event">
+              <div class="event__top">
+                <strong>{{ ev.typeLabel }}</strong>
+                <span class="delta" [class]="deltaClass(ev.delta)">
+                  {{ ev.delta > 0 ? '+' : '' }}{{ ev.delta }}
+                </span>
+              </div>
+              @if (ev.note) {
+                <p class="meta">{{ ev.note }}</p>
+              }
+              @if (ev.matchPercent != null) {
+                <p class="meta">Role fit {{ ev.matchPercent }}%</p>
+              }
+              <p class="time">
+                {{ ev.createdAt | date: 'dd MMM yyyy, HH:mm' }} · score {{ ev.scoreAfter }}
+              </p>
+            </article>
+          } @empty {
+            <p class="empty">No score events yet — apply or reply in chat to start building.</p>
+          }
+        </section>
+      } @else if (!busy()) {
+        <p class="empty">No score yet.</p>
+      }
+    }
+  </div>
+</ion-content>

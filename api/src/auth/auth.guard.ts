@@ -5,14 +5,19 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { Request } from 'express';
+import { extractAccessToken, extractTabId } from '../security/token.util';
 import { AuthStore } from './auth.store';
 import { IS_PUBLIC_KEY, ROLES_KEY } from './decorators';
 import { UserRole } from './auth.types';
 
 /**
- * Authentication only. Attaches `request.user` from Bearer token.
- * Role checks live in RolesGuard. Any `@Roles(...)` route requires a session
- * even if `@Public()` is also present (Public never bypasses RBAC).
+ * Authentication only. Attaches `request.user` from HttpOnly access cookie
+ * or Authorization Bearer. Role checks live in RolesGuard.
+ * `@Public()` never bypasses `@Roles()`.
+ *
+ * When `AUTH_SINGLE_TAB=1` (default), authenticated calls must send matching
+ * `X-Tab-Id` (one active browser tab per session).
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -33,16 +38,22 @@ export class AuthGuard implements CanActivate {
         context.getClass(),
       ]) ?? [];
 
-    const request = context.switchToHttp().getRequest<{
-      headers: Record<string, string>;
-      user?: unknown;
-    }>();
-    const header =
-      request.headers['authorization'] || request.headers['Authorization'];
-    const token = header?.startsWith('Bearer ')
-      ? header.slice('Bearer '.length).trim()
-      : undefined;
-    const user = this.authStore.getUserByToken(token);
+    const request = context.switchToHttp().getRequest<Request & { user?: unknown }>();
+    const token = extractAccessToken(request);
+    const tabId = extractTabId(request);
+
+    let user = undefined as ReturnType<AuthStore['getUserByToken']>;
+    if (token) {
+      try {
+        user = this.authStore.getUserByToken(token, {
+          tabId,
+          enforceTab: true,
+        });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unauthorized';
+        throw new UnauthorizedException(reason);
+      }
+    }
 
     if (user) {
       request.user = user;

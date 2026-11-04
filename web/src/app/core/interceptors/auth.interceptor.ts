@@ -2,11 +2,14 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { from, switchMap, catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { TabSessionService } from '../services/tab-session.service';
+import { csrfHeaders } from '../utils/csrf';
 
 const AUTH_ENTRY_MARKERS = [
   '/auth/google',
   '/auth/admin/login',
-  '/auth/otp/',
+  '/auth/register',
+  '/auth/login',
   '/auth/refresh',
   '/devices/unlink',
 ];
@@ -16,11 +19,23 @@ function isAuthEntry(url: string): boolean {
 }
 
 /**
- * On 401: try refresh once, retry the request; otherwise drop the local session.
+ * Attach credentials + tab/CSRF headers; on 401 refresh once then clear.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
-  return next(req).pipe(
+  const tabs = inject(TabSessionService);
+
+  const token = auth.token();
+  const secured = req.clone({
+    withCredentials: true,
+    setHeaders: {
+      ...tabs.headers(),
+      ...csrfHeaders(),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  return next(secured).pipe(
     catchError((err: unknown) => {
       if (
         !(err instanceof HttpErrorResponse) ||
@@ -31,7 +46,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
-      if (!auth.refreshToken()) {
+      if (!auth.refreshToken() && !auth.hasCookieSession()) {
         if (auth.token()) auth.clearSession();
         return throwError(() => err);
       }
@@ -42,11 +57,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             auth.clearSession();
             return throwError(() => err);
           }
-          const token = auth.token();
+          const nextToken = auth.token();
           return next(
             req.clone({
+              withCredentials: true,
               setHeaders: {
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                ...tabs.headers(),
+                ...csrfHeaders(),
+                ...(nextToken ? { Authorization: `Bearer ${nextToken}` } : {}),
                 'X-Retry-After-Refresh': '1',
               },
             }),

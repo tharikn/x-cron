@@ -51,6 +51,32 @@
   color: var(--xcron-muted);
 }
 
+.mode-tabs {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin: 0 0 0.85rem;
+  padding: 0.25rem;
+  background: var(--xcron-wash);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+}
+
+.mode-tabs button {
+  width: auto;
+  margin: 0;
+  background: transparent;
+  color: var(--xcron-muted);
+  border: 0;
+  padding: 0.45rem 0.8rem;
+  font-weight: 600;
+}
+
+.mode-tabs button.active,
+.mode-tabs button[aria-selected='true'] {
+  background: var(--xcron-cta-gradient);
+  color: #fff;
+}
+
 .form {
   display: grid;
   gap: 0.85rem;
@@ -107,12 +133,6 @@ button.ghost {
 
 .google-btn-host ::ng-deep div[role='button'] {
   width: 100% !important;
-}
-
-.error {
-  margin: 0.75rem 0 0;
-  color: var(--xcron-ink);
-  font-size: 0.9rem;
 }
 
 @keyframes sheet-fade {

@@ -52,7 +52,7 @@ export class AdsAdminPage implements OnInit {
   headline = '';
   body = '';
   ctaLabel = 'Learn more';
-  targetUrl = '/tabs/settings?tab=account';
+  targetUrl = '/tabs/account';
   active = true;
   priority = 10;
   editId = '';

@@ -17,12 +17,13 @@ export class SettingsHubPage implements OnInit {
   private readonly auth = inject(AuthService);
 
   readonly languageLabel = this.locale.languageLabel;
+  readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
 
   async ngOnInit(): Promise<void> {
     this.seo.setPage({
       title: 'Settings',
-      description: 'Language, preferences, account, and site config on X Cron Jobs.',
+      description: 'Language, preferences, and site config on X Cron Jobs.',
       path: '/settings',
       robots: 'noindex,follow',
     });

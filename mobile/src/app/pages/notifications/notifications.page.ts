@@ -72,6 +72,23 @@ export class NotificationsPage implements OnInit, ViewWillEnter {
     }
   }
 
+  actionPath(item: {
+    jobId: string | null;
+    data?: Record<string, string> | null;
+  }): string | null {
+    const action = item.data?.['action']?.trim();
+    if (action === 'complete_profile') return '/tabs/account';
+    if (action === 'browse_jobs') return '/tabs/discover';
+    return item.jobId ? `/tabs/jobs/${item.jobId}` : null;
+  }
+
+  actionLabel(item: { data?: Record<string, string> | null }): string {
+    const action = item.data?.['action']?.trim();
+    if (action === 'complete_profile') return 'Complete profile';
+    if (action === 'browse_jobs') return 'Browse jobs';
+    return 'Open';
+  }
+
   async markRead(id: string): Promise<void> {
     try {
       await this.notifications.markRead(id);

@@ -5,7 +5,14 @@
     rel="noopener"
   >
     <span class="get-app__link-label">{{ 'appDownload.nav' | t }}</span>
-    <span class="get-app__link-meta">Android · v{{ versionLabel() }}</span>
+    <span class="get-app__link-meta">
+      <span>Android · v{{ versionLabel() }}</span>
+      @if (publishedLabel()) {
+        <time class="get-app__link-released" [attr.datetime]="latest()?.publishedAt">
+          {{ 'appDownload.published' | t }} {{ publishedLabel() }}
+        </time>
+      }
+    </span>
   </a>
 } @else if (variant() === 'band') {
   <aside class="get-app get-app--band" aria-labelledby="get-app-band-title">

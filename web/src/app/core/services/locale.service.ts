@@ -32,6 +32,7 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'nav.language': 'Language',
       'nav.signIn': 'Sign in',
       'nav.account': 'Account',
+      'nav.logOut': 'Log out',
       'nav.saved': 'Saved jobs',
       'nav.blogApproval': 'Blog Approval',
       'nav.settings': 'Settings',

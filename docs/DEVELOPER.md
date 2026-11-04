@@ -4,7 +4,7 @@ Engineering notes for everything built against PRD v1.0 (roadmap R0–R5 + MVP+)
 **Audience:** developers picking up the monorepo.  
 **Release status:** see [Is this ready for release?](#is-this-ready-for-release) at the bottom.
 
-Related docs: [ROADMAP.md](./ROADMAP.md) · [FILE_MAP.md](./FILE_MAP.md) · [MVP_COMPLETE.md](./MVP_COMPLETE.md) · [COST_MODEL.md](./COST_MODEL.md) · [MOBILE_MVP.md](./MOBILE_MVP.md) · [CHANNEL_PULL.md](./CHANNEL_PULL.md)  
+Related docs: [ROADMAP.md](./ROADMAP.md) · [FILE_MAP.md](./FILE_MAP.md) · [MVP_COMPLETE.md](./MVP_COMPLETE.md) · [COST_MODEL.md](./COST_MODEL.md) · [MOBILE_MVP.md](./MOBILE_MVP.md) · [CHANNEL_PULL.md](./CHANNEL_PULL.md) · [PERFORMANCE_SCORE.md](./PERFORMANCE_SCORE.md)  
 
 Agent guides: [../CLAUDE.md](../CLAUDE.md) · [../api/CLAUDE.md](../api/CLAUDE.md) · [../mobile/CLAUDE.md](../mobile/CLAUDE.md) · [../web/CLAUDE.md](../web/CLAUDE.md)
 
@@ -34,8 +34,8 @@ Node **22.22.3+** required.
 ### R1 — Discovery MVP
 - NestJS jobs search/filter/sort, categories, related jobs
 - Public DTOs never include `privateContact` (`jobs.mapper.ts`)
-- OTP auth (phone/email); optional Google stub
-- Employer quick-post + paste → `needs-review`
+- Username/password auth (register + login; no email/SMS OTP); optional Google stub kept on API
+- Employer/recruiter quick-post: desk with Compose · Review · Preview + AI chat; confirm “did you preview?” then `directPublish` → **live** (`published`). Without the flag (legacy / admin import) → `needs-review`
 - Admin approve/reject + job reports
 - Angular SSR web: home, location, job detail, sitemap/robots
 - Mobile discover / job detail / post / account / preferences
@@ -61,6 +61,7 @@ Node **22.22.3+** required.
 - Dispatch + delivery history: `GET /v1/admin/notification-dispatches`
 - Pluggable: `PUSH_PROVIDER=stub|fcm`, `MAIL_PROVIDER=stub|console|smtp`
 - Mobile: hydrate/claim prefs, alert toggle, Account inbox
+- **Onboarding (welcome + profile):** on `register` / Google new user → welcome + day-0 “Complete your profile”; `NotificationsScheduler` auto-nudges incomplete seeker profiles for `PROFILE_REMINDER_MAX_DAYS` (default 2). Inbox `data.action` → Complete profile / Browse jobs CTAs on web + mobile
 
 ### R5 — Ads, promotions, ops
 - Configurable ad slots + frequency caps; labelled creatives
@@ -75,6 +76,19 @@ Node **22.22.3+** required.
 - **Account deletion:** `DELETE /v1/me` (and `DELETE /v1/auth/me`)
 - Quota checks on import batches and contact unlocks
 - Prisma models extended: `SavedJob`, `Subscription` (schema ready; runtime still memory)
+- **ATS applications anti-spam (P0.1):** `@ApplyThrottle` (~5/min) + per-seeker `APPLY_DAILY_CAP` (default 20, UTC day) on `POST /v1/jobs/:jobId/apply`
+- **Apply profile gate (P0.2):** require owned `applyProfileId` that passes readiness (skills/headline/summary/project) + display name + phone or email; freeze snapshot on the application
+- **Identical cover-note anti-spam (P1):** block reuse of the same normalized cover note beyond `APPLY_IDENTICAL_NOTE_MAX` (default 2) in `APPLY_IDENTICAL_NOTE_WINDOW_MS` (default 24h)
+- **Job screening question (P1):** optional `Job.screeningQuestion` on create/update; when set, apply requires `screeningAnswer` (stored on the application)
+- **Velocity spam badge (P2):** soft `likelySpam` snapshot at apply (`APPLY_VELOCITY_FLAG_HOURLY` / `_DAILY`); employer APIs expose `spamBadge: "Likely spam"` — does not auto-reject
+
+### Performance Score (seeker + recruiter) — MVP
+- Dual-role trust score 0–100 (start 50): Rising / Steady / Needs care
+- Apply-time **match %** (skills + experience); ≥50% raises seeker score, &lt;50% lowers it; active apply + chat reply + employer view/status also earn points (daily caps)
+- API: `GET /v1/reputation/me`, `GET /v1/reputation/users/:id`; application DTOs include `matchPercent` + counterpart `reputation`
+- Clients: mobile `/tabs/performance`, web `/performance` + Account/Saved/employer inbox callouts
+- Store: `REPUTATION_STORE` (falls back to `JOBS_STORE`); Prisma `UserReputation` / `ReputationEvent` + `JobApplication.matchPercent`
+- Design + E2E diagram: [PERFORMANCE_SCORE.md](./PERFORMANCE_SCORE.md) · [../api/src/reputation/CLAUDE.md](../api/src/reputation/CLAUDE.md)
 
 ### Channel pull (Job Fare) — free
 - Telegram Bot API adapter (long-poll default; optional webhook) — ₹0
@@ -83,13 +97,33 @@ Node **22.22.3+** required.
 - Admin workflow UI: mobile `/tabs/job-fare` (pipeline + inbox + sources + history)
 - Design: [CHANNEL_PULL.md](./CHANNEL_PULL.md) · agent guide: [../api/src/channels/CLAUDE.md](../api/src/channels/CLAUDE.md)
 
+### Bug fix — hide provider stub copy from seekers
+- Seekers no longer see FCM / SMTP / “free stub provider” wording on Notifications or Preferences (web labels + ta/hi `notif.lead` / `prefs.leadSignedIn`). Ops still sees provider notes on `/admin/notifications`.
+
+### Web shell — drawer auth + standalone Sign in
+- Drawer **last** item: guest **Sign in** → `/sign-in`; after login shows a **profile row** (default initials avatar + name from `displayName` → `username` → `email`) plus a red **Log out** action that clears the session and returns home
+- **Guest drawer/header:** Home · Sign in only in the nav list; **Get the app** is pinned to the drawer bottom (`.drawer__foot`) with current APK version + last GitHub release date/time. **Settings**, **Notifications**, **Performance Score**, **Saved jobs**, and the header notif bell appear only after `isSignedIn()` (validated `/auth/me`). Footer quick links hide the same auth-only destinations for guests
+- `/sign-in` is a **standalone** page (not a Settings tab): guest stack — Username / Password / Login → Sign Up → Create new account (**I am a**: Job Seeker / Recruiter → `intendedRole`) → Guest use (Sign in with Google) → Forgot password (copy + Sign Up for now; no reset API yet). **Signed-in seeker/employer hub** (drawer profile → `/sign-in`) matches mobile Account segments: **Profile** · **Apply** · **Activity** · **Rating** · **Account** (`?tab=`); seekers stay on the hub after login (no bounce to home)
+- Auth toasts sit **bottom-center** (same as mobile): success = primary violet; error = red (`ToastService` + `friendlyHttpMessage`) — never raw browser text like `Failed to fetch`
+- Settings hub tabs are Language · Preferences (signed-in) · Site (admin); `/settings/account` redirects to `/sign-in`
+- Agent skill: [`.cursor/skills/xcron-ui-auth/SKILL.md`](../.cursor/skills/xcron-ui-auth/SKILL.md)
+
+### Mobile tabs — Profile last + gated account chrome
+- Bottom nav **last** tab: **Sign in** → `/tabs/account`; after login shows truncated profile name
+- **Guest tabs:** Discover · Sign in. **Notifications** and **Settings** tabs appear only after sign-in (employers also get Post)
+- Account page guest stack (centered): Login → Sign Up · Google guest · Forgot password
+- Signed-in Account segments on **mobile** `/tabs/account` and **web** `/sign-in`: **Profile** (accordion personal / location / career via `PATCH /v1/me/profile`) · **Apply** (versioned skillsets as **badges**, **2–7** skills per version — not comma text) · **Activity** (feed / saved / applications / contacted / searches) · **Rating** (Performance Score) · **Account** (sign out) — deep-link via `?tab=`; no subscription checkout or Notifications section on Profile (inbox stays on Notifications)
+- Seeker profile career fields + Prisma migration `20261104235000_seeker_profile_career` (memory store live; DDL for higher envs)
+- Toasts: bottom-center; `xcron-toast--success` (primary) / `xcron-toast--error` (red) + friendly network copy
+- Settings segments: Language always when Settings is open; **Prefs** and **Saved** only after sign-in (guests who deep-link see a Sign in CTA)
+
 ---
 
 ## API modules (`api/src/`)
 
 | Module | Purpose |
 | --- | --- |
-| `auth/` | OTP, sessions, employers, roles/guards |
+| `auth/` | Username/password register+login, sessions, employers, roles/guards |
 | `jobs/` | Search, CRUD-ish, moderation; memory or Prisma store + seed |
 | `ingestion/` | Import batches + parsers |
 | `channels/` | Job Fare inbox, Telegram/WA-bridge, scheduled digest pulls |
@@ -99,6 +133,9 @@ Node **22.22.3+** required.
 | `ads/` | Placements, creatives, promotions |
 | `ops/` | Cost model, metrics, quotas, scale hints (admin) |
 | `seeker/` | Saved jobs + feed |
+| `applications/` | Formal ATS apply → offer letter; throttle + daily quota + profile gate; reputation hooks |
+| `apply-profiles/` | Multi-version skill/project apply profiles (no CV); **2–7 skills**/version; readiness for apply |
+| `reputation/` | Performance Score for seeker + employer; match % + event ledger |
 | `account/` | Account deletion orchestration |
 | `site/` | Public footer config (`GET /v1/site/footer`; admin PUT) |
 | `health/` | `GET /v1/health` |
@@ -115,10 +152,11 @@ Default in code if unset: **in-memory**. Set `JOBS_STORE=prisma` (local `.env` d
 | --- | --- |
 | `PORT` | `3000` |
 | `JOBS_STORE` | `prisma` (jobs + bulk import) or `memory` |
+| `REPUTATION_STORE` | Performance Score; default follows `JOBS_STORE` |
 | `DATABASE_URL` | Present for future Postgres |
 | `CORS_ORIGINS` | Local mobile/web origins |
 | `UNLOCK_PRICE_PAISE` | `500` |
-| `ADMIN_IDENTITIES` | emails elevated to admin after OTP/Google |
+| `ADMIN_IDENTITIES` | legacy allowlist notes; admin role is via `SUPER_ADMIN_*` password login only |
 | `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` | password login via `POST /v1/auth/admin/login` |
 | `PAYMENT_MODE` | `stub` → use `/payments/dev/confirm` |
 | `RAZORPAY_WEBHOOK_SECRET` | `dev_secret` for HMAC tests |
@@ -148,11 +186,15 @@ docker compose up -d
 ```
 
 ### Demo accounts / flows
-- OTP: any email/phone; API returns `devCode` (`123456`) in development
+- Local auth: `POST /v1/auth/register` `{ username, password, confirmPassword }` then `POST /v1/auth/login` (scrypt; Prisma `User.username` / `passwordHash` / `passwordSalt` when `AUTH_STORE=prisma`)
+- Bugfix: `AUTH_STORE=prisma` sign-in race — concurrent `persistUser` + `persistSession`/`persistEmployer` user upserts no longer abort session write on `P2002` (`User.id`)
 - Super admin: `POST /v1/auth/admin/login` with `SUPER_ADMIN_EMAIL` + `SUPER_ADMIN_PASSWORD` (see `api/.env`)
-- Dev Google stub admin (non-prod only): emails listed in `ADMIN_IDENTITIES`
-- Seeker: Preferences → Account (subscribe / saved / feed) → unlock or save on job detail
-- Employer: OTP as employer → Post / Bulk import / Promote
+- Seeker: drawer **Sign in** (last item) → `/sign-in` username/password or Google → save jobs / prefs / alerts; drawer then shows initials avatar + profile name + red Log out
+- Employer / Recruiter: create account picks **Recruiter** (or Post returnUrl preselects it) → `intendedRole=employer` → **Recruiter desk** `/post` (mobile `/tabs/post`) · My jobs
+- Recruiter desk (separate from admin Blog Approval): Compose | Review | Preview on the same page; AI Improve + instruction chat; confirm modal asks if they previewed; posts with `directPublish: true` go **live** (no Blog Approval queue). Admin import / Job Fare / Blog Approval remain the moderation path for channel/OCR noise
+- Bug fix: web `/post` no longer shows “not an admin” / admin@xcron.local gate for recruiters — page uses `isEmployer()` (API already `@Roles('employer','admin')`); Bulk import / Job Fare links remain admin-only
+- Bug fix: web drawer **Post** (+ **Feeds**/my-jobs) and footer “Post a job” show for recruiters via `isEmployer()` — previously hidden behind `isAdmin()` only
+- Removed **post-job fee** across app: no Post fee UPI panel after create; Site settings no longer expose post fee mode/price; commerce seed/load forces `postJobPaymentMode=none` / ₹0; `POST /v1/jobs/:id/post-orders` rejects
 - Payments: stub confirm only unless real Razorpay keys + `PAYMENT_MODE=razorpay`
 
 ---
@@ -166,7 +208,7 @@ docker compose up -d
 | FCM / mail | Live FCM wired (`PUSH_PROVIDER=fcm` + service account + mobile `google-services.json`); default still stub | Real SMTP/Resend; Play/prod Firebase project |
 | OCR / LLM | Stub parser | Real provider + workers/queue |
 | Contact vault | Plain fields in memory | Encryption at rest, KMS |
-| Google sign-in | Explicit stub response | Google Identity |
+| Local auth | Username/password (scrypt); Google API path optional | Optional Google Identity later |
 | Play Billing | Not integrated | Policy review + IAP if required |
 
 ---

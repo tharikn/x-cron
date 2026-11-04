@@ -524,6 +524,37 @@ a.revealed__value:hover {
   box-shadow: none;
 }
 
+.apply-version {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: var(--xcron-radius-sm);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-label);
+  font-weight: var(--xcron-weight-semibold);
+  letter-spacing: var(--xcron-tracking-label);
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.apply-version select {
+  margin-top: 0.35rem;
+  width: 100%;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--xcron-radius-sm);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: var(--xcron-weight-medium);
+}
+
 .actions {
   display: grid;
   gap: 0.65rem;

@@ -132,17 +132,30 @@ export class JobsService {
   async createQuick(user: AuthUser, dto: CreateJobDto) {
     const employer = this.requireEmployer(user);
     try {
-      const enriched = await this.ai.enrichJob({
-        title: dto.title,
-        employerName: dto.employerName || employer.name,
-        locationCity: dto.locationCity,
-        jobType: dto.jobType,
-        salaryText: dto.salaryText,
-        description: dto.description,
-        contentLanguage: dto.contentLanguage,
-      });
+      // Recruiter direct-publish already reviewed client-side — do not re-enrich.
+      const enriched = dto.directPublish
+        ? {
+            title: dto.title,
+            employerName: dto.employerName || employer.name,
+            locationCity: dto.locationCity,
+            jobType: dto.jobType,
+            salaryText: dto.salaryText,
+            description: dto.description,
+            contentLanguage: dto.contentLanguage,
+          }
+        : await this.ai.enrichJob({
+            title: dto.title,
+            employerName: dto.employerName || employer.name,
+            locationCity: dto.locationCity,
+            jobType: dto.jobType,
+            salaryText: dto.salaryText,
+            description: dto.description,
+            contentLanguage: dto.contentLanguage,
+          });
+      const status = dto.directPublish ? 'published' : 'needs-review';
+      const { directPublish: _directPublish, ...jobFields } = dto;
       const job = await this.store.createAndPublish({
-        ...dto,
+        ...jobFields,
         title: enriched.title || dto.title,
         employerName:
           enriched.employerName || dto.employerName || employer.name,
@@ -153,8 +166,12 @@ export class JobsService {
         contentLanguage: enriched.contentLanguage || dto.contentLanguage,
         employerId: employer.id,
         ownerUserId: user.id,
-        status: 'needs-review',
+        status,
       });
+      if (status === 'published') {
+        this.ops?.recordPublish();
+        void this.notifications?.onJobPublished(job.id);
+      }
       return this.publicJob(job);
     } catch (error) {
       this.rethrowDuplicate(error);
@@ -181,6 +198,7 @@ export class JobsService {
             .filter(Boolean)
             .join('\n')
         : dto.text;
+      const status = dto.directPublish ? 'published' : 'needs-review';
       const job = await this.store.createFromPaste(
         textForStore,
         enriched.contentLanguage || dto.contentLanguage || 'en',
@@ -188,8 +206,13 @@ export class JobsService {
           employerId: employer.id,
           ownerUserId: user.id,
           employerName: enriched.employerName || employer.name,
+          status,
         },
       );
+      if (status === 'published') {
+        this.ops?.recordPublish();
+        void this.notifications?.onJobPublished(job.id);
+      }
       return this.publicJob(job);
     } catch (error) {
       this.rethrowDuplicate(error);

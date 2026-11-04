@@ -1,0 +1,108 @@
+.page {
+  padding: 1rem 1rem 2.5rem;
+}
+
+.brand-mark {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-label);
+  font-weight: var(--xcron-weight-bold);
+  letter-spacing: var(--xcron-tracking-tight);
+  text-transform: uppercase;
+  color: var(--xcron-accent);
+}
+
+h1 {
+  margin: 0.35rem 0 0.25rem;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-display);
+  color: var(--xcron-ink);
+}
+
+.lead {
+  margin: 0 0 0.35rem;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  color: var(--xcron-ink-soft);
+}
+
+.hint {
+  margin: 0 0 1rem;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  color: var(--xcron-ink-soft);
+}
+
+.hint a {
+  color: var(--xcron-primary-hover);
+}
+
+.score-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  font-size: var(--xcron-text-label);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xcron-ink);
+}
+
+.pill[data-band='rising'] {
+  border-color: color-mix(in srgb, #22c55e 50%, var(--xcron-line));
+  color: #22c55e;
+}
+
+.pill[data-band='needs_care'] {
+  border-color: color-mix(in srgb, #f43f5e 50%, var(--xcron-line));
+  color: #f43f5e;
+}
+
+.pill.fit.low {
+  color: #f43f5e;
+}
+
+.card {
+  margin-bottom: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  box-shadow: var(--xcron-shadow);
+}
+
+.card strong {
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-title);
+  color: var(--xcron-ink);
+}
+
+.meta,
+.time {
+  margin: 0.25rem 0;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  color: var(--xcron-ink-soft);
+}
+
+.status {
+  color: var(--xcron-primary-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.error {
+  color: #f43f5e;
+}
+
+.empty {
+  color: var(--xcron-ink-soft);
+}

@@ -28,6 +28,7 @@ export interface InAppNotification {
   jobId: string | null;
   createdAt: string;
   readAt: string | null;
+  data?: Record<string, string> | null;
 }
 
 const FCM_TOKEN_KEY = 'xcron.fcmToken';
@@ -431,6 +432,7 @@ export class NotificationsService {
   /** Silent access refresh + inbox when the app (or a push tap) comes to foreground. */
   private async onForegroundResume(): Promise<void> {
     try {
+      await this.auth.slideSessionIfNeeded();
       await this.auth.ensureSession();
     } catch {
       // session clear handled inside auth

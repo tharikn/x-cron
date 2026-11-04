@@ -1,13 +1,22 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
+import {
+  AuthThrottle,
+  SensitiveThrottle,
+} from '../security/decorators';
+import {
+  extractRefreshToken,
+  extractTabId,
+} from '../security/token.util';
 import { AuthService } from './auth.service';
 import { AccessToken, CurrentUser, Public, Roles } from './decorators';
 import {
   AdminLoginDto,
   CreateEmployerDto,
   GoogleAuthDto,
+  LoginDto,
   RefreshTokenDto,
-  StartOtpDto,
-  VerifyOtpDto,
+  RegisterDto,
 } from './dto/auth.dto';
 import type { AuthUser } from './auth.types';
 
@@ -15,34 +24,63 @@ import type { AuthUser } from './auth.types';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /** Create local username/password account. */
   @Public()
-  @Post('otp/start')
-  startOtp(@Body() dto: StartOtpDto) {
-    return this.authService.startOtp(dto);
+  @AuthThrottle()
+  @Post('register')
+  register(
+    @Body() dto: RegisterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.register(dto, res, extractTabId(req));
+  }
+
+  /** Sign in with local username/password. */
+  @Public()
+  @AuthThrottle()
+  @Post('login')
+  login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.login(dto, res, extractTabId(req));
   }
 
   @Public()
-  @Post('otp/verify')
-  verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.authService.verifyOtp(dto);
-  }
-
-  @Public()
+  @AuthThrottle()
   @Post('google')
-  google(@Body() dto: GoogleAuthDto) {
-    return this.authService.google(dto);
+  google(
+    @Body() dto: GoogleAuthDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.google(dto, res, extractTabId(req));
   }
 
+  /** Super-admin password login — 1 attempt per hour per tracker. */
   @Public()
+  @SensitiveThrottle()
   @Post('admin/login')
-  adminLogin(@Body() dto: AdminLoginDto) {
-    return this.authService.adminLogin(dto);
+  adminLogin(
+    @Body() dto: AdminLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.adminLogin(dto, res, extractTabId(req));
   }
 
   @Public()
+  @AuthThrottle()
   @Post('refresh')
-  refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refresh(dto);
+  refresh(
+    @Body() dto: RefreshTokenDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = extractRefreshToken(req, dto.refreshToken);
+    return this.authService.refresh(refreshToken, res, extractTabId(req));
   }
 
   @Get('me')
@@ -51,8 +89,11 @@ export class AuthController {
   }
 
   @Post('logout')
-  logout(@AccessToken() token?: string) {
-    return this.authService.logout(token);
+  logout(
+    @AccessToken() token: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.logout(token, res);
   }
 }
 
@@ -68,7 +109,7 @@ export class EmployersController {
 
   @Roles('employer', 'admin')
   @Get('me')
-  me(@CurrentUser() user: AuthUser, @AccessToken() token?: string) {
+  me(@AccessToken() token?: string) {
     return this.authService.me(token);
   }
 }

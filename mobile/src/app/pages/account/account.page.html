@@ -1,12 +1,56 @@
-<div class="page">
+<ion-header>
+  <ion-toolbar>
+    <ion-title>
+      @if (isSignedIn()) {
+        {{ profileLabel() }}
+      } @else {
+        {{ 'nav.signIn' | t }}
+      }
+    </ion-title>
+  </ion-toolbar>
+  @if (isSignedIn() && !isAdmin() && !needsAdminLogin()) {
+    <ion-toolbar class="account-tabs">
+      <ion-segment
+        [value]="tab()"
+        (ionChange)="onTabChange($event.detail.value)"
+        scrollable="true"
+      >
+        <ion-segment-button value="profile">
+          <ion-label>Profile</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="apply">
+          <ion-label>Apply</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="activity">
+          <ion-label>Activity</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="rating">
+          <ion-label>Rating</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="account">
+          <ion-label>Account</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </ion-toolbar>
+  }
+</ion-header>
+
+<ion-content>
+  <div class="page" [class.page--auth]="!isSignedIn() && !needsAdminLogin()">
     <div class="brand-block">
       <p class="brand-mark">X Cron</p>
       <p class="descriptor">Jobs</p>
       <p class="lead">
         @if (needsAdminLogin()) {
-          Admin email and password unlock Post and moderation.
+          Admin email and password unlock Import, Job Fare, and moderation.
+        } @else if (needsEmployerSignIn()) {
+          Create an account or sign in to post jobs. Employer access is limited — no admin menus.
+        } @else if (isSignedIn()) {
+          Manage your profile, apply versions, and account.
+        } @else if (accountForm === 'register') {
+          Pick a username and password to save jobs and sync preferences.
         } @else {
-          Search jobs anytime. Sign in with Google to sync preferences, saved jobs, and unlocks.
+          Browse jobs freely. Sign in to unlock Prefs, Saved, and alerts.
         }
       </p>
     </div>
@@ -15,7 +59,7 @@
       <ion-list lines="full" class="panel">
         <ion-item>
           <ion-label>Signed in</ion-label>
-          <ion-note slot="end">{{ user()?.email || user()?.displayName }}</ion-note>
+          <ion-note slot="end">{{ user()?.username || user()?.email || user()?.displayName }}</ion-note>
         </ion-item>
         <ion-item>
           <ion-label>Roles</ion-label>
@@ -24,7 +68,9 @@
       </ion-list>
 
       <div class="admin-links">
-        <ion-button expand="block" color="dark" routerLink="/tabs/post">Post a job</ion-button>
+        <ion-button expand="block" color="dark" routerLink="/tabs/post">
+          Recruiter desk / Post
+        </ion-button>
         <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/notifications">
           Notifications inbox
         </ion-button>
@@ -53,210 +99,577 @@
         }
       </section>
 
-      <ion-button expand="block" fill="outline" color="dark" (click)="logout()">
+      <ion-button expand="block" fill="outline" color="danger" (click)="logout()">
         Sign out
       </ion-button>
     } @else if (isSignedIn() && !needsAdminLogin()) {
-      <ion-list lines="full" class="panel">
-        <ion-item>
-          <ion-label>Signed in</ion-label>
-          <ion-note slot="end">{{ user()?.email || user()?.displayName }}</ion-note>
-        </ion-item>
-        <ion-item>
-          <ion-label>Roles</ion-label>
-          <ion-note slot="end">{{ user()?.roles?.join(', ') }}</ion-note>
-        </ion-item>
-      </ion-list>
+      @switch (tab()) {
+        @case ('profile') {
+          <section class="moderation">
+            <h2>Your profile</h2>
+            <p class="hint">Update personal details and career info. Apply versions stay on Apply.</p>
 
-      <section class="moderation">
-        <h2>Subscription</h2>
-        <p class="hint">Status: {{ subscriptionLabel() }}</p>
-        <ion-list lines="full" class="panel">
-          <ion-item>
-            <ion-select
-              label="Plan"
-              labelPlacement="stacked"
-              interface="popover"
-              [(ngModel)]="selectedPlanId"
+            <ion-accordion-group
+              class="profile-accordions"
+              [multiple]="true"
+              [value]="profileAccordion"
+              (ionChange)="profileAccordion = $any($event.detail.value)"
             >
-              @for (plan of plans(); track plan.id) {
-                <ion-select-option [value]="plan.id">
-                  {{ plan.name }} — ₹{{ plan.pricePaise / 100 }}
-                </ion-select-option>
-              }
-            </ion-select>
-          </ion-item>
-        </ion-list>
-        <ion-button expand="block" color="dark" (click)="buySubscription()">
-          Subscribe (stub pay)
-        </ion-button>
-      </section>
+              <ion-accordion value="personal">
+                <ion-item slot="header" color="transparent" lines="none">
+                  <ion-label>Personal information</ion-label>
+                </ion-item>
+                <div class="accordion-body" slot="content">
+                  <ion-list lines="full" class="panel">
+                    <ion-item>
+                      <ion-label position="stacked">Name</ion-label>
+                      <ion-input
+                        [(ngModel)]="profileName"
+                        name="profileName"
+                        autocomplete="name"
+                        placeholder="Your full name"
+                      ></ion-input>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label position="stacked">Mobile</ion-label>
+                      <ion-input
+                        type="tel"
+                        [(ngModel)]="profileMobile"
+                        name="profileMobile"
+                        autocomplete="tel"
+                        placeholder="10-digit mobile"
+                      ></ion-input>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label position="stacked">Email</ion-label>
+                      <ion-input
+                        type="email"
+                        [(ngModel)]="profileEmail"
+                        name="profileEmail"
+                        autocomplete="email"
+                        placeholder="you@example.com"
+                      ></ion-input>
+                    </ion-item>
+                    <ion-item>
+                      <ion-toggle
+                        [(ngModel)]="showContact"
+                        labelPlacement="start"
+                        justify="space-between"
+                      >
+                        Show my contact
+                      </ion-toggle>
+                    </ion-item>
+                  </ion-list>
+                </div>
+              </ion-accordion>
 
-      @if (isEmployer()) {
-        <div class="admin-links">
-          <ion-button expand="block" color="dark" routerLink="/tabs/post">Post a job</ion-button>
-        </div>
-      }
+              <ion-accordion value="location">
+                <ion-item slot="header" color="transparent" lines="none">
+                  <ion-label>Location</ion-label>
+                </ion-item>
+                <div class="accordion-body" slot="content">
+                  <ion-list lines="full" class="panel">
+                    <ion-item>
+                      <ion-label position="stacked">Address</ion-label>
+                      <ion-input
+                        [(ngModel)]="profileAddress"
+                        name="profileAddress"
+                        autocomplete="street-address"
+                        placeholder="Area, city"
+                      ></ion-input>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label position="stacked">Pincode</ion-label>
+                      <ion-input
+                        [(ngModel)]="profilePincode"
+                        name="profilePincode"
+                        inputmode="numeric"
+                        maxlength="6"
+                        placeholder="6-digit pincode"
+                      ></ion-input>
+                    </ion-item>
+                  </ion-list>
+                </div>
+              </ion-accordion>
 
-      <section class="moderation">
-        <h2>Seeker profile</h2>
-        <ion-list lines="full" class="panel">
-          <ion-item>
-            <ion-select
-              label="Experience"
-              labelPlacement="stacked"
-              interface="popover"
-              [(ngModel)]="profileBand"
-            >
-              <ion-select-option value="">Any</ion-select-option>
-              <ion-select-option value="fresher">Fresher</ion-select-option>
-              <ion-select-option value="0-1">0–1 years</ion-select-option>
-              <ion-select-option value="1-3">1–3 years</ion-select-option>
-              <ion-select-option value="3-5">3–5 years</ion-select-option>
-              <ion-select-option value="5+">5+ years</ion-select-option>
-            </ion-select>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Skills (comma separated)</ion-label>
-            <ion-input [(ngModel)]="profileSkills"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Preferred cities</ion-label>
-            <ion-input [(ngModel)]="profileCities"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-toggle [(ngModel)]="openToWork" labelPlacement="start" justify="space-between">
-              Open to work
-            </ion-toggle>
-          </ion-item>
-        </ion-list>
-        <ion-button expand="block" color="dark" (click)="saveProfile()">Save profile</ion-button>
-      </section>
+              <ion-accordion value="career">
+                <ion-item slot="header" color="transparent" lines="none">
+                  <ion-label>Career info</ion-label>
+                </ion-item>
+                <div class="accordion-body" slot="content">
+                  <div class="role-choice" role="radiogroup" aria-label="Career stage">
+                    <p class="role-choice__label">Experience</p>
+                    <div class="role-choice__options">
+                      <button
+                        type="button"
+                        class="role-choice__btn"
+                        [class.role-choice__btn--active]="careerStage === 'fresher'"
+                        (click)="setCareerStage('fresher')"
+                      >
+                        Fresher
+                      </button>
+                      <button
+                        type="button"
+                        class="role-choice__btn"
+                        [class.role-choice__btn--active]="careerStage === 'experienced'"
+                        (click)="setCareerStage('experienced')"
+                      >
+                        Experienced
+                      </button>
+                    </div>
+                  </div>
 
-      <section class="moderation">
-        <h2>Your feed</h2>
-        @for (job of feedJobs(); track job.id) {
-          <div class="mod-card">
-            <strong>{{ job.title }}</strong>
-            <p>{{ job.employerName }}</p>
-            <ion-button size="small" fill="outline" color="dark" [routerLink]="['/tabs/jobs', job.id]">
-              Open
+                  <div class="role-choice" role="radiogroup" aria-label="Education status">
+                    <p class="role-choice__label">Education</p>
+                    <div class="role-choice__options">
+                      <button
+                        type="button"
+                        class="role-choice__btn"
+                        [class.role-choice__btn--active]="educationStatus === 'pursuing'"
+                        (click)="setEducationStatus('pursuing')"
+                      >
+                        Currently studying
+                      </button>
+                      <button
+                        type="button"
+                        class="role-choice__btn"
+                        [class.role-choice__btn--active]="educationStatus === 'completed'"
+                        (click)="setEducationStatus('completed')"
+                      >
+                        Degree completed
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (careerStage === 'fresher') {
+                    <ion-list lines="full" class="panel">
+                      <ion-item>
+                        <ion-toggle
+                          [(ngModel)]="openToInternship"
+                          labelPlacement="start"
+                          justify="space-between"
+                        >
+                          Open to internships
+                        </ion-toggle>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label position="stacked">Course</ion-label>
+                        <ion-input
+                          [(ngModel)]="courseDetails"
+                          placeholder="e.g. B.E. / B.Tech / B.Sc"
+                        ></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label position="stacked">Branch / specialization</ion-label>
+                        <ion-input
+                          [(ngModel)]="branchStudied"
+                          placeholder="e.g. Computer Science"
+                        ></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label position="stacked">CGPA / percentage</ion-label>
+                        <ion-input
+                          [(ngModel)]="academicScore"
+                          placeholder="e.g. 8.2 CGPA or 78%"
+                        ></ion-input>
+                      </ion-item>
+                    </ion-list>
+                  }
+
+                  @if (careerStage === 'experienced') {
+                    <ion-list lines="full" class="panel">
+                      <ion-item>
+                        <ion-label position="stacked">Years</ion-label>
+                        <ion-input
+                          type="number"
+                          inputmode="numeric"
+                          [(ngModel)]="experienceYears"
+                          min="0"
+                          max="50"
+                          placeholder="0"
+                        ></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label position="stacked">Months</ion-label>
+                        <ion-input
+                          type="number"
+                          inputmode="numeric"
+                          [(ngModel)]="experienceMonths"
+                          min="0"
+                          max="11"
+                          placeholder="0–11"
+                        ></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label position="stacked">Current / previous company</ion-label>
+                        <ion-input
+                          [(ngModel)]="companyName"
+                          placeholder="Company name"
+                        ></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label position="stacked">Company area</ion-label>
+                        <ion-input
+                          [(ngModel)]="companyArea"
+                          placeholder="Industry or domain"
+                        ></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label position="stacked">Current salary</ion-label>
+                        <ion-input
+                          [(ngModel)]="currentSalary"
+                          placeholder="₹ / month or LPA"
+                        ></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label position="stacked">Expected salary</ion-label>
+                        <ion-input
+                          [(ngModel)]="expectedSalary"
+                          placeholder="₹ / month or LPA"
+                        ></ion-input>
+                      </ion-item>
+                    </ion-list>
+
+                    <div class="notice-block">
+                      <p class="role-choice__label">Notice period</p>
+                      <p class="hint notice-hint">
+                        Pick one. “Serving” means notice has started; check your company T&amp;C.
+                      </p>
+                      <div class="notice-badges" role="radiogroup" aria-label="Notice period">
+                        @for (opt of noticeOptions; track opt.value) {
+                          <button
+                            type="button"
+                            class="notice-badge"
+                            [class.notice-badge--active]="noticePeriod === opt.value"
+                            (click)="setNoticePeriod(opt.value)"
+                          >
+                            {{ opt.label }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </ion-accordion>
+            </ion-accordion-group>
+
+            <ion-button expand="block" color="dark" (click)="saveProfile()">
+              Save profile
             </ion-button>
-          </div>
-        } @empty {
-          <p class="empty">Save preferences to personalise this feed.</p>
+          </section>
         }
-      </section>
-
-      <section class="moderation">
-        <div class="moderation__head">
-          <h2>Saved jobs</h2>
-          <ion-button
-            size="small"
-            fill="outline"
-            color="dark"
-            routerLink="/tabs/settings"
-            [queryParams]="{ tab: 'saved' }"
-          >
-            Open menu
-          </ion-button>
-        </div>
-        @for (job of savedJobs(); track job.id) {
-          <div class="mod-card">
-            <strong>{{ job.title }}</strong>
-            <p>{{ job.employerName }}</p>
-            <div class="mod-card__actions">
-              <ion-button
-                size="small"
-                fill="outline"
-                color="dark"
-                [routerLink]="['/tabs/jobs', job.id]"
-              >
-                Open
-              </ion-button>
-              <ion-button size="small" color="dark" (click)="removeSavedJob(job.id)">
-                Remove
-              </ion-button>
-            </div>
-          </div>
-        } @empty {
-          <p class="empty">No saved jobs yet. Save a role from job detail.</p>
-        }
-      </section>
-
-      <section class="moderation">
-        <h2>Contacted</h2>
-        @for (row of applications(); track row.jobId) {
-          <div class="mod-card">
-            <strong>{{ row.job?.title || row.jobId }}</strong>
-            <p>{{ row.status }}{{ row.channel ? ' · ' + row.channel : '' }}</p>
-            @if (row.job) {
-              <ion-button
-                size="small"
-                fill="outline"
-                color="dark"
-                [routerLink]="['/tabs/jobs', row.jobId]"
-              >
-                Open
+        @case ('apply') {
+          <section class="moderation">
+            <h2>Apply profile versions</h2>
+            <p class="hint">
+              Create Frontend / Backend versions with skills, summary, and portfolio links. Pick one when
+              you easy-apply. No resume upload.
+            </p>
+            @if (!applyProfiles().length) {
+              <p class="empty">Add your first version to unlock easy apply.</p>
+            }
+            @for (p of applyProfiles(); track p.id) {
+              <div class="mod-card">
+                <strong>{{ p.name }}{{ p.isDefault ? ' · default' : '' }}</strong>
+                @if (p.headline) {
+                  <p>{{ p.headline }}</p>
+                }
+                @if (p.skills.length) {
+                  <div class="skill-badges skill-badges--readonly" aria-label="Skills">
+                    @for (skill of p.skills.slice(0, applySkillMax); track skill) {
+                      <span class="skill-badge">{{ skill }}</span>
+                    }
+                  </div>
+                } @else {
+                  <p>No skills yet</p>
+                }
+                <div class="mod-card__actions">
+                  <ion-button size="small" fill="outline" color="dark" (click)="startEditApply(p.id)">
+                    Edit
+                  </ion-button>
+                  @if (!p.isDefault) {
+                    <ion-button size="small" fill="outline" color="dark" (click)="setDefaultApply(p.id)">
+                      Default
+                    </ion-button>
+                  }
+                  <ion-button size="small" color="dark" (click)="deleteApply(p.id)">Delete</ion-button>
+                </div>
+              </div>
+            }
+            <ion-list lines="full" class="panel">
+              <ion-item>
+                <ion-label position="stacked">Version name *</ion-label>
+                <ion-input
+                  [(ngModel)]="applyName"
+                  placeholder="e.g. Frontend developer"
+                ></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-label position="stacked">Headline</ion-label>
+                <ion-input [(ngModel)]="applyHeadline" placeholder="React · TypeScript"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-select
+                  label="Experience band"
+                  labelPlacement="stacked"
+                  interface="popover"
+                  [(ngModel)]="applyBand"
+                >
+                  <ion-select-option value="">—</ion-select-option>
+                  <ion-select-option value="fresher">Fresher</ion-select-option>
+                  <ion-select-option value="0-1">0–1 years</ion-select-option>
+                  <ion-select-option value="1-3">1–3 years</ion-select-option>
+                  <ion-select-option value="3-5">3–5 years</ion-select-option>
+                  <ion-select-option value="5+">5+ years</ion-select-option>
+                </ion-select>
+              </ion-item>
+              <ion-item lines="none" class="skill-field-item">
+                <div class="skill-field">
+                  <p class="skill-field__label">Skills ({{ applySkillMin }}–{{ applySkillMax }})</p>
+                  <div class="skill-badges" role="list" aria-label="Selected skills">
+                    @for (skill of applySkills; track skill) {
+                      <button
+                        type="button"
+                        class="skill-badge skill-badge--removable"
+                        role="listitem"
+                        (click)="removeApplySkill(skill)"
+                        [attr.aria-label]="'Remove ' + skill"
+                      >
+                        {{ skill }}
+                        <span aria-hidden="true">×</span>
+                      </button>
+                    }
+                  </div>
+                  @if (applySkills.length < applySkillMax) {
+                    <div class="skill-add">
+                      <ion-input
+                        [(ngModel)]="applySkillDraft"
+                        placeholder="e.g. React"
+                        (keyup.enter)="addApplySkill()"
+                      ></ion-input>
+                      <ion-button
+                        size="small"
+                        fill="outline"
+                        color="dark"
+                        (click)="addApplySkill()"
+                      >
+                        Add
+                      </ion-button>
+                    </div>
+                  }
+                  <p class="skill-field__hint">
+                    {{ applySkills.length }}/{{ applySkillMax }} · tap a badge to remove
+                  </p>
+                </div>
+              </ion-item>
+              <ion-item>
+                <ion-label position="stacked">Summary</ion-label>
+                <ion-input [(ngModel)]="applySummary"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-label position="stacked">Portfolio (one per line: Label|https://…)</ion-label>
+                <ion-input [(ngModel)]="applyPortfolio"></ion-input>
+              </ion-item>
+            </ion-list>
+            <ion-button
+              expand="block"
+              color="primary"
+              [disabled]="applyBusy"
+              (click)="saveApplyProfile()"
+            >
+              {{ editingApplyId ? 'Update version' : 'Add version' }}
+            </ion-button>
+            @if (editingApplyId) {
+              <ion-button expand="block" fill="outline" color="dark" (click)="startEditApply()">
+                Cancel edit
               </ion-button>
             }
-          </div>
-        } @empty {
-          <p class="empty">Tap phone / WhatsApp / email on a job to track it here.</p>
+          </section>
         }
-      </section>
+        @case ('activity') {
+          <section class="moderation">
+            <h2>Your feed</h2>
+            @for (job of feedJobs(); track job.id) {
+              <div class="mod-card">
+                <strong>{{ job.title }}</strong>
+                <p>{{ job.employerName }}</p>
+                <ion-button size="small" fill="outline" color="dark" [routerLink]="['/tabs/jobs', job.id]">
+                  Open
+                </ion-button>
+              </div>
+            } @empty {
+              <p class="empty">Save preferences to personalise this feed.</p>
+            }
+          </section>
 
-      <section class="moderation">
-        <h2>Saved searches</h2>
-        @for (row of savedSearches(); track row.id) {
-          <div class="mod-card">
-            <strong>{{ row.name }}</strong>
-            <p>{{ row.alertEnabled ? 'Alerts on' : 'Alerts off' }}</p>
-            <ion-button
-              size="small"
-              fill="outline"
-              color="dark"
-              (click)="deleteSavedSearch(row.id)"
-            >
-              Remove
+          <section class="moderation">
+            <div class="moderation__head">
+              <h2>Saved jobs</h2>
+              <ion-button
+                size="small"
+                fill="outline"
+                color="dark"
+                routerLink="/tabs/settings"
+                [queryParams]="{ tab: 'saved' }"
+              >
+                Open menu
+              </ion-button>
+            </div>
+            @for (job of savedJobs(); track job.id) {
+              <div class="mod-card">
+                <strong>{{ job.title }}</strong>
+                <p>{{ job.employerName }}</p>
+                <div class="mod-card__actions">
+                  <ion-button
+                    size="small"
+                    fill="outline"
+                    color="dark"
+                    [routerLink]="['/tabs/jobs', job.id]"
+                  >
+                    Open
+                  </ion-button>
+                  <ion-button size="small" color="dark" (click)="removeSavedJob(job.id)">
+                    Remove
+                  </ion-button>
+                </div>
+              </div>
+            } @empty {
+              <p class="empty">No saved jobs yet. Save a role from job detail.</p>
+            }
+          </section>
+
+          <section class="moderation">
+            <h2>Applications</h2>
+            @for (row of jobApps(); track row.id) {
+              <div class="mod-card">
+                <strong>{{ row.job?.title || row.jobId }}</strong>
+                <p>
+                  {{ row.statusLabel }} ·
+                  {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+                </p>
+                <ion-button
+                  size="small"
+                  fill="outline"
+                  color="dark"
+                  [routerLink]="['/tabs/applications', row.id]"
+                >
+                  Timeline
+                </ion-button>
+              </div>
+            } @empty {
+              <p class="empty">Apply from a job page to track status here.</p>
+            }
+          </section>
+
+          <section class="moderation">
+            <h2>Contacted</h2>
+            @for (row of applications(); track row.jobId) {
+              <div class="mod-card">
+                <strong>{{ row.job?.title || row.jobId }}</strong>
+                <p>{{ row.status }}{{ row.channel ? ' · ' + row.channel : '' }}</p>
+                @if (row.job) {
+                  <ion-button
+                    size="small"
+                    fill="outline"
+                    color="dark"
+                    [routerLink]="['/tabs/jobs', row.jobId]"
+                  >
+                    Open
+                  </ion-button>
+                }
+              </div>
+            } @empty {
+              <p class="empty">Tap phone / WhatsApp / email on a job to track it here.</p>
+            }
+          </section>
+
+          <section class="moderation">
+            <h2>Saved searches</h2>
+            @for (row of savedSearches(); track row.id) {
+              <div class="mod-card">
+                <strong>{{ row.name }}</strong>
+                <p>{{ row.alertEnabled ? 'Alerts on' : 'Alerts off' }}</p>
+                <ion-button
+                  size="small"
+                  fill="outline"
+                  color="dark"
+                  (click)="deleteSavedSearch(row.id)"
+                >
+                  Remove
+                </ion-button>
+              </div>
+            } @empty {
+              <p class="empty">Save a search from Discover to get alerts.</p>
+            }
+          </section>
+        }
+        @case ('rating') {
+          <section class="moderation score-callout">
+            <h2>Rating</h2>
+            <p class="hint">
+              Build trust with fit-aware applies and responsive chat. Recruiters and seekers both see
+              your band (Rising / Steady / Needs care).
+            </p>
+            <ion-button expand="block" color="dark" routerLink="/tabs/performance">
+              View my rating
             </ion-button>
-          </div>
-        } @empty {
-          <p class="empty">Save a search from Discover to get alerts.</p>
+          </section>
         }
-      </section>
+        @case ('account') {
+          <ion-list lines="full" class="panel">
+            <ion-item>
+              <ion-label>Signed in</ion-label>
+              <ion-note slot="end">{{ user()?.username || user()?.email || user()?.displayName }}</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Roles</ion-label>
+              <ion-note slot="end">{{ user()?.roles?.join(', ') }}</ion-note>
+            </ion-item>
+          </ion-list>
 
-      <section class="moderation">
-        <div class="moderation__head">
-          <h2>Notifications</h2>
-          <ion-button size="small" fill="outline" color="dark" routerLink="/tabs/notifications">
-            Open inbox
+          @if (isEmployer()) {
+            <section class="moderation">
+              <h2>Recruiter desk</h2>
+              <p class="hint">
+                Separate from admin Blog Approval. Compose, review with AI, preview, then post live.
+              </p>
+              <div class="admin-links">
+                <ion-button expand="block" color="dark" routerLink="/tabs/post">
+                  Open Recruiter desk
+                </ion-button>
+                <ion-button
+                  expand="block"
+                  fill="outline"
+                  color="dark"
+                  routerLink="/tabs/employer-applications"
+                >
+                  Review applications
+                </ion-button>
+              </div>
+            </section>
+          }
+
+          <ion-button expand="block" fill="outline" color="danger" (click)="logout()">
+            Sign out
           </ion-button>
-        </div>
-        <p class="hint">
-          {{ inbox().length }} alert(s) · manage channels on Prefs · inbox on Notifications.
-        </p>
-      </section>
+          <ion-button expand="block" fill="clear" color="dark" (click)="deleteAccount()">
+            Delete account
+          </ion-button>
 
-      <ion-button expand="block" fill="outline" color="dark" (click)="logout()">
-        Sign out
-      </ion-button>
-      <ion-button expand="block" fill="clear" color="dark" (click)="deleteAccount()">
-        Delete account
-      </ion-button>
-
-      <p class="hint admin-hint">
-        Need Post? Use admin email and password below.
-      </p>
-      <ion-button expand="block" fill="outline" color="dark" (click)="signInAsAdmin()">
-        Admin password login
-      </ion-button>
+          @if (!isEmployer()) {
+            <p class="hint admin-hint">Want to post jobs? Sign in again as employer from Post.</p>
+          }
+          <ion-button expand="block" fill="outline" color="dark" (click)="signInAsAdmin()">
+            Admin password login
+          </ion-button>
+        }
+      }
     } @else if (needsAdminLogin()) {
       @if (isSignedIn()) {
         <ion-list lines="full" class="panel">
           <ion-item>
             <ion-label>Signed in</ion-label>
-            <ion-note slot="end">{{ user()?.email || user()?.displayName }}</ion-note>
+            <ion-note slot="end">{{ user()?.username || user()?.email || user()?.displayName }}</ion-note>
           </ion-item>
           <ion-item>
             <ion-label>Roles</ion-label>
@@ -264,12 +677,12 @@
           </ion-item>
         </ion-list>
         <p class="hint">
-          This session is not admin. Enter the SUPER_ADMIN email and password for Post.
+          This session is not admin. Enter the SUPER_ADMIN email and password for Import / Job Fare.
         </p>
         <ion-button expand="block" color="dark" (click)="signInAsAdmin()">
           Switch to admin
         </ion-button>
-        <ion-button expand="block" fill="outline" color="dark" (click)="logout()">
+        <ion-button expand="block" fill="outline" color="danger" (click)="logout()">
           Sign out
         </ion-button>
       } @else {
@@ -277,25 +690,172 @@
           Sign in with admin password
         </ion-button>
         <p class="hint">
-          Dashboard-style ops on mobile (Post, moderation) use the configured SUPER_ADMIN
-          email and password only.
+          Import, Job Fare, and moderation use the configured SUPER_ADMIN email and password only.
         </p>
       }
       <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/discover">
         Back to jobs
       </ion-button>
     } @else {
-      <ion-button expand="block" color="dark" class="google-btn" (click)="signInWithGoogle()">
-        Continue with Google
-      </ion-button>
-      <ion-button expand="block" fill="outline" color="dark" (click)="signInAsAdmin()">
-        Admin password login
-      </ion-button>
-      <p class="hint">
-        Google for seekers (save, unlock, preferences). Admin password for Post.
-      </p>
-      <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/discover">
-        Keep browsing jobs
-      </ion-button>
+      <div class="auth-stack">
+        @if (accountForm === 'login') {
+          <ion-list lines="full" class="panel auth-panel">
+            <ion-item>
+              <ion-label position="stacked">Username</ion-label>
+              <ion-input
+                [(ngModel)]="username"
+                name="username"
+                autocomplete="username"
+                minlength="3"
+                maxlength="32"
+                placeholder="your_name"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Password</ion-label>
+              <ion-input
+                type="password"
+                [(ngModel)]="password"
+                name="password"
+                autocomplete="current-password"
+                minlength="8"
+                placeholder="••••••••"
+              ></ion-input>
+            </ion-item>
+          </ion-list>
+
+          <ion-button
+            expand="block"
+            color="dark"
+            [disabled]="authBusy"
+            (click)="submitAccount()"
+          >
+            @if (authBusy) {
+              Signing in…
+            } @else if (needsEmployerSignIn()) {
+              Employer sign in
+            } @else {
+              Login
+            }
+          </ion-button>
+
+          <div class="auth-block">
+            <p class="auth-block__label">New here?</p>
+            <ion-button
+              expand="block"
+              fill="outline"
+              color="dark"
+              (click)="setAccountForm('register')"
+            >
+              Sign Up → Create new account
+            </ion-button>
+          </div>
+        } @else {
+          <ion-list lines="full" class="panel auth-panel">
+            <ion-item>
+              <ion-label position="stacked">Username</ion-label>
+              <ion-input
+                [(ngModel)]="username"
+                name="username"
+                autocomplete="username"
+                minlength="3"
+                maxlength="32"
+                placeholder="your_name"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Password</ion-label>
+              <ion-input
+                type="password"
+                [(ngModel)]="password"
+                name="password"
+                autocomplete="new-password"
+                minlength="8"
+                placeholder="••••••••"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Confirm password</ion-label>
+              <ion-input
+                type="password"
+                [(ngModel)]="confirmPassword"
+                name="confirmPassword"
+                autocomplete="new-password"
+                minlength="8"
+                placeholder="••••••••"
+              ></ion-input>
+            </ion-item>
+          </ion-list>
+
+          <div class="role-choice" role="radiogroup" aria-label="I am a">
+            <p class="role-choice__label">I am a</p>
+            <div class="role-choice__options">
+              <button
+                type="button"
+                class="role-choice__btn"
+                [class.role-choice__btn--active]="intendedRoleChoice === 'seeker'"
+                (click)="intendedRoleChoice = 'seeker'"
+              >
+                Job Seeker
+              </button>
+              <button
+                type="button"
+                class="role-choice__btn"
+                [class.role-choice__btn--active]="intendedRoleChoice === 'employer'"
+                (click)="intendedRoleChoice = 'employer'"
+              >
+                Recruiter
+              </button>
+            </div>
+          </div>
+
+          <ion-button
+            expand="block"
+            color="dark"
+            [disabled]="authBusy"
+            (click)="submitAccount()"
+          >
+            @if (authBusy) {
+              Creating…
+            } @else if (intendedRoleChoice === 'employer') {
+              Create recruiter account
+            } @else {
+              Create account
+            }
+          </ion-button>
+
+          <ion-button expand="block" fill="clear" color="dark" (click)="setAccountForm('login')">
+            ← Back to Login
+          </ion-button>
+        }
+
+        <div class="auth-block">
+          <p class="auth-block__label">Guest use</p>
+          <ion-button
+            expand="block"
+            fill="outline"
+            color="dark"
+            [disabled]="authBusy"
+            (click)="signInWithGoogle()"
+          >
+            Sign in with Google
+          </ion-button>
+        </div>
+
+        <ion-button expand="block" fill="clear" color="dark" (click)="forgotPassword()">
+          Forgot password?
+        </ion-button>
+
+        @if (!needsEmployerSignIn()) {
+          <ion-button expand="block" fill="clear" color="medium" (click)="signInAsAdmin()">
+            Admin password login
+          </ion-button>
+        }
+
+        <ion-button expand="block" fill="clear" color="dark" routerLink="/tabs/discover">
+          Keep browsing jobs
+        </ion-button>
+      </div>
     }
   </div>
+</ion-content>

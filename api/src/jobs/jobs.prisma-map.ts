@@ -204,6 +204,7 @@ export function jobRecordFromPrisma(row: JobRow): JobRecord {
     expiresAt: (row.expiresAt ?? new Date(Date.now() + 30 * 86400000)).toISOString(),
     walkInAt: row.walkInAt?.toISOString(),
     applyBy: row.applyBy?.toISOString(),
+    screeningQuestion: row.screeningQuestion || undefined,
     priority: row.priority ?? 0,
     status: fromPrismaJobStatus(row.status),
     reportCount: row.reportCount ?? 0,

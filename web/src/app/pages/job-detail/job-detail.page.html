@@ -134,10 +134,42 @@
     </section>
 
     <div class="actions">
-      <div class="actions__row">
+      @if (appliedId(); as appId) {
+        <a class="action action--save" [routerLink]="['/me/applications', appId]">
+          View application timeline
+        </a>
+      } @else {
+        @if (applyProfilesList().length) {
+          <label class="apply-version">
+            <span>Apply as</span>
+            <select [(ngModel)]="selectedProfileId" [disabled]="applyBusy()">
+              @for (p of applyProfilesList(); track p.id) {
+                <option [value]="p.id">
+                  {{ p.name }}{{ p.isDefault ? ' (default)' : '' }}
+                </option>
+              }
+            </select>
+          </label>
+        } @else if (isSignedIn()) {
+          <p class="note">
+            Create a profile version under
+            <a routerLink="/me">Saved</a>
+            (skills / portfolio — no CV) before easy apply.
+          </p>
+        }
         <button
           type="button"
           class="action action--save"
+          [disabled]="applyBusy() || (isSignedIn() && !selectedProfileId)"
+          (click)="applyToJob()"
+        >
+          Easy apply
+        </button>
+      }
+      <div class="actions__row">
+        <button
+          type="button"
+          class="action"
           [class.action--on]="saved()"
           (click)="toggleSave()"
         >

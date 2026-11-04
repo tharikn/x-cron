@@ -14,6 +14,7 @@ import {
 import type { Request, Response } from 'express';
 import { CurrentUser, Public, Roles } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
+import { AuthThrottle, SensitiveThrottle } from '../security/decorators';
 import {
   DevConfirmPaymentDto,
   RazorpayWebhookDto,
@@ -104,6 +105,7 @@ export class PaymentsController {
   }
 
   @Public()
+  @AuthThrottle()
   @Post('payments/webhooks/:gateway')
   webhook(
     @Param('gateway') gateway: string,
@@ -122,8 +124,9 @@ export class PaymentsController {
 
   /**
    * Dev / local UPI confirm only.
-   * Blocked in production; rate-limited; ownership + TTL checked; failures logged.
+   * Blocked in production; 1/hour; ownership + TTL checked; failures logged.
    */
+  @SensitiveThrottle()
   @Post('payments/dev/confirm')
   confirmDev(
     @CurrentUser() user: AuthUser,

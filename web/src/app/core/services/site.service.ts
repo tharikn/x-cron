@@ -77,9 +77,9 @@ const FALLBACK_COMMERCE: SiteCommerceConfig = {
   unlockPricePaise: 500,
   unlockPriceInr: 5,
   paymentsEnabled: true,
-  postJobPaymentMode: 'optional',
-  postJobPricePaise: 500,
-  postJobPriceInr: 5,
+  postJobPaymentMode: 'none',
+  postJobPricePaise: 0,
+  postJobPriceInr: 0,
   updatedAt: new Date(0).toISOString(),
 };
 

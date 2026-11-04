@@ -9,8 +9,7 @@
     }
   </div>
   <p class="lead">
-    In-app job alerts when new roles match your preferences. Push and mail use free stub
-    providers until you connect FCM / SMTP.
+    In-app job alerts when new roles match your preferences.
   </p>
 
   @if (!isSignedIn()) {
@@ -49,8 +48,8 @@
             <p class="meta">{{ item.status }} · {{ item.createdAt | date: 'short' }}</p>
           </div>
           <div class="card__actions">
-            @if (jobPath(item); as path) {
-              <a class="btn btn--ghost" [routerLink]="path">View role</a>
+            @if (actionPath(item); as path) {
+              <a class="btn btn--ghost" [routerLink]="path">{{ actionLabel(item) }}</a>
             }
 
             @if (item.status !== 'read') {

@@ -35,12 +35,12 @@
   overflow: hidden;
 }
 
-.google-btn {
-  margin-top: 8px;
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
 }
 
-.error {
-  margin: 10px 0 0;
-  color: var(--xcron-ink);
-  font-size: 0.88rem;
+.google-btn {
+  margin-top: 8px;
 }

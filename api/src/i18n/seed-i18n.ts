@@ -21,6 +21,8 @@ const EN_STRINGS: Record<string, string> = {
   'nav.discover': 'Discover',
   'nav.prefs': 'Prefs',
   'nav.ads': 'Ads',
+  'settings.signInForMore':
+    'Sign in to unlock Prefs and Saved. Language works without an account.',
   'saved.lead': 'Jobs you saved from a role — open them again or remove anytime.',
   'saved.signIn': 'Sign in to see and manage your saved jobs.',
   'saved.refresh': 'Refresh',
@@ -137,13 +139,15 @@ const TA_STRINGS: Record<string, string> = {
   'nav.discover': 'கண்டுபிடி',
   'nav.prefs': 'விருப்பம்',
   'nav.ads': 'விளம்பரம்',
+  'settings.signInForMore':
+    'Prefs மற்றும் Saved திறக்க உள்நுழையவும். மொழி கணக்கு இல்லாமல் வேலை செய்யும்.',
   'saved.lead': 'நீங்கள் சேமித்த வேலைகள் — மீண்டும் திறக்கவும் அல்லது நீக்கவும்.',
   'saved.signIn': 'சேமித்த வேலைகளைப் பார்க்க உள்நுழையவும்.',
   'saved.refresh': 'புதுப்பி',
   'saved.open': 'திற',
   'saved.remove': 'நீக்கு',
   'saved.empty': 'சேமித்த வேலைகள் இல்லை. வேலை விவரத்தில் சேமிக்கவும்.',
-  'notif.lead': 'பொருந்தும் வேலைகள் இன்பாக்ஸில். Push / மின்னஞ்சல் இப்போது இலவச stub.',
+  'notif.lead': 'பொருந்தும் வேலைகள் இன்பாக்ஸில் தோன்றும். சேனல்களை Prefs-இல் நிர்வகிக்கவும்.',
   'notif.inbox': 'இன்பாக்ஸ்',
   'notif.refresh': 'புதுப்பி',
   'notif.markRead': 'படித்ததாக குறி',
@@ -213,7 +217,7 @@ const TA_STRINGS: Record<string, string> = {
   'prefs.leadGuest':
     'விருந்தினர் விருப்பங்கள் இந்த சாதன அடையாளத்துடன் ஒத்திசைகின்றன. சாதனங்களுக்கு இடையே வைக்க உள்நுழையுங்கள்.',
   'prefs.leadSignedIn':
-    'உள்நுழைந்த விருப்பங்கள் சாதனங்களுக்கு இடையே ஒத்திசைகின்றன. வேலை எச்சரிக்கைகள் FCM பதிவைப் பயன்படுத்துகின்றன.',
+    'உள்நுழைந்த விருப்பங்கள் சாதனங்களுக்கு இடையே ஒத்திசைகின்றன. அனுமதித்தால் புஷ் அறிவிப்புகள் தொலைபேசி நிழலில் தோன்றும்.',
   'prefs.location': 'விருப்பமான இடம்',
   'prefs.jobType': 'விருப்பமான வேலை வகை',
   'prefs.jobLanguage': 'விருப்பமான வேலை மொழி',
@@ -254,13 +258,15 @@ const HI_STRINGS: Record<string, string> = {
   'nav.discover': 'खोजें',
   'nav.prefs': 'सेटिंग',
   'nav.ads': 'विज्ञापन',
+  'settings.signInForMore':
+    'Prefs और Saved खोलने के लिए साइन इन करें। भाषा बिना खाते के काम करती है।',
   'saved.lead': 'आपकी सेव की गई नौकरियाँ — फिर खोलें या हटाएँ।',
   'saved.signIn': 'सेव्ड जॉब्स देखने के लिए साइन इन करें।',
   'saved.refresh': 'रीफ़्रेश',
   'saved.open': 'खोलें',
   'saved.remove': 'हटाएँ',
   'saved.empty': 'अभी कोई सेव्ड जॉब नहीं। जॉब डिटेल से सेव करें।',
-  'notif.lead': 'मैचिंग जॉब अलर्ट इनबॉक्स में। Push / ईमेल अभी मुफ़्त stub हैं।',
+  'notif.lead': 'मैचिंग जॉब अलर्ट इनबॉक्स में। चैनल Prefs में बदलें।',
   'notif.inbox': 'इनबॉक्स',
   'notif.refresh': 'रीफ़्रेश',
   'notif.markRead': 'पढ़ा हुआ चिह्नित करें',
@@ -330,7 +336,7 @@ const HI_STRINGS: Record<string, string> = {
   'prefs.leadGuest':
     'गेस्ट प्राथमिकताएँ इस डिवाइस आईडी से सिंक होती हैं। सभी डिवाइस पर रखने के लिए साइन इन करें।',
   'prefs.leadSignedIn':
-    'साइन-इन प्राथमिकताएँ डिवाइस पर सिंक होती हैं। जॉब अलर्ट FCM रजिस्ट्रेशन उपयोग करते हैं।',
+    'साइन-इन प्राथमिकताएँ डिवाइस पर सिंक होती हैं। अनुमति होने पर पुश अलर्ट फ़ोन नोटिफिकेशन शेड में आते हैं।',
   'prefs.location': 'पसंदीदा स्थान',
   'prefs.jobType': 'पसंदीदा नौकरी प्रकार',
   'prefs.jobLanguage': 'पसंदीदा नौकरी भाषा',

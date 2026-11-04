@@ -13,7 +13,7 @@
           This account is not an employer. Create an employer profile or use an employer account.
         }
       </p>
-      <a class="btn" routerLink="/settings/account">Go to Sign in</a>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
     </div>
   } @else {
     <div class="toolbar">
@@ -22,6 +22,7 @@
       </button>
       <a class="link-btn" routerLink="/admin">Dashboard</a>
       <a class="link-btn" routerLink="/post">Post a job</a>
+      <a class="link-btn" routerLink="/employer-applications">Applications</a>
       <a class="link-btn" routerLink="/import">Bulk import</a>
     </div>
 
@@ -125,6 +126,14 @@
                           <button type="button" role="menuitem" [disabled]="busy()" (click)="renew(job)">
                             Renew +30 days
                           </button>
+                          <a
+                            role="menuitem"
+                            [routerLink]="['/employer-applications']"
+                            [queryParams]="{ jobId: job.id }"
+                            (click)="closeOptions()"
+                          >
+                            Applications
+                          </a>
                         </div>
                       }
                     </div>

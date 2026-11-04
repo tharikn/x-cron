@@ -1,0 +1,70 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/post"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Applications</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" color="dark" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="brand-mark">X Cron</p>
+    <h1>Applicant review</h1>
+    <p class="lead">
+      @if (job(); as j) {
+        Applications for {{ j.title }}
+      } @else {
+        All applications across your posted jobs
+      }
+    </p>
+    <p class="hint">
+      Performance Score and role fit help you spot thoughtful applicants.
+      <a routerLink="/tabs/performance">Your recruiter score</a>
+    </p>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    @for (row of items(); track row.id) {
+      <article class="card">
+        <strong>{{ row.seekerName || 'Seeker' }}</strong>
+        <p class="meta">
+          {{ row.job?.title || row.jobId }} ·
+          <span class="status">{{ row.statusLabel }}</span>
+        </p>
+        <p class="meta score-line">
+          @if (row.reputation; as rep) {
+            <span class="pill" [attr.data-band]="rep.band">
+              Score {{ rep.score }} · {{ rep.bandLabel }}
+            </span>
+          }
+          @if (row.matchPercent != null) {
+            <span class="pill fit" [class.low]="row.matchPercent! < 50">
+              Fit {{ row.matchPercent }}%
+            </span>
+          }
+        </p>
+        <p class="time">Updated {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}</p>
+        <ion-button
+          size="small"
+          color="primary"
+          [routerLink]="['/tabs/applications', row.id]"
+          [queryParams]="{ as: 'employer' }"
+        >
+          Review timeline
+        </ion-button>
+      </article>
+    } @empty {
+      @if (!busy()) {
+        <p class="empty">No applications yet.</p>
+      }
+    }
+  </div>
+</ion-content>

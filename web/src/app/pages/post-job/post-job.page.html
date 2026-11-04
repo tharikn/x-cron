@@ -1,289 +1,452 @@
 <section class="page">
-  <h1>Post a job</h1>
+  <p class="brand-mark">X Cron</p>
+  <h1>Recruiter desk</h1>
   <p class="lead">
-    Admin-only posting. Use a quick form or paste a message. Contacts stay private by default.
-    New posts go to moderation before search.
-    Prefer CSV / image OCR / channel pull?
-    <a routerLink="/import">Bulk import</a>
-    ·
-    <a routerLink="/admin/job-fare">Job Fare</a>
-    ·
+    Compose, review with AI, preview for seekers, then post live. Recruiter posts publish
+    directly — they do not wait in Blog Approval (admin import queue stays separate).
     <a routerLink="/my-jobs">Posted jobs history</a>
+    @if (isAdmin()) {
+      ·
+      <a routerLink="/import">Bulk import</a>
+      ·
+      <a routerLink="/admin/job-fare">Job Fare</a>
+      ·
+      <a routerLink="/blog-approval">Blog Approval</a>
+    }
   </p>
 
-  @if (!isSignedIn() || !isAdmin()) {
+  @if (!isSignedIn() || !isEmployer()) {
     <div class="gate">
       <p>
         @if (!isSignedIn()) {
-          Admins must sign in with the admin email and password before posting.
+          Sign in as a recruiter to post a job.
         } @else {
-          This account is not an admin. Use admin&#64;xcron.local.
+          This account cannot post jobs. Sign in with a recruiter account.
         }
       </p>
-      <a class="btn" routerLink="/settings/account">Go to Sign in</a>
+      <a class="btn" routerLink="/sign-in" [queryParams]="{ mode: 'employer' }">Go to Sign in</a>
     </div>
-  }
-
-  <div class="modes" role="tablist" aria-label="Post mode">
-    <button
-      type="button"
-      role="tab"
-      [class.is-active]="mode() === 'quick'"
-      [attr.aria-selected]="mode() === 'quick'"
-      (click)="setMode('quick')"
-    >
-      Quick form
-    </button>
-    <button
-      type="button"
-      role="tab"
-      [class.is-active]="mode() === 'paste'"
-      [attr.aria-selected]="mode() === 'paste'"
-      (click)="setMode('paste')"
-    >
-      Paste message
-    </button>
-  </div>
-
-  @if (mode() === 'quick') {
-    <form class="form" (ngSubmit)="submitQuick()">
-      <label [class.is-invalid]="!!fieldErrors()['title']">
-        <span>Job title</span>
-        <input
-          [(ngModel)]="title"
-          name="title"
-          (ngModelChange)="clearFieldError('title')"
-          required
-        />
-        @if (fieldErrors()['title']; as err) {
-          <em class="field-error">{{ err }}</em>
-        }
-      </label>
-      <label [class.is-invalid]="!!fieldErrors()['employerName']">
-        <span>Employer / business name</span>
-        <input
-          [(ngModel)]="employerName"
-          name="employerName"
-          (ngModelChange)="clearFieldError('employerName')"
-          required
-        />
-        @if (fieldErrors()['employerName']; as err) {
-          <em class="field-error">{{ err }}</em>
-        }
-      </label>
-      <label [class.is-invalid]="!!fieldErrors()['locationCity']">
-        <span>Location (city)</span>
-        <input
-          [(ngModel)]="locationCity"
-          name="locationCity"
-          (ngModelChange)="clearFieldError('locationCity')"
-        />
-        @if (fieldErrors()['locationCity']; as err) {
-          <em class="field-error">{{ err }}</em>
-        }
-      </label>
-      <label>
-        <span>Job type</span>
-        <select [(ngModel)]="jobType" name="jobType">
-          @for (entry of jobTypeEntries; track entry[0]) {
-            <option [value]="entry[0]">{{ entry[1] }}</option>
-          }
-        </select>
-      </label>
-      <label [class.is-invalid]="!!fieldErrors()['salaryText']">
-        <span>Salary (optional)</span>
-        <input
-          [(ngModel)]="salaryText"
-          name="salaryText"
-          placeholder="e.g. 12000-15000 / month"
-          (ngModelChange)="clearFieldError('salaryText')"
-        />
-        @if (fieldErrors()['salaryText']; as err) {
-          <em class="field-error">{{ err }}</em>
-        }
-      </label>
-      <label [class.is-invalid]="!!fieldErrors()['vacancies']">
-        <span>Vacancies (optional)</span>
-        <input
-          [(ngModel)]="vacancies"
-          name="vacancies"
-          type="number"
-          min="1"
-          inputmode="numeric"
-          placeholder="e.g. 2"
-          (ngModelChange)="clearFieldError('vacancies')"
-        />
-        @if (fieldErrors()['vacancies']; as err) {
-          <em class="field-error">{{ err }}</em>
-        }
-      </label>
-      <label>
-        <span>Content language</span>
-        <select [(ngModel)]="contentLanguage" name="contentLanguage">
-          @for (lang of languages(); track lang.code) {
-            <option [value]="lang.code">{{ lang.nativeName || lang.name }}</option>
-          }
-        </select>
-      </label>
-      <label class="form__wide" [class.is-invalid]="!!fieldErrors()['description']">
-        <span>Description / duties</span>
-        <textarea
-          [(ngModel)]="description"
-          name="description"
-          rows="5"
-          required
-          (ngModelChange)="clearFieldError('description')"
-        ></textarea>
-        @if (fieldErrors()['description']; as err) {
-          <em class="field-error">{{ err }}</em>
-        }
-      </label>
-      <label [class.is-invalid]="!!fieldErrors()['contactPhone']">
-        <span>Private contact phone</span>
-        <input
-          [(ngModel)]="contactPhone"
-          name="contactPhone"
-          type="tel"
-          placeholder="10-digit or +91…"
-          (ngModelChange)="clearFieldError('contactPhone')"
-        />
-        @if (fieldErrors()['contactPhone']; as err) {
-          <em class="field-error">{{ err }}</em>
-        }
-      </label>
-      <label [class.is-invalid]="!!fieldErrors()['contactEmail']">
-        <span>HR email</span>
-        <input
-          [(ngModel)]="contactEmail"
-          name="contactEmail"
-          type="email"
-          (ngModelChange)="clearFieldError('contactEmail')"
-        />
-        @if (fieldErrors()['contactEmail']; as err) {
-          <em class="field-error">{{ err }}</em>
-        }
-      </label>
-      <label [class.is-invalid]="!!fieldErrors()['contactWebsite']">
-        <span>Website to apply</span>
-        <input
-          [(ngModel)]="contactWebsite"
-          name="contactWebsite"
-          type="url"
-          placeholder="https://"
-          (ngModelChange)="clearFieldError('contactWebsite')"
-        />
-        @if (fieldErrors()['contactWebsite']; as err) {
-          <em class="field-error">{{ err }}</em>
-        }
-      </label>
-      <label>
-        <span>Priority (higher first)</span>
-        <input [(ngModel)]="priority" name="priority" type="number" min="0" max="1000" />
-      </label>
-      <label>
-        <span>Effective from</span>
-        <input [(ngModel)]="effectiveFromLocal" name="effectiveFrom" type="datetime-local" />
-      </label>
-      <label>
-        <span>End date</span>
-        <input [(ngModel)]="expiresAtLocal" name="expiresAt" type="datetime-local" />
-      </label>
-      <div class="form__actions">
-        <button type="submit" [disabled]="busy()">
-          @if (busy()) {
-            <span class="spinner spinner--inline" aria-hidden="true"></span>
-            Submitting…
-          } @else {
-            Submit job
-          }
-        </button>
-      </div>
-    </form>
   } @else {
-    <form class="form form--paste" (ngSubmit)="submitPaste()">
-      <label>
-        <span>Content language</span>
-        <select [(ngModel)]="contentLanguage" name="pasteLanguage">
-          @for (lang of languages(); track lang.code) {
-            <option [value]="lang.code">{{ lang.nativeName || lang.name }}</option>
-          }
-        </select>
-      </label>
-      <label class="form__wide">
-        <span>Paste WhatsApp / Telegram text</span>
-        <textarea
-          [(ngModel)]="pasteText"
-          name="pasteText"
-          rows="10"
-          placeholder="Paste the full message. Phone numbers are extracted privately."
-          required
-        ></textarea>
-      </label>
-      <div class="form__actions">
-        <button type="submit" [disabled]="busy()">
-          @if (busy()) {
-            <span class="spinner spinner--inline" aria-hidden="true"></span>
-            Extracting…
-          } @else {
-            Extract and publish
-          }
-        </button>
-      </div>
-    </form>
-  }
+    <div class="panels" role="tablist" aria-label="Recruiter desk">
+      <button
+        type="button"
+        role="tab"
+        [class.is-active]="panel() === 'compose'"
+        [attr.aria-selected]="panel() === 'compose'"
+        (click)="setPanel('compose')"
+      >
+        Compose
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [class.is-active]="panel() === 'review'"
+        [attr.aria-selected]="panel() === 'review'"
+        (click)="setPanel('review')"
+      >
+        Review
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [class.is-active]="panel() === 'preview'"
+        [attr.aria-selected]="panel() === 'preview'"
+        (click)="setPanel('preview')"
+      >
+        Preview
+      </button>
+    </div>
 
-  @if (pendingCheckout(); as pay) {
-    <section id="post-payment-checkout" class="pay-panel" aria-label="Post fee payment">
-      <header class="pay-panel__head">
-        <h2>Post fee</h2>
-        <p class="pay-panel__amount">
-          ₹{{ (pay.checkout.amountPaise / 100).toFixed(0) }}
-        </p>
-      </header>
-      <p class="pay-panel__desc">{{ pay.checkout.description }}</p>
-      <p class="pay-panel__mode">
-        Mode: <strong>{{ pay.mode }}</strong>
-      </p>
-
-      @if (pay.checkout.upi; as upi) {
-        <div class="pay-panel__upi">
-          @if (upiQrSrc(pay.checkout); as qr) {
-            <img class="pay-panel__qr" [src]="qr" width="220" height="220" alt="UPI QR" />
-          }
-          <p class="pay-panel__vpa">{{ upi.vpa }}</p>
-          <button type="button" class="btn" (click)="openUpiApp()">Open UPI app</button>
-        </div>
-      }
-
-      <div class="pay-panel__actions">
+    @if (panel() === 'compose') {
+      <div class="modes" role="tablist" aria-label="Post mode">
         <button
           type="button"
-          class="btn"
-          [disabled]="confirmingPay()"
-          (click)="confirmCheckoutPayment()"
+          role="tab"
+          [class.is-active]="mode() === 'quick'"
+          [attr.aria-selected]="mode() === 'quick'"
+          (click)="setMode('quick')"
         >
-          {{ confirmingPay() ? 'Confirming…' : 'I have paid' }}
+          Quick form
         </button>
-        @if (pay.mode === 'optional') {
-          <button type="button" class="btn btn--ghost" (click)="cancelCheckout()">
-            Skip payment
-          </button>
-        } @else {
-          <button type="button" class="btn btn--ghost" (click)="cancelCheckout()">
-            Cancel (fee unpaid)
-          </button>
-        }
+        <button
+          type="button"
+          role="tab"
+          [class.is-active]="mode() === 'paste'"
+          [attr.aria-selected]="mode() === 'paste'"
+          (click)="setMode('paste')"
+        >
+          Paste message
+        </button>
       </div>
-    </section>
+
+      @if (mode() === 'quick') {
+        <form class="form" (ngSubmit)="requestPost(); $event.preventDefault()">
+          <label [class.is-invalid]="!!fieldErrors()['title']">
+            <span>Job title</span>
+            <input
+              [(ngModel)]="title"
+              name="title"
+              (ngModelChange)="clearFieldError('title')"
+              required
+            />
+            @if (fieldErrors()['title']; as err) {
+              <em class="field-error">{{ err }}</em>
+            }
+          </label>
+          <label [class.is-invalid]="!!fieldErrors()['employerName']">
+            <span>Employer / business name</span>
+            <input
+              [(ngModel)]="employerName"
+              name="employerName"
+              (ngModelChange)="clearFieldError('employerName')"
+              required
+            />
+            @if (fieldErrors()['employerName']; as err) {
+              <em class="field-error">{{ err }}</em>
+            }
+          </label>
+          <label [class.is-invalid]="!!fieldErrors()['locationCity']">
+            <span>Location (city)</span>
+            <input
+              [(ngModel)]="locationCity"
+              name="locationCity"
+              (ngModelChange)="clearFieldError('locationCity')"
+            />
+            @if (fieldErrors()['locationCity']; as err) {
+              <em class="field-error">{{ err }}</em>
+            }
+          </label>
+          <label>
+            <span>Job type</span>
+            <select [(ngModel)]="jobType" name="jobType">
+              @for (entry of jobTypeEntries; track entry[0]) {
+                <option [value]="entry[0]">{{ entry[1] }}</option>
+              }
+            </select>
+          </label>
+          <label [class.is-invalid]="!!fieldErrors()['salaryText']">
+            <span>Salary (optional)</span>
+            <input
+              [(ngModel)]="salaryText"
+              name="salaryText"
+              placeholder="e.g. 12000-15000 / month"
+              (ngModelChange)="clearFieldError('salaryText')"
+            />
+            @if (fieldErrors()['salaryText']; as err) {
+              <em class="field-error">{{ err }}</em>
+            }
+          </label>
+          <label [class.is-invalid]="!!fieldErrors()['vacancies']">
+            <span>Vacancies (optional)</span>
+            <input
+              [(ngModel)]="vacancies"
+              name="vacancies"
+              type="number"
+              min="1"
+              inputmode="numeric"
+              placeholder="e.g. 2"
+              (ngModelChange)="clearFieldError('vacancies')"
+            />
+            @if (fieldErrors()['vacancies']; as err) {
+              <em class="field-error">{{ err }}</em>
+            }
+          </label>
+          <label>
+            <span>Content language</span>
+            <select [(ngModel)]="contentLanguage" name="contentLanguage">
+              @for (lang of languages(); track lang.code) {
+                <option [value]="lang.code">{{ lang.nativeName || lang.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="form__wide" [class.is-invalid]="!!fieldErrors()['description']">
+            <span>Description / duties</span>
+            <textarea
+              [(ngModel)]="description"
+              name="description"
+              rows="5"
+              required
+              (ngModelChange)="clearFieldError('description')"
+            ></textarea>
+            @if (fieldErrors()['description']; as err) {
+              <em class="field-error">{{ err }}</em>
+            }
+          </label>
+          <label [class.is-invalid]="!!fieldErrors()['contactPhone']">
+            <span>Contact phone</span>
+            <input
+              [(ngModel)]="contactPhone"
+              name="contactPhone"
+              type="tel"
+              placeholder="10-digit or +91…"
+              (ngModelChange)="clearFieldError('contactPhone')"
+            />
+            @if (fieldErrors()['contactPhone']; as err) {
+              <em class="field-error">{{ err }}</em>
+            }
+          </label>
+          <label [class.is-invalid]="!!fieldErrors()['contactEmail']">
+            <span>HR email</span>
+            <input
+              [(ngModel)]="contactEmail"
+              name="contactEmail"
+              type="email"
+              (ngModelChange)="clearFieldError('contactEmail')"
+            />
+            @if (fieldErrors()['contactEmail']; as err) {
+              <em class="field-error">{{ err }}</em>
+            }
+          </label>
+          <label [class.is-invalid]="!!fieldErrors()['contactWebsite']">
+            <span>Website to apply</span>
+            <input
+              [(ngModel)]="contactWebsite"
+              name="contactWebsite"
+              type="url"
+              placeholder="https://"
+              (ngModelChange)="clearFieldError('contactWebsite')"
+            />
+            @if (fieldErrors()['contactWebsite']; as err) {
+              <em class="field-error">{{ err }}</em>
+            }
+          </label>
+          <label>
+            <span>Priority (higher first)</span>
+            <input [(ngModel)]="priority" name="priority" type="number" min="0" max="1000" />
+          </label>
+          <label>
+            <span>Effective from</span>
+            <input [(ngModel)]="effectiveFromLocal" name="effectiveFrom" type="datetime-local" />
+          </label>
+          <label>
+            <span>End date</span>
+            <input [(ngModel)]="expiresAtLocal" name="expiresAt" type="datetime-local" />
+          </label>
+          <div class="form__actions">
+            <button type="button" class="btn--ghost" (click)="goReview()">Review</button>
+            <button type="button" class="btn--ghost" (click)="goPreview()">Preview</button>
+            <button type="submit" [disabled]="busy()">Post job</button>
+          </div>
+        </form>
+      } @else {
+        <form class="form form--paste" (ngSubmit)="extractPasteToReview(); $event.preventDefault()">
+          <label>
+            <span>Content language</span>
+            <select [(ngModel)]="contentLanguage" name="pasteLanguage">
+              @for (lang of languages(); track lang.code) {
+                <option [value]="lang.code">{{ lang.nativeName || lang.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="form__wide">
+            <span>Paste WhatsApp / Telegram text</span>
+            <textarea
+              [(ngModel)]="pasteText"
+              name="pasteText"
+              rows="10"
+              placeholder="Paste the full message. Then extract into Review."
+              required
+            ></textarea>
+          </label>
+          <div class="form__actions">
+            <button type="submit" [disabled]="aiBusy()">
+              @if (aiBusy()) {
+                Extracting…
+              } @else {
+                Extract to Review
+              }
+            </button>
+          </div>
+        </form>
+      }
+    }
+
+    @if (panel() === 'review') {
+      <div class="desk">
+        <div class="review-toolbar">
+          <button type="button" [disabled]="aiBusy() || !aiEnabled()" (click)="improveWithAi()">
+            @if (aiBusy()) {
+              Improving…
+            } @else {
+              Improve with AI
+            }
+          </button>
+          @if (!aiEnabled()) {
+            <span class="ai-off">AI off on API</span>
+          }
+        </div>
+
+        <form class="form" (ngSubmit)="$event.preventDefault()">
+          <label>
+            <span>Job title</span>
+            <input [(ngModel)]="title" name="reviewTitle" />
+          </label>
+          <label>
+            <span>Employer</span>
+            <input [(ngModel)]="employerName" name="reviewEmployer" />
+          </label>
+          <label>
+            <span>City</span>
+            <input [(ngModel)]="locationCity" name="reviewCity" />
+          </label>
+          <label>
+            <span>Job type</span>
+            <select [(ngModel)]="jobType" name="reviewType">
+              @for (entry of jobTypeEntries; track entry[0]) {
+                <option [value]="entry[0]">{{ entry[1] }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Salary</span>
+            <input [(ngModel)]="salaryText" name="reviewSalary" />
+          </label>
+          <label>
+            <span>Apply / website</span>
+            <input [(ngModel)]="contactWebsite" name="reviewWebsite" />
+          </label>
+          <label class="form__wide">
+            <span>Description</span>
+            <textarea [(ngModel)]="description" name="reviewAbout" rows="10"></textarea>
+          </label>
+          <label>
+            <span>Phone</span>
+            <input [(ngModel)]="contactPhone" name="reviewPhone" />
+          </label>
+          <label>
+            <span>HR email</span>
+            <input [(ngModel)]="contactEmail" name="reviewEmail" />
+          </label>
+        </form>
+
+        <section class="chat" aria-label="AI assistant">
+          <h2>AI assistant</h2>
+          <p class="chat__hint">
+            Ask for fixes — e.g. “keep English only”, “move last date into description”, “fix salary”.
+          </p>
+          <div class="chat__log" role="log">
+            @for (msg of chat(); track $index) {
+              <p class="chat__bubble" [class.chat__bubble--user]="msg.role === 'user'">
+                {{ msg.text }}
+              </p>
+            } @empty {
+              <p class="chat__empty">No chat yet. Use Improve with AI or send a note.</p>
+            }
+          </div>
+          <form class="chat__compose" (ngSubmit)="sendChat(); $event.preventDefault()">
+            <textarea
+              rows="3"
+              [ngModel]="chatInput()"
+              (ngModelChange)="chatInput.set($event)"
+              name="chatInput"
+              placeholder="Instruction for AI…"
+              [disabled]="aiBusy() || !aiEnabled()"
+            ></textarea>
+            <button type="submit" [disabled]="aiBusy() || !aiEnabled() || !chatInput().trim()">
+              Send to AI
+            </button>
+          </form>
+        </section>
+
+        <div class="form__actions">
+          <button type="button" class="btn--ghost" (click)="goPreview()">Preview</button>
+          <button type="button" class="btn" [disabled]="busy()" (click)="requestPost()">
+            Post job
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (panel() === 'preview') {
+      <section class="preview" aria-label="Seeker preview">
+        <p class="preview__label">How seekers see it in search</p>
+        <article class="preview-card">
+          <div class="preview-card__meta">
+            <span class="badge">{{ languageLabel(contentLanguage) }}</span>
+            <time>{{ formatPostedDate(nowIso) }}</time>
+          </div>
+          <h2>{{ title || 'Job title' }}</h2>
+          <p class="employer">{{ employerName || 'Employer' }}</p>
+          <p class="facts">{{ locationCity || 'City' }}</p>
+          <p class="facts">{{ previewFacts() }}</p>
+          <p class="about">{{ description || 'Description will appear here.' }}</p>
+          <span class="preview-cta">View role</span>
+        </article>
+
+        <p class="preview__label">Job page contact</p>
+        <article class="preview-card">
+          <h3>Employer contact</h3>
+          @if (contactPhone || contactEmail || contactWebsite) {
+            <ul>
+              @if (contactPhone) {
+                <li>Phone: {{ contactPhone }}</li>
+              }
+              @if (contactEmail) {
+                <li>HR email: {{ contactEmail }}</li>
+              }
+              @if (contactWebsite) {
+                <li>Website: {{ contactWebsite }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="muted">No contact channels on this post yet.</p>
+          }
+        </article>
+
+        <div class="form__actions">
+          <button type="button" class="btn--ghost" (click)="setPanel('review')">Back to Review</button>
+          <button type="button" class="btn" [disabled]="busy()" (click)="requestPost()">
+            @if (busy()) {
+              Posting…
+            } @else {
+              Post job live
+            }
+          </button>
+        </div>
+      </section>
+    }
   }
 
   @if (message()) {
     <p class="ok">
       {{ message() }}
-      <a class="ok-link" routerLink="/blog-approval">Open Blog Approval</a>
+      <a class="ok-link" routerLink="/my-jobs">View my jobs</a>
     </p>
   }
   @if (error()) {
     <p class="error">{{ error() }}</p>
+  }
+
+  @if (confirmOpen()) {
+    <div class="modal-backdrop" (click)="closeConfirm()" role="presentation"></div>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="post-confirm-title">
+      <h2 id="post-confirm-title">Post this job live?</h2>
+      @if (didPreview()) {
+        <p>
+          You opened Preview. Recruiters publish directly — seekers will see this immediately. It
+          will not wait in Blog Approval. Did you check the preview? Confirm to post.
+        </p>
+        <div class="modal__actions">
+          <button type="button" class="btn--ghost" (click)="closeConfirm()">Not yet</button>
+          <button type="button" class="btn" [disabled]="busy()" (click)="confirmPostLive()">
+            Yes, I previewed — post
+          </button>
+        </div>
+      } @else {
+        <p>
+          Did you preview how seekers will see this? Open Preview first if you have not. Recruiters
+          publish live — this skips Blog Approval (admin import queue is separate).
+        </p>
+        <div class="modal__actions">
+          <button type="button" class="btn--ghost" (click)="closeConfirm()">Not yet</button>
+          <button type="button" class="btn--ghost" (click)="openPreviewFromConfirm()">
+            Open Preview
+          </button>
+          <button type="button" class="btn" [disabled]="busy()" (click)="confirmPostLive()">
+            I previewed — post live
+          </button>
+        </div>
+      }
+    </div>
   }
 </section>

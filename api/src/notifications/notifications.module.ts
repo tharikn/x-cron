@@ -6,6 +6,7 @@ import { SeekerModule } from '../seeker/seeker.module';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsMemoryStore } from './notifications.memory-store';
 import { NotificationsPrismaStore } from './notifications.prisma-store';
+import { NotificationsScheduler } from './notifications.scheduler';
 import { NotificationsService } from './notifications.service';
 import { NotificationsStore } from './notifications.store';
 
@@ -38,6 +39,7 @@ function resolveNotificationsStoreMode(): 'prisma' | 'memory' {
       inject: [PrismaService],
     },
     NotificationsService,
+    NotificationsScheduler,
   ],
   exports: [NotificationsService],
 })
