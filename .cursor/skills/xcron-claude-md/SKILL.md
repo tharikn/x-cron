@@ -78,6 +78,7 @@ Sideload path (not Play Store). **Production binary lives on GitHub Releases** â
 | CI | `.github/workflows/android-release.yml` on tag `v*` (or workflow_dispatch) |
 | Manifest helper | `scripts/apk-release-manifest.mjs` |
 | Local smoke only | `cd web && npm run sync:apk` (gitignored local file; **not** prod) |
+| Google Sign-In SHA-1 | Repo secret `ANDROID_DEBUG_KEYSTORE_BASE64` = base64 of local `~/.android/debug.keystore` (CI restores before `assembleDebug`). Android OAuth client: package `com.xcron.jobs` + SHA-1 `82:DC:02:56:2D:7F:F2:62:C9:ED:20:39:C1:55:7F:54:E8:CF:AF:22` |
 
 **Ship a bug-fix APK**
 
