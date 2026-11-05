@@ -125,6 +125,13 @@
               @if (job.promoted) {
                 <span class="badge badge--promoted">{{ job.promotionBadge || ('common.promoted' | t) }}</span>
               }
+              @if (job.hiringActivityBadge) {
+                <span
+                  class="badge badge--hiring"
+                  [class.badge--hiring-high]="job.hiringActivity === 'high'"
+                  [class.badge--hiring-medium]="job.hiringActivity === 'medium'"
+                >{{ job.hiringActivityBadge }}</span>
+              }
               <time>{{ formatPostedDate(job.publishedAt) }}</time>
             </div>
             <h3>{{ job.title }}</h3>

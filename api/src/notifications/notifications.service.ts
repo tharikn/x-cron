@@ -189,7 +189,7 @@ export class NotificationsService {
 
     // Saved-search alerts (exact query match) for users not already notified.
     if (this.seeker) {
-      for (const { userId, search } of this.seeker.listAlertSavedSearches()) {
+      for (const { userId, search } of await this.seeker.listAlertSavedSearches()) {
         if (already.has(userId)) continue;
         if (!this.seeker.jobMatchesSavedQuery(job, search.query)) continue;
         already.add(userId);
@@ -332,7 +332,7 @@ export class NotificationsService {
     if (!user.roles.includes('seeker')) {
       return { skipped: true as const, reason: 'not_seeker' };
     }
-    if (this.isSeekerProfileComplete(userId)) {
+    if (await this.isSeekerProfileComplete(userId)) {
       return { skipped: true as const, reason: 'profile_complete' };
     }
     const dedupeKey = `profile_complete:${userId}:day${dayIndex}`;
@@ -357,9 +357,9 @@ export class NotificationsService {
     });
   }
 
-  private isSeekerProfileComplete(userId: string): boolean {
+  private async isSeekerProfileComplete(userId: string): Promise<boolean> {
     if (!this.seeker) return false;
-    const profile = this.seeker.getProfile({ id: userId } as AuthUser);
+    const profile = await this.seeker.getProfile({ id: userId } as AuthUser);
     return Boolean(
       profile.experienceBand &&
         profile.skills.length > 0 &&
@@ -544,6 +544,7 @@ export class NotificationsService {
       applicationId: input.applicationId,
       eventType: input.eventType,
       status: input.status,
+      recipientRole: input.recipientRole,
     };
     const dedupeKey = `application:${input.applicationId}:${input.eventType}:${input.status}:${Date.now()}`;
 
@@ -643,6 +644,117 @@ export class NotificationsService {
       } else {
         suppressed += 1;
       }
+    }
+
+    await this.store.updateDispatch(dispatch.id, {
+      matchedCount: 1,
+      sentCount: sent,
+      suppressedCount: suppressed,
+      failedCount: failed,
+    });
+    await this.store.finishDispatch(dispatch.id, 'completed');
+    return { dispatchId: dispatch.id, sent, suppressed, failed };
+  }
+
+  /** Contact Admin messenger — notify seeker/recruiter or admin on new reply. */
+  async onSupportEvent(input: {
+    threadId: string;
+    recipientUserId: string;
+    recipientRole: 'seeker' | 'employer';
+    title: string;
+    body: string;
+    eventType: string;
+    audience: 'seeker' | 'employer';
+  }) {
+    const dispatch = await this.store.startDispatch({
+      triggerType: 'support_event',
+      meta: {
+        threadId: input.threadId,
+        eventType: input.eventType,
+        audience: input.audience,
+        recipientRole: input.recipientRole,
+        pushProvider: this.push.name,
+        mailProvider: this.mail.name,
+      },
+    });
+
+    const prefs = await this.store.getNotificationPrefs(input.recipientUserId);
+    const quiet = this.inQuietHours(
+      prefs.quietHoursStart,
+      prefs.quietHoursEnd,
+    );
+    const data: Record<string, string> = {
+      threadId: input.threadId,
+      eventType: input.eventType,
+      audience: input.audience,
+      recipientRole: input.recipientRole,
+      action: 'open_feedback',
+    };
+    const dedupeKey = `support:${input.threadId}:${input.eventType}:${Date.now()}`;
+
+    let sent = 0;
+    let suppressed = 0;
+    let failed = 0;
+
+    if (prefs.inAppEnabled !== false) {
+      await this.recordChannel({
+        userId: input.recipientUserId,
+        channel: 'in_app',
+        template: `support_${input.eventType}`,
+        title: input.title,
+        body: input.body,
+        data,
+        dedupeKey: `${dedupeKey}:in_app`,
+        dispatchId: dispatch.id,
+        status: 'sent',
+        provider: 'in_app',
+      });
+      sent += 1;
+    } else {
+      suppressed += 1;
+    }
+
+    if (prefs.pushAlertsEnabled !== false && !quiet) {
+      const devices = await this.store.listDevicesForUser(input.recipientUserId);
+      if (!devices.length) {
+        await this.logDelivery(dispatch.id, {
+          userId: input.recipientUserId,
+          channel: 'push',
+          status: 'suppressed',
+          title: input.title,
+          body: input.body,
+          dedupeKey: `${dedupeKey}:push`,
+          error: 'no_device',
+        });
+        suppressed += 1;
+      } else {
+        for (const device of devices) {
+          const result = await this.push.send({
+            token: device.fcmToken,
+            title: input.title,
+            body: input.body,
+            data,
+          });
+          await this.recordChannel({
+            userId: input.recipientUserId,
+            channel: 'push',
+            template: `support_${input.eventType}`,
+            title: input.title,
+            body: input.body,
+            data,
+            dedupeKey: `${dedupeKey}:push:${device.id}`,
+            dispatchId: dispatch.id,
+            status: result.ok ? 'sent' : 'failed',
+            error: result.error,
+            provider: this.push.name,
+            providerMessageId: result.providerMessageId,
+          });
+          if (result.ok) sent += 1;
+          else failed += 1;
+        }
+      }
+    } else if (quiet) {
+      suppressed += 1;
     }
 
     await this.store.updateDispatch(dispatch.id, {

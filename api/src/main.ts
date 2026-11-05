@@ -2,6 +2,10 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import {
+  ValidationExceptionFilter,
+  validationFailedException,
+} from './security/validation';
 
 async function bootstrap() {
   // rawBody required for Razorpay webhook HMAC verification
@@ -39,11 +43,13 @@ async function bootstrap() {
     exposedHeaders: ['Retry-After', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'],
   });
 
+  app.useGlobalFilters(new ValidationExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: validationFailedException,
     }),
   );
 

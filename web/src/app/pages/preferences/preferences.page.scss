@@ -154,3 +154,35 @@ button:hover {
 .channels .ok {
   margin-top: 0.35rem;
 }
+
+.perm {
+  margin: 0.15rem 0 0;
+  font-size: var(--xcron-text-meta);
+  font-weight: var(--xcron-weight-medium);
+  color: var(--xcron-ink-soft);
+}
+
+.perm--ok {
+  color: var(--xcron-success, #22c55e);
+}
+
+.perm--bad {
+  color: var(--xcron-danger, #f43f5e);
+}
+
+.btn-perm {
+  width: fit-content;
+  min-height: var(--xcron-btn-height, 44px);
+  padding: 0 1rem;
+  border-radius: var(--xcron-radius);
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  font: inherit;
+  font-weight: var(--xcron-weight-semibold, 600);
+  cursor: pointer;
+}
+
+.btn-perm:hover {
+  border-color: var(--xcron-primary);
+}

@@ -102,6 +102,7 @@ export class JobDetailPage implements OnInit {
     this.job.set(job);
     if (job) {
       this.viewed.track(job);
+      this.jobsService.recordJobView(job.id);
       this.related.set(await this.jobsService.related(job.id));
       if (this.auth.isSignedIn()) {
         try {

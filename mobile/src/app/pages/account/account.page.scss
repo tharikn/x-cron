@@ -364,3 +364,24 @@
 code {
   font-size: 0.85em;
 }
+
+ion-item.is-invalid {
+  --border-color: #f43f5e;
+}
+
+.accordion-body app-pii-field {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.accordion-body .pii-field__input {
+  width: 100%;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--xcron-ink);
+  font-family: var(--xcron-font-body);
+}

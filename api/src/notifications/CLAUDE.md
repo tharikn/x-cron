@@ -25,7 +25,9 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 5. Channels: in-app always (if enabled); push/mail when not quiet
 6. Each attempt → `NotificationDelivery` log + inbox/`NotificationRecord` for in-app
 
-**ATS applications:** `onApplicationEvent(...)` (trigger `application_event`) — targeted fan-out to seeker or employer on apply / first view / status change / offer letter / note / withdraw. Called from `applications` module only.
+**ATS applications:** `onApplicationEvent(...)` (trigger `application_event`) — targeted fan-out to seeker or employer on apply / first view / status change / offer letter / note / withdraw / chat. Called from `applications` module only. Inbox `data` includes `applicationId`, `eventType`, `status`, `recipientRole` so clients open the application timeline (not only the job). Design: [../../../docs/APPLICATIONS_TIMELINE.md](../../../docs/APPLICATIONS_TIMELINE.md).
+
+**Contact Admin messenger:** `onSupportEvent(...)` (trigger `support_event`) — targeted fan-out on user message / admin reply from `feedback` module. Inbox `data`: `{ threadId, eventType, audience, action: open_feedback }`. Clients OS-tray + deep-link `?thread=` (not gated on job-alert prefs). Design: [../../../docs/FEEDBACK.md](../../../docs/FEEDBACK.md).
 
 **Onboarding (welcome + profile complete):**
 

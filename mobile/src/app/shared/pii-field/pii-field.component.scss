@@ -1,0 +1,37 @@
+.pii-field {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.pii-field__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pii-field__toggle {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: var(--xcron-btn-height, 44px);
+  padding: 0 0.65rem;
+  border-radius: var(--xcron-radius, 12px);
+  border: 1px solid var(--xcron-line, #2a2440);
+  background: var(--xcron-wash, #1b162b);
+  color: var(--xcron-ink, #fff);
+  font-family: var(--xcron-sans, var(--xcron-font-body), sans-serif);
+  font-size: var(--xcron-text-label, 11px);
+  font-weight: var(--xcron-weight-semibold, 600);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: var(--xcron-primary, #7c5cff);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

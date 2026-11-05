@@ -2,6 +2,10 @@
   display: contents;
 }
 
+ion-app {
+  position: relative;
+}
+
 .api-loading {
   position: fixed;
   inset: 0;

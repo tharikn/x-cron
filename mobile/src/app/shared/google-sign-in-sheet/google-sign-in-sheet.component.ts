@@ -152,6 +152,26 @@ export class GoogleSignInSheetComponent {
   private async afterSignedIn(): Promise<void> {
     try {
       await this.notifications.registerDevice();
+      await this.notifications.loadPrefs();
+      if (this.notifications.prefs().pushAlertsEnabled !== false) {
+        const result = await this.notifications.promptOsPermissionAfterSignIn();
+        if (result.asked) {
+          const toast = await this.toastController.create({
+            message:
+              result.status === 'granted'
+                ? 'System notifications enabled'
+                : 'System notifications blocked — enable them in phone settings',
+            duration: 2800,
+            position: 'bottom',
+            cssClass:
+              result.status === 'granted'
+                ? ['xcron-toast', 'xcron-toast--success']
+                : ['xcron-toast', 'xcron-toast--error'],
+          });
+          await toast.present();
+        }
+        await this.notifications.registerDevice();
+      }
     } catch {
       // optional — Account / Prefs also re-register
     }

@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -42,6 +43,7 @@ export class NotificationsService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly preferences = inject(PreferencesService);
+  private readonly router = inject(Router);
 
   readonly prefs = signal<NotificationPrefs>({
     jobAlertsEnabled: true,
@@ -72,6 +74,13 @@ export class NotificationsService {
   private pushRegistering = false;
   private audioCtx: AudioContext | null = null;
   private fcmTokenWaiters: Array<(token: string | null) => void> = [];
+  private permissionWatchBound = false;
+  private lastAnnouncedPermission:
+    | 'granted'
+    | 'denied'
+    | 'prompt'
+    | 'unsupported'
+    | null = null;
 
   /** Stub token for browser / until native FCM registration succeeds. */
   stubToken(): string {
@@ -257,42 +266,150 @@ export class NotificationsService {
     return trayOk;
   }
 
+  /**
+   * After sign-in: request OS notification permission when still undecided.
+   * Callers should toast when `asked` is true.
+   */
+  async promptOsPermissionAfterSignIn(): Promise<{
+    status: 'granted' | 'denied' | 'prompt' | 'unsupported';
+    asked: boolean;
+    granted: boolean;
+  }> {
+    await this.refreshPushPermissionState();
+    const before = this.pushPermission();
+    if (before === 'prompt') {
+      const granted = await this.ensurePushPermission();
+      const status = this.pushPermission();
+      this.lastAnnouncedPermission = status;
+      return { status, asked: true, granted };
+    }
+    // Already decided — still refresh remote push registration when allowed.
+    if (before === 'granted') {
+      await this.ensurePushPermission();
+    }
+    this.lastAnnouncedPermission = this.pushPermission();
+    return {
+      status: this.pushPermission(),
+      asked: false,
+      granted: this.pushPermission() === 'granted',
+    };
+  }
+
+  /**
+   * Re-check OS permission on resume / prefs open. Invokes `onChange` once per
+   * real flip after the first seed (for toast + UI sync).
+   */
+  watchOsPermission(
+    onChange?: (status: 'granted' | 'denied' | 'prompt' | 'unsupported') => void,
+  ): void {
+    if (this.permissionWatchBound || typeof document === 'undefined') return;
+    this.permissionWatchBound = true;
+    void this.refreshPushPermissionState().then(() => {
+      this.lastAnnouncedPermission = this.pushPermission();
+    });
+
+    const emitIfChanged = async () => {
+      await this.refreshPushPermissionState();
+      const next = this.pushPermission();
+      if (this.lastAnnouncedPermission === next) return;
+      this.lastAnnouncedPermission = next;
+      onChange?.(next);
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void emitIfChanged();
+    });
+    window.addEventListener('focus', () => {
+      void emitIfChanged();
+    });
+
+    if (Capacitor.isNativePlatform()) {
+      void App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) void emitIfChanged();
+      });
+    }
+
+    if (!Capacitor.isNativePlatform()) {
+      const perms = (
+        navigator as Navigator & {
+          permissions?: {
+            query: (desc: { name: string }) => Promise<{
+              state: string;
+              onchange: ((this: unknown, ev: Event) => void) | null;
+            }>;
+          };
+        }
+      ).permissions;
+      if (perms?.query) {
+        void perms
+          .query({ name: 'notifications' })
+          .then((status) => {
+            status.onchange = () => {
+              void emitIfChanged();
+            };
+          })
+          .catch(() => {
+            // ignore unsupported query
+          });
+      }
+    }
+  }
+
   /** Android/iOS system shade via LocalNotifications (or browser Notification API). */
   async ensureOsTrayPermission(): Promise<boolean> {
     if (Capacitor.isNativePlatform()) {
       try {
         await this.ensureNativeChannel();
+        await this.bindLocalNotificationTap();
         const current = await LocalNotifications.checkPermissions();
         let display = current.display;
-        if (display !== 'granted') {
+        if (display === 'prompt' || display === 'prompt-with-rationale') {
           const asked = await LocalNotifications.requestPermissions();
           display = asked.display;
         }
-        this.pushPermission.set(display === 'granted' ? 'granted' : 'denied');
+        const status = this.mapNativeDisplay(display);
+        this.pushPermission.set(status);
+        // Suppress watch duplicate toast — callers announce when they asked.
+        this.lastAnnouncedPermission = status;
         return display === 'granted';
       } catch (err) {
         console.warn('[notifications] OS tray permission failed', err);
         this.pushPermission.set('unsupported');
+        this.lastAnnouncedPermission = 'unsupported';
         return false;
       }
     }
 
     if (typeof Notification === 'undefined') {
       this.pushPermission.set('unsupported');
+      this.lastAnnouncedPermission = 'unsupported';
       return false;
     }
     let permission = Notification.permission;
     if (permission === 'default') {
       permission = await Notification.requestPermission();
     }
-    this.pushPermission.set(
-      permission === 'granted'
-        ? 'granted'
-        : permission === 'denied'
-          ? 'denied'
-          : 'prompt',
-    );
+    const status = this.mapBrowserPermission(permission);
+    this.pushPermission.set(status);
+    this.lastAnnouncedPermission = status;
     return permission === 'granted';
+  }
+
+  private mapNativeDisplay(
+    display: string,
+  ): 'granted' | 'denied' | 'prompt' | 'unsupported' {
+    if (display === 'granted') return 'granted';
+    if (display === 'prompt' || display === 'prompt-with-rationale') return 'prompt';
+    if (display === 'denied') return 'denied';
+    return 'denied';
+  }
+
+  private mapBrowserPermission(
+    permission: NotificationPermission,
+  ): 'granted' | 'denied' | 'prompt' | 'unsupported' {
+    if (permission === 'granted') return 'granted';
+    if (permission === 'denied') return 'denied';
+    return 'prompt';
   }
 
   /**
@@ -397,25 +514,31 @@ export class NotificationsService {
     // Foreground: OS does not auto-show notification payload — mirror via local tray.
     await PushNotifications.addListener('pushNotificationReceived', (notification) => {
       if (this.prefs().pushAlertsEnabled === false) return;
-      if (this.prefs().jobAlertsEnabled === false) return;
+      const data = (notification.data ?? {}) as Record<string, string>;
+      const isJobAlert = this.isJobAlertPayload(data);
+      if (isJobAlert && this.prefs().jobAlertsEnabled === false) return;
       const id =
-        (notification.data?.['notificationId'] as string | undefined) ||
+        (data['notificationId'] as string | undefined) ||
         notification.id ||
         `fcm_${Date.now()}`;
       void this.showOsNotification({
         id,
         title: notification.title || 'X Cron Jobs',
-        body: notification.body || 'New job match',
+        body: notification.body || (isJobAlert ? 'New job match' : 'New update'),
         status: 'sent',
-        jobId: (notification.data?.['jobId'] as string | null) ?? null,
+        jobId: (data['jobId'] as string | null) ?? null,
         createdAt: new Date().toISOString(),
         readAt: null,
+        data,
       });
       this.playAlertTone();
       void this.refreshInbox({ announce: false });
     });
 
-    await PushNotifications.addListener('pushNotificationActionPerformed', () => {
+    await PushNotifications.addListener('pushNotificationActionPerformed', (event) => {
+      this.navigateFromPayload(
+        (event.notification?.data ?? {}) as Record<string, string>,
+      );
       void this.onForegroundResume();
     });
   }
@@ -461,13 +584,11 @@ export class NotificationsService {
     }
   }
 
-  private async refreshPushPermissionState(): Promise<void> {
+  async refreshPushPermissionState(): Promise<void> {
     if (Capacitor.isNativePlatform()) {
       try {
         const current = await LocalNotifications.checkPermissions();
-        this.pushPermission.set(
-          current.display === 'granted' ? 'granted' : 'denied',
-        );
+        this.pushPermission.set(this.mapNativeDisplay(current.display));
       } catch {
         this.pushPermission.set('unsupported');
       }
@@ -477,13 +598,7 @@ export class NotificationsService {
       this.pushPermission.set('unsupported');
       return;
     }
-    this.pushPermission.set(
-      Notification.permission === 'granted'
-        ? 'granted'
-        : Notification.permission === 'denied'
-          ? 'denied'
-          : 'prompt',
-    );
+    this.pushPermission.set(this.mapBrowserPermission(Notification.permission));
   }
 
   private async syncOsAlerts(
@@ -511,12 +626,16 @@ export class NotificationsService {
     }
 
     const fresh = unread.filter((n) => !seen.has(n.id));
-    for (const item of unread) seen.add(item.id);
-    this.writeSeenIds(seen);
-
+    // Silent inbox pulls must not burn tray eligibility — only mark seen when
+    // we announce (or after a successful tray attempt below).
     if (!announce || !fresh.length) return;
     if (this.prefs().pushAlertsEnabled === false) return;
-    if (this.prefs().jobAlertsEnabled === false) return;
+
+    const eligible = fresh.filter((item) => {
+      if (!this.isJobAlertPayload(item.data ?? undefined)) return true;
+      return this.prefs().jobAlertsEnabled !== false;
+    });
+    if (!eligible.length) return;
 
     // Trust background FCM only when the device is linked on the API and the
     // app is not visible. Otherwise poll-driven LocalNotifications must fill
@@ -529,32 +648,94 @@ export class NotificationsService {
       this.deviceRegistered() &&
       appHidden
     ) {
+      for (const item of eligible) seen.add(item.id);
+      this.writeSeenIds(seen);
       return;
     }
 
     const allowed = await this.ensureOsTrayPermission();
-    if (!allowed) return;
-
-    for (const item of fresh.slice(0, 5)) {
-      await this.showOsNotification(item);
+    if (!allowed) {
+      // Permission denied — don't hammer every poll; in-app badge still shows.
+      for (const item of eligible) seen.add(item.id);
+      this.writeSeenIds(seen);
+      return;
     }
+
+    for (const item of eligible.slice(0, 5)) {
+      await this.showOsNotification(item);
+      seen.add(item.id);
+    }
+    this.writeSeenIds(seen);
     this.playAlertTone();
   }
 
+  /** Job-match rows respect jobAlertsEnabled; support / ATS / onboarding always may tray. */
+  private isJobAlertPayload(data?: Record<string, string> | null): boolean {
+    const action = data?.['action']?.trim();
+    if (
+      action === 'open_feedback' ||
+      action === 'complete_profile' ||
+      action === 'browse_jobs'
+    ) {
+      return false;
+    }
+    if (data?.['applicationId']?.trim()) return false;
+    if (data?.['threadId']?.trim()) return false;
+    return true;
+  }
+
+  private pathFromPayload(data?: Record<string, string> | null): string | null {
+    const action = data?.['action']?.trim();
+    if (action === 'complete_profile') return '/tabs/account';
+    if (action === 'browse_jobs') return '/tabs/discover';
+    if (action === 'open_feedback') {
+      const threadId = data?.['threadId']?.trim();
+      const qs = threadId ? `?thread=${encodeURIComponent(threadId)}` : '';
+      return data?.['eventType'] === 'user_message'
+        ? `/tabs/admin-feedback${qs}`
+        : `/tabs/feedback${qs}`;
+    }
+    const applicationId = data?.['applicationId']?.trim();
+    if (applicationId) {
+      const asEmployer = data?.['recipientRole'] === 'employer';
+      return asEmployer
+        ? `/tabs/applications/${applicationId}?as=employer`
+        : `/tabs/applications/${applicationId}`;
+    }
+    const jobId = data?.['jobId']?.trim();
+    return jobId ? `/tabs/jobs/${jobId}` : null;
+  }
+
+  private navigateFromPayload(data?: Record<string, string> | null): void {
+    const path = this.pathFromPayload(data);
+    if (!path) return;
+    void this.router.navigateByUrl(path);
+  }
+
   private async showOsNotification(item: InAppNotification): Promise<void> {
+    const data: Record<string, string> = {
+      ...(item.data ?? {}),
+      notificationId: item.id,
+    };
+    if (item.jobId && !data['jobId']) data['jobId'] = item.jobId;
+    const fallbackBody = this.isJobAlertPayload(data)
+      ? 'New job match'
+      : 'New update';
+
     try {
       if (Capacitor.isNativePlatform()) {
         await this.ensureNativeChannel();
+        await this.bindLocalNotificationTap();
         await LocalNotifications.schedule({
           notifications: [
             {
               id: this.toNotifId(item.id),
               title: item.title || 'X Cron Jobs',
-              body: item.body || 'New job match',
+              body: item.body || fallbackBody,
               sound: 'default',
               channelId: CHANNEL_ID,
               foreground: true,
-              extra: { jobId: item.jobId, notificationId: item.id },
+              extra: data,
             },
           ],
         });
@@ -565,18 +746,34 @@ export class NotificationsService {
         return;
       }
       const note = new Notification(item.title || 'X Cron Jobs', {
-        body: item.body || 'New job match',
+        body: item.body || fallbackBody,
         tag: item.id,
         silent: false,
-        data: { jobId: item.jobId, notificationId: item.id },
+        data,
       });
       note.onclick = () => {
         window.focus();
+        this.navigateFromPayload(data);
         note.close();
       };
     } catch (err) {
       console.warn('[notifications] showOsNotification failed', err);
     }
+  }
+
+  private localTapBound = false;
+
+  private async bindLocalNotificationTap(): Promise<void> {
+    if (this.localTapBound || !Capacitor.isNativePlatform()) return;
+    this.localTapBound = true;
+    await LocalNotifications.addListener(
+      'localNotificationActionPerformed',
+      (event) => {
+        const extra = (event.notification?.extra ?? {}) as Record<string, string>;
+        this.navigateFromPayload(extra);
+        void this.onForegroundResume();
+      },
+    );
   }
 
   /** Short system-like chime — browsers often mute Notification sound when focused. */

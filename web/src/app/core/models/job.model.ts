@@ -34,6 +34,33 @@ export interface JobSalary {
   negotiable?: boolean;
 }
 
+/** Recruiter listing funnel totals (from GET /employers/jobs or analytics). */
+export interface JobAnalyticsTotals {
+  views: number;
+  applied: number;
+  appliedActive: number;
+  contacted: number;
+  daysLive: number;
+  reportCount: number;
+  applyRatePct: number | null;
+  contactRatePct: number | null;
+}
+
+export interface JobAnalyticsSeriesPoint {
+  date: string;
+  views: number;
+  applied: number;
+  contacted: number;
+}
+
+export interface JobAnalyticsDashboard {
+  jobId: string;
+  from: string;
+  to: string;
+  totals: JobAnalyticsTotals;
+  series: JobAnalyticsSeriesPoint[];
+}
+
 export interface Job {
   id: string;
   slug: string;
@@ -66,6 +93,11 @@ export interface Job {
   distanceKm?: number;
   promoted?: boolean;
   promotionBadge?: string | null;
+  /** Earned recruiter signal: high | medium only — never a public “low”. */
+  hiringActivity?: 'high' | 'medium' | null;
+  hiringActivityBadge?: string | null;
+  /** Present on GET /employers/jobs (owner list). */
+  analytics?: JobAnalyticsTotals;
   contact: {
     hasPhone: boolean;
     hasEmail: boolean;

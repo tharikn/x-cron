@@ -15,8 +15,9 @@ import { AuthService } from '../../core/services/auth.service';
 import { LanguagePage } from '../language/language.page';
 import { PreferencesPage } from '../preferences/preferences.page';
 import { SavedJobsPage } from '../saved-jobs/saved-jobs.page';
+import { ThemePage } from '../theme/theme.page';
 
-export type SettingsTab = 'language' | 'preferences' | 'saved';
+export type SettingsTab = 'language' | 'theme' | 'preferences' | 'saved';
 
 @Component({
   selector: 'app-settings',
@@ -34,6 +35,7 @@ export type SettingsTab = 'language' | 'preferences' | 'saved';
     RouterLink,
     TranslatePipe,
     LanguagePage,
+    ThemePage,
     PreferencesPage,
     SavedJobsPage,
   ],
@@ -44,6 +46,7 @@ export class SettingsPage implements OnInit {
   private readonly auth = inject(AuthService);
 
   readonly isSignedIn = this.auth.isSignedIn;
+  readonly isEmployer = this.auth.isEmployer;
   readonly tab = signal<SettingsTab>('language');
 
   constructor() {
@@ -85,7 +88,7 @@ export class SettingsPage implements OnInit {
       });
       return this.auth.isSignedIn() ? 'preferences' : 'language';
     }
-    if (raw === 'preferences' || raw === 'saved') {
+    if (raw === 'theme' || raw === 'preferences' || raw === 'saved') {
       if (!this.auth.isSignedIn()) {
         void this.router.navigate(['/tabs/account'], {
           queryParams: {
@@ -95,6 +98,8 @@ export class SettingsPage implements OnInit {
         });
         return 'language';
       }
+      // Saved jobs are seeker-only — recruiters use Account → Activity.
+      if (raw === 'saved' && this.auth.isEmployer()) return 'preferences';
       return raw;
     }
     if (raw === 'language') return 'language';

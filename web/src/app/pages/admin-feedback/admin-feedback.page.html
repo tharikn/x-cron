@@ -1,0 +1,131 @@
+<section class="page">
+  <p class="brand">X Cron <span>Admin</span></p>
+  <h1>Feedback desk</h1>
+  <p class="lead">Contact Admin messenger — seeker and recruiter threads.</p>
+
+  <div class="toolbar">
+    <label>
+      Status
+      <select [(ngModel)]="statusFilter" name="statusFilter" (ngModelChange)="reload()">
+        <option value="awaiting_admin">Waiting for admin</option>
+        <option value="awaiting_user">Waiting for user</option>
+        <option value="closed">Closed</option>
+        <option value="all">All</option>
+      </select>
+    </label>
+    <label>
+      Audience
+      <select [(ngModel)]="audienceFilter" name="audienceFilter" (ngModelChange)="reload()">
+        <option value="">All</option>
+        <option value="seeker">Seeker</option>
+        <option value="employer">Recruiter</option>
+      </select>
+    </label>
+    <button type="button" class="btn" [disabled]="busy()" (click)="reload()">Refresh</button>
+  </div>
+
+  <div class="desk">
+    <aside class="list">
+      @if (!items().length) {
+        <p class="empty">No threads for this filter.</p>
+      }
+      @for (row of items(); track row.id) {
+        <button
+          type="button"
+          class="row"
+          [class.row--on]="active()?.id === row.id"
+          (click)="open(row.id)"
+        >
+          <strong>{{ row.subject }}</strong>
+          <span class="meta">
+            {{ row.userDisplayName || row.userId }} · {{ row.audienceLabel }} ·
+            {{ row.statusLabel }}
+          </span>
+          <span class="meta">{{ row.lastMessageAt | date: 'short' }}</span>
+        </button>
+      }
+    </aside>
+
+    <section class="detail">
+      @if (active(); as thread) {
+        <header>
+          <h2>{{ thread.subject }}</h2>
+          <p class="meta">
+            {{ thread.userDisplayName || thread.userId }} ·
+            {{ thread.audienceLabel }} · {{ thread.categoryLabel }} ·
+            {{ thread.statusLabel }}
+          </p>
+          @if (peerPresenceLine()) {
+            <p
+              class="presence"
+              [class.presence--online]="thread.presence?.peerOnline"
+            >
+              {{ peerPresenceLine() }}
+            </p>
+          }
+        </header>
+
+        <div class="chat" #chatLog role="log" aria-live="polite">
+          @for (msg of messages(); track msg.id) {
+            <div
+              class="bubble"
+              [class.bubble--admin]="msg.senderRole === 'admin'"
+              [class.bubble--user]="msg.senderRole !== 'admin'"
+              [class.bubble--new]="isNewMessage(msg.id)"
+            >
+              @if (isNewMessage(msg.id)) {
+                <span class="bubble__new">New</span>
+              }
+              <p>{{ msg.body }}</p>
+              <span class="bubble__meta">
+                {{ senderLabel(msg, thread.audienceLabel) }}
+                · {{ msg.createdAt | date: 'short' }}
+              </span>
+            </div>
+          }
+          @if (sending()) {
+            <div class="typing" aria-live="polite">
+              <span class="typing__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span>Sending…</span>
+            </div>
+          } @else if (showPeerTyping()) {
+            <div class="typing" aria-live="polite">
+              <span class="typing__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span>{{ peerTypingLabel() }}</span>
+            </div>
+          }
+        </div>
+
+        @if (thread.status !== 'closed') {
+          <form class="composer" (ngSubmit)="send()">
+            <textarea
+              [(ngModel)]="chatBody"
+              (ngModelChange)="onComposerInput()"
+              name="chatBody"
+              rows="3"
+              placeholder="Reply as admin…"
+              maxlength="4000"
+            ></textarea>
+            <div class="actions">
+              <button type="submit" class="btn" [disabled]="busy() || !chatBody.trim()">
+                Send reply
+              </button>
+              <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="close()">
+                Close
+              </button>
+            </div>
+          </form>
+        } @else {
+          <div class="actions">
+            <p class="empty">Thread closed.</p>
+            <button type="button" class="btn" [disabled]="busy()" (click)="reopen()">
+              Reopen
+            </button>
+          </div>
+        }
+      } @else {
+        <p class="empty">Select a thread to reply.</p>
+      }
+    </section>
+  </div>
+</section>

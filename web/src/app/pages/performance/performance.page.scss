@@ -1,5 +1,7 @@
 .performance {
-  padding: 1.5rem 0 3rem;
+  max-width: min(720px, var(--xcron-content-max, 1080px));
+  margin: 0 auto;
+  padding: 1.5rem var(--xcron-pad-x) 3rem;
 }
 
 .brand-mark {

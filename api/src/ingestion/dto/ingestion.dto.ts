@@ -9,6 +9,12 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import {
+  IsSafeText,
+  IsXcronSalaryText,
+  IsXcronUrl,
+} from '../../security/validation/decorators';
+import { SanitizeOptionalText } from '../../security/validation/sanitize';
 
 export class CreateImportBatchDto {
   @IsOptional()
@@ -62,28 +68,37 @@ export class EnrichRecordDto {
 
 export class UpdateImportRecordDto {
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(200)
+  @IsSafeText({ max: 200 })
   title?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(200)
+  @IsSafeText({ max: 200 })
   employerName?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(120)
+  @IsSafeText({ max: 120 })
   locationCity?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(40)
   jobType?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(120)
+  @IsXcronSalaryText()
   salaryText?: string;
 
   @IsOptional()
@@ -93,17 +108,21 @@ export class UpdateImportRecordDto {
   vacancies?: number;
 
   @IsOptional()
+  @SanitizeOptionalText({ allowNewlines: true, stripHtml: false })
   @IsString()
   @MaxLength(20000)
   description?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(16)
   contentLanguage?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(500)
+  @IsXcronUrl()
   contactWebsite?: string;
 }

@@ -1,0 +1,22 @@
+<div class="page">
+  <p class="lead">{{ 'theme.lead' | t }}</p>
+  <div class="choices" role="listbox" aria-label="Theme">
+    @for (opt of options; track opt) {
+      <button
+        type="button"
+        class="choice"
+        role="option"
+        [attr.aria-selected]="preference() === opt"
+        [class.choice--active]="preference() === opt"
+        (click)="select(opt)"
+      >
+        <span class="choice__swatch" [attr.data-preview]="opt" aria-hidden="true"></span>
+        <span class="choice__copy">
+          <span class="choice__label">{{ labelKey(opt) | t }}</span>
+          <span class="choice__hint">{{ hintKey(opt) | t }}</span>
+        </span>
+      </button>
+    }
+  </div>
+  <p class="current">{{ 'theme.current' | t }}: {{ labelKey(preference()) | t }}</p>
+</div>

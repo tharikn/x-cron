@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
@@ -7,6 +7,7 @@ import {
   type UserPreferences,
 } from '../models/job.model';
 import { AuthService } from './auth.service';
+import { ThemeService } from './theme.service';
 
 const PREFS_KEY = 'xcron.preferences';
 const PROMPT_DISMISSED_KEY = 'xcron.prefPromptDismissed';
@@ -16,6 +17,7 @@ const DEVICE_ID_KEY = 'xcron.deviceId';
 export class PreferencesService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly injector = inject(Injector);
 
   readonly preferences = signal<UserPreferences>(this.readPreferences());
   readonly promptDismissed = signal(this.readDismissed());
@@ -99,8 +101,9 @@ export class PreferencesService {
   }
 
   async clear(): Promise<void> {
-    this.preferences.set({ ...DEFAULT_PREFERENCES });
-    localStorage.removeItem(PREFS_KEY);
+    const theme = this.preferences().theme ?? DEFAULT_PREFERENCES.theme;
+    this.preferences.set({ ...DEFAULT_PREFERENCES, theme });
+    localStorage.setItem(PREFS_KEY, JSON.stringify(this.preferences()));
     if (this.auth.isSignedIn()) {
       try {
         await firstValueFrom(
@@ -108,8 +111,8 @@ export class PreferencesService {
             headers: this.auth.authHeaders(),
           }),
         );
-        this.syncScope.set('account');
-        this.lastSyncedAt.set(new Date().toISOString());
+        // Preserve appearance after job-pref wipe
+        await this.save({ theme });
       } catch {
         this.syncScope.set('local');
       }
@@ -167,11 +170,21 @@ export class PreferencesService {
         typeof remote.interfaceLocale === 'string' && remote.interfaceLocale.trim()
           ? remote.interfaceLocale.trim()
           : 'en',
+      theme:
+        remote.theme === 'system' ||
+        remote.theme === 'light' ||
+        remote.theme === 'dark' ||
+        remote.theme === 'warm'
+          ? remote.theme
+          : DEFAULT_PREFERENCES.theme,
     };
     this.preferences.set(next);
     localStorage.setItem(PREFS_KEY, JSON.stringify(next));
     this.syncScope.set(scope);
     this.lastSyncedAt.set(remote.updatedAt ?? new Date().toISOString());
+    if (next.theme) {
+      this.injector.get(ThemeService).syncFromRemote(next.theme);
+    }
   }
 
   private readPreferences(): UserPreferences {

@@ -7,11 +7,14 @@ import { ApiLoadingService } from '../services/api-loading.service';
 const SILENT_PATH_MARKERS = [
   '/ads/',
   '/auth/me',
+  '/auth/refresh',
   '/devices',
   '/notifications',
   '/preferences',
   '/i18n',
   '/languages',
+  '/feedback',
+  '/ai/help',
 ];
 
 function isSilent(url: string): boolean {

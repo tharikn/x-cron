@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApplyProfilesService } from '../../core/services/apply-profiles.service';
 import { ApplicationsService } from '../../core/services/applications.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -10,6 +10,9 @@ import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ViewedJobsService } from '../../core/services/viewed-jobs.service';
 import { jobPath } from '../../core/utils/format';
+
+type SeekerTab = 'apply' | 'saved' | 'applied' | 'for-you';
+type FeedTab = 'recent' | 'feed';
 
 @Component({
   selector: 'app-seeker',
@@ -24,15 +27,20 @@ export class SeekerPage implements OnInit {
   private readonly applyProfilesApi = inject(ApplyProfilesService);
   private readonly seo = inject(SeoService);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly viewed = inject(ViewedJobsService);
 
   readonly isSignedIn = this.auth.isSignedIn;
+  readonly isEmployer = this.auth.isEmployer;
   readonly saved = this.seeker.saved;
   readonly feed = this.seeker.feed;
   readonly jobApps = this.applications.mine;
   readonly applyProfiles = this.applyProfilesApi.items;
   readonly error = signal<string | null>(null);
   readonly removingId = signal<string | null>(null);
+  readonly tab = signal<SeekerTab>('apply');
+  readonly feedTab = signal<FeedTab>('recent');
   readonly jobPath = jobPath;
 
   versionName = '';
@@ -52,8 +60,17 @@ export class SeekerPage implements OnInit {
       path: '/me',
       robots: 'noindex,follow',
     });
+    this.tab.set(this.readTab(this.route.snapshot.queryParamMap.get('tab')));
+    this.feedTab.set(this.readFeedTab(this.route.snapshot.queryParamMap.get('feed')));
     await this.auth.ensureSession();
     if (!this.auth.isSignedIn()) return;
+    if (this.auth.isEmployer()) {
+      await this.router.navigate(['/sign-in'], {
+        queryParams: { tab: 'activity' },
+        replaceUrl: true,
+      });
+      return;
+    }
     try {
       await Promise.all([
         this.seeker.loadSaved(),
@@ -64,6 +81,26 @@ export class SeekerPage implements OnInit {
     } catch {
       this.error.set('Could not load your jobs.');
     }
+  }
+
+  async setTab(next: SeekerTab): Promise<void> {
+    this.tab.set(next);
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: next },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  async setFeedTab(next: FeedTab): Promise<void> {
+    this.feedTab.set(next);
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { feed: next },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   addVersionSkill(): void {
@@ -168,5 +205,17 @@ export class SeekerPage implements OnInit {
     } finally {
       this.removingId.set(null);
     }
+  }
+
+  private readTab(raw: string | null): SeekerTab {
+    if (raw === 'saved' || raw === 'applied' || raw === 'for-you' || raw === 'apply') {
+      return raw;
+    }
+    return 'apply';
+  }
+
+  private readFeedTab(raw: string | null): FeedTab {
+    if (raw === 'feed' || raw === 'recent') return raw;
+    return 'recent';
   }
 }

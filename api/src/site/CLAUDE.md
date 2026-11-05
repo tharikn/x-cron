@@ -6,7 +6,7 @@ Public site chrome + admin-tunable config. Runtime is **Prisma `SiteConfig`** (J
 
 | Key | Shape | Public GET | Admin PUT |
 | --- | --- | --- | --- |
-| `footer` | brand, addresses, social, links | `GET /v1/site/footer` | `PUT /v1/admin/site/footer` |
+| `footer` | brand, addresses (empty by default), social, links | `GET /v1/site/footer` | `PUT /v1/admin/site/footer` |
 | `commerce` | `unlockPricePaise`, `paymentsEnabled` (`postJob*` forced none/0) | `GET /v1/site/commerce` | `PUT /v1/admin/site/commerce` |
 | `auth` | `sessionTtlDays`, `otpTtlMinutes` | `GET /v1/site/auth` | `PUT /v1/admin/site/auth` |
 
@@ -27,5 +27,6 @@ Public site chrome + admin-tunable config. Runtime is **Prisma `SiteConfig`** (J
 ## Agent rules
 
 - Do not put private contacts in footer/commerce/auth docs.
+- Public footer `addresses` defaults to `[]` (no Visit/Operations HQ). Boot removes legacy seeded `addr_hq` (Palani) from `SiteConfig` if present.
 - Keep seed files aligned with Prisma `SiteConfig` key names.
 - Prefer extending this module over scattering app config elsewhere.

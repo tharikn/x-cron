@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import { MOCK_JOBS } from '../data/mock-jobs';
 import type {
   Job,
+  JobAnalyticsDashboard,
   JobSearchQuery,
   JobSearchResult,
   JobType,
@@ -12,6 +13,7 @@ import type {
 import { AuthService } from './auth.service';
 
 const SEARCH_COUNT_KEY = 'xcron.searchCount';
+const VIEWER_KEY = 'xcron.jobViewerKey';
 
 @Injectable({ providedIn: 'root' })
 export class JobsService {
@@ -22,6 +24,19 @@ export class JobsService {
   readonly loading = signal(false);
   readonly usingApi = signal(false);
   readonly lastError = signal<string | null>(null);
+
+  private viewerKey(): string {
+    if (typeof localStorage === 'undefined') return `anon_${Date.now()}`;
+    let key = localStorage.getItem(VIEWER_KEY);
+    if (!key) {
+      key =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `v_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(VIEWER_KEY, key);
+    }
+    return key;
+  }
 
   async search(
     query: JobSearchQuery,
@@ -222,6 +237,51 @@ export class JobsService {
   async reportJob(id: string, reason: string): Promise<void> {
     await firstValueFrom(
       this.http.post(`${environment.apiUrl}/jobs/${id}/report`, { reason }),
+    );
+  }
+
+  async listMyJobs(input: { page?: number; limit?: number } = {}): Promise<{
+    items: Job[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    let params = new HttpParams();
+    if (input.page) params = params.set('page', String(input.page));
+    if (input.limit) params = params.set('limit', String(input.limit));
+    return firstValueFrom(
+      this.http.get<{
+        items: Job[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>(`${environment.apiUrl}/employers/jobs`, {
+        params,
+        headers: this.auth.authHeaders(),
+      }),
+    );
+  }
+
+  recordJobView(jobId: string): void {
+    void firstValueFrom(
+      this.http.post<{ ok: boolean; counted: boolean }>(
+        `${environment.apiUrl}/jobs/${jobId}/events`,
+        { type: 'view', viewerKey: this.viewerKey() },
+      ),
+    ).catch(() => undefined);
+  }
+
+  getJobAnalytics(jobId: string, days = 30): Promise<JobAnalyticsDashboard> {
+    return firstValueFrom(
+      this.http.get<JobAnalyticsDashboard>(
+        `${environment.apiUrl}/employers/jobs/${jobId}/analytics`,
+        {
+          params: { days: String(days) },
+          headers: this.auth.authHeaders(),
+        },
+      ),
     );
   }
 

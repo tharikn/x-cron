@@ -33,11 +33,23 @@
       </label>
       <label>
         <span>From</span>
-        <input [(ngModel)]="fromDate" name="fromDate" type="date" [disabled]="busy()" />
+        <app-xcron-datetime-picker
+          [(ngModel)]="fromDate"
+          name="fromDate"
+          mode="date"
+          placeholder="From date"
+          [disabled]="busy()"
+        />
       </label>
       <label>
         <span>To</span>
-        <input [(ngModel)]="toDate" name="toDate" type="date" [disabled]="busy()" />
+        <app-xcron-datetime-picker
+          [(ngModel)]="toDate"
+          name="toDate"
+          mode="date"
+          placeholder="To date"
+          [disabled]="busy()"
+        />
       </label>
       <button type="button" class="btn" [disabled]="busy()" (click)="reload()">Apply</button>
       <a class="link-btn" routerLink="/my-jobs">Posted jobs</a>

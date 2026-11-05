@@ -7,9 +7,15 @@ import {
   MinLength,
   ValidateIf,
 } from 'class-validator';
+import { IsSafeText, IsXcronEmail } from '../../security/validation/decorators';
+import {
+  SanitizeOptionalText,
+  SanitizeText,
+} from '../../security/validation/sanitize';
 
 /** Create account — username + password (+ confirm on client/server). */
 export class RegisterDto {
+  @SanitizeText()
   @IsString()
   @MinLength(3)
   @MaxLength(32)
@@ -36,9 +42,13 @@ export class RegisterDto {
 
 /** Sign in with local username + password. */
 export class LoginDto {
+  @SanitizeText()
   @IsString()
   @MinLength(3)
   @MaxLength(32)
+  @Matches(/^[a-zA-Z0-9_]+$/, {
+    message: 'Username may only use letters, numbers, and underscore',
+  })
   username!: string;
 
   @IsString()
@@ -53,8 +63,11 @@ export class LoginDto {
 }
 
 export class CreateEmployerDto {
+  @SanitizeText()
   @IsString()
   @MinLength(2)
+  @MaxLength(200)
+  @IsSafeText({ max: 200 })
   name!: string;
 }
 
@@ -66,12 +79,16 @@ export class GoogleAuthDto {
   idToken?: string;
 
   @ValidateIf((o: GoogleAuthDto) => !o.idToken)
+  @SanitizeOptionalText()
   @IsString()
-  @MinLength(5)
+  @IsXcronEmail()
   email?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
+  @MaxLength(80)
+  @IsSafeText({ max: 80 })
   displayName?: string;
 
   /** seeker (default) or employer — never admin via Google. */
@@ -82,8 +99,9 @@ export class GoogleAuthDto {
 
 /** Password login for the configured SUPER_ADMIN_* identity. */
 export class AdminLoginDto {
+  @SanitizeText()
   @IsString()
-  @MinLength(5)
+  @IsXcronEmail()
   email!: string;
 
   @IsString()

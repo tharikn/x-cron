@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ApplicationsService } from '../applications/applications.service';
 import { ApplyProfilesService } from '../apply-profiles/apply-profiles.service';
 import { AuthService } from '../auth/auth.service';
+import { FeedbackService } from '../feedback/feedback.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PreferencesService } from '../preferences/preferences.service';
@@ -17,6 +18,7 @@ export class AccountService {
     private readonly seeker: SeekerService,
     private readonly applyProfiles: ApplyProfilesService,
     private readonly applications: ApplicationsService,
+    private readonly feedback: FeedbackService,
     private readonly notifications: NotificationsService,
     private readonly reputation: ReputationService,
   ) {}
@@ -25,9 +27,10 @@ export class AccountService {
     const user = this.auth.requireUser(token);
     await this.payments.wipeUser(user.id);
     this.preferences.clearForUser(user);
-    this.seeker.clearUser(user.id);
+    await this.seeker.clearUser(user.id);
     await this.applyProfiles.clearForUser(user.id);
     await this.applications.clearForUser(user.id);
+    await this.feedback.clearForUser(user.id);
     await this.reputation.clearForUser(user.id);
     await this.notifications.clearForUser(user);
     this.auth.purgeUserRecord(user.id, token);

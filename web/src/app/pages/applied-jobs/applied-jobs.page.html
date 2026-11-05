@@ -1,0 +1,64 @@
+<section class="page">
+  <h1>Applied jobs</h1>
+  <p class="lead">
+    Every Easy apply lives here. Open a row to see the status timeline with date and time for
+    each stage — and chat with the recruiter.
+  </p>
+
+  @if (!isSignedIn()) {
+    <div class="gate">
+      <p>Sign in to see applications you have submitted.</p>
+      <a class="btn" routerLink="/sign-in" [queryParams]="{ returnUrl: '/me/applied' }">
+        Sign in
+      </a>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <button type="button" class="btn secondary" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </button>
+      <a class="link-btn" routerLink="/me">Saved jobs</a>
+      <a class="link-btn" routerLink="/">Discover</a>
+    </div>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    <div class="list">
+      @for (row of items(); track row.id) {
+        <a class="row" [routerLink]="['/me/applications', row.id]">
+          <div class="row__main">
+            <strong>{{ row.job?.title || 'Application' }}</strong>
+            <span class="meta">
+              {{ row.job?.employerName || 'Employer' }}
+              @if (row.job?.location?.city) {
+                · {{ row.job?.location?.city }}
+              }
+            </span>
+            <span class="status">{{ row.statusLabel }}</span>
+            @if (row.matchPercent != null) {
+              <span class="pill">Fit {{ row.matchPercent }}%</span>
+            }
+            @if (row.reputation; as rep) {
+              <span class="pill">Recruiter {{ rep.score }}</span>
+            }
+          </div>
+          <div class="row__side">
+            <time [attr.datetime]="row.updatedAt">
+              Updated {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+            </time>
+            <span class="cue">View timeline</span>
+          </div>
+        </a>
+      } @empty {
+        @if (!busy()) {
+          <p class="empty">
+            No applications yet. Use <strong>Easy apply</strong> on a job page — status updates
+            appear here with full date and time.
+          </p>
+        }
+      }
+    </div>
+  }
+</section>

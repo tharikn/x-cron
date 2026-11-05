@@ -130,6 +130,9 @@
             <a routerLink="/admin/notifications" routerLinkActive="is-active" (click)="closeMenu()">
               {{ 'nav.notifAdmin' | t }}
             </a>
+            <a routerLink="/admin/feedback" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.feedbackAdmin' | t }}
+            </a>
             <a routerLink="/my-jobs" routerLinkActive="is-active" (click)="closeMenu()">
               {{ 'nav.myJobs' | t }}
             </a>
@@ -139,6 +142,9 @@
           {{ 'nav.blogApproval' | t }}
         </a>
       }
+      <a routerLink="/feedback" routerLinkActive="is-active" (click)="closeMenu()">
+        {{ 'nav.feedback' | t }}
+      </a>
       @if (isSignedIn()) {
         <a routerLink="/settings" routerLinkActive="is-active" (click)="closeMenu()">
           {{ 'nav.settings' | t }}
@@ -159,11 +165,16 @@
           }
         </a>
         <a routerLink="/performance" routerLinkActive="is-active" (click)="closeMenu()">
-          Performance Score
+          {{ 'nav.myRating' | t }}
         </a>
-        <a routerLink="/me" routerLinkActive="is-active" (click)="closeMenu()">
-          {{ 'nav.saved' | t }}
-        </a>
+        @if (!isEmployer()) {
+          <a routerLink="/me/applied" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.applied' | t }}
+          </a>
+          <a routerLink="/me" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.saved' | t }}
+          </a>
+        }
       }
       @if (isSignedIn()) {
         <div class="drawer__account">
@@ -227,24 +238,26 @@
             </ul>
           </nav>
 
-          <div class="foot__col">
-            <h2 class="foot__heading">{{ footerText('footer.headings.address', foot.headings.address) }}</h2>
-            <ul class="foot__list foot__list--address">
-              @for (addr of foot.addresses; track addr.id) {
-                <li>
-                  <p class="foot__addr-label">{{ footerItemLabel(addr.id, addr.label) }}</p>
-                  @for (line of addr.lines; track line) {
-                    <p class="foot__addr-line">{{ line }}</p>
-                  }
-                  @if (addr.mapUrl) {
-                    <a class="foot__map" [href]="addr.mapUrl" rel="noopener noreferrer" target="_blank">
-                      {{ 'footer.map' | t }}
-                    </a>
-                  }
-                </li>
-              }
-            </ul>
-          </div>
+          @if (foot.addresses.length) {
+            <div class="foot__col">
+              <h2 class="foot__heading">{{ footerText('footer.headings.address', foot.headings.address) }}</h2>
+              <ul class="foot__list foot__list--address">
+                @for (addr of foot.addresses; track addr.id) {
+                  <li>
+                    <p class="foot__addr-label">{{ footerItemLabel(addr.id, addr.label) }}</p>
+                    @for (line of addr.lines; track line) {
+                      <p class="foot__addr-line">{{ line }}</p>
+                    }
+                    @if (addr.mapUrl) {
+                      <a class="foot__map" [href]="addr.mapUrl" rel="noopener noreferrer" target="_blank">
+                        {{ 'footer.map' | t }}
+                      </a>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
 
           <div class="foot__col">
             <h2 class="foot__heading">{{ footerText('footer.headings.social', foot.headings.social) }}</h2>
@@ -303,3 +316,5 @@
     }
   </div>
 }
+
+<app-help-chat />

@@ -1,13 +1,16 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   IonBackButton,
   IonButton,
   IonButtons,
   IonContent,
   IonHeader,
+  IonLabel,
+  IonSegment,
+  IonSegmentButton,
   IonTitle,
   IonToolbar,
   ToastController,
@@ -18,6 +21,8 @@ import {
   type JobApplication,
 } from '../../core/services/applications.service';
 import { AuthService } from '../../core/services/auth.service';
+
+type DetailTab = 'overview' | 'chat' | 'timeline';
 
 @Component({
   selector: 'app-application-detail',
@@ -34,10 +39,14 @@ import { AuthService } from '../../core/services/auth.service';
     IonTitle,
     IonContent,
     IonButton,
+    IonSegment,
+    IonSegmentButton,
+    IonLabel,
   ],
 })
 export class ApplicationDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly applications = inject(ApplicationsService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastController);
@@ -47,6 +56,7 @@ export class ApplicationDetailPage implements OnInit {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly asEmployer = signal(false);
+  readonly tab = signal<DetailTab>('overview');
 
   note = '';
   chatBody = '';
@@ -57,7 +67,19 @@ export class ApplicationDetailPage implements OnInit {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
     const mode = this.route.snapshot.queryParamMap.get('as') === 'employer';
     this.asEmployer.set(mode && this.auth.isEmployer());
+    this.tab.set(this.readTab(this.route.snapshot.queryParamMap.get('tab')));
     await this.reload(id);
+  }
+
+  async onTabChange(value: string | number | undefined): Promise<void> {
+    const next = this.readTab(value == null ? null : String(value));
+    this.tab.set(next);
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: next },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   async reload(id?: string): Promise<void> {
@@ -183,6 +205,11 @@ export class ApplicationDetailPage implements OnInit {
 
   eventLabel(type: string): string {
     return type.replace(/_/g, ' ');
+  }
+
+  private readTab(raw: string | null): DetailTab {
+    if (raw === 'chat' || raw === 'timeline' || raw === 'overview') return raw;
+    return 'overview';
   }
 
   private defaultNext(

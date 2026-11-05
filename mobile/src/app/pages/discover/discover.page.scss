@@ -19,7 +19,7 @@
   margin: 0 0 0.5rem;
   font-family: var(--xcron-display);
   font-size: 1.05rem;
-  color: #fff;
+  color: var(--xcron-ink);
 }
 
 .recently-viewed__list {
@@ -47,7 +47,7 @@
   font-family: var(--xcron-display);
   font-weight: 800;
   letter-spacing: -0.04em;
-  color: #fff;
+  color: var(--xcron-ink);
 }
 
 .brand-sub {
@@ -73,7 +73,7 @@
   font-weight: 800;
   letter-spacing: -0.06em;
   line-height: 0.95;
-  color: #fff;
+  color: var(--xcron-ink);
 }
 
 .hero__jobs {

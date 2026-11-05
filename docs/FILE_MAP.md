@@ -36,6 +36,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `docs/FILE_MAP.md` | This file — folder-wise inventory |
 | `docs/CHANNEL_PULL.md` | Job Fare Telegram / WA bridge design |
 | `docs/PERFORMANCE_SCORE.md` | Seeker + recruiter Performance Score + E2E diagram |
+| `docs/HIRING_ACTIVITY.md` | Job-list hiring-activity badge (Indeed/LinkedIn thresholds; no “low”) |
 
 ---
 
@@ -76,6 +77,28 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | --- | --- |
 | `health.controller.ts` | `GET /v1/health` |
 
+#### `api/src/ai/`
+
+| Path | Purpose |
+| --- | --- |
+| `ai.module.ts` / `ai.service.ts` / `ai.controller.ts` | Job enrich + help chat routes |
+| `help/*` | Signed-in in-app help (quota, providers, prompt) — see `help/CLAUDE.md` |
+| `providers/*` · `prompts/*` | Job-enrich OpenAI-compatible + stub providers |
+| `CLAUDE.md` | AI agent guide |
+
+#### `api/src/security/`
+
+| Path | Purpose |
+| --- | --- |
+| `security.module.ts` | Global throttler + CSRF + `InputProtectorMiddleware` |
+| `input-protector.middleware.ts` | Reject XSS/SQLi payload patterns, control chars, prototype pollution |
+| `validation/patterns.ts` | India-first email/phone/pincode/salary/URL helpers |
+| `validation/decorators.ts` | `@IsXcronEmail` / Phone / Pincode / Salary / Url / `@IsSafeText` |
+| `validation/sanitize.ts` | Trim + strip controls / simple HTML transforms |
+| `validation/validation-exception.filter.ts` | Field-keyed `{ errors }` validation 400s |
+| `csrf.guard.ts` / `security-throttler.guard.ts` | CSRF + rate limits |
+| `CLAUDE.md` | Security agent guide |
+
 #### `api/src/auth/`
 
 | Path | Purpose |
@@ -93,14 +116,17 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 
 | Path | Purpose |
 | --- | --- |
-| `jobs.module.ts` | Jobs feature module |
-| `jobs.controller.ts` | Search, detail, related, report, employer post, admin moderation |
-| `jobs.service.ts` | Job use-cases; hooks ads boosts + notifications on publish |
+| `jobs.module.ts` | Jobs feature module (+ analytics store wiring) |
+| `jobs.controller.ts` | Search, detail, related, report, employer post, job events, analytics, admin moderation |
+| `jobs.service.ts` | Job use-cases; hooks ads boosts + notifications on publish; myJobs analytics enrich |
 | `jobs.memory-store.ts` | In-memory job repository |
 | `jobs.mapper.ts` | Public DTO mapper (contacts + optional `screeningQuestion`) |
 | `job.types.ts` | Job domain types (+ optional screening question) |
 | `seed-jobs.ts` | Seed published jobs with private contacts |
+| `analytics/*` | Recruiter listing views + analytics service/stores (see folder CLAUDE.md) |
 | `dto/create-job.dto.ts` | Quick/paste create DTOs |
+| `dto/job-event.dto.ts` | `POST /jobs/:id/events` body |
+| `dto/job-analytics-query.dto.ts` | Analytics lookback `days` |
 | `dto/search-jobs.dto.ts` | Search query DTO |
 | `dto/moderation.dto.ts` | Approve/reject/report DTOs |
 
@@ -155,8 +181,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `preferences.module.ts` | Preferences module |
 | `preferences.controller.ts` | Guest device prefs + `/me/preferences` + claim |
 | `preferences.service.ts` | Device/account preference store |
-| `preferences.types.ts` | Preference record types |
-| `dto/preferences.dto.ts` | Save/claim DTOs |
+| `preferences.types.ts` | Preference record types (+ `theme`) |
+| `dto/preferences.dto.ts` | Save/claim DTOs (+ `theme` enum) |
 
 #### `api/src/notifications/`
 
@@ -203,10 +229,12 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 
 | Path | Purpose |
 | --- | --- |
-| `seeker.module.ts` | Seeker saved jobs + feed |
+| `seeker.module.ts` | Seeker saved jobs + feed; `SEEKER_STORE` factory |
 | `seeker.controller.ts` | `/v1/feed`, `/v1/me/saved-jobs`, `/v1/me/profile`, applications/hidden/saved-searches |
 | `seeker.service.ts` | Save/unsave + prefs-based feed + profile career upsert |
-| `seeker.store.ts` | In-memory saved jobs + profile (personal/location/career) |
+| `seeker.store.ts` | Abstract seeker store (profile / saved / hidden / searches) |
+| `seeker.memory-store.ts` | In-memory seeker store |
+| `seeker.prisma-store.ts` | Postgres seeker store (`SeekerProfile`, `SavedJob`, …) |
 | `seeker.types.ts` | SeekerProfile career/personal fields |
 | `dto/seeker.dto.ts` | UpsertSeekerProfileDto + saved-search DTOs |
 
@@ -219,7 +247,23 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `applications.service.ts` | Status machine + timeline + notify + anti-spam + reputation hooks |
 | `applications.*.store.ts` | Memory / Prisma dual store (quota counts + cover-note history + matchPercent) |
 | `applications.types.ts` | Statuses, events, transitions |
+| `hiring-activity.util.ts` | Per-job high/medium hiring badge (public; omit when quiet) |
 | `dto/applications.dto.ts` | Apply / transition / note DTOs |
+
+#### `api/src/feedback/`
+
+| Path | Purpose |
+| --- | --- |
+| `feedback.module.ts` | FAQ + Contact Admin messenger |
+| `feedback.controller.ts` | Public FAQ + user threads + admin desk |
+| `feedback.service.ts` | Facade: ownership, audience RBAC, notify admins/users |
+| `feedback-presence.ts` | Ephemeral Online / Last active / typing tracker |
+| `feedback.*.store.ts` | Memory / Prisma dual store (`FEEDBACK_STORE`) |
+| `feedback.types.ts` | Thread / message / FAQ types |
+| `faq/faq.provider.ts` | Strategy port for FAQ catalogs |
+| `faq/static-faq.provider.ts` | Seeded FAQ (seeker + recruiter + general) |
+| `dto/feedback.dto.ts` | Create thread / send message / typing / admin list query |
+| `CLAUDE.md` | Agent guide |
 
 #### `api/src/reputation/`
 
@@ -249,7 +293,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | --- | --- |
 | `account.module.ts` | Account deletion |
 | `account.controller.ts` | `DELETE /v1/me`, `DELETE /v1/auth/me` |
-| `account.service.ts` | Wipe payments/prefs/seeker/apply-profiles/applications/reputation + auth user |
+| `account.service.ts` | Wipe payments/prefs/seeker/apply-profiles/applications/feedback/reputation + auth user |
 
 #### `api/src/site/`
 
@@ -297,7 +341,23 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 
 | Path | Purpose |
 | --- | --- |
-| `e2e/app.spec.ts` | Playwright smoke |
+| `e2e/app.spec.ts` | Package-local Playwright smoke (brand). Full journeys → root `e2e/` |
+
+### Root `e2e/` (Playwright journeys)
+
+| Path | Purpose |
+| --- | --- |
+| `package.json` | `@playwright/test` package |
+| `playwright.config.ts` | Projects: `mobile` (`:4200`) + `web` (`:4201`); HTML + JSON + ISSUES reporters |
+| `helpers/api-client.ts` | API seed (register/login/job/apply/profile/feedback) |
+| `helpers/env.ts` | Base URLs + path maps per client |
+| `pages/*.ts` | Page objects (auth, discover, job-detail, post-job, chrome) |
+| `fixtures/test.ts` | Client-aware Playwright fixtures |
+| `journeys/*.spec.ts` | Guest → seeker → recruiter → admin/routing journeys |
+| `reporters/issues-reporter.ts` | Writes `test-results/ISSUES.md` defect digest |
+| `README.md` | How traditional apps structure this + one-command usage |
+| `scripts/run-e2e.mjs` | Root orchestrator (`npm run test:e2e`) |
+| `package.json` (repo root) | `test:e2e` / `test:e2e:mobile` / `test:e2e:web` / `test:e2e:report` |
 
 ### `mobile/src/` — app source
 
@@ -306,7 +366,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `main.ts` | Angular bootstrap |
 | `index.html` | Shell HTML |
 | `global.scss` | Global styles |
-| `theme/variables.scss` | Ionic / brand CSS variables (monochrome) |
+| `theme/variables.scss` | Ionic / brand CSS variables + light/warm `data-theme` variants |
 | `test-setup.ts` | Test bootstrap |
 | `environments/environment.ts` | Dev API URL |
 | `environments/environment.prod.ts` | Prod API URL |
@@ -334,15 +394,18 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `models/job.model.ts` | Job / prefs client models |
 | `data/mock-jobs.ts` | Offline fallback jobs |
 | `utils/format.ts` | Salary/location/unlock formatters |
-| `utils/friendly-http-message.ts` | Map network/HTTP noise to end-user toast copy |
+| `utils/job-form.validation.ts` | Post/import client regex (phone/email/URL/salary) |
+| `utils/form-validation.ts` | Seeker profile client validators |
+| `utils/friendly-http-message.ts` | Toasts + `fieldErrorsFromHttp` for Nest `{ errors }` maps |
 | `services/auth.service.ts` | Username/password + Google + admin auth client |
 | `services/jobs.service.ts` | Search/post/moderation API client (`directPublish` on create) |
-| `services/ai.service.ts` | Job enrich / AI chat client (`/v1/ai/*`) for Recruiter desk |
-| `services/preferences.service.ts` | Local + API prefs sync/claim |
+| `services/ai.service.ts` | Job enrich + in-app help client (`/v1/ai/*`, `/v1/ai/help/*`) |
+| `services/preferences.service.ts` | Local + API prefs sync/claim (incl. `theme`) |
+| `services/theme.service.ts` | Appearance preference → `html[data-theme]` |
 | `services/ingestion.service.ts` | Bulk import API client |
 | `services/channels.service.ts` | Job Fare channel pull API client |
 | `services/payments.service.ts` | Unlock + subscription client |
-| `services/notifications.service.ts` | Device + inbox client |
+| `services/notifications.service.ts` | Device + inbox client; OS permission prompt/watch + `pushPermission` |
 | `services/ads.service.ts` | Ad slots + promote packages |
 | `services/seeker.service.ts` | Saved jobs, feed, profile, contacted apps, saved searches, account delete |
 | `services/app-update.service.ts` | Native APK update check vs GitHub Releases latest |
@@ -357,17 +420,29 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `import-batch/*` | CSV / camera / clipboard import UI |
 | `job-fare/*` | Admin Job Fare channel pull workflow (pipeline + schedule) |
 | `preferences/*` | Job prefs + notification toggles |
+| `theme/*` | Settings Theme tab (system / light / dark / warm) |
+| `settings/*` | Settings hub segments (Language · Theme · Prefs · Saved) |
+| `language/*` | Interface language picker |
+| `saved-jobs/*` | Saved jobs list (Settings segment) |
 | `notifications/*` | Inbox + channel toggles (tab) |
 | `account/*` | Username/password account, employer, subscription, feed, saved, moderation, delete |
+| `core/services/feedback.service.ts` | FAQ + Contact Admin client |
 | `performance/*` | Performance Score screen (seeker + recruiter) |
 | `employer-applications/*` | Employer applicant inbox (score + fit badges) |
-| `application-detail/*` | ATS timeline + chat + score/fit |
+| `my-jobs/*` | Recruiter posted-jobs list with views/applied/contacted |
+| `my-job-analytics/*` | Per-job analytics board (KPI + daily funnel chart) |
+| `applied-jobs/*` | Seeker Applied jobs list (`/tabs/applied`) |
+| `application-detail/*` | ATS detail tabs (Overview · Chat · Timeline) + score/fit |
+| `feedback/*` | FAQ + Contact Admin messenger |
+| `admin-feedback/*` | Admin Contact Admin desk |
 
 #### `mobile/src/app/shared/`
 
 | Path | Purpose |
 | --- | --- |
-| `job-card/*` | Job list card (incl. Featured badge) |
+| `job-card/*` | Job list card (Featured + hiring-activity badges) |
+| `pii-field/*` | Masked profile PII input + View/Hide toggle |
+| `help-chat/*` | Signed-in floating help FAB (above tab bar) |
 
 #### `mobile/src/app/home/`
 
@@ -425,7 +500,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `main.server.ts` | Server bootstrap |
 | `server.ts` | Express SSR + `/sitemap.xml` + robots |
 | `index.html` | Shell |
-| `styles.scss` | Global styles |
+| `styles.scss` | Global styles + dark/light/warm `data-theme` tokens |
 | `environments/environment.ts` | Dev API / site URL |
 | `environments/environment.prod.ts` | Prod env |
 
@@ -449,9 +524,18 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `core/services/toast.service.ts` | Shell toast stack (premium error = red panel) |
 | `pages/home/*` | SEO home + search + ad rail |
 | `pages/post-job/*` | Recruiter desk: Compose / Review / Preview + AI chat + direct publish |
-| `pages/sign-in/*` | Guest auth + signed-in Account hub (Profile / Apply / Activity / Rating / Account) |
-| `pages/seeker/*` | `/me` Saved jobs + apply versions + applications list |
+| `pages/my-jobs/*` | Posted jobs table with views/applied/contacted + manage actions |
+| `pages/my-job-analytics/*` | Per-job analytics board (`/my-jobs/:id`) — KPI + daily funnel chart |
+| `pages/sign-in/*` | Guest auth + signed-in Account hub (Profile / Apply / Activity / Rating / Account); profile regex + PII eye-mask fields |
+| `shared/pii-field/*` | Masked input + View/Hide toggle for seeker profile PII |
+| `core/utils/form-validation.ts` | Shared seeker profile client validators (aligned with API) |
+| `core/utils/friendly-http-message.ts` | Toasts + `fieldErrorsFromHttp` for Nest `{ errors }` maps |
+| `pages/seeker/*` | `/me` tabbed Saved hub (Apply · Saved · Applied · For you) |
+| `pages/applied-jobs/*` | `/me/applied` seeker Applied jobs list |
+| `pages/application-detail/*` | ATS detail tabs (Overview · Chat · Timeline) |
 | `shared/get-app-cta/*` | Android APK download CTA (home panel / footer band / drawer foot link with version + published datetime) |
+| `shared/help-chat/*` | Signed-in floating help FAB (bottom-right shell) |
+| `shared/datetime-picker/*` | Branded night-sky date/datetime popover (`app-xcron-datetime-picker`) for Post / My Jobs / Admin filters |
 | `core/services/apk-releases.service.ts` | GitHub Releases API client for APK versions / notes |
 | `core/services/seeker.service.ts` | Saved jobs, feed, profile, contacted apps, saved searches, account delete |
 | `core/services/apply-profiles.service.ts` | Multi-version apply profiles client |
@@ -459,6 +543,15 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `pages/location/*` | Location landing page |
 | `pages/notifications/*` | User inbox + channel toggles |
 | `pages/admin-notifications/*` | Admin dispatch / delivery history |
+| `pages/feedback/*` | FAQ + Contact Admin messenger (`/feedback`) |
+| `pages/admin-feedback/*` | Admin Feedback desk (`/admin/feedback`) |
+| `core/services/feedback.service.ts` | FAQ + threads + admin messenger client |
+| `pages/settings-hub/*` | Settings shell (Language · Theme · Preferences · Site) |
+| `pages/theme/*` | Appearance Theme tab (system / light / dark / warm) |
+| `pages/language/*` | Interface language picker |
+| `pages/preferences/*` | Job prefs + alert channel toggles |
+| `core/services/theme.service.ts` | Appearance preference → `html[data-theme]` |
+| `core/services/preferences.service.ts` | Local + API prefs sync (incl. `theme`) |
 
 ---
 
@@ -469,6 +562,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Add an API endpoint | `api/src/<module>/*.controller.ts` + service |
 | Change public job shape | `api/src/jobs/jobs.mapper.ts` (+ mobile/web models) |
 | Touch unlock / subscribe | `api/src/payments/` |
+| Touch FAQ / Contact Admin messenger | `api/src/feedback/` · [FEEDBACK.md](./FEEDBACK.md) |
 | Touch bulk import / OCR | `api/src/ingestion/` |
 | Touch Job Fare / Telegram pull | `api/src/channels/` · `mobile/.../job-fare/` · `docs/CHANNEL_PULL.md` |
 | Change mobile screen | `mobile/src/app/pages/<name>/` |

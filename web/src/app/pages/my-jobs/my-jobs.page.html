@@ -1,7 +1,8 @@
 <section class="page" (click)="closeOptions()">
   <h1>Posted jobs</h1>
   <p class="lead">
-    History table of jobs you posted. Use Options for edit, activate / deactivate, or hide.
+    Jobs you posted — views, applies, and contacts at a glance. Open Analytics for the
+    dashboard, or Options to edit / activate / hide.
   </p>
 
   @if (!isSignedIn() || !isEmployer()) {
@@ -61,9 +62,10 @@
             <thead>
               <tr>
                 <th>Title</th>
-                <th>Employer</th>
                 <th>Status</th>
-                <th>Priority</th>
+                <th>Views</th>
+                <th>Applied</th>
+                <th>Contacted</th>
                 <th>Available</th>
                 <th>Options</th>
               </tr>
@@ -72,14 +74,17 @@
               @for (job of jobs(); track job.id) {
                 <tr [class.is-editing]="editingId() === job.id">
                   <td>
-                    <strong class="cell-title">{{ job.title }}</strong>
-                    <span class="cell-sub">{{ job.location.city }}</span>
+                    <a class="cell-title-link" [routerLink]="['/my-jobs', job.id]">
+                      <strong class="cell-title">{{ job.title }}</strong>
+                    </a>
+                    <span class="cell-sub">{{ job.employerName }} · {{ job.location.city }}</span>
                   </td>
-                  <td>{{ job.employerName }}</td>
                   <td>
                     <span class="status" [attr.data-status]="job.status">{{ job.status }}</span>
                   </td>
-                  <td>{{ job.priority ?? 0 }}</td>
+                  <td class="metric">{{ job.analytics?.views ?? 0 }}</td>
+                  <td class="metric">{{ job.analytics?.appliedActive ?? job.analytics?.applied ?? 0 }}</td>
+                  <td class="metric">{{ job.analytics?.contacted ?? 0 }}</td>
                   <td class="dates">
                     {{ (job.effectiveFrom || job.publishedAt) | date: 'mediumDate' }}
                     →
@@ -87,6 +92,12 @@
                   </td>
                   <td class="options-cell" (click)="$event.stopPropagation()">
                     <div class="options">
+                      <a
+                        class="btn secondary options__analytics"
+                        [routerLink]="['/my-jobs', job.id]"
+                      >
+                        Analytics
+                      </a>
                       <button
                         type="button"
                         class="btn secondary options__toggle"
@@ -98,6 +109,13 @@
                       </button>
                       @if (optionsOpenId() === job.id) {
                         <div class="options__menu" role="menu">
+                          <a
+                            role="menuitem"
+                            [routerLink]="['/my-jobs', job.id]"
+                            (click)="closeOptions()"
+                          >
+                            Analytics board
+                          </a>
                           <button type="button" role="menuitem" [disabled]="busy()" (click)="startEdit(job)">
                             Edit
                           </button>
@@ -141,7 +159,7 @@
                 </tr>
                 @if (editingId() === job.id) {
                   <tr class="edit-row">
-                    <td colspan="6">
+                    <td colspan="7">
                       <form class="form" (ngSubmit)="saveEdit()">
                         <label>
                           <span>Job title</span>
@@ -195,18 +213,20 @@
                         </label>
                         <label>
                           <span>Effective from</span>
-                          <input
+                          <app-xcron-datetime-picker
                             [(ngModel)]="effectiveFromLocal"
                             name="effectiveFrom"
-                            type="datetime-local"
+                            mode="datetime"
+                            placeholder="Select start"
                           />
                         </label>
                         <label>
                           <span>End date</span>
-                          <input
+                          <app-xcron-datetime-picker
                             [(ngModel)]="expiresAtLocal"
                             name="expiresAt"
-                            type="datetime-local"
+                            mode="datetime"
+                            placeholder="Select end"
                           />
                         </label>
                         <label class="form__wide">

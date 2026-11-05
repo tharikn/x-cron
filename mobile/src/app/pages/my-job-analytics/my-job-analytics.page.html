@@ -1,0 +1,139 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/my-jobs"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Analytics</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" color="dark" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="brand-mark">Analytics board</p>
+    <h1>{{ job()?.title || 'Job analytics' }}</h1>
+    @if (job(); as j) {
+      <p class="lead">{{ j.employerName }} · {{ j.location.city }} · {{ j.status }}</p>
+    }
+
+    @if (!isSignedIn() || !isEmployer()) {
+      <div class="gate">
+        <p>Sign in as a recruiter to view analytics.</p>
+        <ion-button expand="block" color="primary" routerLink="/tabs/account">
+          Go to Sign in
+        </ion-button>
+      </div>
+    } @else {
+      <div class="toolbar">
+        <ion-select
+          label="Window"
+          labelPlacement="stacked"
+          interface="popover"
+          [value]="days()"
+          (ionChange)="onDaysChange($event.detail.value)"
+        >
+          @for (d of dayOptions; track d) {
+            <ion-select-option [value]="d">Last {{ d }} days</ion-select-option>
+          }
+        </ion-select>
+      </div>
+
+      @if (error()) {
+        <p class="error">{{ error() }}</p>
+      }
+
+      @if (dash(); as d) {
+        <div class="kpis">
+          <article class="kpi">
+            <span class="kpi__label">Views</span>
+            <strong>{{ d.totals.views }}</strong>
+            <span class="kpi__meta">{{ d.totals.daysLive }} days live</span>
+          </article>
+          <article class="kpi">
+            <span class="kpi__label">Applied</span>
+            <strong>{{ d.totals.appliedActive }}</strong>
+            <span class="kpi__meta">
+              @if (d.totals.applyRatePct != null) {
+                {{ d.totals.applyRatePct }}% of views
+              } @else {
+                {{ d.totals.applied }} total
+              }
+            </span>
+          </article>
+          <article class="kpi">
+            <span class="kpi__label">Contacted</span>
+            <strong>{{ d.totals.contacted }}</strong>
+            <span class="kpi__meta">
+              @if (d.totals.contactRatePct != null) {
+                {{ d.totals.contactRatePct }}% of views
+              } @else {
+                Phone / WA taps
+              }
+            </span>
+          </article>
+          <article class="kpi">
+            <span class="kpi__label">Reports</span>
+            <strong>{{ d.totals.reportCount }}</strong>
+            <span class="kpi__meta">Trust signal</span>
+          </article>
+        </div>
+
+        <section class="chart-panel">
+          <h2>Daily funnel</h2>
+          <p class="chart-range">
+            {{ d.from | date: 'mediumDate' }} → {{ d.to | date: 'mediumDate' }}
+          </p>
+          <div class="chart" role="img" aria-label="Views applied contacted chart">
+            @for (point of d.series; track point.date) {
+              <div class="chart__col">
+                <div class="chart__bars">
+                  <span
+                    class="chart__bar chart__bar--views"
+                    [style.height]="barHeight(point.views)"
+                  ></span>
+                  <span
+                    class="chart__bar chart__bar--applied"
+                    [style.height]="barHeight(point.applied)"
+                  ></span>
+                  <span
+                    class="chart__bar chart__bar--contacted"
+                    [style.height]="barHeight(point.contacted)"
+                  ></span>
+                </div>
+                <span class="chart__label">{{ shortLabel(point) }}</span>
+              </div>
+            }
+          </div>
+          <div class="legend">
+            <span><i class="swatch swatch--views"></i> Views</span>
+            <span><i class="swatch swatch--applied"></i> Applied</span>
+            <span><i class="swatch swatch--contacted"></i> Contacted</span>
+          </div>
+        </section>
+
+        <ion-button
+          expand="block"
+          color="primary"
+          routerLink="/tabs/employer-applications"
+          [queryParams]="{ jobId: d.jobId }"
+        >
+          Review applicants
+        </ion-button>
+        @if (job(); as j) {
+          <ion-button
+            expand="block"
+            fill="outline"
+            color="dark"
+            [routerLink]="['/tabs/jobs', j.id]"
+          >
+            Open public listing
+          </ion-button>
+        }
+      }
+    }
+  </div>
+</ion-content>

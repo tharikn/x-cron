@@ -142,6 +142,30 @@
       </ion-item>
     } @else {
       <ion-item>
+        <ion-note
+          [color]="
+            pushPermission() === 'granted'
+              ? 'success'
+              : pushPermission() === 'denied' || pushPermission() === 'unsupported'
+                ? 'danger'
+                : 'medium'
+          "
+        >
+          {{ osPermissionLabel() }}
+        </ion-note>
+      </ion-item>
+      @if (pushPermission() === 'prompt' || pushPermission() === 'denied') {
+        <ion-item button detail="false" (click)="enableSystemNotifications()">
+          <ion-label>
+            {{
+              pushPermission() === 'denied'
+                ? 'Check system permission'
+                : 'Enable system notifications'
+            }}
+          </ion-label>
+        </ion-item>
+      }
+      <ion-item>
         <ion-note>
           Push uses your phone/browser notification shade. Allow permission when prompted.
           Inbox stays on the Notifications tab.

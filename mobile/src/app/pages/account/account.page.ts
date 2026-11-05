@@ -30,7 +30,10 @@ import { GoogleIdentityService } from '../../core/services/google-identity.servi
 import { JobsService } from '../../core/services/jobs.service';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { PreferencesService } from '../../core/services/preferences.service';
-import { ApplicationsService } from '../../core/services/applications.service';
+import {
+  ApplicationsService,
+  type JobApplication,
+} from '../../core/services/applications.service';
 import { ApplyProfilesService } from '../../core/services/apply-profiles.service';
 import {
   type CareerStage,
@@ -38,7 +41,16 @@ import {
   type NoticePeriod,
   SeekerService,
 } from '../../core/services/seeker.service';
-import { friendlyHttpMessage } from '../../core/utils/friendly-http-message';
+import {
+  fieldErrorsFromHttp,
+  friendlyHttpMessage,
+} from '../../core/utils/friendly-http-message';
+import {
+  isValidEmail,
+  validateSeekerProfileFields,
+  type FieldErrors,
+} from '../../core/utils/form-validation';
+import { PiiFieldComponent } from '../../shared/pii-field/pii-field.component';
 
 export type AccountTab = 'profile' | 'apply' | 'activity' | 'rating' | 'account';
 
@@ -51,6 +63,7 @@ export type AccountTab = 'profile' | 'apply' | 'activity' | 'rating' | 'account'
     FormsModule,
     RouterLink,
     TranslatePipe,
+    PiiFieldComponent,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -106,6 +119,8 @@ export class AccountPage implements OnInit {
   readonly jobApps = this.jobApplications.mine;
   readonly applyProfiles = this.applyProfilesApi.items;
   readonly savedSearches = this.seeker.savedSearches;
+  readonly employerApps = signal<JobApplication[]>([]);
+  readonly postedJobs = signal<Job[]>([]);
   readonly profile = this.seeker.profile;
   readonly isEmployer = this.auth.isEmployer;
   /** Profile form — personal / location / career */
@@ -115,6 +130,7 @@ export class AccountPage implements OnInit {
   showContact = false;
   profileAddress = '';
   profilePincode = '';
+  profileFieldErrors: FieldErrors = {};
   careerStage: CareerStage | '' = '';
   educationStatus: EducationStatus | '' = '';
   openToInternship = false;
@@ -208,7 +224,7 @@ export class AccountPage implements OnInit {
   }
 
   async onTabChange(value: string | number | undefined): Promise<void> {
-    const next = this.readTab(value == null ? null : String(value));
+    const next = this.clampTab(this.readTab(value == null ? null : String(value)));
     this.tab.set(next);
     await this.router.navigate(['/tabs/account'], {
       queryParams: { tab: next },
@@ -219,9 +235,15 @@ export class AccountPage implements OnInit {
 
   private readTab(raw: string | null): AccountTab {
     if (raw === 'apply' || raw === 'activity' || raw === 'rating' || raw === 'account') {
-      return raw;
+      return this.clampTab(raw);
     }
     return 'profile';
+  }
+
+  /** Seeker-only Apply tab — recruiters never land on it. */
+  private clampTab(tab: AccountTab): AccountTab {
+    if (tab === 'apply' && this.isEmployer()) return 'profile';
+    return tab;
   }
 
   async signInAsAdmin(): Promise<void> {
@@ -398,13 +420,14 @@ export class AccountPage implements OnInit {
   }
 
   private async completeAdminLogin(email?: string, password?: string): Promise<void> {
-    if (!email?.trim()?.includes('@') || !password || password.length < 8) {
-      await this.showToast('Enter admin email and password.', 'error');
+    const adminEmail = (email ?? '').trim();
+    if (!isValidEmail(adminEmail) || !password || password.length < 8) {
+      await this.showToast('Enter a valid admin email and password.', 'error');
       return;
     }
     try {
       await this.auth.signInAsAdmin({
-        email: email.trim(),
+        email: adminEmail,
         password,
       });
       const top = await this.alertController.getTop();
@@ -486,15 +509,36 @@ export class AccountPage implements OnInit {
       await this.notifications.loadPrefs();
       await this.notifications.refreshInbox({ announce: false });
       if (this.notifications.prefs().pushAlertsEnabled !== false) {
-        await this.notifications.ensurePushPermission();
+        const result = await this.notifications.promptOsPermissionAfterSignIn();
+        if (result.asked) {
+          await this.showToast(
+            result.status === 'granted'
+              ? 'System notifications enabled'
+              : result.status === 'denied'
+                ? 'System notifications blocked — enable them in phone settings'
+                : 'Could not enable system notifications',
+            result.status === 'granted' ? 'success' : 'error',
+          );
+        }
+        await this.notifications.registerDevice();
       }
       this.notifications.startPolling();
-      await this.seeker.loadSaved();
-      await this.seeker.loadFeed();
-      await this.seeker.loadApplications();
-      await this.jobApplications.listMine();
-      await this.applyProfilesApi.list();
-      await this.seeker.loadSavedSearches();
+      this.tab.set(this.clampTab(this.tab()));
+      if (this.isEmployer()) {
+        const [apps, jobs] = await Promise.all([
+          this.jobApplications.listEmployer(),
+          this.jobsService.listMyJobs({ page: 1, limit: 10 }),
+        ]);
+        this.employerApps.set(apps.slice(0, 8));
+        this.postedJobs.set(jobs.items.slice(0, 8));
+      } else {
+        await this.seeker.loadSaved();
+        await this.seeker.loadFeed();
+        await this.seeker.loadApplications();
+        await this.jobApplications.listMine();
+        await this.applyProfilesApi.list();
+        await this.seeker.loadSavedSearches();
+      }
       const profile = await this.seeker.loadProfile();
       this.applyLoadedProfile(profile);
     } catch {
@@ -571,7 +615,40 @@ export class AccountPage implements OnInit {
     this.openToWork = profile.openToWork;
   }
 
+  clearProfileFieldError(key: string): void {
+    if (!this.profileFieldErrors[key]) return;
+    const next = { ...this.profileFieldErrors };
+    delete next[key];
+    this.profileFieldErrors = next;
+  }
+
   async saveProfile(): Promise<void> {
+    const clientErrors = validateSeekerProfileFields({
+      displayName: this.profileName,
+      mobile: this.profileMobile,
+      email: this.profileEmail,
+      address: this.profileAddress,
+      pincode: this.profilePincode,
+      careerStage: this.careerStage,
+      courseDetails: this.courseDetails,
+      branchStudied: this.branchStudied,
+      academicScore: this.academicScore,
+      companyName: this.companyName,
+      companyArea: this.companyArea,
+      currentSalary: this.currentSalary,
+      expectedSalary: this.expectedSalary,
+      experienceYears: this.experienceYears,
+      experienceMonths: this.experienceMonths,
+    });
+    this.profileFieldErrors = clientErrors;
+    if (Object.keys(clientErrors).length) {
+      await this.showToast(
+        Object.values(clientErrors)[0] ?? 'Fix the highlighted fields.',
+        'error',
+      );
+      return;
+    }
+
     try {
       await this.seeker.saveProfile({
         displayName: this.profileName.trim() || undefined,
@@ -628,9 +705,19 @@ export class AccountPage implements OnInit {
         preferredCities: this.profileCities,
         openToWork: this.openToWork,
       });
+      this.profileFieldErrors = {};
       await this.showToast('Profile saved.');
-    } catch {
-      await this.showToast('Could not save profile.', 'error');
+    } catch (err) {
+      const apiErrors = fieldErrorsFromHttp(err);
+      if (Object.keys(apiErrors).length) {
+        this.profileFieldErrors = apiErrors;
+        await this.showToast(
+          Object.values(apiErrors)[0] ?? 'Could not save profile.',
+          'error',
+        );
+        return;
+      }
+      await this.showToast(friendlyHttpMessage(err, 'Could not save profile.'), 'error');
     }
   }
 

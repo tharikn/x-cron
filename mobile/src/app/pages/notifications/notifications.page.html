@@ -66,6 +66,7 @@
                   fill="outline"
                   color="dark"
                   [routerLink]="path"
+                  [queryParams]="actionQueryParams(item)"
                 >
                   {{ actionLabel(item) }}
                 </ion-button>

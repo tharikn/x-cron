@@ -34,9 +34,9 @@ export class PerformancePage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.seo.setPage({
-      title: 'Performance Score',
+      title: 'My Rating',
       description:
-        'X Cron Performance Score helps seekers and recruiters build trust with fit-aware applies and responsive chat.',
+        'X Cron My Rating helps seekers and recruiters build trust with fit-aware applies and responsive chat.',
       path: '/performance',
     });
     if (this.auth.isEmployer()) this.activeRole.set('employer');
@@ -57,7 +57,7 @@ export class PerformancePage implements OnInit {
     try {
       await this.reputation.loadMine();
     } catch {
-      this.error.set('Could not load Performance Score.');
+      this.error.set('Could not load My Rating.');
     } finally {
       this.busy.set(false);
     }

@@ -12,6 +12,14 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import {
+  IsSafeText,
+  IsXcronEmail,
+  IsXcronPhone,
+  IsXcronPincode,
+  IsXcronSalaryText,
+} from '../../security/validation/decorators';
+import { SanitizeOptionalText } from '../../security/validation/sanitize';
 
 export class SavedSearchQueryDto {
   @IsOptional()
@@ -101,18 +109,24 @@ export class UpdateSavedSearchDto {
 
 export class UpsertSeekerProfileDto {
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(80)
+  @IsSafeText({ max: 80 })
   displayName?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(20)
+  @IsXcronPhone()
   mobile?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(120)
+  @IsXcronEmail()
   email?: string;
 
   @IsOptional()
@@ -120,13 +134,17 @@ export class UpsertSeekerProfileDto {
   showContact?: boolean;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(240)
+  @IsSafeText({ max: 240 })
   address?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(12)
+  @IsXcronPincode()
   pincode?: string;
 
   @IsOptional()
@@ -142,18 +160,24 @@ export class UpsertSeekerProfileDto {
   openToInternship?: boolean;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(120)
+  @IsSafeText({ max: 120 })
   courseDetails?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(80)
+  @IsSafeText({ max: 80 })
   branchStudied?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(40)
+  @IsSafeText({ max: 40 })
   academicScore?: string;
 
   @IsOptional()
@@ -171,23 +195,31 @@ export class UpsertSeekerProfileDto {
   experienceMonths?: number;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(120)
+  @IsSafeText({ max: 120 })
   companyName?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(120)
+  @IsSafeText({ max: 120 })
   companyArea?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(40)
+  @IsXcronSalaryText()
   currentSalary?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(40)
+  @IsXcronSalaryText()
   expectedSalary?: string;
 
   @IsOptional()
@@ -201,11 +233,13 @@ export class UpsertSeekerProfileDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @MaxLength(60, { each: true })
   skills?: string[];
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @MaxLength(80, { each: true })
   preferredCities?: string[];
 
   @IsOptional()

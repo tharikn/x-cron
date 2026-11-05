@@ -4,7 +4,7 @@ import type { AuthUser } from '../auth/auth.types';
 import { ReputationService } from './reputation.service';
 import type { ReputationRole } from './reputation.types';
 
-@Controller('reputation')
+@Controller('v1/reputation')
 export class ReputationController {
   constructor(private readonly reputation: ReputationService) {}
 

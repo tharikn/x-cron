@@ -39,6 +39,11 @@ export const routes: Routes = [
           import('./pages/language/language.page').then((m) => m.LanguagePage),
       },
       {
+        path: 'theme',
+        loadComponent: () =>
+          import('./pages/theme/theme.page').then((m) => m.ThemePage),
+      },
+      {
         path: 'preferences',
         loadComponent: () =>
           import('./pages/preferences/preferences.page').then((m) => m.PreferencesPage),
@@ -74,6 +79,19 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'feedback',
+    loadComponent: () =>
+      import('./pages/feedback/feedback.page').then((m) => m.FeedbackPage),
+  },
+  {
+    path: 'admin/feedback',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/admin-feedback/admin-feedback.page').then(
+        (m) => m.AdminFeedbackPage,
+      ),
+  },
+  {
     path: 'post',
     canActivate: [employerGuard],
     loadComponent: () =>
@@ -92,6 +110,14 @@ export const routes: Routes = [
       import('./pages/my-jobs/my-jobs.page').then((m) => m.MyJobsPage),
   },
   {
+    path: 'my-jobs/:id',
+    canActivate: [employerGuard],
+    loadComponent: () =>
+      import('./pages/my-job-analytics/my-job-analytics.page').then(
+        (m) => m.MyJobAnalyticsPage,
+      ),
+  },
+  {
     path: 'employer-applications',
     canActivate: [employerGuard],
     loadComponent: () =>
@@ -103,6 +129,13 @@ export const routes: Routes = [
     path: 'me',
     loadComponent: () =>
       import('./pages/seeker/seeker.page').then((m) => m.SeekerPage),
+  },
+  {
+    path: 'me/applied',
+    loadComponent: () =>
+      import('./pages/applied-jobs/applied-jobs.page').then(
+        (m) => m.AppliedJobsPage,
+      ),
   },
   {
     path: 'performance',

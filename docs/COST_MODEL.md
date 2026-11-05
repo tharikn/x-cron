@@ -24,6 +24,8 @@ Default monthly budget alert: **₹15,000** (`MONTHLY_BUDGET_INR`), warn at **80
 | `OCR_MONTHLY_PAGE_CAP` | 5000 | Stop runaway extraction spend |
 | `IMPORT_DAILY_BATCH_CAP` | 50 | Per-day import pressure |
 | `UNLOCK_DAILY_CAP` | 200 | Abuse / fee exposure |
+| `AI_HELP_DAILY_TOKEN_BUDGET` | 2500 | Per-user help-chat tokens / UTC day (Groq free tier) |
+| `AI_HELP_COOLDOWN_MS` | 20000 | Cool-down between help messages |
 
 ## Scale triggers
 

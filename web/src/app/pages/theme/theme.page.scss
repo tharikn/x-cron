@@ -1,0 +1,104 @@
+.page {
+  padding: 1.75rem 0 2.5rem;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
+}
+
+h1 {
+  margin: 0 0 0.4rem;
+  font-family: var(--xcron-font-display);
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  letter-spacing: -0.045em;
+}
+
+.lead {
+  margin: 0 0 1.5rem;
+  color: var(--xcron-muted);
+  max-width: 34rem;
+}
+
+.choices {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 28rem;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink);
+  padding: 0.95rem 1.05rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+  transition:
+    transform 160ms var(--xcron-ease),
+    background 160ms var(--xcron-ease),
+    border-color 160ms var(--xcron-ease);
+}
+
+.choice:hover {
+  transform: translateY(-2px);
+  border-color: var(--xcron-line-strong);
+}
+
+.choice--active {
+  border-color: var(--xcron-primary);
+  box-shadow: var(--xcron-shadow-hover);
+}
+
+.choice__swatch {
+  flex: 0 0 2.4rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--xcron-line);
+  background: linear-gradient(135deg, #7c5cff 0%, #f5a524 100%);
+}
+
+.choice__swatch[data-preview='system'] {
+  background:
+    linear-gradient(90deg, #f7f5fc 50%, #070412 50%),
+    linear-gradient(135deg, #7c5cff, #f5a524);
+}
+
+.choice__swatch[data-preview='light'] {
+  background: linear-gradient(145deg, #ffffff 40%, #ebe6ff 100%);
+  box-shadow: inset 0 0 0 1px #d8d0f0;
+}
+
+.choice__swatch[data-preview='dark'] {
+  background: linear-gradient(145deg, #14101f 30%, #070412 100%);
+}
+
+.choice__swatch[data-preview='warm'] {
+  background: linear-gradient(145deg, #fff8ef 35%, #f0d9b5 100%);
+  box-shadow: inset 0 0 0 1px #e2c9a4;
+}
+
+.choice__copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.choice__label {
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-button);
+  font-weight: var(--xcron-weight-semibold);
+}
+
+.choice__hint {
+  color: var(--xcron-muted);
+  font-size: var(--xcron-text-meta);
+  font-weight: var(--xcron-weight-regular);
+}
+
+.current {
+  margin-top: 1.35rem;
+  color: var(--xcron-muted);
+  font-size: 0.92rem;
+}

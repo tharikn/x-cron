@@ -1,0 +1,69 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/account"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Applied jobs</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <p class="lead">
+    Track every stage with date and time — from applied through offer. Tap a row for the full
+    timeline and chat.
+  </p>
+
+  @if (!isSignedIn()) {
+    <section class="gate">
+      <p>Sign in to see applications you have submitted.</p>
+      <ion-button expand="block" color="primary" routerLink="/tabs/account">
+        Sign in
+      </ion-button>
+    </section>
+  } @else {
+    <div class="toolbar">
+      <ion-button
+        expand="block"
+        fill="outline"
+        color="dark"
+        [disabled]="busy()"
+        (click)="reload()"
+      >
+        Refresh
+      </ion-button>
+    </div>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    <div class="list">
+      @for (row of items(); track row.id) {
+        <a class="row" [routerLink]="['/tabs/applications', row.id]">
+          <strong>{{ row.job?.title || 'Application' }}</strong>
+          <p class="meta">
+            {{ row.job?.employerName || 'Employer' }}
+            @if (row.job?.location?.city) {
+              · {{ row.job?.location?.city }}
+            }
+          </p>
+          <p class="status">{{ row.statusLabel }}</p>
+          @if (row.matchPercent != null) {
+            <p class="pill">Fit {{ row.matchPercent }}%</p>
+          }
+          <time [attr.datetime]="row.updatedAt">
+            Updated {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+          </time>
+          <span class="cue">View timeline</span>
+        </a>
+      } @empty {
+        @if (!busy()) {
+          <p class="empty">
+            No applications yet. Use Easy apply on a job — updates show here with full date and
+            time.
+          </p>
+        }
+      }
+    </div>
+  }
+</ion-content>

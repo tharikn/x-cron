@@ -1,8 +1,9 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { THROTTLE_DEFAULT } from './security.constants';
 import { CsrfGuard } from './csrf.guard';
+import { InputProtectorMiddleware } from './input-protector.middleware';
 import { SecurityThrottlerGuard } from './security-throttler.guard';
 
 function envInt(name: string, fallback: number): number {
@@ -38,4 +39,8 @@ function envInt(name: string, fallback: number): number {
   ],
   exports: [ThrottlerModule],
 })
-export class SecurityModule {}
+export class SecurityModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(InputProtectorMiddleware).forRoutes('*');
+  }
+}

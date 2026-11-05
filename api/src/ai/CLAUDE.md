@@ -1,8 +1,10 @@
-# CLAUDE.md — `api/src/ai/` (job content enrich)
+# CLAUDE.md — `api/src/ai/` (job content enrich + in-app help)
 
 Optional **free-tier / local** LLM cleanup for messy job ads (Telegram digests, WhatsApp, OCR, newspaper paste).
 
 Goals: strip decorative noise, re-align text, map facts into form fields, guess language, follow moderator chat instructions — **no invented contacts**.
+
+Also hosts the **signed-in floating help chatbot** under [`help/`](help/CLAUDE.md) (separate env + small model + heavy rate limits).
 
 Parent: [../CLAUDE.md](../../CLAUDE.md) · package: [../../CLAUDE.md](../../CLAUDE.md)
 
@@ -26,6 +28,7 @@ When disabled or on failure → original text kept (stub / passthrough). Provide
 
 - `GET /v1/ai/status` — public; gate “Improve with AI” UI
 - `POST /v1/ai/job-enrich` — employer/admin preview cleanup + optional `instruction` chat correction (does not publish)
+- `GET /v1/ai/help/status` · `POST /v1/ai/help/chat` — signed-in app help (see [`help/CLAUDE.md`](help/CLAUDE.md))
 - `POST /v1/import-batches/:id/records/:recordId/enrich` — autocorrect one OCR/import row (`instruction` optional) and persist
 - Blog Approval desk uses `job-enrich` then `PATCH /v1/admin/jobs/:id` to save mapped boxes
 
@@ -64,6 +67,7 @@ Telegram jobfare often packs many orgs in **one** chat message (`-----` separato
 | `prompts/job-split.prompt.ts` | multi-job digest → `jobs[]` |
 | `utils/split-job-blocks.ts` | deterministic multi-post splitter |
 | `dto/enrich-job.dto.ts` | includes `instruction`, `contactWebsite`, `vacancies` |
+| `help/*` | In-app help chatbot (quota, stub/LLM providers) |
 
 ## Agent rules
 
@@ -71,3 +75,4 @@ Telegram jobfare often packs many orgs in **one** chat message (`-----` separato
 - Apply links may fill `contactWebsite` only
 - Do not add paid SDKs by default; stay OpenAI-compatible + `fetch`
 - Update this file when changing AI enrich behavior or env keys
+- Help chat changes → also update [`help/CLAUDE.md`](help/CLAUDE.md)

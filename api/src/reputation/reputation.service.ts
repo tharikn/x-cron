@@ -275,7 +275,7 @@ export class ReputationService {
         'Applying to roles builds points when you stay active.',
         'Fit ≥50% (skills + experience vs the job) adds points; fit under 50% lowers your score.',
         'Replying when a recruiter messages you shows discipline and raises your score.',
-        'Recruiters see your Performance Score on applications — apply thoughtfully.',
+        'Recruiters see My Rating on applications — apply thoughtfully.',
       ];
     }
     return [
@@ -283,7 +283,7 @@ export class ReputationService {
       'Opening applications promptly earns points.',
       'Moving candidates forward (review, shortlist, interview, decide) raises your score.',
       'Replying when a seeker messages you shows professionalism.',
-      'Seekers see your Performance Score so responsive employers stand out.',
+      'Seekers see My Rating so responsive employers stand out.',
     ];
   }
 

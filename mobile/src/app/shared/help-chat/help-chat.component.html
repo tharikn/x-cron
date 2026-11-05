@@ -1,0 +1,83 @@
+@if (isSignedIn() && enabled()) {
+  <div class="help-chat" [class.help-chat--open]="open()">
+    @if (open()) {
+      <section
+        class="help-chat__panel"
+        role="dialog"
+        aria-label="X Cron help assistant"
+        aria-modal="false"
+      >
+        <header class="help-chat__head">
+          <div>
+            <p class="help-chat__brand">X Cron</p>
+            <p class="help-chat__title">Help</p>
+          </div>
+          <button
+            type="button"
+            class="help-chat__close"
+            aria-label="Close help"
+            (click)="toggle()"
+          >
+            ×
+          </button>
+        </header>
+
+        <p class="help-chat__quota" aria-live="polite">
+          {{ remainingLabel() }}
+          @if (cooldownLeft() > 0) {
+            <span> · wait {{ cooldownLeft() }}s</span>
+          }
+        </p>
+
+        <div class="help-chat__log" role="log" aria-live="polite">
+          @for (msg of messages(); track msg.id) {
+            <p
+              class="help-chat__bubble"
+              [class.help-chat__bubble--user]="msg.role === 'user'"
+            >
+              {{ msg.content }}
+            </p>
+          }
+        </div>
+
+        @if (error()) {
+          <p class="help-chat__error" role="alert">{{ error() }}</p>
+        }
+
+        <form
+          class="help-chat__compose"
+          (ngSubmit)="send(); $event.preventDefault()"
+        >
+          <textarea
+            id="xcron-help-input-mobile"
+            rows="2"
+            maxlength="400"
+            aria-label="Message"
+            placeholder="Ask how to use X Cron…"
+            [ngModel]="draft()"
+            (ngModelChange)="draft.set($event)"
+            name="helpDraft"
+            [disabled]="busy() || cooldownLeft() > 0"
+          ></textarea>
+          <button
+            type="submit"
+            class="help-chat__send"
+            [disabled]="busy() || !draft().trim() || cooldownLeft() > 0"
+          >
+            {{ busy() ? '…' : 'Send' }}
+          </button>
+        </form>
+      </section>
+    }
+
+    <button
+      type="button"
+      class="help-chat__fab"
+      [attr.aria-expanded]="open()"
+      [attr.aria-label]="open() ? 'Close help' : 'Open help'"
+      (click)="toggle()"
+    >
+      ?
+    </button>
+  </div>
+}

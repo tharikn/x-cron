@@ -141,11 +141,17 @@ Docs: `web/public/downloads/README.md`, `web/CLAUDE.md`, `mobile/CLAUDE.md`.
 - Wired into bulk ingestion + quick/paste job create; preview via `POST /v1/ai/job-enrich`
 - Docs of record: [api/src/ai/CLAUDE.md](../../../api/src/ai/CLAUDE.md)
 
+## In-app help chatbot (`api/src/ai/help/`)
+
+- Toggle: `AI_HELP_ENABLED` (default off); signed-in floating FAB on web + mobile
+- Free/low model (Groq `openai/gpt-oss-20b`); `@ChatThrottle` + per-user cooldown + daily token budget
+- Docs of record: [api/src/ai/help/CLAUDE.md](../../../api/src/ai/help/CLAUDE.md)
+
 ## Guest vs signed-in chrome (web + mobile)
 
 - Follow project skill [xcron-ui-auth](../xcron-ui-auth/SKILL.md) when adding
   drawer, tab, header, footer, or account menu links.
-- Auth-only until login: Settings, Notifications, Performance Score, Saved jobs
+- Auth-only until login: Settings, Notifications, My Rating, Saved jobs
   (plus header notif bell / matching footer quick links).
 
 ## Payments / UPI (`api/src/payments/`)

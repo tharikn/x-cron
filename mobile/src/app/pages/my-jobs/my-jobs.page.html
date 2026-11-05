@@ -1,0 +1,71 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/post"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Posted jobs</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" color="dark" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="brand-mark">X Cron</p>
+    <h1>Posted jobs</h1>
+    <p class="lead">
+      Your listings with views, applies, and contacts. Open a job for the analytics board.
+    </p>
+
+    @if (!isSignedIn() || !isEmployer()) {
+      <div class="gate">
+        <p>Sign in as a recruiter to manage posted jobs.</p>
+        <ion-button expand="block" color="primary" routerLink="/tabs/account" [queryParams]="{ mode: 'employer' }">
+          Go to Sign in
+        </ion-button>
+      </div>
+    } @else {
+      <div class="actions">
+        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/post">
+          Post a job
+        </ion-button>
+        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/employer-applications">
+          All applications
+        </ion-button>
+      </div>
+
+      @if (error()) {
+        <p class="error">{{ error() }}</p>
+      }
+
+      @if (!jobs().length && !busy()) {
+        <p class="empty">No posted jobs yet. Publish from the Recruiter desk.</p>
+      }
+
+      @for (job of jobs(); track job.id) {
+        <article class="card" [routerLink]="['/tabs/my-jobs', job.id]">
+          <div class="card__top">
+            <strong>{{ job.title }}</strong>
+            <span class="status" [attr.data-status]="job.status">{{ job.status }}</span>
+          </div>
+          <p class="meta">{{ job.employerName }} · {{ job.location.city }}</p>
+          <div class="metrics">
+            <span><em>{{ job.analytics?.views ?? 0 }}</em> views</span>
+            <span><em>{{ job.analytics?.appliedActive ?? job.analytics?.applied ?? 0 }}</em> applied</span>
+            <span><em>{{ job.analytics?.contacted ?? 0 }}</em> contacted</span>
+          </div>
+          <p class="time">
+            {{ job.publishedAt | date: 'dd MMM yyyy' }} → {{ job.expiresAt | date: 'dd MMM yyyy' }}
+          </p>
+        </article>
+      }
+
+      @if (total() > jobs().length) {
+        <p class="hint">Showing {{ jobs().length }} of {{ total() }}</p>
+      }
+    }
+  </div>
+</ion-content>

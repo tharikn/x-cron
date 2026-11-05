@@ -46,3 +46,18 @@ export function SensitiveThrottle(
     }),
   );
 }
+
+/**
+ * In-app AI help chat — tight burst (~3 / minute). Pair with per-user
+ * cooldown + daily token budget in HelpChatService.
+ */
+export function ChatThrottle(
+  limit = Number(process.env.AI_HELP_RATE_LIMIT_MAX ?? 3) || 3,
+  ttlMs = Number(process.env.AI_HELP_RATE_LIMIT_TTL_MS ?? 60_000) || 60_000,
+) {
+  return applyDecorators(
+    Throttle({
+      [THROTTLE_DEFAULT]: { limit, ttl: ttlMs },
+    }),
+  );
+}

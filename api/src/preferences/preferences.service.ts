@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { AuthUser } from '../auth/auth.types';
-import { PreferenceInput, PreferenceRecord } from './preferences.types';
+import {
+  PreferenceInput,
+  PreferenceRecord,
+  ThemePreference,
+} from './preferences.types';
+
+const THEMES: ThemePreference[] = ['system', 'light', 'dark', 'warm'];
 
 const DEFAULTS: Omit<PreferenceRecord, 'updatedAt'> = {
   locations: [],
@@ -11,7 +17,14 @@ const DEFAULTS: Omit<PreferenceRecord, 'updatedAt'> = {
   remotePreferred: false,
   interfaceLocale: 'en',
   sort: 'newest',
+  theme: 'system',
 };
+
+function normalizeTheme(value: unknown): ThemePreference {
+  return THEMES.includes(value as ThemePreference)
+    ? (value as ThemePreference)
+    : 'system';
+}
 
 @Injectable()
 export class PreferencesService {
@@ -63,6 +76,7 @@ export class PreferencesService {
       remotePreferred: account.remotePreferred || guest.remotePreferred,
       interfaceLocale: account.interfaceLocale || guest.interfaceLocale,
       sort: account.sort || guest.sort,
+      theme: account.theme || guest.theme,
     };
     const next = this.write(this.byUser, user.id, merged);
     this.byDevice.delete(deviceId);
@@ -113,6 +127,10 @@ export class PreferencesService {
           : existing.remotePreferred,
       interfaceLocale: input.interfaceLocale ?? existing.interfaceLocale,
       sort: input.sort ?? existing.sort,
+      theme:
+        input.theme !== undefined
+          ? normalizeTheme(input.theme)
+          : normalizeTheme(existing.theme),
       updatedAt: new Date().toISOString(),
     };
     map.set(key, next);

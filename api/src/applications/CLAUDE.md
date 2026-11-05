@@ -17,6 +17,18 @@ Issuing `offered` requires `offerLetterText` (appointment / offer letter body).
 
 `ApplicationEvent` rows are append-only: `applied`, `viewed_by_employer`, `status_changed`, `offer_issued`, `note_added`, `withdrawn`, `chat_message`. Each has `at` (full ISO datetime). First employer open of a detail sets `viewedAt` + timeline + seeker notify.
 
+## Hiring activity (public job badge)
+
+`hiring-activity.util.ts` + `ApplicationsService.summarizeHiringActivityForJobs` — Indeed/LinkedIn-style earned badges for Discover:
+
+| Level | Label | Rule (summary) |
+| --- | --- | --- |
+| `high` | Actively reviewing | Review in last **14d** + response rate **≥51%** (30d, n≥2) |
+| `medium` | Usually responds | Recent review **or** rate **≥35%** (30d, n≥2) |
+| _(omit)_ | — | Never publish “low” / unresponsive |
+
+Jobs search/detail enrich via `JobsService` → public DTO `hiringActivity` + `hiringActivityBadge`. Design: [../../../docs/HIRING_ACTIVITY.md](../../../docs/HIRING_ACTIVITY.md).
+
 ## Chat
 
 Seeker ↔ recruiter messages on an application (`ApplicationMessage`). Endpoints under seeker and employer paths; both call the same service with participant checks. Notifies the other party via `onApplicationEvent` (`chat_message`).
@@ -29,7 +41,7 @@ Seeker ↔ recruiter messages on an application (`ApplicationMessage`). Endpoint
 - Per-seeker **UTC daily cap** (`APPLY_DAILY_CAP`, default **20**) via `countCreatedBySeekerSince` — includes withdrawn creates; `403` when exceeded.
 - Unique `(seekerUserId, jobId)`; no re-apply after withdraw.
 - Ops policy key `seeker_applies` + `OpsService.recordApply()`.
-- **Profile gate (P0.2):** owned `applyProfileId` must pass `assertReadyForApply` (skills / headline / summary / project); contact needs **display name** + **phone or email**. Empty shells → `400`. Snapshot frozen on the application.
+- **Profile gate (P0.2):** owned `applyProfileId` must pass `assertReadyForApply` (skills / headline / summary / project); contact needs **display name** + **phone or email**, resolved from apply DTO → auth user → Account seeker profile (`displayName` / `mobile` / `email`). Empty shells → `400`. Snapshot frozen on the application.
 - **Identical cover note (P1):** normalized note reuse capped (`APPLY_IDENTICAL_NOTE_MAX` default **2** in `APPLY_IDENTICAL_NOTE_WINDOW_MS` default **24h**). Empty notes skip; `403` when exceeded.
 - **Screening question (P1):** when `Job.screeningQuestion` is set, apply requires `screeningAnswer` (≥2 chars) → stored on the application; missing → `400`.
 - **Velocity spam badge (P2):** soft flag at apply (`likelySpam` + `spamReasons`) when seeker hits `APPLY_VELOCITY_FLAG_HOURLY` (default **5**) or `APPLY_VELOCITY_FLAG_DAILY` (default **12**) — **does not block**. Employer list/detail expose `spamBadge: "Likely spam"`; seeker views omit these fields.
@@ -62,7 +74,13 @@ Seeker ↔ recruiter messages on an application (`ApplicationMessage`). Endpoint
 
 ## Notifications
 
-Every apply / view / transition / note / withdraw / chat → `NotificationsService.onApplicationEvent` (trigger `application_event`). Payload: `jobId`, `slug`, `applicationId`, `eventType`, `status` — never put phone/WhatsApp in notification text beyond job title/city.
+Every apply / view / transition / note / withdraw / chat → `NotificationsService.onApplicationEvent` (trigger `application_event`). Payload: `jobId`, `slug`, `applicationId`, `eventType`, `status`, `recipientRole` — never put phone/WhatsApp in notification text beyond job title/city. Clients deep-link inbox rows with `applicationId` to the timeline.
+
+## Clients
+
+- Seeker list: web `/me/applied` · mobile `/tabs/applied` (signed-in nav **Applied jobs**)
+- Detail timeline: web `/me/applications/:id` · mobile `/tabs/applications/:id` — each event shows date + time
+- Architecture + scale plan: [../../../docs/APPLICATIONS_TIMELINE.md](../../../docs/APPLICATIONS_TIMELINE.md)
 
 ## Agent rules
 

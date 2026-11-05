@@ -18,9 +18,11 @@
         <ion-segment-button value="profile">
           <ion-label>Profile</ion-label>
         </ion-segment-button>
-        <ion-segment-button value="apply">
-          <ion-label>Apply</ion-label>
-        </ion-segment-button>
+        @if (!isEmployer()) {
+          <ion-segment-button value="apply">
+            <ion-label>Apply</ion-label>
+          </ion-segment-button>
+        }
         <ion-segment-button value="activity">
           <ion-label>Activity</ion-label>
         </ion-segment-button>
@@ -46,13 +48,22 @@
         } @else if (needsEmployerSignIn()) {
           Create an account or sign in to post jobs. Employer access is limited — no admin menus.
         } @else if (isSignedIn()) {
-          Manage your profile, apply versions, and account.
+          @if (isEmployer()) {
+            Manage your profile, hiring activity, and account.
+          } @else {
+            Manage your profile, apply versions, and account.
+          }
         } @else if (accountForm === 'register') {
           Pick a username and password to save jobs and sync preferences.
         } @else {
           Browse jobs freely. Sign in to unlock Prefs, Saved, and alerts.
         }
       </p>
+      @if (!isSignedIn() && !needsAdminLogin()) {
+        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/feedback">
+          {{ 'nav.feedback' | t }}
+        </ion-button>
+      }
     </div>
 
     @if (isSignedIn() && isAdmin() && !needsAdminLogin()) {
@@ -73,6 +84,12 @@
         </ion-button>
         <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/notifications">
           Notifications inbox
+        </ion-button>
+        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/feedback">
+          {{ 'nav.feedback' | t }}
+        </ion-button>
+        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/admin-feedback">
+          {{ 'nav.feedbackAdmin' | t }}
         </ion-button>
       </div>
 
@@ -107,7 +124,13 @@
         @case ('profile') {
           <section class="moderation">
             <h2>Your profile</h2>
-            <p class="hint">Update personal details and career info. Apply versions stay on Apply.</p>
+            <p class="hint">
+              @if (isEmployer()) {
+                Update personal and location details.
+              } @else {
+                Update personal details and career info. Apply versions stay on Apply.
+              }
+            </p>
 
             <ion-accordion-group
               class="profile-accordions"
@@ -121,34 +144,47 @@
                 </ion-item>
                 <div class="accordion-body" slot="content">
                   <ion-list lines="full" class="panel">
-                    <ion-item>
+                    <ion-item [class.is-invalid]="!!profileFieldErrors['displayName']">
                       <ion-label position="stacked">Name</ion-label>
                       <ion-input
                         [(ngModel)]="profileName"
                         name="profileName"
                         autocomplete="name"
                         placeholder="Your full name"
+                        (ngModelChange)="clearProfileFieldError('displayName')"
                       ></ion-input>
+                      @if (profileFieldErrors['displayName']; as err) {
+                        <ion-note slot="helper" color="danger">{{ err }}</ion-note>
+                      }
                     </ion-item>
-                    <ion-item>
+                    <ion-item [class.is-invalid]="!!profileFieldErrors['mobile']">
                       <ion-label position="stacked">Mobile</ion-label>
-                      <ion-input
-                        type="tel"
+                      <app-pii-field
                         [(ngModel)]="profileMobile"
                         name="profileMobile"
                         autocomplete="tel"
+                        revealType="tel"
+                        inputmode="tel"
                         placeholder="10-digit mobile"
-                      ></ion-input>
+                        (ngModelChange)="clearProfileFieldError('mobile')"
+                      />
+                      @if (profileFieldErrors['mobile']; as err) {
+                        <ion-note slot="helper" color="danger">{{ err }}</ion-note>
+                      }
                     </ion-item>
-                    <ion-item>
+                    <ion-item [class.is-invalid]="!!profileFieldErrors['email']">
                       <ion-label position="stacked">Email</ion-label>
-                      <ion-input
-                        type="email"
+                      <app-pii-field
                         [(ngModel)]="profileEmail"
                         name="profileEmail"
                         autocomplete="email"
+                        revealType="email"
                         placeholder="you@example.com"
-                      ></ion-input>
+                        (ngModelChange)="clearProfileFieldError('email')"
+                      />
+                      @if (profileFieldErrors['email']; as err) {
+                        <ion-note slot="helper" color="danger">{{ err }}</ion-note>
+                      }
                     </ion-item>
                     <ion-item>
                       <ion-toggle
@@ -169,188 +205,208 @@
                 </ion-item>
                 <div class="accordion-body" slot="content">
                   <ion-list lines="full" class="panel">
-                    <ion-item>
+                    <ion-item [class.is-invalid]="!!profileFieldErrors['address']">
                       <ion-label position="stacked">Address</ion-label>
-                      <ion-input
+                      <app-pii-field
                         [(ngModel)]="profileAddress"
                         name="profileAddress"
                         autocomplete="street-address"
                         placeholder="Area, city"
-                      ></ion-input>
+                        (ngModelChange)="clearProfileFieldError('address')"
+                      />
+                      @if (profileFieldErrors['address']; as err) {
+                        <ion-note slot="helper" color="danger">{{ err }}</ion-note>
+                      }
                     </ion-item>
-                    <ion-item>
+                    <ion-item [class.is-invalid]="!!profileFieldErrors['pincode']">
                       <ion-label position="stacked">Pincode</ion-label>
-                      <ion-input
+                      <app-pii-field
                         [(ngModel)]="profilePincode"
                         name="profilePincode"
                         inputmode="numeric"
-                        maxlength="6"
+                        [maxlength]="6"
                         placeholder="6-digit pincode"
-                      ></ion-input>
+                        (ngModelChange)="clearProfileFieldError('pincode')"
+                      />
+                      @if (profileFieldErrors['pincode']; as err) {
+                        <ion-note slot="helper" color="danger">{{ err }}</ion-note>
+                      }
                     </ion-item>
                   </ion-list>
                 </div>
               </ion-accordion>
 
-              <ion-accordion value="career">
-                <ion-item slot="header" color="transparent" lines="none">
-                  <ion-label>Career info</ion-label>
-                </ion-item>
-                <div class="accordion-body" slot="content">
-                  <div class="role-choice" role="radiogroup" aria-label="Career stage">
-                    <p class="role-choice__label">Experience</p>
-                    <div class="role-choice__options">
-                      <button
-                        type="button"
-                        class="role-choice__btn"
-                        [class.role-choice__btn--active]="careerStage === 'fresher'"
-                        (click)="setCareerStage('fresher')"
-                      >
-                        Fresher
-                      </button>
-                      <button
-                        type="button"
-                        class="role-choice__btn"
-                        [class.role-choice__btn--active]="careerStage === 'experienced'"
-                        (click)="setCareerStage('experienced')"
-                      >
-                        Experienced
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="role-choice" role="radiogroup" aria-label="Education status">
-                    <p class="role-choice__label">Education</p>
-                    <div class="role-choice__options">
-                      <button
-                        type="button"
-                        class="role-choice__btn"
-                        [class.role-choice__btn--active]="educationStatus === 'pursuing'"
-                        (click)="setEducationStatus('pursuing')"
-                      >
-                        Currently studying
-                      </button>
-                      <button
-                        type="button"
-                        class="role-choice__btn"
-                        [class.role-choice__btn--active]="educationStatus === 'completed'"
-                        (click)="setEducationStatus('completed')"
-                      >
-                        Degree completed
-                      </button>
-                    </div>
-                  </div>
-
-                  @if (careerStage === 'fresher') {
-                    <ion-list lines="full" class="panel">
-                      <ion-item>
-                        <ion-toggle
-                          [(ngModel)]="openToInternship"
-                          labelPlacement="start"
-                          justify="space-between"
+              @if (!isEmployer()) {
+                <ion-accordion value="career">
+                  <ion-item slot="header" color="transparent" lines="none">
+                    <ion-label>Career info</ion-label>
+                  </ion-item>
+                  <div class="accordion-body" slot="content">
+                    <div class="role-choice" role="radiogroup" aria-label="Career stage">
+                      <p class="role-choice__label">Experience</p>
+                      <div class="role-choice__options">
+                        <button
+                          type="button"
+                          class="role-choice__btn"
+                          [class.role-choice__btn--active]="careerStage === 'fresher'"
+                          (click)="setCareerStage('fresher')"
                         >
-                          Open to internships
-                        </ion-toggle>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label position="stacked">Course</ion-label>
-                        <ion-input
-                          [(ngModel)]="courseDetails"
-                          placeholder="e.g. B.E. / B.Tech / B.Sc"
-                        ></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label position="stacked">Branch / specialization</ion-label>
-                        <ion-input
-                          [(ngModel)]="branchStudied"
-                          placeholder="e.g. Computer Science"
-                        ></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label position="stacked">CGPA / percentage</ion-label>
-                        <ion-input
-                          [(ngModel)]="academicScore"
-                          placeholder="e.g. 8.2 CGPA or 78%"
-                        ></ion-input>
-                      </ion-item>
-                    </ion-list>
-                  }
-
-                  @if (careerStage === 'experienced') {
-                    <ion-list lines="full" class="panel">
-                      <ion-item>
-                        <ion-label position="stacked">Years</ion-label>
-                        <ion-input
-                          type="number"
-                          inputmode="numeric"
-                          [(ngModel)]="experienceYears"
-                          min="0"
-                          max="50"
-                          placeholder="0"
-                        ></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label position="stacked">Months</ion-label>
-                        <ion-input
-                          type="number"
-                          inputmode="numeric"
-                          [(ngModel)]="experienceMonths"
-                          min="0"
-                          max="11"
-                          placeholder="0–11"
-                        ></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label position="stacked">Current / previous company</ion-label>
-                        <ion-input
-                          [(ngModel)]="companyName"
-                          placeholder="Company name"
-                        ></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label position="stacked">Company area</ion-label>
-                        <ion-input
-                          [(ngModel)]="companyArea"
-                          placeholder="Industry or domain"
-                        ></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label position="stacked">Current salary</ion-label>
-                        <ion-input
-                          [(ngModel)]="currentSalary"
-                          placeholder="₹ / month or LPA"
-                        ></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label position="stacked">Expected salary</ion-label>
-                        <ion-input
-                          [(ngModel)]="expectedSalary"
-                          placeholder="₹ / month or LPA"
-                        ></ion-input>
-                      </ion-item>
-                    </ion-list>
-
-                    <div class="notice-block">
-                      <p class="role-choice__label">Notice period</p>
-                      <p class="hint notice-hint">
-                        Pick one. “Serving” means notice has started; check your company T&amp;C.
-                      </p>
-                      <div class="notice-badges" role="radiogroup" aria-label="Notice period">
-                        @for (opt of noticeOptions; track opt.value) {
-                          <button
-                            type="button"
-                            class="notice-badge"
-                            [class.notice-badge--active]="noticePeriod === opt.value"
-                            (click)="setNoticePeriod(opt.value)"
-                          >
-                            {{ opt.label }}
-                          </button>
-                        }
+                          Fresher
+                        </button>
+                        <button
+                          type="button"
+                          class="role-choice__btn"
+                          [class.role-choice__btn--active]="careerStage === 'experienced'"
+                          (click)="setCareerStage('experienced')"
+                        >
+                          Experienced
+                        </button>
                       </div>
                     </div>
-                  }
-                </div>
-              </ion-accordion>
+
+                    <div class="role-choice" role="radiogroup" aria-label="Education status">
+                      <p class="role-choice__label">Education</p>
+                      <div class="role-choice__options">
+                        <button
+                          type="button"
+                          class="role-choice__btn"
+                          [class.role-choice__btn--active]="educationStatus === 'pursuing'"
+                          (click)="setEducationStatus('pursuing')"
+                        >
+                          Currently studying
+                        </button>
+                        <button
+                          type="button"
+                          class="role-choice__btn"
+                          [class.role-choice__btn--active]="educationStatus === 'completed'"
+                          (click)="setEducationStatus('completed')"
+                        >
+                          Degree completed
+                        </button>
+                      </div>
+                    </div>
+
+                    @if (careerStage === 'fresher') {
+                      <ion-list lines="full" class="panel">
+                        <ion-item>
+                          <ion-toggle
+                            [(ngModel)]="openToInternship"
+                            labelPlacement="start"
+                            justify="space-between"
+                          >
+                            Open to internships
+                          </ion-toggle>
+                        </ion-item>
+                        <ion-item>
+                          <ion-label position="stacked">Course</ion-label>
+                          <ion-input
+                            [(ngModel)]="courseDetails"
+                            placeholder="e.g. B.E. / B.Tech / B.Sc"
+                          ></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-label position="stacked">Branch / specialization</ion-label>
+                          <ion-input
+                            [(ngModel)]="branchStudied"
+                            placeholder="e.g. Computer Science"
+                          ></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-label position="stacked">CGPA / percentage</ion-label>
+                          <ion-input
+                            [(ngModel)]="academicScore"
+                            placeholder="e.g. 8.2 CGPA or 78%"
+                          ></ion-input>
+                        </ion-item>
+                      </ion-list>
+                    }
+
+                    @if (careerStage === 'experienced') {
+                      <ion-list lines="full" class="panel">
+                        <ion-item>
+                          <ion-label position="stacked">Years</ion-label>
+                          <ion-input
+                            type="number"
+                            inputmode="numeric"
+                            [(ngModel)]="experienceYears"
+                            min="0"
+                            max="50"
+                            placeholder="0"
+                          ></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-label position="stacked">Months</ion-label>
+                          <ion-input
+                            type="number"
+                            inputmode="numeric"
+                            [(ngModel)]="experienceMonths"
+                            min="0"
+                            max="11"
+                            placeholder="0–11"
+                          ></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-label position="stacked">Current / previous company</ion-label>
+                          <ion-input
+                            [(ngModel)]="companyName"
+                            placeholder="Company name"
+                          ></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-label position="stacked">Company area</ion-label>
+                          <ion-input
+                            [(ngModel)]="companyArea"
+                            placeholder="Industry or domain"
+                          ></ion-input>
+                        </ion-item>
+                        <ion-item [class.is-invalid]="!!profileFieldErrors['currentSalary']">
+                          <ion-label position="stacked">Current salary</ion-label>
+                          <app-pii-field
+                            [(ngModel)]="currentSalary"
+                            name="currentSalary"
+                            placeholder="₹ / month or LPA"
+                            (ngModelChange)="clearProfileFieldError('currentSalary')"
+                          />
+                          @if (profileFieldErrors['currentSalary']; as err) {
+                            <ion-note slot="helper" color="danger">{{ err }}</ion-note>
+                          }
+                        </ion-item>
+                        <ion-item [class.is-invalid]="!!profileFieldErrors['expectedSalary']">
+                          <ion-label position="stacked">Expected salary</ion-label>
+                          <app-pii-field
+                            [(ngModel)]="expectedSalary"
+                            name="expectedSalary"
+                            placeholder="₹ / month or LPA"
+                            (ngModelChange)="clearProfileFieldError('expectedSalary')"
+                          />
+                          @if (profileFieldErrors['expectedSalary']; as err) {
+                            <ion-note slot="helper" color="danger">{{ err }}</ion-note>
+                          }
+                        </ion-item>
+                      </ion-list>
+
+                      <div class="notice-block">
+                        <p class="role-choice__label">Notice period</p>
+                        <p class="hint notice-hint">
+                          Pick one. “Serving” means notice has started; check your company T&amp;C.
+                        </p>
+                        <div class="notice-badges" role="radiogroup" aria-label="Notice period">
+                          @for (opt of noticeOptions; track opt.value) {
+                            <button
+                              type="button"
+                              class="notice-badge"
+                              [class.notice-badge--active]="noticePeriod === opt.value"
+                              (click)="setNoticePeriod(opt.value)"
+                            >
+                              {{ opt.label }}
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </ion-accordion>
+              }
             </ion-accordion-group>
 
             <ion-button expand="block" color="dark" (click)="saveProfile()">
@@ -487,121 +543,199 @@
           </section>
         }
         @case ('activity') {
-          <section class="moderation">
-            <h2>Your feed</h2>
-            @for (job of feedJobs(); track job.id) {
-              <div class="mod-card">
-                <strong>{{ job.title }}</strong>
-                <p>{{ job.employerName }}</p>
-                <ion-button size="small" fill="outline" color="dark" [routerLink]="['/tabs/jobs', job.id]">
-                  Open
+          @if (isEmployer()) {
+            <section class="moderation">
+              <div class="moderation__head">
+                <h2>Incoming applications</h2>
+                <ion-button
+                  size="small"
+                  fill="clear"
+                  color="dark"
+                  routerLink="/tabs/employer-applications"
+                >
+                  Review all
                 </ion-button>
               </div>
-            } @empty {
-              <p class="empty">Save preferences to personalise this feed.</p>
-            }
-          </section>
-
-          <section class="moderation">
-            <div class="moderation__head">
-              <h2>Saved jobs</h2>
-              <ion-button
-                size="small"
-                fill="outline"
-                color="dark"
-                routerLink="/tabs/settings"
-                [queryParams]="{ tab: 'saved' }"
-              >
-                Open menu
-              </ion-button>
-            </div>
-            @for (job of savedJobs(); track job.id) {
-              <div class="mod-card">
-                <strong>{{ job.title }}</strong>
-                <p>{{ job.employerName }}</p>
-                <div class="mod-card__actions">
+              @for (row of employerApps(); track row.id) {
+                <div class="mod-card">
+                  <strong>{{ row.seekerName || 'Applicant' }}</strong>
+                  <p>
+                    {{ row.job?.title || row.jobId }} · {{ row.statusLabel }} ·
+                    {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+                  </p>
                   <ion-button
                     size="small"
                     fill="outline"
                     color="dark"
-                    [routerLink]="['/tabs/jobs', job.id]"
+                    [routerLink]="['/tabs/applications', row.id]"
+                    [queryParams]="{ as: 'employer' }"
                   >
-                    Open
+                    Timeline
                   </ion-button>
-                  <ion-button size="small" color="dark" (click)="removeSavedJob(job.id)">
+                </div>
+              } @empty {
+                <p class="empty">No applications yet. Post a job to start receiving them.</p>
+              }
+            </section>
+
+            <section class="moderation">
+              <div class="moderation__head">
+                <h2>Posted jobs</h2>
+                <ion-button size="small" fill="clear" color="dark" routerLink="/tabs/my-jobs">
+                  Open feeds
+                </ion-button>
+              </div>
+              @for (job of postedJobs(); track job.id) {
+                <div class="mod-card">
+                  <strong>{{ job.title }}</strong>
+                  <p>{{ job.employerName }} · {{ job.status || 'live' }}</p>
+                  <div class="mod-card__actions">
+                    <ion-button
+                      size="small"
+                      fill="outline"
+                      color="dark"
+                      [routerLink]="['/tabs/jobs', job.id]"
+                    >
+                      Open
+                    </ion-button>
+                    <ion-button
+                      size="small"
+                      fill="outline"
+                      color="dark"
+                      [routerLink]="['/tabs/my-jobs', job.id]"
+                    >
+                      Analytics
+                    </ion-button>
+                    <ion-button
+                      size="small"
+                      fill="outline"
+                      color="dark"
+                      routerLink="/tabs/employer-applications"
+                      [queryParams]="{ jobId: job.id }"
+                    >
+                      Applicants
+                    </ion-button>
+                  </div>
+                </div>
+              } @empty {
+                <p class="empty">No posts yet. Open Recruiter desk to publish a role.</p>
+              }
+              <ion-button expand="block" color="dark" routerLink="/tabs/post">
+                Open Recruiter desk
+              </ion-button>
+            </section>
+          } @else {
+            <section class="moderation">
+              <div class="moderation__head">
+                <h2>Saved jobs</h2>
+                <ion-button
+                  size="small"
+                  fill="outline"
+                  color="dark"
+                  routerLink="/tabs/settings"
+                  [queryParams]="{ tab: 'saved' }"
+                >
+                  Open menu
+                </ion-button>
+              </div>
+              @for (job of savedJobs(); track job.id) {
+                <div class="mod-card">
+                  <strong>{{ job.title }}</strong>
+                  <p>{{ job.employerName }}</p>
+                  <div class="mod-card__actions">
+                    <ion-button
+                      size="small"
+                      fill="outline"
+                      color="dark"
+                      [routerLink]="['/tabs/jobs', job.id]"
+                    >
+                      Open
+                    </ion-button>
+                    <ion-button size="small" color="dark" (click)="removeSavedJob(job.id)">
+                      Remove
+                    </ion-button>
+                  </div>
+                </div>
+              } @empty {
+                <p class="empty">No saved jobs yet. Save a role from job detail.</p>
+              }
+            </section>
+
+            <section class="moderation">
+              <div class="moderation__head">
+                <h2>Applied jobs</h2>
+                <ion-button
+                  size="small"
+                  fill="clear"
+                  color="dark"
+                  routerLink="/tabs/applied"
+                >
+                  Open all
+                </ion-button>
+              </div>
+              @for (row of jobApps(); track row.id) {
+                <div class="mod-card">
+                  <strong>{{ row.job?.title || row.jobId }}</strong>
+                  <p>
+                    {{ row.statusLabel }} ·
+                    {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+                  </p>
+                  <ion-button
+                    size="small"
+                    fill="outline"
+                    color="dark"
+                    [routerLink]="['/tabs/applications', row.id]"
+                  >
+                    Timeline
+                  </ion-button>
+                </div>
+              } @empty {
+                <p class="empty">Apply from a job page to track status here.</p>
+              }
+            </section>
+
+            <section class="moderation">
+              <h2>Contacted</h2>
+              @for (row of applications(); track row.jobId) {
+                <div class="mod-card">
+                  <strong>{{ row.job?.title || row.jobId }}</strong>
+                  <p>{{ row.status }}{{ row.channel ? ' · ' + row.channel : '' }}</p>
+                  @if (row.job) {
+                    <ion-button
+                      size="small"
+                      fill="outline"
+                      color="dark"
+                      [routerLink]="['/tabs/jobs', row.jobId]"
+                    >
+                      Open
+                    </ion-button>
+                  }
+                </div>
+              } @empty {
+                <p class="empty">Tap phone / WhatsApp / email on a job to track it here.</p>
+              }
+            </section>
+
+            <section class="moderation">
+              <h2>Saved searches</h2>
+              @for (row of savedSearches(); track row.id) {
+                <div class="mod-card">
+                  <strong>{{ row.name }}</strong>
+                  <p>{{ row.alertEnabled ? 'Alerts on' : 'Alerts off' }}</p>
+                  <ion-button
+                    size="small"
+                    fill="outline"
+                    color="dark"
+                    (click)="deleteSavedSearch(row.id)"
+                  >
                     Remove
                   </ion-button>
                 </div>
-              </div>
-            } @empty {
-              <p class="empty">No saved jobs yet. Save a role from job detail.</p>
-            }
-          </section>
-
-          <section class="moderation">
-            <h2>Applications</h2>
-            @for (row of jobApps(); track row.id) {
-              <div class="mod-card">
-                <strong>{{ row.job?.title || row.jobId }}</strong>
-                <p>
-                  {{ row.statusLabel }} ·
-                  {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
-                </p>
-                <ion-button
-                  size="small"
-                  fill="outline"
-                  color="dark"
-                  [routerLink]="['/tabs/applications', row.id]"
-                >
-                  Timeline
-                </ion-button>
-              </div>
-            } @empty {
-              <p class="empty">Apply from a job page to track status here.</p>
-            }
-          </section>
-
-          <section class="moderation">
-            <h2>Contacted</h2>
-            @for (row of applications(); track row.jobId) {
-              <div class="mod-card">
-                <strong>{{ row.job?.title || row.jobId }}</strong>
-                <p>{{ row.status }}{{ row.channel ? ' · ' + row.channel : '' }}</p>
-                @if (row.job) {
-                  <ion-button
-                    size="small"
-                    fill="outline"
-                    color="dark"
-                    [routerLink]="['/tabs/jobs', row.jobId]"
-                  >
-                    Open
-                  </ion-button>
-                }
-              </div>
-            } @empty {
-              <p class="empty">Tap phone / WhatsApp / email on a job to track it here.</p>
-            }
-          </section>
-
-          <section class="moderation">
-            <h2>Saved searches</h2>
-            @for (row of savedSearches(); track row.id) {
-              <div class="mod-card">
-                <strong>{{ row.name }}</strong>
-                <p>{{ row.alertEnabled ? 'Alerts on' : 'Alerts off' }}</p>
-                <ion-button
-                  size="small"
-                  fill="outline"
-                  color="dark"
-                  (click)="deleteSavedSearch(row.id)"
-                >
-                  Remove
-                </ion-button>
-              </div>
-            } @empty {
-              <p class="empty">Save a search from Discover to get alerts.</p>
-            }
-          </section>
+              } @empty {
+                <p class="empty">Save a search from Discover to get alerts.</p>
+              }
+            </section>
+          }
         }
         @case ('rating') {
           <section class="moderation score-callout">
@@ -648,6 +782,10 @@
               </div>
             </section>
           }
+
+          <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/feedback">
+            {{ 'nav.feedback' | t }}
+          </ion-button>
 
           <ion-button expand="block" fill="outline" color="danger" (click)="logout()">
             Sign out

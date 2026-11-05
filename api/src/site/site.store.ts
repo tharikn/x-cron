@@ -126,6 +126,17 @@ export class SiteStore implements OnModuleInit {
     if (row) {
       const parsed = this.parseFooter(row.value);
       if (parsed) {
+        // Drop legacy public HQ address (Visit / Operations / Palani) from chrome.
+        const addresses = parsed.addresses.filter((a) => a.id !== 'addr_hq');
+        if (addresses.length !== parsed.addresses.length) {
+          const cleaned = { ...parsed, addresses };
+          const json = cleaned as unknown as Prisma.InputJsonValue;
+          const updated = await this.prisma.siteConfig.update({
+            where: { key: KEY_FOOTER },
+            data: { value: json },
+          });
+          return { ...cleaned, updatedAt: updated.updatedAt.toISOString() };
+        }
         return { ...parsed, updatedAt: row.updatedAt.toISOString() };
       }
     }

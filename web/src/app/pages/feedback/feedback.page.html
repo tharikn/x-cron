@@ -1,0 +1,196 @@
+<section class="page">
+  <p class="brand">X Cron <span>Jobs</span></p>
+  <h1>{{ 'feedback.title' | t }}</h1>
+  <p class="lead">{{ 'feedback.lead' | t }}</p>
+
+  <div class="tabs" role="tablist">
+    <button
+      type="button"
+      class="tab"
+      role="tab"
+      [class.tab--on]="panel() === 'faq'"
+      (click)="showFaq()"
+    >
+      {{ 'feedback.faq' | t }}
+    </button>
+    <button
+      type="button"
+      class="tab"
+      role="tab"
+      [class.tab--on]="panel() === 'contact'"
+      (click)="showContact()"
+    >
+      {{ 'feedback.contactAdmin' | t }}
+    </button>
+  </div>
+
+  @if (panel() === 'faq') {
+    <section class="faq" aria-label="FAQ">
+      @if (!faq().length) {
+        <p class="empty">{{ 'feedback.faqEmpty' | t }}</p>
+      }
+      @for (item of faq(); track item.id) {
+        <article class="faq__item" [class.faq__item--open]="openFaqId() === item.id">
+          <button type="button" class="faq__q" (click)="toggleFaq(item.id)">
+            <span>{{ item.question }}</span>
+            <span class="faq__chev" aria-hidden="true">{{ openFaqId() === item.id ? '−' : '+' }}</span>
+          </button>
+          @if (openFaqId() === item.id) {
+            <p class="faq__a">{{ item.answer }}</p>
+          }
+        </article>
+      }
+      <p class="faq__hint">
+        {{ 'feedback.faqHint' | t }}
+        <button type="button" class="linkish" (click)="showContact()">
+          {{ 'feedback.contactAdmin' | t }}
+        </button>
+      </p>
+    </section>
+  } @else {
+    <section class="contact" aria-label="Contact Admin">
+      @if (!isSignedIn()) {
+        <div class="gate">
+          <p>{{ 'feedback.signIn' | t }}</p>
+          <a class="btn" routerLink="/sign-in">{{ 'nav.signIn' | t }}</a>
+        </div>
+      } @else if (active(); as thread) {
+        <div class="thread">
+          <button type="button" class="back" (click)="clearActive()">
+            ← {{ 'feedback.backToList' | t }}
+          </button>
+          <header class="thread__head">
+            <h2>{{ thread.subject }}</h2>
+            <p class="meta">
+              {{ thread.audienceLabel }} · {{ thread.categoryLabel }} ·
+              {{ thread.statusLabel }}
+            </p>
+            @if (peerPresenceLine()) {
+              <p
+                class="presence"
+                [class.presence--online]="thread.presence?.peerOnline"
+              >
+                {{ peerPresenceLine() }}
+              </p>
+            }
+          </header>
+
+          <div class="chat" #chatLog role="log" aria-live="polite">
+            @for (msg of messages(); track msg.id) {
+              <div
+                class="bubble"
+                [class.bubble--me]="msg.senderRole !== 'admin'"
+                [class.bubble--admin]="msg.senderRole === 'admin'"
+                [class.bubble--new]="isNewMessage(msg.id)"
+              >
+                @if (isNewMessage(msg.id)) {
+                  <span class="bubble__new">{{ 'feedback.new' | t }}</span>
+                }
+                <p>{{ msg.body }}</p>
+                <span class="bubble__meta">
+                  {{ senderLabel(msg, thread.audienceLabel) }}
+                  · {{ msg.createdAt | date: 'short' }}
+                </span>
+              </div>
+            }
+            @if (sending()) {
+              <div class="typing" aria-live="polite">
+                <span class="typing__dots" aria-hidden="true">
+                  <i></i><i></i><i></i>
+                </span>
+                <span>{{ 'feedback.sending' | t }}</span>
+              </div>
+            } @else if (showPeerTyping()) {
+              <div class="typing" aria-live="polite">
+                <span class="typing__dots" aria-hidden="true">
+                  <i></i><i></i><i></i>
+                </span>
+                <span>{{ peerTypingLabel() }}</span>
+              </div>
+            }
+          </div>
+
+          @if (thread.status !== 'closed') {
+            <form class="composer" (ngSubmit)="sendChat()">
+              <textarea
+                [(ngModel)]="chatBody"
+                (ngModelChange)="onComposerInput()"
+                name="chatBody"
+                rows="3"
+                [placeholder]="'feedback.replyPlaceholder' | t"
+                maxlength="4000"
+              ></textarea>
+              <div class="composer__actions">
+                <button type="submit" class="btn" [disabled]="busy() || !chatBody.trim()">
+                  {{ 'feedback.send' | t }}
+                </button>
+                <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="closeActive()">
+                  {{ 'feedback.close' | t }}
+                </button>
+              </div>
+            </form>
+          } @else {
+            <p class="closed">{{ 'feedback.closed' | t }}</p>
+          }
+        </div>
+      } @else {
+        <div class="split">
+          <form class="compose-new" (ngSubmit)="startThread()">
+            <h2>{{ 'feedback.newThread' | t }}</h2>
+            <label>
+              <span>{{ 'feedback.asRole' | t }}</span>
+              <select [(ngModel)]="audience" name="audience">
+                <option value="seeker">{{ 'feedback.asSeeker' | t }}</option>
+                @if (canContactAsRecruiter()) {
+                  <option value="employer">{{ 'feedback.asRecruiter' | t }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              <span>{{ 'feedback.category' | t }}</span>
+              <select [(ngModel)]="category" name="category">
+                <option value="question">Question</option>
+                <option value="bug">Bug report</option>
+                <option value="suggestion">Suggestion</option>
+                <option value="account">Account</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label>
+              <span>{{ 'feedback.subject' | t }}</span>
+              <input [(ngModel)]="subject" name="subject" maxlength="120" required />
+            </label>
+            <label>
+              <span>{{ 'feedback.message' | t }}</span>
+              <textarea [(ngModel)]="body" name="body" rows="4" maxlength="4000" required></textarea>
+            </label>
+            <button type="submit" class="btn" [disabled]="busy()">
+              {{ 'feedback.sendToAdmin' | t }}
+            </button>
+          </form>
+
+          <aside class="inbox">
+            <div class="inbox__head">
+              <h2>{{ 'feedback.conversations' | t }}</h2>
+              <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="reloadThreads()">
+                {{ 'feedback.refresh' | t }}
+              </button>
+            </div>
+            @if (!threads().length) {
+              <p class="empty">{{ 'feedback.emptyThreads' | t }}</p>
+            }
+            @for (row of threads(); track row.id) {
+              <button type="button" class="thread-card" (click)="openThread(row.id)">
+                <strong>{{ row.subject }}</strong>
+                <span class="meta">
+                  {{ row.audienceLabel }} · {{ row.statusLabel }} ·
+                  {{ row.lastMessageAt | date: 'short' }}
+                </span>
+              </button>
+            }
+          </aside>
+        </div>
+      }
+    </section>
+  }
+</section>

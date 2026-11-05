@@ -12,17 +12,25 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+import { IsSafeText } from '../../security/validation/decorators';
+import {
+  SanitizeOptionalText,
+  SanitizeText,
+} from '../../security/validation/sanitize';
 import { APPLY_PROFILE_LIMITS } from '../apply-profiles.types';
 
 const BANDS = ['fresher', '0-1', '1-3', '3-5', '5+'] as const;
 
 export class ApplyProfileProjectDto {
+  @SanitizeText()
   @IsString()
   @MinLength(1)
   @MaxLength(120)
+  @IsSafeText({ max: 120 })
   title!: string;
 
   @IsOptional()
+  @SanitizeOptionalText({ allowNewlines: true, stripHtml: false })
   @IsString()
   @MaxLength(2000)
   description?: string;
@@ -41,9 +49,11 @@ export class ApplyProfileProjectDto {
 }
 
 export class ApplyProfileLinkDto {
+  @SanitizeText()
   @IsString()
   @MinLength(1)
   @MaxLength(80)
+  @IsSafeText({ max: 80 })
   label!: string;
 
   @IsUrl({ require_tld: false })
@@ -52,17 +62,22 @@ export class ApplyProfileLinkDto {
 }
 
 export class CreateApplyProfileDto {
+  @SanitizeText()
   @IsString()
   @MinLength(1)
   @MaxLength(80)
+  @IsSafeText({ max: 80 })
   name!: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(160)
+  @IsSafeText({ max: 160 })
   headline?: string;
 
   @IsOptional()
+  @SanitizeOptionalText({ allowNewlines: true, stripHtml: false })
   @IsString()
   @MaxLength(4000)
   summary?: string;
@@ -100,17 +115,22 @@ export class CreateApplyProfileDto {
 
 export class UpdateApplyProfileDto {
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MinLength(1)
   @MaxLength(80)
+  @IsSafeText({ max: 80 })
   name?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(160)
+  @IsSafeText({ max: 160 })
   headline?: string;
 
   @IsOptional()
+  @SanitizeOptionalText({ allowNewlines: true, stripHtml: false })
   @IsString()
   @MaxLength(4000)
   summary?: string;

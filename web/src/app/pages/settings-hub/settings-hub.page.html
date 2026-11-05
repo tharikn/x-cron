@@ -14,6 +14,13 @@
       </a>
       @if (isSignedIn()) {
         <a
+          routerLink="/settings/theme"
+          routerLinkActive="is-active"
+          class="tabs__btn"
+        >
+          {{ 'nav.theme' | t }}
+        </a>
+        <a
           routerLink="/settings/preferences"
           routerLinkActive="is-active"
           class="tabs__btn"

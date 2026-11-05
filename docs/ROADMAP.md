@@ -16,6 +16,9 @@
 | — | Performance Score | Seeker + recruiter trust score (fit ≥50% up / &lt;50% down, chat + review discipline); clear UI + roadmap highlight | **Done (MVP)** |
 | — | Onboarding alerts | Welcome + profile-complete on first login; auto profile nudges for first 2 days | **Done** |
 | — | Recruiter desk | Separate post screen: Review + Preview + AI chat; confirm preview → `directPublish` live (not Blog Approval) | **Done (MVP)** |
+| — | Recruiter job analytics | Posted-jobs list + per-job board (views / applied / contacted graphs); `JobViewEvent` + analytics API | **Done (MVP)** |
+| — | In-app help chat | Signed-in floating help FAB; free/low model; token budget + cooldown | **Done (MVP)** |
+| — | Feedback hub | FAQ + Contact Admin messenger (seeker/recruiter → admin); admin desk | **Done (MVP)** |
 
 ## Step 7 acceptance
 
@@ -34,6 +37,15 @@
 - [x] Digest pull → existing import-batch review
 - [x] Admin workflow UI (`/tabs/job-fare`) with pipeline tracking
 - [x] Design doc: [CHANNEL_PULL.md](./CHANNEL_PULL.md)
+
+## Applied jobs + timeline (MVP UX)
+
+- [x] Formal ATS apply → offer with append-only `ApplicationEvent` (date + time per stage)
+- [x] Dual-role notifications on every application action (`onApplicationEvent`)
+- [x] Seeker **Applied jobs** surfaces: web `/me/applied`, mobile `/tabs/applied` (+ drawer/Activity links)
+- [x] Timeline UI shows stage + `dd MMM yyyy · HH:mm`; inbox deep-links via `applicationId`
+- [x] Architecture + scale plan: [APPLICATIONS_TIMELINE.md](./APPLICATIONS_TIMELINE.md)
+- [ ] Scale: cursor pagination, async notify queue, denormalized job fields on application
 
 ## Performance Score acceptance (MVP)
 

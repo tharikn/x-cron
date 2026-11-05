@@ -1,0 +1,156 @@
+<section class="page">
+  <a class="back" routerLink="/my-jobs">← Posted jobs</a>
+
+  @if (!isSignedIn() || !isEmployer()) {
+    <div class="gate">
+      <p>Sign in as a recruiter to view job analytics.</p>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+    </div>
+  } @else {
+    <header class="hero">
+      <p class="eyebrow">Analytics board</p>
+      <h1>{{ job()?.title || 'Job analytics' }}</h1>
+      @if (job(); as j) {
+        <p class="lead">
+          {{ j.employerName }} · {{ j.location.city }} ·
+          <span class="status" [attr.data-status]="j.status">{{ j.status }}</span>
+        </p>
+      }
+    </header>
+
+    <div class="toolbar">
+      <label class="days">
+        <span>Window</span>
+        <select
+          [value]="days()"
+          [disabled]="busy()"
+          (change)="setDays($any($event.target).value)"
+        >
+          @for (d of dayOptions; track d) {
+            <option [value]="d">Last {{ d }} days</option>
+          }
+        </select>
+      </label>
+      <button type="button" class="btn secondary" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </button>
+      @if (job(); as j) {
+        <a class="link-btn" [routerLink]="['/jobs', j.slug || j.id]">Public listing</a>
+        <a
+          class="link-btn"
+          routerLink="/employer-applications"
+          [queryParams]="{ jobId: j.id }"
+        >
+          Applicants
+        </a>
+      }
+    </div>
+
+    @if (dash(); as d) {
+      <div class="kpis">
+        <article class="kpi">
+          <span class="kpi__label">Job views</span>
+          <strong class="kpi__value">{{ d.totals.views }}</strong>
+          <span class="kpi__meta">Lifetime · {{ d.totals.daysLive }} days live</span>
+        </article>
+        <article class="kpi">
+          <span class="kpi__label">Applied</span>
+          <strong class="kpi__value">{{ d.totals.appliedActive }}</strong>
+          <span class="kpi__meta">
+            {{ d.totals.applied }} total
+            @if (d.totals.applyRatePct != null) {
+              · {{ d.totals.applyRatePct }}% of views
+            }
+          </span>
+        </article>
+        <article class="kpi">
+          <span class="kpi__label">Contacted</span>
+          <strong class="kpi__value">{{ d.totals.contacted }}</strong>
+          <span class="kpi__meta">
+            Phone / WhatsApp taps
+            @if (d.totals.contactRatePct != null) {
+              · {{ d.totals.contactRatePct }}% of views
+            }
+          </span>
+        </article>
+        <article class="kpi">
+          <span class="kpi__label">Reports</span>
+          <strong class="kpi__value">{{ d.totals.reportCount }}</strong>
+          <span class="kpi__meta">Seeker trust signal</span>
+        </article>
+      </div>
+
+      <section class="chart-panel">
+        <div class="chart-panel__head">
+          <h2>Daily funnel</h2>
+          <p>{{ d.from | date: 'mediumDate' }} → {{ d.to | date: 'mediumDate' }}</p>
+        </div>
+        @if (!d.series.length) {
+          <p class="empty">No activity in this window yet.</p>
+        } @else {
+          <div
+            class="chart"
+            role="img"
+            [attr.aria-label]="'Views, applied, and contacted by day'"
+          >
+            @for (point of d.series; track point.date) {
+              <div class="chart__col">
+                <div class="chart__bars">
+                  <span
+                    class="chart__bar chart__bar--views"
+                    [style.height]="barHeight(point.views)"
+                    [attr.title]="'Views: ' + point.views"
+                  ></span>
+                  <span
+                    class="chart__bar chart__bar--applied"
+                    [style.height]="barHeight(point.applied)"
+                    [attr.title]="'Applied: ' + point.applied"
+                  ></span>
+                  <span
+                    class="chart__bar chart__bar--contacted"
+                    [style.height]="barHeight(point.contacted)"
+                    [attr.title]="'Contacted: ' + point.contacted"
+                  ></span>
+                </div>
+                <span class="chart__label">{{ shortLabel(point) }}</span>
+                <span class="chart__vals"
+                  >{{ point.views }}/{{ point.applied }}/{{ point.contacted }}</span
+                >
+              </div>
+            }
+          </div>
+          <div class="legend">
+            <span><i class="swatch swatch--views"></i> Views</span>
+            <span><i class="swatch swatch--applied"></i> Applied</span>
+            <span><i class="swatch swatch--contacted"></i> Contacted</span>
+          </div>
+        }
+      </section>
+
+      <section class="insights">
+        <h2>What this board shows</h2>
+        <ul>
+          <li>
+            <strong>Views</strong> — unique device opens of the public listing (once per day).
+          </li>
+          <li>
+            <strong>Applied</strong> — formal Easy Apply submissions (active excludes withdrawn).
+          </li>
+          <li>
+            <strong>Contacted</strong> — seekers who tapped phone / WhatsApp / email on the job.
+          </li>
+          <li>
+            Open <a routerLink="/employer-applications" [queryParams]="{ jobId: d.jobId }">Applicants</a>
+            to review timeline, chat, and fit %.
+          </li>
+        </ul>
+      </section>
+    } @else if (!busy()) {
+      <p class="empty">No analytics yet for this job.</p>
+    }
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</section>

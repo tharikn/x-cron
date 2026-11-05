@@ -12,20 +12,35 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ApplicationsService } from '../../core/services/applications.service';
+import {
+  ApplicationsService,
+  type JobApplication,
+} from '../../core/services/applications.service';
 import { ApplyProfilesService } from '../../core/services/apply-profiles.service';
 import { AuthService } from '../../core/services/auth.service';
 import { GoogleIdentityService } from '../../core/services/google-identity.service';
+import { JobsService } from '../../core/services/jobs.service';
 import {
   type CareerStage,
   type EducationStatus,
   type NoticePeriod,
   SeekerService,
 } from '../../core/services/seeker.service';
+import { NotificationsService } from '../../core/services/notifications.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
-import { friendlyHttpMessage } from '../../core/utils/friendly-http-message';
+import {
+  fieldErrorsFromHttp,
+  friendlyHttpMessage,
+} from '../../core/utils/friendly-http-message';
+import {
+  isValidEmail,
+  validateSeekerProfileFields,
+  type FieldErrors,
+} from '../../core/utils/form-validation';
 import { jobPath } from '../../core/utils/format';
+import type { Job } from '../../core/models/job.model';
+import { PiiFieldComponent } from '../../shared/pii-field/pii-field.component';
 
 type SignInMode = 'account' | 'admin';
 type AccountForm = 'login' | 'register';
@@ -33,7 +48,7 @@ export type AccountTab = 'profile' | 'apply' | 'activity' | 'rating' | 'account'
 
 @Component({
   selector: 'app-sign-in',
-  imports: [DatePipe, FormsModule, RouterLink],
+  imports: [DatePipe, FormsModule, RouterLink, PiiFieldComponent],
   templateUrl: './sign-in.page.html',
   styleUrl: './sign-in.page.scss',
 })
@@ -44,9 +59,11 @@ export class SignInPage implements OnInit, AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly google = inject(GoogleIdentityService);
   private readonly toast = inject(ToastService);
+  private readonly notifications = inject(NotificationsService);
   private readonly seeker = inject(SeekerService);
   private readonly jobApplications = inject(ApplicationsService);
   private readonly applyProfilesApi = inject(ApplyProfilesService);
+  private readonly jobsService = inject(JobsService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly googleHost = viewChild<ElementRef<HTMLDivElement>>('googleHost');
   private googleRendered = false;
@@ -94,6 +111,8 @@ export class SignInPage implements OnInit, AfterViewInit {
   readonly jobApps = this.jobApplications.mine;
   readonly applyProfiles = this.applyProfilesApi.items;
   readonly savedSearches = this.seeker.savedSearches;
+  readonly employerApps = signal<JobApplication[]>([]);
+  readonly postedJobs = signal<Job[]>([]);
   readonly jobPath = jobPath;
 
   username = '';
@@ -131,6 +150,7 @@ export class SignInPage implements OnInit, AfterViewInit {
     location: false,
     career: true,
   };
+  profileFieldErrors: FieldErrors = {};
   readonly noticeOptions: Array<{ value: NoticePeriod; label: string }> = [
     { value: 'serving', label: 'Serving' },
     { value: '1', label: '1 mo' },
@@ -201,9 +221,10 @@ export class SignInPage implements OnInit, AfterViewInit {
   }
 
   async setTab(next: AccountTab): Promise<void> {
-    this.tab.set(next);
+    const tab = this.clampTab(next);
+    this.tab.set(tab);
     await this.router.navigate(['/sign-in'], {
-      queryParams: { tab: next },
+      queryParams: { tab },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
@@ -218,7 +239,7 @@ export class SignInPage implements OnInit, AfterViewInit {
   }
 
   async signInAdmin(): Promise<void> {
-    if (!this.adminEmail.trim().includes('@') || this.adminPassword.trim().length < 8) {
+    if (!isValidEmail(this.adminEmail) || this.adminPassword.trim().length < 8) {
       this.toast.error('Enter admin email and password.');
       return;
     }
@@ -310,7 +331,37 @@ export class SignInPage implements OnInit, AfterViewInit {
     this.noticePeriod = value;
   }
 
+  clearProfileFieldError(key: string): void {
+    if (!this.profileFieldErrors[key]) return;
+    const next = { ...this.profileFieldErrors };
+    delete next[key];
+    this.profileFieldErrors = next;
+  }
+
   async saveProfile(): Promise<void> {
+    const clientErrors = validateSeekerProfileFields({
+      displayName: this.profileDisplayName,
+      mobile: this.profileMobile,
+      email: this.profileEmail,
+      address: this.profileAddress,
+      pincode: this.profilePincode,
+      careerStage: this.careerStage,
+      courseDetails: this.courseDetails,
+      branchStudied: this.branchStudied,
+      academicScore: this.academicScore,
+      companyName: this.companyName,
+      companyArea: this.companyArea,
+      currentSalary: this.currentSalary,
+      expectedSalary: this.expectedSalary,
+      experienceYears: this.experienceYears,
+      experienceMonths: this.experienceMonths,
+    });
+    this.profileFieldErrors = clientErrors;
+    if (Object.keys(clientErrors).length) {
+      this.toast.error(Object.values(clientErrors)[0] ?? 'Fix the highlighted fields.');
+      return;
+    }
+
     try {
       await this.seeker.saveProfile({
         displayName: this.profileDisplayName.trim() || undefined,
@@ -367,9 +418,16 @@ export class SignInPage implements OnInit, AfterViewInit {
         preferredCities: this.profileCities,
         openToWork: this.openToWork,
       });
+      this.profileFieldErrors = {};
       this.toast.show('Profile saved.');
-    } catch {
-      this.toast.error('Could not save profile.');
+    } catch (err) {
+      const apiErrors = fieldErrorsFromHttp(err);
+      if (Object.keys(apiErrors).length) {
+        this.profileFieldErrors = apiErrors;
+        this.toast.error(Object.values(apiErrors)[0] ?? 'Could not save profile.');
+        return;
+      }
+      this.toast.error(friendlyHttpMessage(err, 'Could not save profile.'));
     }
   }
 
@@ -623,9 +681,15 @@ export class SignInPage implements OnInit, AfterViewInit {
 
   private readTab(raw: string | null): AccountTab {
     if (raw === 'apply' || raw === 'activity' || raw === 'rating' || raw === 'account') {
-      return raw;
+      return this.clampTab(raw);
     }
     return 'profile';
+  }
+
+  /** Seeker-only Apply tab — recruiters never land on it. */
+  private clampTab(tab: AccountTab): AccountTab {
+    if (tab === 'apply' && this.auth.isEmployer()) return 'profile';
+    return tab;
   }
 
   private async loadAccountHub(): Promise<void> {
@@ -664,14 +728,24 @@ export class SignInPage implements OnInit, AfterViewInit {
       this.profileSkills = profile.skills ?? [];
       this.profileCities = profile.preferredCities ?? [];
       this.openToWork = profile.openToWork;
-      await Promise.all([
-        this.seeker.loadSaved(),
-        this.seeker.loadFeed(),
-        this.seeker.loadApplications(),
-        this.seeker.loadSavedSearches(),
-        this.jobApplications.listMine(),
-        this.applyProfilesApi.list(),
-      ]);
+      this.tab.set(this.clampTab(this.tab()));
+      if (this.auth.isEmployer()) {
+        const [apps, jobs] = await Promise.all([
+          this.jobApplications.listEmployer(),
+          this.jobsService.listMyJobs({ page: 1, limit: 10 }),
+        ]);
+        this.employerApps.set(apps.items.slice(0, 8));
+        this.postedJobs.set(jobs.items.slice(0, 8));
+      } else {
+        await Promise.all([
+          this.seeker.loadSaved(),
+          this.seeker.loadFeed(),
+          this.seeker.loadApplications(),
+          this.seeker.loadSavedSearches(),
+          this.jobApplications.listMine(),
+          this.applyProfilesApi.list(),
+        ]);
+      }
     } catch {
       // API optional for account chrome
     }
@@ -700,6 +774,7 @@ export class SignInPage implements OnInit, AfterViewInit {
   }
 
   private async redirectAfterSignIn(): Promise<void> {
+    await this.promptSystemNotifications();
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
     if (returnUrl?.startsWith('/') && !returnUrl.startsWith('//')) {
       if (this.isAdminReturnUrl(returnUrl) && !this.isAdmin()) {
@@ -732,5 +807,26 @@ export class SignInPage implements OnInit, AfterViewInit {
       path: '/sign-in',
       robots: 'noindex,follow',
     });
+  }
+
+  /** Ask the browser for OS notification permission right after login. */
+  private async promptSystemNotifications(): Promise<void> {
+    try {
+      await this.notifications.loadPrefs();
+      if (this.notifications.prefs().pushAlertsEnabled === false) return;
+      const result = await this.notifications.promptOsPermissionAfterSignIn();
+      if (!result.asked) return;
+      if (result.status === 'granted') {
+        this.toast.show('System notifications enabled');
+        return;
+      }
+      if (result.status === 'denied') {
+        this.toast.error(
+          'System notifications blocked — enable them in browser settings',
+        );
+      }
+    } catch {
+      // permission prompt is best-effort
+    }
   }
 }

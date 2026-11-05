@@ -10,10 +10,11 @@ import {
 } from '../../core/services/ops.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { SeoService } from '../../core/services/seo.service';
+import { DatetimePickerComponent } from '../../shared/datetime-picker/datetime-picker.component';
 
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, RouterLink, DatePipe, DatetimePickerComponent],
   templateUrl: './admin-dashboard.page.html',
   styleUrl: './admin-dashboard.page.scss',
 })

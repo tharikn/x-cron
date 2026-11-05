@@ -216,11 +216,21 @@
           </label>
           <label>
             <span>Effective from</span>
-            <input [(ngModel)]="effectiveFromLocal" name="effectiveFrom" type="datetime-local" />
+            <app-xcron-datetime-picker
+              [(ngModel)]="effectiveFromLocal"
+              name="effectiveFrom"
+              mode="datetime"
+              placeholder="Select start"
+            />
           </label>
           <label>
             <span>End date</span>
-            <input [(ngModel)]="expiresAtLocal" name="expiresAt" type="datetime-local" />
+            <app-xcron-datetime-picker
+              [(ngModel)]="expiresAtLocal"
+              name="expiresAt"
+              mode="datetime"
+              placeholder="Select end"
+            />
           </label>
           <div class="form__actions">
             <button type="button" class="btn--ghost" (click)="goReview()">Review</button>

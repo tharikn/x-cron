@@ -1,4 +1,5 @@
-:root {
+:root,
+html[data-theme='dark'] {
   /* X Cron premium — night sky + violet→amber CTA (aligned with web) */
   --xcron-primary: #7c5cff;
   --xcron-primary-hover: #9580ff;
@@ -51,6 +52,14 @@
   --xcron-tracking-display: -0.04em;
   --xcron-tracking-title: -0.02em;
   --xcron-tracking-label: 0.06em;
+  --xcron-starfield-opacity: 0.85;
+  --xcron-canvas-bg:
+    radial-gradient(900px 520px at 50% -5%, rgba(88, 28, 135, 0.35) 0%, transparent 58%),
+    radial-gradient(700px 420px at 15% 10%, rgba(124, 92, 255, 0.18) 0%, transparent 50%),
+    radial-gradient(700px 420px at 90% 20%, rgba(245, 165, 36, 0.12) 0%, transparent 48%),
+    linear-gradient(180deg, #12081f 0%, #070412 48%, #030208 100%);
+  --xcron-frame-bg: rgba(20, 16, 31, 0.72);
+  --xcron-toolbar-bg: rgba(7, 4, 18, 0.92);
   --ion-font-family: var(--xcron-sans);
 
   --ion-color-primary: #7c5cff;
@@ -126,4 +135,96 @@
   --ion-item-background: #14101f;
   --ion-card-background: #14101f;
   --ion-border-color: #2a2440;
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+  --xcron-bg: #f7f5fc;
+  --xcron-bg-elevated: #ffffff;
+  --xcron-ink: #1a1430;
+  --xcron-ink-soft: #2c2448;
+  --xcron-text: #1a1430;
+  --xcron-border: #e4dff2;
+  --xcron-line: #e4dff2;
+  --xcron-line-strong: #cfc6e8;
+  --xcron-muted: #6b6285;
+  --xcron-faint: #9a92b0;
+  --xcron-wash: #efeafc;
+  --xcron-wash-deep: #e4ddf7;
+  --xcron-shadow: 0 1px 0 rgba(124, 92, 255, 0.08), 0 14px 32px rgba(40, 28, 80, 0.08);
+  --xcron-shadow-hover: 0 1px 0 rgba(245, 165, 36, 0.14), 0 18px 40px rgba(40, 28, 80, 0.12);
+  --xcron-starfield-opacity: 0;
+  --xcron-canvas-bg:
+    radial-gradient(820px 480px at 50% -8%, rgba(124, 92, 255, 0.14) 0%, transparent 55%),
+    radial-gradient(640px 400px at 92% 8%, rgba(245, 165, 36, 0.1) 0%, transparent 48%),
+    linear-gradient(180deg, #fbfaff 0%, #f7f5fc 45%, #f3f0fa 100%);
+  --xcron-frame-bg: rgba(255, 255, 255, 0.92);
+  --xcron-toolbar-bg: rgba(247, 245, 252, 0.94);
+  --ion-color-dark: #1a1430;
+  --ion-color-dark-rgb: 26, 20, 48;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #17122a;
+  --ion-color-dark-tint: #312c45;
+  --ion-color-medium: #6b6285;
+  --ion-color-medium-rgb: 107, 98, 133;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-light: #efeafc;
+  --ion-color-light-rgb: 239, 234, 252;
+  --ion-color-light-contrast: #1a1430;
+  --ion-background-color: #f7f5fc;
+  --ion-background-color-rgb: 247, 245, 252;
+  --ion-text-color: #1a1430;
+  --ion-text-color-rgb: 26, 20, 48;
+  --ion-toolbar-background: rgba(247, 245, 252, 0.94);
+  --ion-toolbar-color: #1a1430;
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-border-color: #e4dff2;
+}
+
+html[data-theme='warm'] {
+  color-scheme: light;
+  --xcron-bg: #f6efe6;
+  --xcron-bg-elevated: #fffaf3;
+  --xcron-ink: #1f1812;
+  --xcron-ink-soft: #3a2f26;
+  --xcron-text: #1f1812;
+  --xcron-border: #e8dccb;
+  --xcron-line: #e8dccb;
+  --xcron-line-strong: #d6c4a8;
+  --xcron-muted: #7a6a58;
+  --xcron-faint: #a3927e;
+  --xcron-wash: #f0e4d4;
+  --xcron-wash-deep: #e8d7c0;
+  --xcron-shadow: 0 1px 0 rgba(180, 120, 40, 0.08), 0 14px 32px rgba(60, 40, 20, 0.08);
+  --xcron-shadow-hover: 0 1px 0 rgba(245, 165, 36, 0.18), 0 18px 40px rgba(60, 40, 20, 0.12);
+  --xcron-starfield-opacity: 0;
+  --xcron-canvas-bg:
+    radial-gradient(820px 480px at 50% -8%, rgba(245, 165, 36, 0.18) 0%, transparent 55%),
+    radial-gradient(640px 400px at 10% 12%, rgba(124, 92, 255, 0.08) 0%, transparent 48%),
+    linear-gradient(180deg, #faf4eb 0%, #f6efe6 48%, #f1e6d8 100%);
+  --xcron-frame-bg: rgba(255, 250, 243, 0.94);
+  --xcron-toolbar-bg: rgba(246, 239, 230, 0.94);
+  --ion-color-dark: #1f1812;
+  --ion-color-dark-rgb: 31, 24, 18;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #1b1510;
+  --ion-color-dark-tint: #352f2a;
+  --ion-color-medium: #7a6a58;
+  --ion-color-medium-rgb: 122, 106, 88;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-light: #f0e4d4;
+  --ion-color-light-rgb: 240, 228, 212;
+  --ion-color-light-contrast: #1f1812;
+  --ion-background-color: #f6efe6;
+  --ion-background-color-rgb: 246, 239, 230;
+  --ion-text-color: #1f1812;
+  --ion-text-color-rgb: 31, 24, 18;
+  --ion-toolbar-background: rgba(246, 239, 230, 0.94);
+  --ion-toolbar-color: #1f1812;
+  --ion-item-background: #fffaf3;
+  --ion-card-background: #fffaf3;
+  --ion-border-color: #e8dccb;
 }

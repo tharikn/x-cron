@@ -80,10 +80,10 @@ flowchart TB
 | Surface | What users see |
 | --- | --- |
 | `/tabs/performance` (mobile) · `/performance` (web) | Own score, band, how-it-works, tips, event ledger; seeker/recruiter toggle for employers |
-| Account / Saved jobs hub | Callout highlighting the feature |
+| Account / Saved jobs hub | Compact My Rating strip on `/me` (+ Account Rating tab) |
 | Employer applicant list + detail | Seeker score band + role fit % |
 | Seeker application rows | Fit % + recruiter score |
-| Drawer (web) | **Performance Score** nav |
+| Drawer (web) | **My Rating** nav (`/performance`) |
 
 ## API
 

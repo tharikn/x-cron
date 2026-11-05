@@ -1,16 +1,35 @@
+import type { FieldErrors } from './job-form.validation';
+
 /** Map HTTP / network failures to end-user copy (never raw "Failed to fetch"). */
 export function friendlyHttpMessage(err: unknown, fallback: string): string {
+  const fields = fieldErrorsFromHttp(err);
+  const firstField = Object.values(fields)[0];
+  if (firstField) return firstField;
+
   const raw = extractRawMessage(err);
   if (raw && looksLikeNetworkNoise(raw)) {
     return "We couldn't reach X Cron. Check your connection and try again.";
   }
-  if (raw && !looksLikeDeveloperNoise(raw)) {
+  if (raw && !looksLikeDeveloperNoise(raw) && raw !== 'Validation failed') {
     return raw;
   }
   if (isNetworkFailure(err)) {
     return "We couldn't reach X Cron. Check your connection and try again.";
   }
   return fallback;
+}
+
+/** Extract Nest `errors: { field: message }` map from HttpErrorResponse-like errors. */
+export function fieldErrorsFromHttp(err: unknown): FieldErrors {
+  const body = (err as { error?: unknown })?.error;
+  if (!body || typeof body !== 'object') return {};
+  const errors = (body as { errors?: unknown }).errors;
+  if (!errors || typeof errors !== 'object' || Array.isArray(errors)) return {};
+  const out: FieldErrors = {};
+  for (const [key, value] of Object.entries(errors as Record<string, unknown>)) {
+    if (typeof value === 'string' && value.trim()) out[key] = value.trim();
+  }
+  return out;
 }
 
 function extractRawMessage(err: unknown): string | null {

@@ -6,6 +6,13 @@
         @if (job.promoted) {
           <ion-badge color="medium">{{ job.promotionBadge || 'Promoted' }}</ion-badge>
         }
+        @if (job.hiringActivityBadge) {
+          <span
+            class="job-card__hiring"
+            [class.job-card__hiring--high]="job.hiringActivity === 'high'"
+            [class.job-card__hiring--medium]="job.hiringActivity === 'medium'"
+          >{{ job.hiringActivityBadge }}</span>
+        }
       </div>
       <time class="job-card__time">{{ formatPostedDate(job.publishedAt) }}</time>
     </div>

@@ -1,3 +1,4 @@
+import type { HiringActivityLevel } from '../applications/hiring-activity.util';
 import { JobRecord } from './job.types';
 
 /** Public DTO — includes employer contact for seekers (no unlock gate). */
@@ -6,6 +7,7 @@ export function toPublicJob(
   boost?: { badge: string; endsAt: string } | null,
   /** Global SiteConfig commerce price; kept for admin commerce UI compatibility. */
   unlockPricePaise?: number,
+  hiring?: { level: HiringActivityLevel | null; badge: string | null } | null,
 ) {
   const pricePaise = unlockPricePaise ?? job.contact.unlockPricePaise;
   const privateContact = job.privateContact;
@@ -37,6 +39,9 @@ export function toPublicJob(
     promoted: !!boost,
     promotionBadge: boost?.badge ?? null,
     promotionEndsAt: boost?.endsAt ?? null,
+    /** Earned seeker signal only — never a public “low” shame label. */
+    hiringActivity: hiring?.level ?? null,
+    hiringActivityBadge: hiring?.badge ?? null,
     contact: {
       hasPhone: job.contact.hasPhone,
       hasEmail: job.contact.hasEmail,

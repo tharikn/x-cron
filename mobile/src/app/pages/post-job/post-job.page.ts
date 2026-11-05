@@ -104,8 +104,8 @@ export class PostJobPage implements OnInit {
   });
 
   title = '';
-  employerName = this.auth.employer()?.name ?? '';
-  locationCity = 'Palani';
+  employerName = '';
+  locationCity = '';
   jobType: JobType = 'full-time';
   salaryText = '';
   vacancies = '';
@@ -190,14 +190,13 @@ export class PostJobPage implements OnInit {
           rawText: this.pasteText.trim(),
           description: this.pasteText.trim(),
           contentLanguage: this.contentLanguage,
-          employerName: this.employerName || this.employer()?.name,
+          employerName: this.employerName || undefined,
           instruction:
             'Extract a clean job post: fill title, employer, city, salary, apply link, and description. Remove chat noise.',
         });
         this.title = result.title || this.title || 'Hiring';
-        this.employerName =
-          result.employerName || this.employerName || this.employer()?.name || '';
-        this.locationCity = result.locationCity || this.locationCity || 'Palani';
+        this.employerName = result.employerName || this.employerName;
+        this.locationCity = result.locationCity || this.locationCity;
         if (result.jobType && result.jobType in JOB_TYPE_LABELS) {
           this.jobType = result.jobType as JobType;
         }

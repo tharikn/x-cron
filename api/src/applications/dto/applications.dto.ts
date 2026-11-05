@@ -1,5 +1,4 @@
 import {
-  IsEmail,
   IsIn,
   IsOptional,
   IsString,
@@ -7,6 +6,12 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import {
+  IsSafeText,
+  IsXcronEmail,
+  IsXcronPhone,
+} from '../../security/validation/decorators';
+import { SanitizeOptionalText } from '../../security/validation/sanitize';
 import type { ApplicationStatus } from '../applications.types';
 
 const EMPLOYER_STATUSES = [
@@ -30,18 +35,24 @@ export class ApplyJobDto {
   coverNote?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(120)
+  @IsSafeText({ max: 120 })
   seekerName?: string;
 
   @IsOptional()
+  @SanitizeOptionalText()
   @IsString()
   @MaxLength(32)
+  @IsXcronPhone()
   seekerPhone?: string;
 
   @IsOptional()
-  @IsEmail()
+  @SanitizeOptionalText()
+  @IsString()
   @MaxLength(160)
+  @IsXcronEmail()
   seekerEmail?: string;
 
   /** Required when the job has `screeningQuestion`. */

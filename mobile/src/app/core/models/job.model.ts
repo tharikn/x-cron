@@ -38,6 +38,33 @@ export interface JobContactMask {
   unlockPricePaise?: number;
 }
 
+/** Recruiter listing funnel totals (GET /employers/jobs or analytics). */
+export interface JobAnalyticsTotals {
+  views: number;
+  applied: number;
+  appliedActive: number;
+  contacted: number;
+  daysLive: number;
+  reportCount: number;
+  applyRatePct: number | null;
+  contactRatePct: number | null;
+}
+
+export interface JobAnalyticsSeriesPoint {
+  date: string;
+  views: number;
+  applied: number;
+  contacted: number;
+}
+
+export interface JobAnalyticsDashboard {
+  jobId: string;
+  from: string;
+  to: string;
+  totals: JobAnalyticsTotals;
+  series: JobAnalyticsSeriesPoint[];
+}
+
 export interface Job {
   id: string;
   slug: string;
@@ -66,10 +93,15 @@ export interface Job {
   promoted?: boolean;
   promotionBadge?: string | null;
   promotionEndsAt?: string | null;
+  /** Earned recruiter signal: high | medium only — never a public “low”. */
+  hiringActivity?: 'high' | 'medium' | null;
+  hiringActivityBadge?: string | null;
   employerId?: string | null;
   walkInAt?: string | null;
   applyBy?: string | null;
   distanceKm?: number;
+  /** Present on GET /employers/jobs (owner list). */
+  analytics?: JobAnalyticsTotals;
 }
 
 export interface JobSearchQuery {
@@ -102,6 +134,8 @@ export interface JobSearchResult {
   total: number;
 }
 
+export type ThemePreference = 'system' | 'light' | 'dark' | 'warm';
+
 export interface UserPreferences {
   locations: string[];
   jobTypes: JobType[];
@@ -111,6 +145,7 @@ export interface UserPreferences {
   remotePreferred: boolean;
   interfaceLocale: string;
   sort?: JobSearchQuery['sort'];
+  theme?: ThemePreference;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -122,6 +157,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   remotePreferred: false,
   interfaceLocale: 'en',
   sort: 'newest',
+  theme: 'system',
 };
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {

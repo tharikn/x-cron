@@ -32,7 +32,7 @@ export class SeekerService {
 
   async listSaved(user: AuthUser) {
     const boosts = this.ads?.activeBoosts() ?? new Map();
-    const savedIds = this.store.listSaved(user.id);
+    const savedIds = await this.store.listSaved(user.id);
     const jobs: JobRecord[] = [];
     for (const id of savedIds) {
       const job = await this.jobs.findById(id);
@@ -54,20 +54,20 @@ export class SeekerService {
     if (!job || job.status !== 'published') {
       throw new NotFoundException('Job not found');
     }
-    this.store.save(user.id, jobId);
+    await this.store.save(user.id, jobId);
     return { ok: true, jobId, saved: true };
   }
 
-  unsave(user: AuthUser, jobId: string) {
-    this.store.unsave(user.id, jobId);
+  async unsave(user: AuthUser, jobId: string) {
+    await this.store.unsave(user.id, jobId);
     return { ok: true, jobId, saved: false };
   }
 
-  getProfile(user: AuthUser) {
+  async getProfile(user: AuthUser) {
     return this.store.getProfile(user.id);
   }
 
-  upsertProfile(user: AuthUser, dto: UpsertSeekerProfileDto) {
+  async upsertProfile(user: AuthUser, dto: UpsertSeekerProfileDto) {
     const experienceBand =
       dto.experienceBand ??
       this.deriveExperienceBand(dto.careerStage, dto.experienceYears);
@@ -115,7 +115,7 @@ export class SeekerService {
 
   async listApplications(user: AuthUser) {
     const boosts = this.ads?.activeBoosts() ?? new Map();
-    const rows = this.store.listApplications(user.id);
+    const rows = await this.store.listApplications(user.id);
     const items = [];
     for (const row of rows) {
       const job = await this.jobs.findById(row.jobId);
@@ -147,9 +147,9 @@ export class SeekerService {
   async hideJob(user: AuthUser, jobId: string, dto: HideJobDto) {
     const job = await this.jobs.findById(jobId);
     if (!job) throw new NotFoundException('Job not found');
-    this.store.hideJob(user.id, jobId);
+    await this.store.hideJob(user.id, jobId);
     if (dto.hideEmployer && job.employerId) {
-      this.store.hideEmployer(user.id, job.employerId);
+      await this.store.hideEmployer(user.id, job.employerId);
     }
     return {
       ok: true,
@@ -159,23 +159,23 @@ export class SeekerService {
     };
   }
 
-  unhideJob(user: AuthUser, jobId: string) {
-    this.store.unhideJob(user.id, jobId);
+  async unhideJob(user: AuthUser, jobId: string) {
+    await this.store.unhideJob(user.id, jobId);
     return { ok: true, jobId, hidden: false };
   }
 
-  listHidden(user: AuthUser) {
+  async listHidden(user: AuthUser) {
     return {
-      jobIds: this.store.listHiddenJobs(user.id),
-      employerIds: this.store.listHiddenEmployers(user.id),
+      jobIds: await this.store.listHiddenJobs(user.id),
+      employerIds: await this.store.listHiddenEmployers(user.id),
     };
   }
 
-  listSavedSearches(user: AuthUser) {
-    return { items: this.store.listSavedSearches(user.id) };
+  async listSavedSearches(user: AuthUser) {
+    return { items: await this.store.listSavedSearches(user.id) };
   }
 
-  createSavedSearch(user: AuthUser, dto: CreateSavedSearchDto) {
+  async createSavedSearch(user: AuthUser, dto: CreateSavedSearchDto) {
     return this.store.createSavedSearch(user.id, {
       name: dto.name,
       query: dto.query,
@@ -183,28 +183,30 @@ export class SeekerService {
     });
   }
 
-  updateSavedSearch(
+  async updateSavedSearch(
     user: AuthUser,
     id: string,
     dto: UpdateSavedSearchDto,
   ) {
-    const updated = this.store.updateSavedSearch(user.id, id, dto);
+    const updated = await this.store.updateSavedSearch(user.id, id, dto);
     if (!updated) throw new NotFoundException('Saved search not found');
     return updated;
   }
 
-  deleteSavedSearch(user: AuthUser, id: string) {
-    const ok = this.store.deleteSavedSearch(user.id, id);
+  async deleteSavedSearch(user: AuthUser, id: string) {
+    const ok = await this.store.deleteSavedSearch(user.id, id);
     if (!ok) throw new NotFoundException('Saved search not found');
     return { ok: true };
   }
 
   async feed(user: AuthUser) {
     const prefs = this.preferences.getForUser(user);
-    const profile = this.store.getProfile(user.id);
+    const profile = await this.store.getProfile(user.id);
     const boosts = this.ads?.activeBoosts() ?? new Map();
-    const hiddenJobs = new Set(this.store.listHiddenJobs(user.id));
-    const hiddenEmployers = new Set(this.store.listHiddenEmployers(user.id));
+    const hiddenJobs = new Set(await this.store.listHiddenJobs(user.id));
+    const hiddenEmployers = new Set(
+      await this.store.listHiddenEmployers(user.id),
+    );
     let items = await this.jobs.listPublished();
 
     items = items.filter((job) => {
@@ -274,7 +276,7 @@ export class SeekerService {
       .sort((a, b) => b.score - a.score)
       .map((row) => row.job);
 
-    const saved = new Set(this.store.listSaved(user.id));
+    const saved = new Set(await this.store.listSaved(user.id));
     return {
       preferencesSummary: {
         locations: prefs.locations,
@@ -342,15 +344,15 @@ export class SeekerService {
     return true;
   }
 
-  listAlertSavedSearches() {
+  async listAlertSavedSearches() {
     return this.store.listAlertSavedSearches();
   }
 
-  hiddenJobIds(userId: string): string[] {
+  async hiddenJobIds(userId: string): Promise<string[]> {
     return this.store.listHiddenJobs(userId);
   }
 
-  clearUser(userId: string) {
-    this.store.clearUser(userId);
+  async clearUser(userId: string) {
+    await this.store.clearUser(userId);
   }
 }

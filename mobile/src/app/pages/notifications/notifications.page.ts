@@ -79,13 +79,38 @@ export class NotificationsPage implements OnInit, ViewWillEnter {
     const action = item.data?.['action']?.trim();
     if (action === 'complete_profile') return '/tabs/account';
     if (action === 'browse_jobs') return '/tabs/discover';
+    if (action === 'open_feedback') {
+      return item.data?.['eventType'] === 'user_message'
+        ? '/tabs/admin-feedback'
+        : '/tabs/feedback';
+    }
+    const applicationId = item.data?.['applicationId']?.trim();
+    if (applicationId) return `/tabs/applications/${applicationId}`;
     return item.jobId ? `/tabs/jobs/${item.jobId}` : null;
+  }
+
+  /** Query params for [routerLink] — never embed `?` in the path (Angular encodes it). */
+  actionQueryParams(item: {
+    data?: Record<string, string> | null;
+  }): Record<string, string> | null {
+    const action = item.data?.['action']?.trim();
+    if (action === 'open_feedback') {
+      const threadId = item.data?.['threadId']?.trim();
+      return threadId ? { thread: threadId } : null;
+    }
+    const applicationId = item.data?.['applicationId']?.trim();
+    if (applicationId && item.data?.['recipientRole'] === 'employer') {
+      return { as: 'employer' };
+    }
+    return null;
   }
 
   actionLabel(item: { data?: Record<string, string> | null }): string {
     const action = item.data?.['action']?.trim();
     if (action === 'complete_profile') return 'Complete profile';
     if (action === 'browse_jobs') return 'Browse jobs';
+    if (action === 'open_feedback') return 'Open feedback';
+    if (item.data?.['applicationId']?.trim()) return 'View timeline';
     return 'Open';
   }
 

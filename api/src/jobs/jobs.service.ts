@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import { AiService } from '../ai/ai.service';
 import { AdsService } from '../ads/ads.service';
+import { ApplicationsService } from '../applications/applications.service';
+import type { HiringActivitySummary } from '../applications/hiring-activity.util';
 import { AuthStore } from '../auth/auth.store';
 import { AuthUser } from '../auth/auth.types';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -21,6 +23,7 @@ import {
 } from './dto/create-job.dto';
 import { ModerateJobDto, ReportJobDto } from './dto/moderation.dto';
 import { SearchJobsDto } from './dto/search-jobs.dto';
+import { JobAnalyticsService } from './analytics/job-analytics.service';
 import { toPublicJob } from './jobs.mapper';
 import { JobsStore } from './jobs.store';
 import { JobRecord, JobType } from './job.types';
@@ -32,21 +35,40 @@ export class JobsService {
     private readonly authStore: AuthStore,
     private readonly site: SiteService,
     private readonly ai: AiService,
+    private readonly analytics: JobAnalyticsService,
     @Optional()
     @Inject(forwardRef(() => NotificationsService))
     private readonly notifications?: NotificationsService,
     @Optional()
     @Inject(forwardRef(() => AdsService))
     private readonly ads?: AdsService,
+    @Optional()
+    @Inject(forwardRef(() => ApplicationsService))
+    private readonly applications?: ApplicationsService,
     @Optional() private readonly ops?: OpsService,
   ) {}
 
-  /** Public DTO with live SiteConfig unlock price. */
+  /** Public DTO with live SiteConfig unlock price + optional hiring-activity badge. */
   private publicJob(
     job: JobRecord,
     boost?: { badge: string; endsAt: string } | null,
+    hiring?: HiringActivitySummary | null,
   ) {
-    return toPublicJob(job, boost, this.site.getUnlockPricePaise());
+    return toPublicJob(
+      job,
+      boost,
+      this.site.getUnlockPricePaise(),
+      hiring ?? null,
+    );
+  }
+
+  private async hiringMap(
+    jobIds: string[],
+  ): Promise<Map<string, HiringActivitySummary>> {
+    if (!this.applications || jobIds.length === 0) {
+      return new Map();
+    }
+    return this.applications.summarizeHiringActivityForJobs(jobIds);
   }
 
   async search(query: SearchJobsDto & { excludeJobIds?: string[] }) {
@@ -74,8 +96,13 @@ export class JobsService {
     });
 
     const boosts = this.ads?.activeBoosts() ?? new Map();
+    const hiring = await this.hiringMap(result.items.map((j) => j.id));
     let items = result.items.map((job) => {
-      const dto = this.publicJob(job, boosts.get(job.id) ?? null);
+      const dto = this.publicJob(
+        job,
+        boosts.get(job.id) ?? null,
+        hiring.get(job.id) ?? null,
+      );
       const distanceKm =
         'distanceKm' in job && typeof (job as { distanceKm?: number }).distanceKm === 'number'
           ? (job as { distanceKm: number }).distanceKm
@@ -102,7 +129,12 @@ export class JobsService {
     if (!job || !this.isPubliclyListed(job)) {
       throw new NotFoundException('Job not found');
     }
-    return this.publicJob(job, this.ads?.activeBoosts().get(job.id) ?? null);
+    const hiring = await this.hiringMap([job.id]);
+    return this.publicJob(
+      job,
+      this.ads?.activeBoosts().get(job.id) ?? null,
+      hiring.get(job.id) ?? null,
+    );
   }
 
   async getBySlug(slug: string) {
@@ -110,7 +142,12 @@ export class JobsService {
     if (!job || !this.isPubliclyListed(job)) {
       throw new NotFoundException('Job not found');
     }
-    return this.publicJob(job, this.ads?.activeBoosts().get(job.id) ?? null);
+    const hiring = await this.hiringMap([job.id]);
+    return this.publicJob(
+      job,
+      this.ads?.activeBoosts().get(job.id) ?? null,
+      hiring.get(job.id) ?? null,
+    );
   }
 
   async related(id: string) {
@@ -120,8 +157,13 @@ export class JobsService {
     }
     const boosts = this.ads?.activeBoosts() ?? new Map();
     const related = await this.store.related(job);
+    const hiring = await this.hiringMap(related.map((item) => item.id));
     return related.map((item) =>
-      this.publicJob(item, boosts.get(item.id) ?? null),
+      this.publicJob(
+        item,
+        boosts.get(item.id) ?? null,
+        hiring.get(item.id) ?? null,
+      ),
     );
   }
 
@@ -222,15 +264,36 @@ export class JobsService {
   async myJobs(user: AuthUser, page = 1, limit = 10) {
     const result = await this.store.listByOwnerPaged(user.id, page, limit);
     const boosts = this.ads?.activeBoosts() ?? new Map();
+    const stats = await this.analytics.summarizeForJobs(result.items);
     return {
-      items: result.items.map((job) =>
-        this.publicJob(job, boosts.get(job.id) ?? null),
-      ),
+      items: result.items.map((job) => ({
+        ...this.publicJob(job, boosts.get(job.id) ?? null),
+        analytics: stats.get(job.id) ?? {
+          views: 0,
+          applied: 0,
+          appliedActive: 0,
+          contacted: 0,
+          daysLive: 0,
+          reportCount: job.reportCount ?? 0,
+          applyRatePct: null,
+          contactRatePct: null,
+        },
+      })),
       total: result.total,
       page: result.page,
       limit: result.limit,
       totalPages: Math.max(1, Math.ceil(result.total / result.limit)),
     };
+  }
+
+  /** Public listing view — once per viewerKey per UTC day. */
+  recordJobView(jobId: string, viewerKey: string) {
+    return this.analytics.recordJobView(jobId, viewerKey);
+  }
+
+  /** Recruiter per-job analytics board (KPI totals + daily series). */
+  jobAnalytics(user: AuthUser, jobId: string, days = 30) {
+    return this.analytics.dashboardForOwner(user.id, jobId, days);
   }
 
   async updateMyJob(user: AuthUser, id: string, dto: UpdateJobDto) {

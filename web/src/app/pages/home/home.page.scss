@@ -10,9 +10,8 @@
   inset: -20% -10% auto;
   height: 260px;
   background:
-    radial-gradient(closest-side, rgba(124, 92, 255, 0.28), transparent 72%),
-    radial-gradient(closest-side at 78% 40%, rgba(245, 165, 36, 0.22), transparent 70%),
-    linear-gradient(120deg, transparent 20%, rgba(20, 16, 31, 0.55), transparent 80%);
+    radial-gradient(closest-side, rgba(124, 92, 255, 0.22), transparent 72%),
+    radial-gradient(closest-side at 78% 40%, rgba(245, 165, 36, 0.16), transparent 70%);
   pointer-events: none;
 }
 
@@ -24,7 +23,7 @@
   font-weight: 800;
   letter-spacing: -0.06em;
   line-height: 0.95;
-  color: #fff;
+  color: var(--xcron-ink);
 }
 
 .brand-sub {
@@ -435,6 +434,23 @@
 
 .badge--promoted {
   background: #555;
+}
+
+/* Positive hiring signals only (Indeed/LinkedIn-style); no “low” chrome. */
+.badge--hiring {
+  background: transparent;
+  color: var(--xcron-ink-soft);
+  border: 1px solid var(--xcron-line-strong);
+}
+
+.badge--hiring-high {
+  color: var(--xcron-accent);
+  border-color: color-mix(in srgb, var(--xcron-accent) 55%, var(--xcron-line));
+}
+
+.badge--hiring-medium {
+  color: var(--xcron-primary-hover);
+  border-color: color-mix(in srgb, var(--xcron-primary) 45%, var(--xcron-line));
 }
 
 .job-card h3 {

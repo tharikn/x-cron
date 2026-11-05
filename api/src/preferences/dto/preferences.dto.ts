@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -44,6 +45,10 @@ export class PreferenceFieldsDto {
   @IsOptional()
   @IsString()
   sort?: string;
+
+  @IsOptional()
+  @IsIn(['system', 'light', 'dark', 'warm'])
+  theme?: 'system' | 'light' | 'dark' | 'warm';
 }
 
 export class SaveGuestPreferencesDto extends PreferenceFieldsDto {

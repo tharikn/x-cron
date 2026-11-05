@@ -1,0 +1,121 @@
+.page {
+  padding: 1rem 1rem 2.5rem;
+}
+
+.brand-mark {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-label);
+  font-weight: var(--xcron-weight-bold);
+  letter-spacing: var(--xcron-tracking-tight);
+  text-transform: uppercase;
+  color: var(--xcron-accent);
+}
+
+h1 {
+  margin: 0.35rem 0 0.25rem;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-display);
+  color: var(--xcron-ink);
+}
+
+.lead {
+  margin: 0 0 1rem;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  color: var(--xcron-ink-soft);
+}
+
+.gate {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-wash);
+  border: 1px solid var(--xcron-line);
+}
+
+.gate p {
+  margin: 0;
+  color: var(--xcron-ink-soft);
+}
+
+.actions {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.card {
+  display: block;
+  margin-bottom: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  box-shadow: var(--xcron-shadow);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 180ms var(--xcron-ease), box-shadow 180ms var(--xcron-ease);
+}
+
+.card:active {
+  transform: translateY(1px);
+}
+
+.card__top {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.card__top strong {
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-title);
+  letter-spacing: -0.03em;
+}
+
+.status {
+  flex-shrink: 0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: var(--xcron-text-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--xcron-wash);
+  border: 1px solid var(--xcron-line);
+}
+
+.meta,
+.time,
+.hint,
+.empty {
+  margin: 0.35rem 0 0;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  color: var(--xcron-ink-soft);
+}
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.55rem;
+  font-size: var(--xcron-text-meta);
+  color: var(--xcron-ink-soft);
+}
+
+.metrics em {
+  font-style: normal;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--xcron-ink);
+  margin-right: 0.2rem;
+}
+
+.error {
+  color: #f43f5e;
+}

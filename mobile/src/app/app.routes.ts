@@ -83,10 +83,31 @@ export const routes: Routes = [
           import('./pages/job-detail/job-detail.page').then((m) => m.JobDetailPage),
       },
       {
+        path: 'applied',
+        loadComponent: () =>
+          import('./pages/applied-jobs/applied-jobs.page').then(
+            (m) => m.AppliedJobsPage,
+          ),
+      },
+      {
         path: 'applications/:id',
         loadComponent: () =>
           import('./pages/application-detail/application-detail.page').then(
             (m) => m.ApplicationDetailPage,
+          ),
+      },
+      {
+        path: 'my-jobs',
+        canActivate: [employerGuard],
+        loadComponent: () =>
+          import('./pages/my-jobs/my-jobs.page').then((m) => m.MyJobsPage),
+      },
+      {
+        path: 'my-jobs/:id',
+        canActivate: [employerGuard],
+        loadComponent: () =>
+          import('./pages/my-job-analytics/my-job-analytics.page').then(
+            (m) => m.MyJobAnalyticsPage,
           ),
       },
       {
@@ -102,6 +123,19 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/performance/performance.page').then(
             (m) => m.PerformancePage,
+          ),
+      },
+      {
+        path: 'feedback',
+        loadComponent: () =>
+          import('./pages/feedback/feedback.page').then((m) => m.FeedbackPage),
+      },
+      {
+        path: 'admin-feedback',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/admin-feedback/admin-feedback.page').then(
+            (m) => m.AdminFeedbackPage,
           ),
       },
       {

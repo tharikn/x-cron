@@ -102,6 +102,31 @@ ion-card-content {
   vertical-align: middle;
 }
 
+/* Positive hiring signals only — no public “low” badge. */
+.job-card__hiring {
+  display: inline-block;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-label);
+  font-weight: var(--xcron-weight-semibold);
+  letter-spacing: var(--xcron-tracking-label);
+  text-transform: uppercase;
+  color: var(--xcron-ink-soft);
+  border: 1px solid var(--xcron-line-strong);
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  line-height: 1.2;
+}
+
+.job-card__hiring--high {
+  color: var(--xcron-accent);
+  border-color: color-mix(in srgb, var(--xcron-accent) 55%, var(--xcron-line));
+}
+
+.job-card__hiring--medium {
+  color: var(--xcron-primary-hover);
+  border-color: color-mix(in srgb, var(--xcron-primary) 45%, var(--xcron-line));
+}
+
 .job-card__line {
   margin: 0;
   font-family: var(--xcron-font-body);

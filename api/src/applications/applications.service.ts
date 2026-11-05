@@ -14,6 +14,7 @@ import { JobsStore } from '../jobs/jobs.store';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OpsService } from '../ops/ops.service';
 import { ReputationService } from '../reputation/reputation.service';
+import { SeekerService } from '../seeker/seeker.service';
 import { SiteService } from '../site/site.service';
 import { ApplicationsStore } from './applications.store';
 import {
@@ -31,6 +32,10 @@ import {
   TransitionApplicationDto,
   WithdrawApplicationDto,
 } from './dto/applications.dto';
+import {
+  HiringActivitySummary,
+  summarizeHiringActivity,
+} from './hiring-activity.util';
 
 @Injectable()
 export class ApplicationsService {
@@ -41,8 +46,27 @@ export class ApplicationsService {
     private readonly notifications: NotificationsService,
     private readonly applyProfiles: ApplyProfilesService,
     private readonly reputation: ReputationService,
+    private readonly seeker: SeekerService,
     @Optional() private readonly ops?: OpsService,
   ) {}
+
+  /**
+   * Public hiring-activity badges for job opening lists (Indeed / LinkedIn style).
+   * Quiet or thin data → null (no “low” badge).
+   */
+  async summarizeHiringActivityForJobs(
+    jobIds: string[],
+  ): Promise<Map<string, HiringActivitySummary>> {
+    const out = new Map<string, HiringActivitySummary>();
+    const unique = [...new Set(jobIds.filter(Boolean))];
+    await Promise.all(
+      unique.map(async (jobId) => {
+        const apps = await this.store.listForJob(jobId);
+        out.set(jobId, summarizeHiringActivity(apps));
+      }),
+    );
+    return out;
+  }
 
   async apply(user: AuthUser, jobId: string, dto: ApplyJobDto) {
     const job = await this.jobs.findById(jobId);
@@ -62,7 +86,7 @@ export class ApplicationsService {
       );
     }
 
-    const contact = this.requireApplyContact(user, dto);
+    const contact = await this.requireApplyContact(user, dto);
     const screeningAnswer = this.requireScreeningAnswer(job.screeningQuestion, dto);
     const profile = await this.applyProfiles.requireOwnedProfile(
       user.id,
@@ -569,14 +593,34 @@ export class ApplicationsService {
     return answer;
   }
 
-  /** Name + phone or email required so bots cannot apply as anonymous shells. */
-  private requireApplyContact(
+  /**
+   * Name + phone or email required so bots cannot apply as anonymous shells.
+   * Prefer apply DTO → auth identity → Account seeker profile (mobile/email/name).
+   */
+  private async requireApplyContact(
     user: AuthUser,
     dto: ApplyJobDto,
-  ): { name: string; phone?: string; email?: string } {
-    const name = (dto.seekerName?.trim() || user.displayName?.trim() || '').trim();
-    const phone = (dto.seekerPhone?.trim() || user.phone?.trim() || '').trim();
-    const email = (dto.seekerEmail?.trim() || user.email?.trim() || '').trim();
+  ): Promise<{ name: string; phone?: string; email?: string }> {
+    const profile = await this.seeker.getProfile(user);
+    const name = (
+      dto.seekerName?.trim() ||
+      user.displayName?.trim() ||
+      profile.displayName?.trim() ||
+      user.username?.trim() ||
+      ''
+    ).trim();
+    const phone = (
+      dto.seekerPhone?.trim() ||
+      user.phone?.trim() ||
+      profile.mobile?.trim() ||
+      ''
+    ).trim();
+    const email = (
+      dto.seekerEmail?.trim() ||
+      user.email?.trim() ||
+      profile.email?.trim() ||
+      ''
+    ).trim();
     if (!name) {
       throw new BadRequestException(
         'Complete your profile: add a display name before applying',

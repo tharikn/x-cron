@@ -13,15 +13,7 @@ export const SEED_FOOTER: Omit<SiteFooterConfig, 'updatedAt'> = {
     address: 'Visit',
     social: 'Connect',
   },
-  addresses: [
-    {
-      id: 'addr_hq',
-      label: 'Operations',
-      lines: ['Near Bus Stand Road', 'Palani, Dindigul', 'Tamil Nadu 624601', 'India'],
-      mapUrl: 'https://maps.google.com/?q=Palani+Dindigul',
-      sortOrder: 1,
-    },
-  ],
+  addresses: [],
   socialLinks: [
     {
       id: 'soc_x',

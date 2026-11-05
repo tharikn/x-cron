@@ -602,3 +602,16 @@ textarea:focus {
 .stack--hub .stack__head {
   text-align: left;
 }
+
+label.is-invalid .pii-field__input,
+label.is-invalid > input {
+  border-color: #f43f5e;
+}
+
+.field-error {
+  margin: 0.25rem 0 0;
+  color: #f43f5e;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  font-weight: 500;
+}

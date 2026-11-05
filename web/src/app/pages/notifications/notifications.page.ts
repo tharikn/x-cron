@@ -23,6 +23,7 @@ export class NotificationsPage implements OnInit {
 
   readonly busy = signal(false);
   readonly isSignedIn = this.auth.isSignedIn;
+  readonly isAdmin = this.auth.isAdmin;
   readonly items = this.notifications.items;
   readonly unread = this.notifications.unreadCount;
 
@@ -48,7 +49,7 @@ export class NotificationsPage implements OnInit {
     this.busy.set(true);
     try {
       await this.notifications.registerDevice();
-      await this.notifications.refreshInbox();
+      await this.notifications.refreshInbox({ announce: false });
     } catch {
       this.toast.show('Could not load notifications', 'error');
     } finally {
@@ -86,13 +87,38 @@ export class NotificationsPage implements OnInit {
     const action = item.data?.['action']?.trim();
     if (action === 'complete_profile') return '/settings/account';
     if (action === 'browse_jobs') return '/';
+    if (action === 'open_feedback') {
+      return this.isAdmin() && item.data?.['eventType'] === 'user_message'
+        ? '/admin/feedback'
+        : '/feedback';
+    }
+    const applicationId = item.data?.['applicationId']?.trim();
+    if (applicationId) return `/me/applications/${applicationId}`;
     return this.jobPath(item);
+  }
+
+  /** Query params for [routerLink] — never embed `?` in the path (Angular encodes it). */
+  actionQueryParams(item: {
+    data?: Record<string, string> | null;
+  }): Record<string, string> | null {
+    const action = item.data?.['action']?.trim();
+    if (action === 'open_feedback') {
+      const threadId = item.data?.['threadId']?.trim();
+      return threadId ? { thread: threadId } : null;
+    }
+    const applicationId = item.data?.['applicationId']?.trim();
+    if (applicationId && item.data?.['recipientRole'] === 'employer') {
+      return { as: 'employer' };
+    }
+    return null;
   }
 
   actionLabel(item: { data?: Record<string, string> | null }): string {
     const action = item.data?.['action']?.trim();
     if (action === 'complete_profile') return 'Complete profile';
     if (action === 'browse_jobs') return 'Browse jobs';
+    if (action === 'open_feedback') return 'Open feedback';
+    if (item.data?.['applicationId']?.trim()) return 'View timeline';
     return 'View role';
   }
 }

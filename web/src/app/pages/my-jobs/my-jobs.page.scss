@@ -165,6 +165,15 @@ h1 {
   background: var(--xcron-wash);
 }
 
+.cell-title-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.cell-title-link:hover .cell-title {
+  color: var(--xcron-primary-hover);
+}
+
 .cell-title {
   display: block;
   font-family: var(--xcron-font-display);
@@ -176,6 +185,16 @@ h1 {
   margin-top: 0.15rem;
   color: var(--xcron-muted);
   font-size: 0.85rem;
+}
+
+.metric {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--xcron-ink-soft);
+}
+
+.options__analytics {
+  text-decoration: none;
 }
 
 .dates {

@@ -24,7 +24,11 @@
         } @else if (needsEmployerSignIn()) {
           Create an account or sign in to post jobs. Employer access is limited — no admin menus.
         } @else if (isSignedIn() && !isAdmin()) {
-          Manage your profile, apply versions, and account.
+          @if (isEmployer()) {
+            Manage your profile, hiring activity, and account.
+          } @else {
+            Manage your profile, apply versions, and account.
+          }
         } @else if (isSignedIn()) {
           Manage your session. Browse and search stay open without signing in.
         } @else if (accountForm() === 'register') {
@@ -94,14 +98,16 @@
         >
           Profile
         </button>
-        <button
-          type="button"
-          class="hub-tabs__btn"
-          [class.is-active]="tab() === 'apply'"
-          (click)="setTab('apply')"
-        >
-          Apply
-        </button>
+        @if (!isEmployer()) {
+          <button
+            type="button"
+            class="hub-tabs__btn"
+            [class.is-active]="tab() === 'apply'"
+            (click)="setTab('apply')"
+          >
+            Apply
+          </button>
+        }
         <button
           type="button"
           class="hub-tabs__btn"
@@ -132,7 +138,13 @@
         @case ('profile') {
           <section class="hub-section">
             <h2>Your profile</h2>
-            <p class="hint">Update personal details and career info. Apply versions stay on Apply.</p>
+            <p class="hint">
+              @if (isEmployer()) {
+                Update personal and location details.
+              } @else {
+                Update personal details and career info. Apply versions stay on Apply.
+              }
+            </p>
 
             <div class="profile-accordions">
               <details class="profile-acc" [open]="profileOpen.personal">
@@ -144,34 +156,47 @@
                 </summary>
                 @if (profileOpen.personal) {
                   <div class="profile-acc__body form">
-                    <label>
+                    <label [class.is-invalid]="!!profileFieldErrors['displayName']">
                       <span>Name</span>
                       <input
                         [(ngModel)]="profileDisplayName"
                         name="profileDisplayName"
                         autocomplete="name"
                         placeholder="Your full name"
+                        (ngModelChange)="clearProfileFieldError('displayName')"
                       />
+                      @if (profileFieldErrors['displayName']; as err) {
+                        <p class="field-error">{{ err }}</p>
+                      }
                     </label>
-                    <label>
+                    <label [class.is-invalid]="!!profileFieldErrors['mobile']">
                       <span>Mobile</span>
-                      <input
-                        type="tel"
+                      <app-pii-field
                         [(ngModel)]="profileMobile"
                         name="profileMobile"
                         autocomplete="tel"
+                        revealType="tel"
+                        inputmode="tel"
                         placeholder="10-digit mobile"
+                        (ngModelChange)="clearProfileFieldError('mobile')"
                       />
+                      @if (profileFieldErrors['mobile']; as err) {
+                        <p class="field-error">{{ err }}</p>
+                      }
                     </label>
-                    <label>
+                    <label [class.is-invalid]="!!profileFieldErrors['email']">
                       <span>Email</span>
-                      <input
-                        type="email"
+                      <app-pii-field
                         [(ngModel)]="profileEmail"
                         name="profileEmail"
                         autocomplete="email"
+                        revealType="email"
                         placeholder="you@example.com"
+                        (ngModelChange)="clearProfileFieldError('email')"
                       />
+                      @if (profileFieldErrors['email']; as err) {
+                        <p class="field-error">{{ err }}</p>
+                      }
                     </label>
                     <label class="toggle-row">
                       <span>Show my contact</span>
@@ -190,205 +215,223 @@
                 </summary>
                 @if (profileOpen.location) {
                   <div class="profile-acc__body form">
-                    <label>
+                    <label [class.is-invalid]="!!profileFieldErrors['address']">
                       <span>Address</span>
-                      <input
+                      <app-pii-field
                         [(ngModel)]="profileAddress"
                         name="profileAddress"
                         autocomplete="street-address"
                         placeholder="Area, city"
+                        (ngModelChange)="clearProfileFieldError('address')"
                       />
+                      @if (profileFieldErrors['address']; as err) {
+                        <p class="field-error">{{ err }}</p>
+                      }
                     </label>
-                    <label>
+                    <label [class.is-invalid]="!!profileFieldErrors['pincode']">
                       <span>Pincode</span>
-                      <input
+                      <app-pii-field
                         [(ngModel)]="profilePincode"
                         name="profilePincode"
                         inputmode="numeric"
-                        maxlength="6"
+                        [maxlength]="6"
                         placeholder="6-digit pincode"
+                        (ngModelChange)="clearProfileFieldError('pincode')"
                       />
+                      @if (profileFieldErrors['pincode']; as err) {
+                        <p class="field-error">{{ err }}</p>
+                      }
                     </label>
                   </div>
                 }
               </details>
 
-              <details class="profile-acc" [open]="profileOpen.career">
-                <summary
-                  class="profile-acc__summary"
-                  (click)="$event.preventDefault(); toggleProfileSection('career')"
-                >
-                  Career info
-                </summary>
-                @if (profileOpen.career) {
-                  <div class="profile-acc__body">
-                    <fieldset class="role-choice">
-                      <legend>Experience</legend>
-                      <div class="role-choice__options">
-                        <label class="role-choice__option">
-                          <input
-                            type="radio"
-                            name="careerStage"
-                            [checked]="careerStage === 'fresher'"
-                            (change)="setCareerStage('fresher')"
-                          />
-                          Fresher
-                        </label>
-                        <label class="role-choice__option">
-                          <input
-                            type="radio"
-                            name="careerStage"
-                            [checked]="careerStage === 'experienced'"
-                            (change)="setCareerStage('experienced')"
-                          />
-                          Experienced
-                        </label>
-                      </div>
-                    </fieldset>
-
-                    <fieldset class="role-choice">
-                      <legend>Education</legend>
-                      <div class="role-choice__options">
-                        <label class="role-choice__option">
-                          <input
-                            type="radio"
-                            name="educationStatus"
-                            [checked]="educationStatus === 'pursuing'"
-                            (change)="setEducationStatus('pursuing')"
-                          />
-                          Currently studying
-                        </label>
-                        <label class="role-choice__option">
-                          <input
-                            type="radio"
-                            name="educationStatus"
-                            [checked]="educationStatus === 'completed'"
-                            (change)="setEducationStatus('completed')"
-                          />
-                          Degree completed
-                        </label>
-                      </div>
-                    </fieldset>
-
-                    @if (careerStage === 'fresher') {
-                      <div class="form">
-                        <label class="toggle-row">
-                          <span>Open to internships</span>
-                          <input
-                            type="checkbox"
-                            [(ngModel)]="openToInternship"
-                            name="openToInternship"
-                          />
-                        </label>
-                        <label>
-                          <span>Course</span>
-                          <input
-                            [(ngModel)]="courseDetails"
-                            name="courseDetails"
-                            placeholder="e.g. B.E. / B.Tech / B.Sc"
-                          />
-                        </label>
-                        <label>
-                          <span>Branch / specialization</span>
-                          <input
-                            [(ngModel)]="branchStudied"
-                            name="branchStudied"
-                            placeholder="e.g. Computer Science"
-                          />
-                        </label>
-                        <label>
-                          <span>CGPA / percentage</span>
-                          <input
-                            [(ngModel)]="academicScore"
-                            name="academicScore"
-                            placeholder="e.g. 8.2 CGPA or 78%"
-                          />
-                        </label>
-                      </div>
-                    }
-
-                    @if (careerStage === 'experienced') {
-                      <div class="form">
-                        <div class="form-row-2">
-                          <label>
-                            <span>Years</span>
+              @if (!isEmployer()) {
+                <details class="profile-acc" [open]="profileOpen.career">
+                  <summary
+                    class="profile-acc__summary"
+                    (click)="$event.preventDefault(); toggleProfileSection('career')"
+                  >
+                    Career info
+                  </summary>
+                  @if (profileOpen.career) {
+                    <div class="profile-acc__body">
+                      <fieldset class="role-choice">
+                        <legend>Experience</legend>
+                        <div class="role-choice__options">
+                          <label class="role-choice__option">
                             <input
-                              type="number"
-                              [(ngModel)]="experienceYears"
-                              name="experienceYears"
-                              min="0"
-                              max="50"
-                              placeholder="0"
+                              type="radio"
+                              name="careerStage"
+                              [checked]="careerStage === 'fresher'"
+                              (change)="setCareerStage('fresher')"
+                            />
+                            Fresher
+                          </label>
+                          <label class="role-choice__option">
+                            <input
+                              type="radio"
+                              name="careerStage"
+                              [checked]="careerStage === 'experienced'"
+                              (change)="setCareerStage('experienced')"
+                            />
+                            Experienced
+                          </label>
+                        </div>
+                      </fieldset>
+
+                      <fieldset class="role-choice">
+                        <legend>Education</legend>
+                        <div class="role-choice__options">
+                          <label class="role-choice__option">
+                            <input
+                              type="radio"
+                              name="educationStatus"
+                              [checked]="educationStatus === 'pursuing'"
+                              (change)="setEducationStatus('pursuing')"
+                            />
+                            Currently studying
+                          </label>
+                          <label class="role-choice__option">
+                            <input
+                              type="radio"
+                              name="educationStatus"
+                              [checked]="educationStatus === 'completed'"
+                              (change)="setEducationStatus('completed')"
+                            />
+                            Degree completed
+                          </label>
+                        </div>
+                      </fieldset>
+
+                      @if (careerStage === 'fresher') {
+                        <div class="form">
+                          <label class="toggle-row">
+                            <span>Open to internships</span>
+                            <input
+                              type="checkbox"
+                              [(ngModel)]="openToInternship"
+                              name="openToInternship"
                             />
                           </label>
                           <label>
-                            <span>Months</span>
+                            <span>Course</span>
                             <input
-                              type="number"
-                              [(ngModel)]="experienceMonths"
-                              name="experienceMonths"
-                              min="0"
-                              max="11"
-                              placeholder="0–11"
+                              [(ngModel)]="courseDetails"
+                              name="courseDetails"
+                              placeholder="e.g. B.E. / B.Tech / B.Sc"
+                            />
+                          </label>
+                          <label>
+                            <span>Branch / specialization</span>
+                            <input
+                              [(ngModel)]="branchStudied"
+                              name="branchStudied"
+                              placeholder="e.g. Computer Science"
+                            />
+                          </label>
+                          <label>
+                            <span>CGPA / percentage</span>
+                            <input
+                              [(ngModel)]="academicScore"
+                              name="academicScore"
+                              placeholder="e.g. 8.2 CGPA or 78%"
                             />
                           </label>
                         </div>
-                        <label>
-                          <span>Current / previous company</span>
-                          <input
-                            [(ngModel)]="companyName"
-                            name="companyName"
-                            placeholder="Company name"
-                          />
-                        </label>
-                        <label>
-                          <span>Company area</span>
-                          <input
-                            [(ngModel)]="companyArea"
-                            name="companyArea"
-                            placeholder="Industry or domain"
-                          />
-                        </label>
-                        <label>
-                          <span>Current salary</span>
-                          <input
-                            [(ngModel)]="currentSalary"
-                            name="currentSalary"
-                            placeholder="₹ / month or LPA"
-                          />
-                        </label>
-                        <label>
-                          <span>Expected salary</span>
-                          <input
-                            [(ngModel)]="expectedSalary"
-                            name="expectedSalary"
-                            placeholder="₹ / month or LPA"
-                          />
-                        </label>
-                      </div>
+                      }
 
-                      <div class="notice-block">
-                        <p class="notice-block__label">Notice period</p>
-                        <p class="hint notice-hint">
-                          Pick one. “Serving” means notice has started; check your company T&amp;C.
-                        </p>
-                        <div class="notice-badges" role="radiogroup" aria-label="Notice period">
-                          @for (opt of noticeOptions; track opt.value) {
-                            <button
-                              type="button"
-                              class="notice-badge"
-                              [class.notice-badge--active]="noticePeriod === opt.value"
-                              (click)="setNoticePeriod(opt.value)"
-                            >
-                              {{ opt.label }}
-                            </button>
-                          }
+                      @if (careerStage === 'experienced') {
+                        <div class="form">
+                          <div class="form-row-2">
+                            <label>
+                              <span>Years</span>
+                              <input
+                                type="number"
+                                [(ngModel)]="experienceYears"
+                                name="experienceYears"
+                                min="0"
+                                max="50"
+                                placeholder="0"
+                              />
+                            </label>
+                            <label>
+                              <span>Months</span>
+                              <input
+                                type="number"
+                                [(ngModel)]="experienceMonths"
+                                name="experienceMonths"
+                                min="0"
+                                max="11"
+                                placeholder="0–11"
+                              />
+                            </label>
+                          </div>
+                          <label>
+                            <span>Current / previous company</span>
+                            <input
+                              [(ngModel)]="companyName"
+                              name="companyName"
+                              placeholder="Company name"
+                            />
+                          </label>
+                          <label>
+                            <span>Company area</span>
+                            <input
+                              [(ngModel)]="companyArea"
+                              name="companyArea"
+                              placeholder="Industry or domain"
+                            />
+                          </label>
+                          <label [class.is-invalid]="!!profileFieldErrors['currentSalary']">
+                            <span>Current salary</span>
+                            <app-pii-field
+                              [(ngModel)]="currentSalary"
+                              name="currentSalary"
+                              placeholder="₹ / month or LPA"
+                              (ngModelChange)="clearProfileFieldError('currentSalary')"
+                            />
+                            @if (profileFieldErrors['currentSalary']; as err) {
+                              <p class="field-error">{{ err }}</p>
+                            }
+                          </label>
+                          <label [class.is-invalid]="!!profileFieldErrors['expectedSalary']">
+                            <span>Expected salary</span>
+                            <app-pii-field
+                              [(ngModel)]="expectedSalary"
+                              name="expectedSalary"
+                              placeholder="₹ / month or LPA"
+                              (ngModelChange)="clearProfileFieldError('expectedSalary')"
+                            />
+                            @if (profileFieldErrors['expectedSalary']; as err) {
+                              <p class="field-error">{{ err }}</p>
+                            }
+                          </label>
                         </div>
-                      </div>
-                    }
-                  </div>
-                }
-              </details>
+
+                        <div class="notice-block">
+                          <p class="notice-block__label">Notice period</p>
+                          <p class="hint notice-hint">
+                            Pick one. “Serving” means notice has started; check your company T&amp;C.
+                          </p>
+                          <div class="notice-badges" role="radiogroup" aria-label="Notice period">
+                            @for (opt of noticeOptions; track opt.value) {
+                              <button
+                                type="button"
+                                class="notice-badge"
+                                [class.notice-badge--active]="noticePeriod === opt.value"
+                                (click)="setNoticePeriod(opt.value)"
+                              >
+                                {{ opt.label }}
+                              </button>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </details>
+              }
             </div>
 
             <button type="button" class="save-profile-btn" (click)="saveProfile()">
@@ -511,85 +554,129 @@
           </section>
         }
         @case ('activity') {
-          <section class="hub-section">
-            <h2>Your feed</h2>
-            @for (job of feedJobs(); track job.id) {
-              <article class="hub-card">
-                <strong>{{ job.title }}</strong>
-                <p>{{ job.employerName }}</p>
-                <a class="link" [routerLink]="jobPath(job)">Open</a>
-              </article>
-            } @empty {
-              <p class="empty">Save preferences to personalise this feed.</p>
-            }
-          </section>
+          @if (isEmployer()) {
+            <section class="hub-section">
+              <div class="hub-section__head">
+                <h2>Incoming applications</h2>
+                <a class="link" routerLink="/employer-applications">Review all</a>
+              </div>
+              @for (row of employerApps(); track row.id) {
+                <article class="hub-card">
+                  <strong>{{ row.seekerName || 'Applicant' }}</strong>
+                  <p>
+                    {{ row.job?.title || row.jobId }} · {{ row.statusLabel }} ·
+                    {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+                  </p>
+                  <a
+                    class="link"
+                    [routerLink]="['/me/applications', row.id]"
+                    [queryParams]="{ as: 'employer' }"
+                  >
+                    Timeline
+                  </a>
+                </article>
+              } @empty {
+                <p class="empty">No applications yet. Post a job to start receiving them.</p>
+              }
+            </section>
 
-          <section class="hub-section">
-            <div class="hub-section__head">
-              <h2>Saved jobs</h2>
-              <a class="link" routerLink="/me">Open saved</a>
-            </div>
-            @for (job of savedJobs(); track job.id) {
-              <article class="hub-card">
-                <strong>{{ job.title }}</strong>
-                <p>{{ job.employerName }}</p>
-                <div class="hub-card__actions">
-                  <a class="link" [routerLink]="jobPath(job)">Open</a>
-                  <button type="button" class="secondary" (click)="removeSavedJob(job.id)">
+            <section class="hub-section">
+              <div class="hub-section__head">
+                <h2>Posted jobs</h2>
+                <a class="link" routerLink="/my-jobs">Open feeds</a>
+              </div>
+              @for (job of postedJobs(); track job.id) {
+                <article class="hub-card">
+                  <strong>{{ job.title }}</strong>
+                  <p>{{ job.employerName }} · {{ job.status || 'live' }}</p>
+                  <div class="hub-card__actions">
+                    <a class="link" [routerLink]="jobPath(job)">Open</a>
+                    <a class="link" [routerLink]="['/my-jobs', job.id]">Analytics</a>
+                    <a
+                      class="link"
+                      routerLink="/employer-applications"
+                      [queryParams]="{ jobId: job.id }"
+                    >
+                      Applicants
+                    </a>
+                  </div>
+                </article>
+              } @empty {
+                <p class="empty">No posts yet. Open Recruiter desk to publish a role.</p>
+              }
+              <a class="btn-link" routerLink="/post">Open Recruiter desk</a>
+            </section>
+          } @else {
+            <section class="hub-section">
+              <div class="hub-section__head">
+                <h2>Saved jobs</h2>
+                <a class="link" routerLink="/me">Open saved</a>
+              </div>
+              @for (job of savedJobs(); track job.id) {
+                <article class="hub-card">
+                  <strong>{{ job.title }}</strong>
+                  <p>{{ job.employerName }}</p>
+                  <div class="hub-card__actions">
+                    <a class="link" [routerLink]="jobPath(job)">Open</a>
+                    <button type="button" class="secondary" (click)="removeSavedJob(job.id)">
+                      Remove
+                    </button>
+                  </div>
+                </article>
+              } @empty {
+                <p class="empty">No saved jobs yet. Save a role from job detail.</p>
+              }
+            </section>
+
+            <section class="hub-section">
+              <div class="hub-section__head">
+                <h2>Applied jobs</h2>
+                <a class="link" routerLink="/me/applied">Open all</a>
+              </div>
+              @for (row of jobApps(); track row.id) {
+                <article class="hub-card">
+                  <strong>{{ row.job?.title || row.jobId }}</strong>
+                  <p>
+                    {{ row.statusLabel }} ·
+                    {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+                  </p>
+                  <a class="link" [routerLink]="['/me/applications', row.id]">Timeline</a>
+                </article>
+              } @empty {
+                <p class="empty">Apply from a job page to track status here.</p>
+              }
+            </section>
+
+            <section class="hub-section">
+              <h2>Contacted</h2>
+              @for (row of contacted(); track row.jobId) {
+                <article class="hub-card">
+                  <strong>{{ row.job?.title || row.jobId }}</strong>
+                  <p>{{ row.status }}{{ row.channel ? ' · ' + row.channel : '' }}</p>
+                  @if (row.job) {
+                    <a class="link" [routerLink]="jobPath(row.job)">Open</a>
+                  }
+                </article>
+              } @empty {
+                <p class="empty">Tap phone / WhatsApp / email on a job to track it here.</p>
+              }
+            </section>
+
+            <section class="hub-section">
+              <h2>Saved searches</h2>
+              @for (row of savedSearches(); track row.id) {
+                <article class="hub-card">
+                  <strong>{{ row.name }}</strong>
+                  <p>{{ row.alertEnabled ? 'Alerts on' : 'Alerts off' }}</p>
+                  <button type="button" class="secondary" (click)="deleteSavedSearch(row.id)">
                     Remove
                   </button>
-                </div>
-              </article>
-            } @empty {
-              <p class="empty">No saved jobs yet. Save a role from job detail.</p>
-            }
-          </section>
-
-          <section class="hub-section">
-            <h2>Applications</h2>
-            @for (row of jobApps(); track row.id) {
-              <article class="hub-card">
-                <strong>{{ row.job?.title || row.jobId }}</strong>
-                <p>
-                  {{ row.statusLabel }} ·
-                  {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
-                </p>
-                <a class="link" [routerLink]="['/me/applications', row.id]">Timeline</a>
-              </article>
-            } @empty {
-              <p class="empty">Apply from a job page to track status here.</p>
-            }
-          </section>
-
-          <section class="hub-section">
-            <h2>Contacted</h2>
-            @for (row of contacted(); track row.jobId) {
-              <article class="hub-card">
-                <strong>{{ row.job?.title || row.jobId }}</strong>
-                <p>{{ row.status }}{{ row.channel ? ' · ' + row.channel : '' }}</p>
-                @if (row.job) {
-                  <a class="link" [routerLink]="jobPath(row.job)">Open</a>
-                }
-              </article>
-            } @empty {
-              <p class="empty">Tap phone / WhatsApp / email on a job to track it here.</p>
-            }
-          </section>
-
-          <section class="hub-section">
-            <h2>Saved searches</h2>
-            @for (row of savedSearches(); track row.id) {
-              <article class="hub-card">
-                <strong>{{ row.name }}</strong>
-                <p>{{ row.alertEnabled ? 'Alerts on' : 'Alerts off' }}</p>
-                <button type="button" class="secondary" (click)="deleteSavedSearch(row.id)">
-                  Remove
-                </button>
-              </article>
-            } @empty {
-              <p class="empty">Save a search from Discover to get alerts.</p>
-            }
-          </section>
+                </article>
+              } @empty {
+                <p class="empty">Save a search from Discover to get alerts.</p>
+              }
+            </section>
+          }
         }
         @case ('rating') {
           <section class="hub-section score-callout">
@@ -812,6 +899,9 @@
 
       <button type="button" class="text-link" (click)="forgotPassword()">
         Forgot password?
+      </button>
+      <button type="button" class="text-link" (click)="setMode('admin')">
+        Admin password login
       </button>
     }
   </div>

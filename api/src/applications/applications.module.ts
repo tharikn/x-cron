@@ -4,6 +4,7 @@ import { JobsModule } from '../jobs/jobs.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReputationModule } from '../reputation/reputation.module';
+import { SeekerModule } from '../seeker/seeker.module';
 import { SiteModule } from '../site/site.module';
 import { ApplicationsController } from './applications.controller';
 import { ApplicationsMemoryStore } from './applications.memory-store';
@@ -28,6 +29,7 @@ function resolveApplicationsStoreMode(): 'prisma' | 'memory' {
     forwardRef(() => NotificationsModule),
     ApplyProfilesModule,
     ReputationModule,
+    SeekerModule,
   ],
   controllers: [ApplicationsController],
   providers: [
@@ -43,6 +45,6 @@ function resolveApplicationsStoreMode(): 'prisma' | 'memory' {
     },
     ApplicationsService,
   ],
-  exports: [ApplicationsService],
+  exports: [ApplicationsService, ApplicationsStore],
 })
 export class ApplicationsModule {}

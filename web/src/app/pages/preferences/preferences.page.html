@@ -65,9 +65,22 @@
         />
         <span>Email alerts</span>
       </label>
+      <p
+        class="perm"
+        [class.perm--ok]="pushPermission() === 'granted'"
+        [class.perm--bad]="pushPermission() === 'denied' || pushPermission() === 'unsupported'"
+      >
+        {{ osPermissionLabel() }}
+      </p>
+      @if (pushPermission() === 'prompt' || pushPermission() === 'denied') {
+        <button type="button" class="btn-perm" (click)="enableSystemNotifications()">
+          {{ pushPermission() === 'denied' ? 'Check system permission' : 'Enable system notifications' }}
+        </button>
+      }
       <p class="ok">
         Inbox stays on
         <a routerLink="/notifications">Notifications</a>.
+        Push alerts also use browser system notifications (allow when prompted).
       </p>
     }
   </section>

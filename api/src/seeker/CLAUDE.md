@@ -15,14 +15,19 @@ Seeker retention: saved jobs, personalised feed, light profile, applications (co
 
 ## Storage
 
-Runtime today: in-memory `SeekerStore` (cleared on API restart / account wipe).
-
-**DDL (higher envs):** Prisma models `SeekerProfile`, `SeekerApplication`, `HiddenJob`, `SavedSearch` + Job `lat`/`lng`/`walkInAt`/`applyBy` + Employer `slug`/`about`/`logoUrl` ship in migration `20261104050000_seeker_job_geo_walkin`. Career/personal columns (`mobile`, `email`, `showContact`, `address`, `pincode`, `careerStage`, education/internship/company/salary/notice fields) ship in `20261104235000_seeker_profile_career`. Apply with `npm run prisma:migrate` / migrate deploy before relying on Postgres. Runtime store is still in-memory; Prisma seeker store wiring can follow — do not add more seeker fields without a new forward migration.
+- `SEEKER_STORE=prisma|memory` (falls back to `JOBS_STORE`)
+- Dual store: abstract `SeekerStore` → `seeker.memory-store.ts` | `seeker.prisma-store.ts` (factory in `seeker.module.ts`)
+- Prisma models: `SeekerProfile`, `SavedJob`, `SeekerApplication`, `HiddenJob`, `SavedSearch`
+- DDL: migration `20261104050000_seeker_job_geo_walkin` (+ Job geo/walk-in + Employer slug); career/personal columns in `20261104235000_seeker_profile_career`
+- Apply with `npm run prisma:migrate` / migrate deploy before relying on Postgres
+- Account wipe → `SeekerService.clearUser` (deletes profile + saved/hidden/applications/searches)
 
 ## Agent rules
 
 - Keep contact-first: `/v1/me/applications` markers stay `contacted`/`applied` for phone/WA taps — **not** the ATS inbox.
-- Formal apply → offer letter lives in [`../applications/`](../applications/CLAUDE.md) (`/v1/jobs/:jobId/apply`, `/v1/me/job-applications`, employer review).
+- Formal apply → offer letter lives in [`../applications/`](../applications/CLAUDE.md) (`/v1/jobs/:jobId/apply`, `/v1/me/job-applications`, employer review). Apply contact gate reads this profile’s `displayName` / `mobile` / `email` when auth identity has none.
+
 - Multi-version skillset / portfolio (no CV) lives in [`../apply-profiles/`](../apply-profiles/CLAUDE.md) — do not overload light `SeekerProfile`.
 - Feed must respect hidden jobs/employers.
 - `jobMatchesSavedQuery` is used by notifications fan-out for saved-search alerts.
+- Do not add more seeker fields without a new forward Prisma migration + store mapping.

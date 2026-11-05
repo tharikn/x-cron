@@ -13,6 +13,7 @@ import {
   parseVacancies,
   validateQuickPostFields,
 } from '../../core/utils/job-form.validation';
+import { DatetimePickerComponent } from '../../shared/datetime-picker/datetime-picker.component';
 
 type PostMode = 'quick' | 'paste';
 type DeskPanel = 'compose' | 'review' | 'preview';
@@ -24,7 +25,7 @@ interface ChatMessage {
 
 @Component({
   selector: 'app-post-job',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DatetimePickerComponent],
   templateUrl: './post-job.page.html',
   styleUrl: './post-job.page.scss',
 })
@@ -65,7 +66,7 @@ export class PostJobPage implements OnInit {
 
   title = '';
   employerName = '';
-  locationCity = 'Palani';
+  locationCity = '';
   jobType: JobType = 'full-time';
   salaryText = '';
   vacancies = '';
@@ -156,7 +157,7 @@ export class PostJobPage implements OnInit {
         });
         this.title = result.title || this.title || 'Hiring';
         this.employerName = result.employerName || this.employerName;
-        this.locationCity = result.locationCity || this.locationCity || 'Palani';
+        this.locationCity = result.locationCity || this.locationCity;
         if (result.jobType && result.jobType in JOB_TYPE_LABELS) {
           this.jobType = result.jobType as JobType;
         }
@@ -302,7 +303,7 @@ export class PostJobPage implements OnInit {
       const job = await this.jobsService.createQuickPost({
         title: this.title.trim(),
         employerName: this.employerName.trim(),
-        locationCity: this.locationCity.trim() || 'Palani',
+        locationCity: this.locationCity.trim(),
         jobType: this.jobType,
         salaryText: this.salaryText.trim() || undefined,
         vacancies: parseVacancies(this.vacancies),

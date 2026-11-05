@@ -1,0 +1,205 @@
+.help-chat {
+  position: fixed;
+  /* Inset from viewport corner so FAB isn’t flush to the edge */
+  right: max(5rem, calc(env(safe-area-inset-right) + 4rem));
+  bottom: max(2.25rem, calc(env(safe-area-inset-bottom) + 1.25rem));
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.65rem;
+  width: min(22rem, calc(100vw - 1.5rem));
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.help-chat__fab,
+.help-chat__panel,
+.help-chat__compose,
+.help-chat__close,
+.help-chat__send {
+  pointer-events: auto;
+}
+
+.help-chat__fab {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--xcron-cta-gradient);
+  color: #fff;
+  font-family: var(--xcron-font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  box-shadow: var(--xcron-shadow);
+  cursor: pointer;
+  transition:
+    transform 160ms var(--xcron-ease),
+    box-shadow 160ms var(--xcron-ease);
+}
+
+.help-chat__fab:hover {
+  transform: translateY(-2px);
+}
+
+.help-chat__panel {
+  width: 100%;
+  max-width: 100%;
+  max-height: min(28rem, calc(100vh - 6rem));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 0.55rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--xcron-radius-lg, 14px);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  box-shadow: var(--xcron-shadow);
+  color: var(--xcron-ink);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.help-chat__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.help-chat__brand {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-label);
+  font-weight: var(--xcron-weight-bold, 700);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xcron-accent);
+}
+
+.help-chat__title {
+  margin: 0.1rem 0 0;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-title);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.help-chat__close {
+  border: 0;
+  background: transparent;
+  color: var(--xcron-ink-soft, #c8c0d8);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  margin: -0.15rem -0.2rem 0 0;
+  flex-shrink: 0;
+}
+
+.help-chat__quota {
+  margin: 0;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  line-height: 1.35;
+  color: var(--xcron-faint, #8e85a3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.help-chat__log {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 8rem;
+  min-width: 0;
+  padding: 0.1rem 0.35rem 0.1rem 0.05rem;
+  scrollbar-gutter: stable;
+}
+
+.help-chat__bubble {
+  margin: 0;
+  max-width: 88%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  background: var(--xcron-wash);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-body);
+  line-height: var(--xcron-leading-body, 1.5);
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+.help-chat__bubble--user {
+  align-self: flex-end;
+  background: rgba(124, 92, 255, 0.22);
+  border: 1px solid rgba(124, 92, 255, 0.35);
+}
+
+.help-chat__error {
+  margin: 0;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  color: #f43f5e;
+}
+
+.help-chat__compose {
+  display: flex;
+  align-items: stretch;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.help-chat__compose textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  resize: none;
+  border-radius: 10px;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-body);
+  line-height: 1.4;
+  padding: 0.55rem 0.65rem;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.help-chat__compose textarea:focus {
+  outline: 2px solid rgba(124, 92, 255, 0.55);
+  outline-offset: 1px;
+}
+
+.help-chat__send {
+  flex: 0 0 auto;
+  align-self: stretch;
+  min-width: 4.25rem;
+  min-height: var(--xcron-btn-height, 44px);
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 10px;
+  background: var(--xcron-cta-gradient);
+  color: #fff;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-button);
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0;
+}
+
+.help-chat__send:disabled,
+.help-chat__compose textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .help-chat__fab {
+    transition: none;
+  }
+}

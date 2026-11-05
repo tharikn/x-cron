@@ -1,155 +1,303 @@
 <section class="seeker">
-  <h1>Saved jobs</h1>
+  <header class="page-head">
+    <p class="brand-mark">X Cron</p>
+    <h1>Saved jobs</h1>
+    <p class="lead">
+      Apply versions, saved roles, applications, and a quieter feed — one section at a time.
+    </p>
+  </header>
+
   @if (!isSignedIn()) {
     <p>Sign in to see saved jobs, apply profiles, and your personalised feed.</p>
     <a routerLink="/sign-in">Sign in</a>
+  } @else if (isEmployer()) {
+    <p>Saved jobs and apply versions are for seekers. Use Activity for hiring updates.</p>
+    <a routerLink="/sign-in" [queryParams]="{ tab: 'activity' }">Open Activity</a>
   } @else {
     @if (error()) {
       <p class="error">{{ error() }}</p>
     }
 
-    <article class="score-callout">
-      <h2>Performance Score</h2>
-      <p>
-        New trust signal for seekers and recruiters: apply to roles that fit (≥50%), reply in chat,
-        and keep your band Rising. Fit under 50% lowers your score.
-      </p>
-      <a routerLink="/performance">View my Performance Score</a>
-    </article>
+    <a class="score-strip" routerLink="/performance">
+      <span class="score-strip__label">My Rating</span>
+      <span class="score-strip__hint">Fit ≥50% · reply in chat · keep Rising</span>
+      <span class="score-strip__cta">View</span>
+    </a>
 
-    <h2>Apply profile versions</h2>
-    <p class="hint">
-      Build Frontend / Backend versions with skills and portfolio links — no CV. Choose a version
-      when you easy-apply.
-    </p>
-    @if (!applyProfiles().length) {
-      <p class="empty">Add your first version to unlock easy apply.</p>
-    }
-    <div class="list">
-      @for (p of applyProfiles(); track p.id) {
-        <div class="row version-row">
-          <div class="version-meta">
-            <strong>{{ p.name }}</strong>
-            {{ p.isDefault ? ' · default' : '' }}
-            @if (p.skills.length) {
-              <div class="skill-badges" aria-label="Skills">
-                @for (skill of p.skills.slice(0, skillMax); track skill) {
-                  <span class="skill-badge">{{ skill }}</span>
+    <nav class="hub-tabs" aria-label="Saved jobs sections">
+      <button
+        type="button"
+        class="hub-tabs__btn"
+        [class.is-active]="tab() === 'apply'"
+        (click)="setTab('apply')"
+      >
+        Apply
+      </button>
+      <button
+        type="button"
+        class="hub-tabs__btn"
+        [class.is-active]="tab() === 'saved'"
+        (click)="setTab('saved')"
+      >
+        Saved
+        @if (saved().length) {
+          <span class="count">{{ saved().length }}</span>
+        }
+      </button>
+      <button
+        type="button"
+        class="hub-tabs__btn"
+        [class.is-active]="tab() === 'applied'"
+        (click)="setTab('applied')"
+      >
+        Applied
+        @if (jobApps().length) {
+          <span class="count">{{ jobApps().length }}</span>
+        }
+      </button>
+      <button
+        type="button"
+        class="hub-tabs__btn"
+        [class.is-active]="tab() === 'for-you'"
+        (click)="setTab('for-you')"
+      >
+        For you
+      </button>
+    </nav>
+
+    @switch (tab()) {
+      @case ('apply') {
+        <div class="tab-pane">
+          <section class="panel">
+            <h2>Apply profile versions</h2>
+            <p class="hint">
+              Build Frontend / Backend versions with skills and portfolio links — no CV. Choose a
+              version when you easy-apply.
+            </p>
+
+            @if (!applyProfiles().length) {
+              <p class="empty">Add your first version to unlock easy apply.</p>
+            }
+
+            <div class="list">
+              @for (p of applyProfiles(); track p.id) {
+                <div class="job-card version-card">
+                  <div class="job-card__body">
+                    <strong>{{ p.name }}</strong>
+                    @if (p.isDefault) {
+                      <span class="pill">Default</span>
+                    }
+                    @if (p.headline) {
+                      <p class="job-card__meta">{{ p.headline }}</p>
+                    }
+                    @if (p.skills.length) {
+                      <div class="skill-badges" aria-label="Skills">
+                        @for (skill of p.skills.slice(0, skillMax); track skill) {
+                          <span class="skill-badge">{{ skill }}</span>
+                        }
+                      </div>
+                    } @else {
+                      <p class="job-card__meta muted">No skills yet</p>
+                    }
+                  </div>
+                  <div class="job-card__actions">
+                    @if (!p.isDefault) {
+                      <button type="button" class="ghost" (click)="setDefault(p.id)">Default</button>
+                    }
+                    <button type="button" class="ghost" (click)="removeVersion(p.id)">Remove</button>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="version-form">
+              <label>
+                <span>Version name *</span>
+                <input [(ngModel)]="versionName" placeholder="e.g. Frontend developer" />
+              </label>
+              <label>
+                <span>Headline</span>
+                <input [(ngModel)]="versionHeadline" placeholder="React · TypeScript" />
+              </label>
+              <div class="skill-field">
+                <span>Skills ({{ skillMin }}–{{ skillMax }})</span>
+                <div class="skill-badges" role="list" aria-label="Selected skills">
+                  @for (skill of versionSkills; track skill) {
+                    <button
+                      type="button"
+                      class="skill-badge skill-badge--removable"
+                      role="listitem"
+                      (click)="removeVersionSkill(skill)"
+                      [attr.aria-label]="'Remove ' + skill"
+                    >
+                      {{ skill }}
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  }
+                </div>
+                @if (versionSkills.length < skillMax) {
+                  <div class="skill-add">
+                    <input
+                      [(ngModel)]="versionSkillDraft"
+                      placeholder="e.g. React"
+                      (keyup.enter)="addVersionSkill()"
+                    />
+                    <button type="button" class="ghost" (click)="addVersionSkill()">Add</button>
+                  </div>
                 }
+                <p class="skill-hint">
+                  {{ versionSkills.length }}/{{ skillMax }} · click a badge to remove
+                </p>
               </div>
-            } @else {
-              <span class="muted"> · No skills</span>
-            }
-          </div>
-          <span class="row-actions">
-            @if (!p.isDefault) {
-              <button type="button" class="remove" (click)="setDefault(p.id)">Default</button>
-            }
-            <button type="button" class="remove" (click)="removeVersion(p.id)">Remove</button>
-          </span>
+              <label>
+                <span>Summary</span>
+                <input [(ngModel)]="versionSummary" />
+              </label>
+              <label>
+                <span>Portfolio (Label|https://… per line)</span>
+                <textarea rows="2" [(ngModel)]="versionLinks"></textarea>
+              </label>
+              <button type="button" class="btn" [disabled]="versionBusy" (click)="saveVersion()">
+                Add version
+              </button>
+            </div>
+          </section>
         </div>
       }
-    </div>
-    <div class="version-form">
-      <label>
-        <span>Version name *</span>
-        <input [(ngModel)]="versionName" placeholder="e.g. Frontend developer" />
-      </label>
-      <label>
-        <span>Headline</span>
-        <input [(ngModel)]="versionHeadline" placeholder="React · TypeScript" />
-      </label>
-      <div class="skill-field">
-        <span>Skills ({{ skillMin }}–{{ skillMax }})</span>
-        <div class="skill-badges" role="list" aria-label="Selected skills">
-          @for (skill of versionSkills; track skill) {
+
+      @case ('saved') {
+        <div class="tab-pane">
+          <section class="panel">
+            <h2>Saved jobs</h2>
+            <div class="list">
+              @for (job of saved(); track job.id) {
+                <div class="job-card">
+                  <a class="job-card__body" [routerLink]="jobPath(job)">
+                    <strong>{{ job.title }}</strong>
+                    <p class="job-card__meta">{{ job.employerName }}</p>
+                  </a>
+                  <div class="job-card__actions">
+                    <button
+                      type="button"
+                      class="ghost"
+                      (click)="removeSaved(job.id)"
+                      [disabled]="removingId() === job.id"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              } @empty {
+                <p class="empty">No saved jobs yet. Save a role from a job page.</p>
+              }
+            </div>
+          </section>
+        </div>
+      }
+
+      @case ('applied') {
+        <div class="tab-pane">
+          <section class="panel">
+            <div class="section-head">
+              <h2>Applied jobs</h2>
+              <a class="link" routerLink="/me/applied">Open all</a>
+            </div>
+            <div class="list">
+              @for (row of jobApps(); track row.id) {
+                <a class="job-card job-card--link" [routerLink]="['/me/applications', row.id]">
+                  <div class="job-card__body">
+                    <strong>{{ row.job?.title || row.jobId }}</strong>
+                    <p class="job-card__meta">
+                      <span class="status">{{ row.statusLabel }}</span>
+                      @if (row.matchPercent != null) {
+                        <span>· fit {{ row.matchPercent }}%</span>
+                      }
+                      @if (row.reputation; as rep) {
+                        <span>· recruiter {{ rep.score }}</span>
+                      }
+                    </p>
+                    <p class="job-card__time">
+                      {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+                    </p>
+                  </div>
+                </a>
+              } @empty {
+                <p class="empty">Apply from a job page to track status and timeline here.</p>
+              }
+            </div>
+          </section>
+        </div>
+      }
+
+      @case ('for-you') {
+        <div class="tab-pane">
+          <nav class="sub-tabs" aria-label="Feed sections">
             <button
               type="button"
-              class="skill-badge skill-badge--removable"
-              role="listitem"
-              (click)="removeVersionSkill(skill)"
-              [attr.aria-label]="'Remove ' + skill"
+              class="sub-tabs__btn"
+              [class.is-active]="feedTab() === 'recent'"
+              (click)="setFeedTab('recent')"
             >
-              {{ skill }}
-              <span aria-hidden="true">×</span>
+              Continue browsing
+              @if (viewed.items().length) {
+                <span class="count">{{ viewed.items().length }}</span>
+              }
             </button>
+            <button
+              type="button"
+              class="sub-tabs__btn"
+              [class.is-active]="feedTab() === 'feed'"
+              (click)="setFeedTab('feed')"
+            >
+              Personalised feed
+              @if (feed().length) {
+                <span class="count">{{ feed().length }}</span>
+              }
+            </button>
+          </nav>
+
+          @if (feedTab() === 'recent') {
+            <section class="panel">
+              <h2>Continue browsing</h2>
+              <p class="hint">Roles you opened recently on this device.</p>
+              <div class="list">
+                @for (row of viewed.items(); track row.id) {
+                  <a class="job-card job-card--link" [routerLink]="['/jobs', row.slug]">
+                    <div class="job-card__body">
+                      <strong>{{ row.title }}</strong>
+                      <p class="job-card__meta">
+                        {{ row.employerName }}
+                        @if (row.city) {
+                          <span>· {{ row.city }}</span>
+                        }
+                      </p>
+                    </div>
+                  </a>
+                } @empty {
+                  <p class="empty">Open a few jobs to build this list.</p>
+                }
+              </div>
+            </section>
+          } @else {
+            <section class="panel">
+              <h2>Personalised feed</h2>
+              <p class="hint">Matched from your preferences.</p>
+              <div class="list">
+                @for (job of feed(); track job.id) {
+                  <a class="job-card job-card--link" [routerLink]="jobPath(job)">
+                    <div class="job-card__body">
+                      <strong>{{ job.title }}</strong>
+                      <p class="job-card__meta">{{ job.employerName }}</p>
+                    </div>
+                  </a>
+                } @empty {
+                  <p class="empty">Set preferences to personalise this feed.</p>
+                }
+              </div>
+            </section>
           }
         </div>
-        @if (versionSkills.length < skillMax) {
-          <div class="skill-add">
-            <input
-              [(ngModel)]="versionSkillDraft"
-              placeholder="e.g. React"
-              (keyup.enter)="addVersionSkill()"
-            />
-            <button type="button" class="remove" (click)="addVersionSkill()">Add</button>
-          </div>
-        }
-        <p class="skill-hint">{{ versionSkills.length }}/{{ skillMax }} · click a badge to remove</p>
-      </div>
-      <label>
-        <span>Summary</span>
-        <input [(ngModel)]="versionSummary" />
-      </label>
-      <label>
-        <span>Portfolio (Label|https://… per line)</span>
-        <textarea rows="2" [(ngModel)]="versionLinks"></textarea>
-      </label>
-      <button type="button" class="btn" [disabled]="versionBusy" (click)="saveVersion()">
-        Add version
-      </button>
-    </div>
-
-    @if (viewed.items().length) {
-      <h2>Continue browsing</h2>
-      <div class="list">
-        @for (row of viewed.items(); track row.id) {
-          <a [routerLink]="['/jobs', row.slug]">{{ row.title }} · {{ row.city }}</a>
-        }
-      </div>
+      }
     }
-
-    <h2>Personalised feed</h2>
-    <div class="list">
-      @for (job of feed(); track job.id) {
-        <a [routerLink]="jobPath(job)">{{ job.title }} · {{ job.employerName }}</a>
-      } @empty {
-        <p>Set preferences to personalise this feed.</p>
-      }
-    </div>
-
-    <h2>Saved jobs</h2>
-    <div class="list">
-      @for (job of saved(); track job.id) {
-        <div class="row">
-          <a [routerLink]="jobPath(job)">{{ job.title }} · {{ job.employerName }}</a>
-          <button type="button" class="remove" (click)="removeSaved(job.id)" [disabled]="removingId() === job.id">
-            Remove
-          </button>
-        </div>
-      } @empty {
-        <p>No saved jobs yet. Save a role from a job page.</p>
-      }
-    </div>
-
-    <h2>Applications</h2>
-    <div class="list">
-      @for (row of jobApps(); track row.id) {
-        <div class="row">
-          <a [routerLink]="['/me/applications', row.id]">
-            {{ row.job?.title || row.jobId }} · {{ row.statusLabel }}
-            @if (row.matchPercent != null) {
-              · fit {{ row.matchPercent }}%
-            }
-            @if (row.reputation; as rep) {
-              · recruiter {{ rep.score }}
-            }
-            · {{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
-          </a>
-        </div>
-      } @empty {
-        <p>Apply from a job page to track status and timeline here.</p>
-      }
-    </div>
   }
 </section>

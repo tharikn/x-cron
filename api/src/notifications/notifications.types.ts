@@ -58,6 +58,7 @@ export interface NotificationRecord {
 export type NotificationTriggerType =
   | 'job_published'
   | 'application_event'
+  | 'support_event'
   | 'user_welcome'
   | 'profile_complete'
   | 'dev_test';

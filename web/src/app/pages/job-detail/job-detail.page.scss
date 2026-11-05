@@ -589,12 +589,18 @@ a.revealed__value:hover {
     color 160ms var(--xcron-ease);
 }
 
-.actions .action:hover,
-.actions .action:focus-visible {
+.actions .action:hover:not(:disabled),
+.actions .action:focus-visible:not(:disabled) {
   transform: translateY(-1px);
   border-color: var(--xcron-primary);
   box-shadow: var(--xcron-shadow-hover);
   outline: none;
+}
+
+.actions .action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .actions .action--save {
@@ -604,12 +610,18 @@ a.revealed__value:hover {
   box-shadow: 0 10px 24px rgba(124, 92, 255, 0.22);
 }
 
-.actions .action--save:hover,
-.actions .action--save:focus-visible {
+.actions .action--save:hover:not(:disabled),
+.actions .action--save:focus-visible:not(:disabled) {
   border: 0;
   color: #fff;
   background: var(--xcron-cta-gradient-hover);
   box-shadow: 0 14px 28px rgba(245, 165, 36, 0.28);
+}
+
+.actions .action--save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .actions .action--on {

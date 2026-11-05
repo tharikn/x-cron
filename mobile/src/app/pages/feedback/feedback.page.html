@@ -1,0 +1,194 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'feedback.title' | t }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="brand">X Cron <span>Jobs</span></p>
+    <p class="lead">{{ 'feedback.lead' | t }}</p>
+
+    <div class="tabs">
+      <button
+        type="button"
+        class="tab"
+        [class.tab--on]="panel() === 'faq'"
+        (click)="showFaq()"
+      >
+        {{ 'feedback.faq' | t }}
+      </button>
+      <button
+        type="button"
+        class="tab"
+        [class.tab--on]="panel() === 'contact'"
+        (click)="showContact()"
+      >
+        {{ 'feedback.contactAdmin' | t }}
+      </button>
+    </div>
+
+    @if (isAdmin()) {
+      <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/admin-feedback">
+        {{ 'nav.feedbackAdmin' | t }}
+      </ion-button>
+    }
+
+    @if (panel() === 'faq') {
+      <section class="faq">
+        @for (item of faq(); track item.id) {
+          <article class="faq__item">
+            <button type="button" class="faq__q" (click)="toggleFaq(item.id)">
+              <span>{{ item.question }}</span>
+              <span>{{ openFaqId() === item.id ? '−' : '+' }}</span>
+            </button>
+            @if (openFaqId() === item.id) {
+              <p class="faq__a">{{ item.answer }}</p>
+            }
+          </article>
+        }
+        <p class="hint">
+          {{ 'feedback.faqHint' | t }}
+          <button type="button" class="linkish" (click)="showContact()">
+            {{ 'feedback.contactAdmin' | t }}
+          </button>
+        </p>
+      </section>
+    } @else if (!isSignedIn()) {
+      <div class="gate">
+        <p>{{ 'feedback.signIn' | t }}</p>
+        <ion-button expand="block" color="dark" routerLink="/tabs/account">
+          {{ 'nav.signIn' | t }}
+        </ion-button>
+      </div>
+    } @else if (active(); as thread) {
+      <button type="button" class="back" (click)="clearActive()">
+        ← {{ 'feedback.backToList' | t }}
+      </button>
+      <h2>{{ thread.subject }}</h2>
+      <p class="meta">
+        {{ thread.audienceLabel }} · {{ thread.categoryLabel }} · {{ thread.statusLabel }}
+      </p>
+      @if (peerPresenceLine()) {
+        <p
+          class="presence"
+          [class.presence--online]="thread.presence?.peerOnline"
+        >
+          {{ peerPresenceLine() }}
+        </p>
+      }
+      <div class="chat" #chatLog role="log" aria-live="polite">
+        @for (msg of messages(); track msg.id) {
+          <div
+            class="bubble"
+            [class.bubble--me]="msg.senderRole !== 'admin'"
+            [class.bubble--admin]="msg.senderRole === 'admin'"
+            [class.bubble--new]="isNewMessage(msg.id)"
+            [class.bubble--pending]="isPendingMessage(msg.id)"
+          >
+            @if (isNewMessage(msg.id) && !isPendingMessage(msg.id)) {
+              <span class="bubble__new">{{ 'feedback.new' | t }}</span>
+            }
+            <p>{{ msg.body }}</p>
+            <span>
+              @if (isPendingMessage(msg.id)) {
+                {{ 'feedback.sending' | t }}
+              } @else {
+                {{ senderLabel(msg, thread.audienceLabel) }}
+                · {{ msg.createdAt | date: 'short' }}
+              }
+            </span>
+          </div>
+        }
+        @if (showPeerTyping()) {
+          <div class="typing" aria-live="polite">
+            <span class="typing__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>{{ peerTypingLabel() }}</span>
+          </div>
+        }
+      </div>
+      @if (thread.status !== 'closed') {
+        <ion-textarea
+          [(ngModel)]="chatBody"
+          (ngModelChange)="onComposerInput()"
+          [placeholder]="'feedback.replyPlaceholder' | t"
+          autoGrow="true"
+          maxlength="4000"
+          [disabled]="sending()"
+        ></ion-textarea>
+        <div class="actions">
+          <ion-button
+            color="dark"
+            [disabled]="sending() || !chatBody.trim()"
+            (click)="sendChat()"
+          >
+            {{ 'feedback.send' | t }}
+          </ion-button>
+          <ion-button fill="outline" color="dark" [disabled]="busy() || sending()" (click)="closeActive()">
+            {{ 'feedback.close' | t }}
+          </ion-button>
+        </div>
+      } @else {
+        <p class="hint">{{ 'feedback.closed' | t }}</p>
+      }
+    } @else {
+      <h2>{{ 'feedback.newThread' | t }}</h2>
+      <ion-list lines="none" class="form">
+        <ion-item>
+          <ion-select [(ngModel)]="audience" [label]="'feedback.asRole' | t" labelPlacement="stacked">
+            <ion-select-option value="seeker">{{ 'feedback.asSeeker' | t }}</ion-select-option>
+            @if (canContactAsRecruiter()) {
+              <ion-select-option value="employer">{{ 'feedback.asRecruiter' | t }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-select [(ngModel)]="category" [label]="'feedback.category' | t" labelPlacement="stacked">
+            <ion-select-option value="question">Question</ion-select-option>
+            <ion-select-option value="bug">Bug report</ion-select-option>
+            <ion-select-option value="suggestion">Suggestion</ion-select-option>
+            <ion-select-option value="account">Account</ion-select-option>
+            <ion-select-option value="other">Other</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">{{ 'feedback.subject' | t }}</ion-label>
+          <input class="plain" [(ngModel)]="subject" maxlength="120" />
+        </ion-item>
+        <ion-item>
+          <ion-textarea
+            [(ngModel)]="body"
+            [label]="'feedback.message' | t"
+            labelPlacement="stacked"
+            autoGrow="true"
+            maxlength="4000"
+          ></ion-textarea>
+        </ion-item>
+      </ion-list>
+      <ion-button expand="block" color="dark" [disabled]="busy()" (click)="startThread()">
+        {{ 'feedback.sendToAdmin' | t }}
+      </ion-button>
+
+      <div class="inbox-head">
+        <h2>{{ 'feedback.conversations' | t }}</h2>
+        <ion-button fill="clear" color="dark" size="small" [disabled]="busy()" (click)="reloadThreads()">
+          {{ 'feedback.refresh' | t }}
+        </ion-button>
+      </div>
+      @if (!threads().length) {
+        <p class="hint">{{ 'feedback.emptyThreads' | t }}</p>
+      }
+      <ion-list lines="none">
+        @for (row of threads(); track row.id) {
+          <ion-item button detail="true" (click)="openThread(row.id)">
+            <ion-label>
+              <h3>{{ row.subject }}</h3>
+              <p>{{ row.audienceLabel }} · {{ row.statusLabel }}</p>
+            </ion-label>
+            <ion-note slot="end">{{ row.lastMessageAt | date: 'short' }}</ion-note>
+          </ion-item>
+        }
+      </ion-list>
+    }
+  </div>
+</ion-content>

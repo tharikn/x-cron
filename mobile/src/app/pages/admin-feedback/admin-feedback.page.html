@@ -1,0 +1,129 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Feedback desk</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page">
+    <p class="lead">Contact Admin messenger — seeker and recruiter threads.</p>
+
+    <ion-list lines="none" class="filters">
+      <ion-item>
+        <ion-select
+          [(ngModel)]="statusFilter"
+          label="Status"
+          labelPlacement="stacked"
+          (ionChange)="reload()"
+        >
+          <ion-select-option value="awaiting_admin">Waiting for admin</ion-select-option>
+          <ion-select-option value="awaiting_user">Waiting for user</ion-select-option>
+          <ion-select-option value="closed">Closed</ion-select-option>
+          <ion-select-option value="all">All</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-select
+          [(ngModel)]="audienceFilter"
+          label="Audience"
+          labelPlacement="stacked"
+          (ionChange)="reload()"
+        >
+          <ion-select-option value="">All</ion-select-option>
+          <ion-select-option value="seeker">Seeker</ion-select-option>
+          <ion-select-option value="employer">Recruiter</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-list>
+    <ion-button expand="block" fill="outline" color="dark" [disabled]="busy()" (click)="reload()">
+      Refresh
+    </ion-button>
+
+    @if (active(); as thread) {
+      <button type="button" class="back" (click)="clearActive()">← Inbox</button>
+      <h2>{{ thread.subject }}</h2>
+      <p class="meta">
+        {{ thread.userDisplayName || thread.userId }} · {{ thread.audienceLabel }} ·
+        {{ thread.statusLabel }}
+      </p>
+      @if (peerPresenceLine()) {
+        <p
+          class="presence"
+          [class.presence--online]="thread.presence?.peerOnline"
+        >
+          {{ peerPresenceLine() }}
+        </p>
+      }
+      <div class="chat" #chatLog role="log" aria-live="polite">
+        @for (msg of messages(); track msg.id) {
+          <div
+            class="bubble"
+            [class.bubble--admin]="msg.senderRole === 'admin'"
+            [class.bubble--user]="msg.senderRole !== 'admin'"
+            [class.bubble--new]="isNewMessage(msg.id)"
+            [class.bubble--pending]="isPendingMessage(msg.id)"
+          >
+            @if (isNewMessage(msg.id) && !isPendingMessage(msg.id)) {
+              <span class="bubble__new">New</span>
+            }
+            <p>{{ msg.body }}</p>
+            <span>
+              @if (isPendingMessage(msg.id)) {
+                Sending…
+              } @else {
+                {{ senderLabel(msg, thread.audienceLabel) }}
+                · {{ msg.createdAt | date: 'short' }}
+              }
+            </span>
+          </div>
+        }
+        @if (showPeerTyping()) {
+          <div class="typing" aria-live="polite">
+            <span class="typing__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>{{ peerTypingLabel() }}</span>
+          </div>
+        }
+      </div>
+      @if (thread.status !== 'closed') {
+        <ion-textarea
+          [(ngModel)]="chatBody"
+          (ngModelChange)="onComposerInput()"
+          placeholder="Reply as admin…"
+          autoGrow="true"
+          maxlength="4000"
+          [disabled]="sending()"
+        ></ion-textarea>
+        <div class="actions">
+          <ion-button color="dark" [disabled]="sending() || !chatBody.trim()" (click)="send()">
+            Send reply
+          </ion-button>
+          <ion-button fill="outline" color="dark" [disabled]="busy() || sending()" (click)="close()">
+            Close
+          </ion-button>
+        </div>
+      } @else {
+        <ion-button expand="block" color="dark" [disabled]="busy()" (click)="reopen()">
+          Reopen
+        </ion-button>
+      }
+    } @else {
+      @if (!items().length) {
+        <p class="meta">No threads for this filter.</p>
+      }
+      <ion-list lines="none">
+        @for (row of items(); track row.id) {
+          <ion-item button detail="true" (click)="open(row.id)">
+            <ion-label>
+              <h3>{{ row.subject }}</h3>
+              <p>
+                {{ row.userDisplayName || row.userId }} · {{ row.audienceLabel }} ·
+                {{ row.statusLabel }}
+              </p>
+            </ion-label>
+            <ion-note slot="end">{{ row.lastMessageAt | date: 'short' }}</ion-note>
+          </ion-item>
+        }
+      </ion-list>
+    }
+  </div>
+</ion-content>

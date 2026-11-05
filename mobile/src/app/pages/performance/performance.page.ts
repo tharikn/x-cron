@@ -73,9 +73,9 @@ export class PerformancePage implements OnInit, ViewWillEnter {
     try {
       await this.reputation.loadMine();
     } catch {
-      this.error.set('Could not load Performance Score.');
+      this.error.set('Could not load My Rating.');
       const toast = await this.toastController.create({
-        message: 'Could not load Performance Score',
+        message: 'Could not load My Rating',
         duration: 2200,
         color: 'danger',
       });

@@ -27,6 +27,7 @@ import { NotificationsService } from './core/services/notifications.service';
 import { SiteService } from './core/services/site.service';
 import { ToastService } from './core/services/toast.service';
 import { GetAppCtaComponent } from './shared/get-app-cta/get-app-cta.component';
+import { HelpChatComponent } from './shared/help-chat/help-chat.component';
 
 const FOOTER_ITEM_KEYS: Record<string, string> = {
   ql_home: 'footer.quick.home',
@@ -48,6 +49,7 @@ const FOOTER_ITEM_KEYS: Record<string, string> = {
     RouterLinkActive,
     TranslatePipe,
     GetAppCtaComponent,
+    HelpChatComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -160,21 +162,30 @@ export class App implements OnInit, OnDestroy {
     return this.site.isInternalHref(href);
   }
 
-  /** Guest chrome: hide account-only quick links (settings/prefs/saved/alerts/score). */
+  /** Guest chrome: hide account-only quick links (settings/prefs/saved/applied/alerts/score). */
   showFooterQuickLink(href: string, id: string): boolean {
+    // Seeker-only destinations — recruiters use Activity / Recruiter desk instead.
+    if (this.isEmployer() && (id === 'ql_saved' || id === 'ql_applied')) {
+      return false;
+    }
     if (this.isSignedIn()) return true;
     const authOnlyIds = new Set([
       'ql_settings',
       'ql_prefs',
       'ql_saved',
+      'ql_applied',
       'ql_notifications',
       'ql_performance',
     ]);
     if (authOnlyIds.has(id)) return false;
     const path = href.split('?')[0] ?? href;
-    return !['/settings', '/preferences', '/me', '/notifications', '/performance'].some(
-      (p) => path === p || path.startsWith(`${p}/`),
-    );
+    return ![
+      '/settings',
+      '/preferences',
+      '/me',
+      '/notifications',
+      '/performance',
+    ].some((p) => path === p || path.startsWith(`${p}/`));
   }
 
   /** Translate footer chrome; fall back to CMS English when key is missing. */
@@ -191,15 +202,48 @@ export class App implements OnInit, OnDestroy {
   private async hydrateNotifications(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
     await this.auth.ensureSession();
+    this.notifications.watchOsPermission((status) => {
+      this.toastOsPermission(status);
+    });
     if (this.auth.isSignedIn()) {
       try {
         await this.notifications.registerDevice();
-        await this.notifications.refreshInbox();
+        await this.notifications.loadPrefs();
+        if (this.notifications.prefs().pushAlertsEnabled !== false) {
+          const result = await this.notifications.promptOsPermissionAfterSignIn();
+          if (result.asked) {
+            this.toastOsPermission(result.status);
+          }
+        }
+        // First paint: badge only — avoid shade spam for older unread.
+        await this.notifications.refreshInbox({ announce: false });
       } catch {
         // inbox badge is best-effort
       }
     }
     this.startNotifPolling();
+  }
+
+  private toastOsPermission(
+    status: 'granted' | 'denied' | 'prompt' | 'unsupported',
+  ): void {
+    if (status === 'granted') {
+      this.toastService.show('System notifications enabled');
+      return;
+    }
+    if (status === 'denied') {
+      this.toastService.show(
+        'System notifications blocked — enable them in browser settings',
+        'error',
+      );
+      return;
+    }
+    if (status === 'unsupported') {
+      this.toastService.show(
+        'This browser does not support system notifications',
+        'error',
+      );
+    }
   }
 
   private startNotifPolling(): void {
@@ -222,13 +266,11 @@ export class App implements OnInit, OnDestroy {
 
   private async pollNotifications(): Promise<void> {
     if (!this.auth.isSignedIn()) return;
-    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-      return;
-    }
     try {
-      await this.notifications.refreshInbox();
+      // Poll even when the tab is hidden so browser system notifications can fire.
+      await this.notifications.refreshInbox({ announce: true });
     } catch {
-      // live badge is best-effort
+      // live badge / OS shade is best-effort
     }
   }
 

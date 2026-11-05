@@ -43,6 +43,15 @@ mobile/android/captures/
 *.keystore
 !debug.keystore
 
+# Playwright e2e
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+e2e/playwright/.cache/
+mobile/test-results/
+mobile/playwright-report/
+
 # Misc
 .angular/
 .turbo/

@@ -1,0 +1,28 @@
+<div class="pii-field">
+  <input
+    class="pii-field__input"
+    [type]="inputType()"
+    [name]="name()"
+    [value]="value"
+    (input)="onInput($any($event.target).value)"
+    (blur)="markTouched()"
+    [attr.autocomplete]="autocomplete() || null"
+    [attr.inputmode]="inputmode()"
+    [attr.maxlength]="maxlength()"
+    [placeholder]="placeholder()"
+    [disabled]="disabled"
+  />
+  <button
+    type="button"
+    class="pii-field__toggle"
+    (click)="toggleReveal()"
+    [attr.aria-label]="revealed() ? 'Hide value' : 'Show value'"
+    [attr.aria-pressed]="revealed()"
+  >
+    @if (revealed()) {
+      <span aria-hidden="true">Hide</span>
+    } @else {
+      <span aria-hidden="true">View</span>
+    }
+  </button>
+</div>

@@ -55,6 +55,7 @@ export class PreferencesPage implements OnInit {
   readonly syncScope = this.preferencesService.syncScope;
   readonly isSignedIn = this.auth.isSignedIn;
   readonly notifPrefs = this.notifications.prefs;
+  readonly pushPermission = this.notifications.pushPermission;
   readonly deviceRegistered = this.notifications.deviceRegistered;
   readonly languages = this.locale.languages;
 
@@ -86,12 +87,43 @@ export class PreferencesPage implements OnInit {
     this.interfaceLocale = prefs.interfaceLocale || this.locale.language();
     this.locale.setLanguage(this.interfaceLocale);
     await this.notifications.registerDevice();
+    await this.notifications.refreshPushPermissionState();
     if (this.auth.isSignedIn()) {
       try {
         await this.notifications.loadPrefs();
       } catch {
         // ignore
       }
+    }
+  }
+
+  osPermissionLabel(): string {
+    switch (this.pushPermission()) {
+      case 'granted':
+        return 'System notifications: Allowed';
+      case 'denied':
+        return 'System notifications: Blocked — enable in phone settings';
+      case 'unsupported':
+        return 'System notifications: Not supported on this device';
+      default:
+        return 'System notifications: Not decided yet';
+    }
+  }
+
+  async enableSystemNotifications(): Promise<void> {
+    const result = await this.notifications.promptOsPermissionAfterSignIn();
+    if (result.status === 'granted') {
+      await this.showToast('System notifications enabled');
+      return;
+    }
+    if (result.status === 'denied') {
+      await this.showToast(
+        'System notifications blocked — enable them in phone settings',
+      );
+      return;
+    }
+    if (result.status === 'unsupported') {
+      await this.showToast('This device does not support system notifications');
     }
   }
 
@@ -151,11 +183,13 @@ export class PreferencesPage implements OnInit {
     try {
       await this.notifications.savePrefs({ [key]: enabled });
       if (key === 'pushAlertsEnabled' && enabled) {
-        const ok = await this.notifications.ensurePushPermission();
+        const result = await this.notifications.promptOsPermissionAfterSignIn();
         await this.showToast(
-          ok
+          result.status === 'granted'
             ? 'Push alerts on — system notifications enabled.'
-            : 'Push preference saved, but notification permission was denied.',
+            : result.status === 'denied'
+              ? 'Push preference saved, but system notifications are blocked in phone settings.'
+              : 'Push preference saved, but notification permission was not granted.',
         );
         return;
       }

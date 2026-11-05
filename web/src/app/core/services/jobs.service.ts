@@ -2,13 +2,28 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { Job } from '../models/job.model';
+import type { Job, JobAnalyticsDashboard } from '../models/job.model';
 import { AuthService } from './auth.service';
+
+const VIEWER_KEY = 'xcron.jobViewerKey';
 
 @Injectable({ providedIn: 'root' })
 export class JobsService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+
+  private viewerKey(): string {
+    if (typeof localStorage === 'undefined') return `anon_${Date.now()}`;
+    let key = localStorage.getItem(VIEWER_KEY);
+    if (!key) {
+      key =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `v_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(VIEWER_KEY, key);
+    }
+    return key;
+  }
 
   search(input: {
     keyword?: string;
@@ -276,6 +291,28 @@ export class JobsService {
   async reportJob(id: string, reason: string): Promise<void> {
     await firstValueFrom(
       this.http.post(`${environment.apiUrl}/jobs/${id}/report`, { reason }),
+    );
+  }
+
+  /** Fire-and-forget listing view for recruiter analytics (deduped server-side). */
+  recordJobView(jobId: string): void {
+    void firstValueFrom(
+      this.http.post<{ ok: boolean; counted: boolean }>(
+        `${environment.apiUrl}/jobs/${jobId}/events`,
+        { type: 'view', viewerKey: this.viewerKey() },
+      ),
+    ).catch(() => undefined);
+  }
+
+  getJobAnalytics(jobId: string, days = 30): Promise<JobAnalyticsDashboard> {
+    return firstValueFrom(
+      this.http.get<JobAnalyticsDashboard>(
+        `${environment.apiUrl}/employers/jobs/${jobId}/analytics`,
+        {
+          params: { days: String(days) },
+          headers: this.auth.authHeaders(),
+        },
+      ),
     );
   }
 }

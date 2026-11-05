@@ -91,6 +91,8 @@ model User {
   ownedJobApplications JobApplication[] @relation("JobApplicationOwner")
   applicationEvents ApplicationEvent[] @relation("ApplicationEventActor")
   applicationMessages ApplicationMessage[] @relation("ApplicationMessageSender")
+  feedbackThreads FeedbackThread[] @relation("FeedbackThreadOwner")
+  feedbackMessages FeedbackMessage[] @relation("FeedbackMessageSender")
   hiddenJobs      HiddenJob[]
   savedSearches   SavedSearch[]
   reputations     UserReputation[]
@@ -272,6 +274,7 @@ model Job {
   applications         SeekerApplication[]
   jobApplications      JobApplication[]
   hiddenBy             HiddenJob[]
+  viewEvents           JobViewEvent[]
 
   @@index([employerId])
   @@index([ownerUserId])
@@ -279,6 +282,21 @@ model Job {
   @@index([city, district, state])
   @@index([jobType, category, contentLanguage])
   @@index([walkInAt])
+  @@schema("xcron")
+}
+
+/// Listing view impression (once per viewerKey per UTC day) for recruiter analytics.
+model JobViewEvent {
+  id        String   @id @default(uuid())
+  jobId     String
+  viewerKey String
+  /// UTC calendar day YYYY-MM-DD
+  day       String
+  createdAt DateTime @default(now())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, viewerKey, day])
+  @@index([jobId, day])
   @@schema("xcron")
 }
 
@@ -424,6 +442,47 @@ model ApplicationMessage {
   sender        User     @relation("ApplicationMessageSender", fields: [senderUserId], references: [id], onDelete: Cascade)
 
   @@index([applicationId, createdAt])
+  @@index([senderUserId])
+  @@schema("xcron")
+}
+
+/// Contact Admin messenger thread (seeker/recruiter ↔ admin).
+model FeedbackThread {
+  id             String   @id @default(uuid())
+  userId         String
+  /// seeker | employer (recruiter UX)
+  audience       String
+  /// question | bug | suggestion | account | other
+  category       String
+  subject        String
+  /// open | awaiting_admin | awaiting_user | closed
+  status         String   @default("awaiting_admin")
+  lastMessageAt  DateTime @default(now())
+  lastSenderRole String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  closedAt       DateTime?
+  user           User     @relation("FeedbackThreadOwner", fields: [userId], references: [id], onDelete: Cascade)
+  messages       FeedbackMessage[]
+
+  @@index([userId, lastMessageAt])
+  @@index([status, lastMessageAt])
+  @@index([audience, status])
+  @@schema("xcron")
+}
+
+model FeedbackMessage {
+  id           String   @id @default(uuid())
+  threadId     String
+  senderUserId String
+  /// seeker | employer | admin
+  senderRole   String
+  body         String
+  createdAt    DateTime @default(now())
+  thread       FeedbackThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender       User     @relation("FeedbackMessageSender", fields: [senderUserId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
   @@index([senderUserId])
   @@schema("xcron")
 }

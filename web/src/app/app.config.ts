@@ -15,6 +15,8 @@ import {
 import { apiLoadingInterceptor } from './core/interceptors/api-loading.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { AuthService } from './core/services/auth.service';
+import { PreferencesService } from './core/services/preferences.service';
+import { ThemeService } from './core/services/theme.service';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
@@ -35,7 +37,16 @@ export const appConfig: ApplicationConfig = {
       multi: true,
       useFactory: () => {
         const auth = inject(AuthService);
-        return () => auth.ensureSession();
+        const theme = inject(ThemeService);
+        const prefs = inject(PreferencesService);
+        return async () => {
+          theme.init();
+          await auth.ensureSession();
+          if (auth.isSignedIn()) {
+            await prefs.hydrateFromApi();
+            theme.syncFromRemote(prefs.prefs().theme);
+          }
+        };
       },
     },
   ],

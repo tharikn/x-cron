@@ -27,6 +27,7 @@ export class PreferencesPage implements OnInit {
 
   readonly isSignedIn = this.auth.isSignedIn;
   readonly notifPrefs = this.notifications.prefs;
+  readonly pushPermission = this.notifications.pushPermission;
 
   async ngOnInit(): Promise<void> {
     this.seo.setPage({
@@ -35,6 +36,7 @@ export class PreferencesPage implements OnInit {
       path: '/settings/preferences',
     });
     await this.auth.ensureSession();
+    this.notifications.refreshPushPermissionState();
     if (this.auth.isSignedIn()) {
       try {
         await this.preferences.hydrateFromApi();
@@ -47,6 +49,36 @@ export class PreferencesPage implements OnInit {
     this.locationsText = prefs.locations.join(', ');
     this.categoriesText = prefs.categories.join(', ');
     this.notifyEmail = prefs.notifyEmail;
+  }
+
+  osPermissionLabel(): string {
+    switch (this.pushPermission()) {
+      case 'granted':
+        return 'System notifications: Allowed';
+      case 'denied':
+        return 'System notifications: Blocked — enable in browser settings';
+      case 'unsupported':
+        return 'System notifications: Not supported in this browser';
+      default:
+        return 'System notifications: Not decided yet';
+    }
+  }
+
+  async enableSystemNotifications(): Promise<void> {
+    const result = await this.notifications.promptOsPermissionAfterSignIn();
+    if (result.status === 'granted') {
+      this.toast.show('System notifications enabled');
+      return;
+    }
+    if (result.status === 'denied') {
+      this.toast.error(
+        'System notifications blocked — enable them in browser settings',
+      );
+      return;
+    }
+    if (result.status === 'unsupported') {
+      this.toast.error('This browser does not support system notifications');
+    }
   }
 
   async save(): Promise<void> {
@@ -91,6 +123,22 @@ export class PreferencesPage implements OnInit {
   ): Promise<void> {
     try {
       await this.notifications.savePrefs({ [key]: value });
+      if (key === 'pushAlertsEnabled' && value) {
+        const result = await this.notifications.promptOsPermissionAfterSignIn();
+        if (result.status !== 'granted') {
+          this.toast.show(
+            result.status === 'denied'
+              ? 'Push preference saved, but system notifications are blocked in browser settings'
+              : 'Allow notifications in the browser to get system alerts',
+            'error',
+          );
+          return;
+        }
+        if (result.asked) {
+          this.toast.show('System notifications enabled');
+          return;
+        }
+      }
       if (key === 'emailAlertsEnabled') {
         this.notifyEmail = value;
         const current = this.preferences.prefs();

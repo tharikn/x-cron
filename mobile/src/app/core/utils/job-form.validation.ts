@@ -5,7 +5,7 @@ export const JOB_URL_RE =
   /^(https?:\/\/)?([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(\/[^\s]*)?$/i;
 export const JOB_VACANCIES_RE = /^[1-9]\d{0,5}$/;
 export const JOB_LANG_RE = /^[a-z]{2}(-[A-Za-z]{2})?$/;
-export const JOB_SALARY_RE = /^[\d,.\-\s/+a-zA-Z]*$/;
+export const JOB_SALARY_RE = /^[\d,.\-\s/+a-zA-Z₹]*$/;
 export const JOB_TITLE_RE = /^[\s\S]{2,200}$/;
 export const JOB_EMPLOYER_RE = /^[\s\S]{2,200}$/;
 export const JOB_CITY_RE = /^[\s\S]{2,120}$/;
@@ -89,12 +89,13 @@ export function validateQuickPostFields(input: {
     errors['salaryText'] = 'Use numbers or a range like 12000-15000 / month.';
 
   if (phone && !isValidPhone(phone))
-    errors['contactPhone'] = 'Enter a valid phone (10-digit India or +country).';
+    errors['contactPhone'] = 'phone must be a valid mobile number';
 
-  if (email && !JOB_EMAIL_RE.test(email)) errors['contactEmail'] = 'Enter a valid email address.';
+  if (email && !JOB_EMAIL_RE.test(email))
+    errors['contactEmail'] = 'email must be a valid email address';
 
   if (website && !isValidUrl(website))
-    errors['contactWebsite'] = 'Enter a valid URL (https://…).';
+    errors['contactWebsite'] = 'must be a valid http(s) URL';
 
   if (vacancies && parseVacancies(vacancies) === undefined)
     errors['vacancies'] = 'Vacancies must be a whole number from 1 to 100000.';
@@ -151,7 +152,7 @@ export function validateImportDraftFields(input: {
     errors['contentLanguage'] = 'Use a language code like en or ta.';
 
   if (website && !isValidUrl(website))
-    errors['contactWebsite'] = 'Enter a valid URL (https://…).';
+    errors['contactWebsite'] = 'must be a valid http(s) URL';
 
   return errors;
 }

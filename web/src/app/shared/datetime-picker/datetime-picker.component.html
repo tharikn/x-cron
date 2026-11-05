@@ -1,0 +1,112 @@
+<button
+  type="button"
+  class="xcron-dt__trigger"
+  [disabled]="isDisabled()"
+  [attr.aria-expanded]="open()"
+  aria-haspopup="dialog"
+  (click)="toggle()"
+>
+  <span class="xcron-dt__value" [class.xcron-dt__value--empty]="!displayValue()">
+    {{ displayValue() || placeholder() }}
+  </span>
+  <span class="xcron-dt__icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+      <rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6" />
+      <path d="M3 10h18" stroke="currentColor" stroke-width="1.6" />
+      <path d="M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+    </svg>
+  </span>
+</button>
+
+@if (open()) {
+  <div
+    class="xcron-dt__popover"
+    role="dialog"
+    [attr.aria-label]="mode() === 'date' ? 'Choose date' : 'Choose date and time'"
+  >
+    <div class="xcron-dt__body" [class.xcron-dt__body--datetime]="mode() === 'datetime'">
+      <div class="xcron-dt__cal">
+        <div class="xcron-dt__head">
+          <p class="xcron-dt__month">{{ monthLabel() }}</p>
+          <div class="xcron-dt__nav">
+            <button type="button" class="xcron-dt__nav-btn" aria-label="Previous month" (click)="prevMonth()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+                <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <button type="button" class="xcron-dt__nav-btn" aria-label="Next month" (click)="nextMonth()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="xcron-dt__weekdays">
+          @for (day of weekdays; track day) {
+            <span>{{ day }}</span>
+          }
+        </div>
+
+        <div class="xcron-dt__grid">
+          @for (cell of cells(); track $index) {
+            <button
+              type="button"
+              class="xcron-dt__day"
+              [class.xcron-dt__day--muted]="!cell.inMonth"
+              [class.xcron-dt__day--selected]="isSelected(cell)"
+              [class.xcron-dt__day--today]="isToday(cell)"
+              [disabled]="!cell.inMonth || cell.disabled"
+              (click)="selectDay(cell)"
+            >
+              {{ cell.day }}
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (mode() === 'datetime') {
+        <div class="xcron-dt__time" aria-label="Time">
+          <div class="xcron-dt__time-col" role="listbox" aria-label="Hour">
+            @for (h of hours; track h) {
+              <button
+                type="button"
+                class="xcron-dt__time-item"
+                role="option"
+                [class.xcron-dt__time-item--active]="hour() === h"
+                [attr.aria-selected]="hour() === h"
+                (click)="selectHour(h)"
+              >
+                {{ pad(h) }}
+              </button>
+            }
+          </div>
+          <div class="xcron-dt__time-col" role="listbox" aria-label="Minute">
+            @for (m of minutes; track m) {
+              <button
+                type="button"
+                class="xcron-dt__time-item"
+                role="option"
+                [class.xcron-dt__time-item--active]="minute() === m"
+                [attr.aria-selected]="minute() === m"
+                (click)="selectMinute(m)"
+              >
+                {{ pad(m) }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="xcron-dt__foot">
+      <button type="button" class="xcron-dt__link" (click)="clear()">Clear</button>
+      <div class="xcron-dt__foot-right">
+        <button type="button" class="xcron-dt__link" (click)="today()">Today</button>
+        @if (mode() === 'datetime') {
+          <button type="button" class="xcron-dt__done" (click)="done()">Done</button>
+        }
+      </div>
+    </div>
+  </div>
+}

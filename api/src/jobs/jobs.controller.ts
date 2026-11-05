@@ -8,14 +8,19 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { CurrentUser, Public, Roles } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
+import { AuthThrottle } from '../security/decorators';
 import {
   CreateJobDto,
   PasteJobDto,
   UpdateJobDto,
 } from './dto/create-job.dto';
+import { JobAnalyticsQueryDto } from './dto/job-analytics-query.dto';
+import { JobEventDto } from './dto/job-event.dto';
 import { ListMyJobsDto } from './dto/list-my-jobs.dto';
 import { ModerateJobDto, ReportJobDto } from './dto/moderation.dto';
 import { SearchJobsDto } from './dto/search-jobs.dto';
@@ -66,10 +71,37 @@ export class JobsController {
     return this.jobsService.getById(id);
   }
 
+  /** Listing impression for recruiter analytics (deduped once / viewer / day). */
+  @Public()
+  @AuthThrottle(60, 60_000)
+  @Post('jobs/:id/events')
+  recordJobEvent(
+    @Param('id') id: string,
+    @Body() dto: JobEventDto,
+    @Req() req: Request,
+  ) {
+    const fallback =
+      (typeof req.headers['x-tab-id'] === 'string' && req.headers['x-tab-id']) ||
+      req.ip ||
+      'anon';
+    const viewerKey = (dto.viewerKey || fallback).slice(0, 128);
+    return this.jobsService.recordJobView(id, viewerKey);
+  }
+
   @Roles('employer', 'admin')
   @Get('employers/jobs')
   myJobs(@CurrentUser() user: AuthUser, @Query() query: ListMyJobsDto) {
     return this.jobsService.myJobs(user, query.page ?? 1, query.limit ?? 10);
+  }
+
+  @Roles('employer', 'admin')
+  @Get('employers/jobs/:id/analytics')
+  jobAnalytics(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Query() query: JobAnalyticsQueryDto,
+  ) {
+    return this.jobsService.jobAnalytics(user, id, query.days ?? 30);
   }
 
   @Roles('employer', 'admin')

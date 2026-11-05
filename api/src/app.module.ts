@@ -14,6 +14,7 @@ import { AccountModule } from './account/account.module';
 import { AdsModule } from './ads/ads.module';
 import { ApplyProfilesModule } from './apply-profiles/apply-profiles.module';
 import { ApplicationsModule } from './applications/applications.module';
+import { FeedbackModule } from './feedback/feedback.module';
 import { LocationsModule } from './locations/locations.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OpsModule } from './ops/ops.module';
@@ -44,6 +45,7 @@ import { SiteModule } from './site/site.module';
     ApplyProfilesModule,
     ReputationModule,
     ApplicationsModule,
+    FeedbackModule,
     AccountModule,
     I18nModule,
     SiteModule,

@@ -5,6 +5,25 @@
     </ion-buttons>
     <ion-title>{{ asEmployer() ? 'Applicant' : 'Application' }}</ion-title>
   </ion-toolbar>
+  @if (app(); as row) {
+    <ion-toolbar class="detail-tabs">
+      <ion-segment
+        [value]="tab()"
+        (ionChange)="onTabChange($event.detail.value)"
+        scrollable="true"
+      >
+        <ion-segment-button value="overview">
+          <ion-label>Overview</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="chat">
+          <ion-label>Chat</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="timeline">
+          <ion-label>Timeline</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </ion-toolbar>
+  }
 </ion-header>
 
 <ion-content>
@@ -17,26 +36,14 @@
       <header class="head">
         <p class="brand-mark">X Cron</p>
         <h1>{{ row.job?.title || 'Application' }}</h1>
-        <p class="meta">
-          {{ row.job?.employerName }} ·
+        <p class="meta status-line">
+          <span>{{ row.job?.employerName }}</span>
+          <span class="dot" aria-hidden="true">·</span>
           <span class="status" [attr.data-status]="row.status">{{ row.statusLabel }}</span>
-        </p>
-        <p class="meta score-line">
-          @if (row.matchPercent != null) {
-            <span>Role fit {{ row.matchPercent }}%</span>
-          }
-          @if (row.reputation; as rep) {
-            <span>
-              {{ asEmployer() ? 'Seeker' : 'Recruiter' }} score {{ rep.score }} ·
-              {{ rep.bandLabel }}
-            </span>
-          }
-        </p>
-        <p class="hint">
-          <a routerLink="/tabs/performance">About Performance Score</a>
         </p>
         @if (row.job) {
           <ion-button
+            class="view-job"
             size="small"
             fill="outline"
             color="dark"
@@ -47,174 +54,230 @@
         }
       </header>
 
-      @if (row.applyProfileSnapshot; as snap) {
-        <section class="panel">
-          <h2>Applied as · {{ snap.name }}</h2>
-          @if (snap.headline) {
-            <p>{{ snap.headline }}</p>
-          }
-          @if (snap.skills?.length) {
-            <p class="meta">{{ snap.skills.join(' · ') }}</p>
-          }
-          @if (snap.summary) {
-            <p class="note">{{ snap.summary }}</p>
-          }
-          @if (snap.portfolioLinks?.length) {
-            <ul>
-              @for (link of snap.portfolioLinks; track link.url) {
-                <li>
-                  <a [href]="link.url" target="_blank" rel="noopener">{{ link.label }}</a>
-                </li>
-              }
-            </ul>
-          }
-          @if (snap.projects?.length) {
-            <div class="projects">
-              @for (proj of snap.projects; track proj.title) {
-                <p>
-                  <strong>{{ proj.title }}</strong>
-                  @if (proj.description) {
-                    — {{ proj.description }}
+      @switch (tab()) {
+        @case ('overview') {
+          <div class="tab-pane">
+            @if (row.matchPercent != null || row.reputation) {
+              <section class="panel scores">
+                <h2>Fit & rating</h2>
+                <div class="score-row">
+                  @if (row.matchPercent != null) {
+                    <div class="score-chip">
+                      <span class="score-chip__label">Role fit</span>
+                      <strong>{{ row.matchPercent }}%</strong>
+                    </div>
                   }
+                  @if (row.reputation; as rep) {
+                    <div class="score-chip">
+                      <span class="score-chip__label">
+                        {{ asEmployer() ? 'Seeker' : 'Recruiter' }} score
+                      </span>
+                      <strong>{{ rep.score }}</strong>
+                      <span class="score-chip__band">{{ rep.bandLabel }}</span>
+                    </div>
+                  }
+                </div>
+                <p class="hint">
+                  <a routerLink="/tabs/performance">About My Rating</a>
                 </p>
-              }
-            </div>
-          }
-        </section>
-      }
+              </section>
+            }
 
-      @if (asEmployer()) {
-        <section class="panel">
-          <h2>Applicant</h2>
-          <p><strong>{{ row.seekerName || 'Seeker' }}</strong></p>
-          @if (row.seekerPhone) {
-            <p><a [href]="'tel:' + row.seekerPhone">{{ row.seekerPhone }}</a></p>
-          }
-          @if (row.seekerEmail) {
-            <p><a [href]="'mailto:' + row.seekerEmail">{{ row.seekerEmail }}</a></p>
-          }
-          @if (row.coverNote) {
-            <p class="note">{{ row.coverNote }}</p>
-          }
-        </section>
-
-        <section class="panel">
-          <h2>Update status</h2>
-          <label>
-            <span>Next status</span>
-            <select [(ngModel)]="nextStatus" [disabled]="busy()">
-              <option value="under_review">Under review</option>
-              <option value="shortlisted">Shortlisted</option>
-              <option value="interview">Interview</option>
-              <option value="offered">Offer / job letter</option>
-              <option value="hired">Hired</option>
-              <option value="rejected">Rejected</option>
-              <option value="applied">Back to applied</option>
-            </select>
-          </label>
-          @if (nextStatus === 'offered') {
-            <label>
-              <span>Offer / job letter</span>
-              <textarea
-                rows="4"
-                [(ngModel)]="offerLetterText"
-                placeholder="Appointment letter / offer terms…"
-                [disabled]="busy()"
-              ></textarea>
-            </label>
-          }
-          <label>
-            <span>Note (optional)</span>
-            <textarea rows="2" [(ngModel)]="note" [disabled]="busy()"></textarea>
-          </label>
-          <ion-button expand="block" color="primary" [disabled]="busy()" (click)="transition()">
-            Save status
-          </ion-button>
-          <ion-button expand="block" fill="outline" color="dark" [disabled]="busy()" (click)="addNote()">
-            Add timeline note only
-          </ion-button>
-        </section>
-      } @else {
-        @if (row.coverNote) {
-          <section class="panel">
-            <h2>Your cover note</h2>
-            <p>{{ row.coverNote }}</p>
-          </section>
-        }
-        @if (row.offerLetterText) {
-          <section class="panel offer">
-            <h2>Offer / job letter</h2>
-            <p>{{ row.offerLetterText }}</p>
-          </section>
-        }
-        @if (canWithdraw(row.status)) {
-          <ion-button
-            expand="block"
-            fill="outline"
-            color="medium"
-            [disabled]="busy()"
-            (click)="withdraw()"
-          >
-            Withdraw application
-          </ion-button>
-        }
-      }
-
-      <section class="panel chat">
-        <h2>In-app chat</h2>
-        <ol class="chat-list">
-          @for (m of messages(); track m.id) {
-            <li [attr.data-role]="m.senderRole">
-              <span class="actor">{{ m.senderRole }}</span>
-              <time>{{ m.createdAt | date: 'dd MMM, HH:mm' }}</time>
-              <p>{{ m.body }}</p>
-            </li>
-          } @empty {
-            <li class="empty">No messages yet. Say hello after applying.</li>
-          }
-        </ol>
-        @if (canChat(row.status)) {
-          <label>
-            <span>Message</span>
-            <textarea
-              rows="2"
-              [(ngModel)]="chatBody"
-              placeholder="Ask about interview timing…"
-              [disabled]="busy()"
-            ></textarea>
-          </label>
-          <ion-button expand="block" color="primary" [disabled]="busy()" (click)="sendChat()">
-            Send
-          </ion-button>
-        }
-      </section>
-
-      <section class="timeline">
-        <h2>Timeline</h2>
-        <ol>
-          @for (ev of row.timeline || []; track ev.id) {
-            <li>
-              <time>{{ ev.at | date: 'dd MMM yyyy, HH:mm' }}</time>
-              <strong>
-                @if (ev.toStatusLabel) {
-                  {{ ev.toStatusLabel }}
-                } @else {
-                  {{ eventLabel(ev.type) }}
+            @if (row.applyProfileSnapshot; as snap) {
+              <section class="panel">
+                <h2>Applied as · {{ snap.name }}</h2>
+                @if (snap.headline) {
+                  <p class="body">{{ snap.headline }}</p>
                 }
-              </strong>
-              <span class="actor">{{ ev.actorRole }}</span>
-              @if (ev.fromStatusLabel && ev.toStatusLabel) {
-                <p class="change">{{ ev.fromStatusLabel }} → {{ ev.toStatusLabel }}</p>
+                @if (snap.skills?.length) {
+                  <ul class="skill-chips">
+                    @for (skill of snap.skills; track skill) {
+                      <li>{{ skill }}</li>
+                    }
+                  </ul>
+                }
+                @if (snap.summary) {
+                  <p class="note">{{ snap.summary }}</p>
+                }
+                @if (snap.portfolioLinks?.length) {
+                  <ul class="links">
+                    @for (link of snap.portfolioLinks; track link.url) {
+                      <li>
+                        <a [href]="link.url" target="_blank" rel="noopener">{{ link.label }}</a>
+                      </li>
+                    }
+                  </ul>
+                }
+                @if (snap.projects?.length) {
+                  <div class="projects">
+                    @for (proj of snap.projects; track proj.title) {
+                      <p>
+                        <strong>{{ proj.title }}</strong>
+                        @if (proj.description) {
+                          — {{ proj.description }}
+                        }
+                      </p>
+                    }
+                  </div>
+                }
+              </section>
+            }
+
+            @if (asEmployer()) {
+              <section class="panel">
+                <h2>Applicant</h2>
+                <p class="body"><strong>{{ row.seekerName || 'Seeker' }}</strong></p>
+                @if (row.seekerPhone) {
+                  <p class="contact">
+                    <a [href]="'tel:' + row.seekerPhone">{{ row.seekerPhone }}</a>
+                  </p>
+                }
+                @if (row.seekerEmail) {
+                  <p class="contact">
+                    <a [href]="'mailto:' + row.seekerEmail">{{ row.seekerEmail }}</a>
+                  </p>
+                }
+                @if (row.coverNote) {
+                  <p class="note">{{ row.coverNote }}</p>
+                }
+              </section>
+
+              <section class="panel">
+                <h2>Update status</h2>
+                <label>
+                  <span>Next status</span>
+                  <select [(ngModel)]="nextStatus" [disabled]="busy()">
+                    <option value="under_review">Under review</option>
+                    <option value="shortlisted">Shortlisted</option>
+                    <option value="interview">Interview</option>
+                    <option value="offered">Offer / job letter</option>
+                    <option value="hired">Hired</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="applied">Back to applied</option>
+                  </select>
+                </label>
+                @if (nextStatus === 'offered') {
+                  <label>
+                    <span>Offer / job letter</span>
+                    <textarea
+                      rows="4"
+                      [(ngModel)]="offerLetterText"
+                      placeholder="Appointment letter / offer terms…"
+                      [disabled]="busy()"
+                    ></textarea>
+                  </label>
+                }
+                <label>
+                  <span>Note (optional)</span>
+                  <textarea rows="2" [(ngModel)]="note" [disabled]="busy()"></textarea>
+                </label>
+                <ion-button expand="block" color="primary" [disabled]="busy()" (click)="transition()">
+                  Save status
+                </ion-button>
+                <ion-button expand="block" fill="outline" color="dark" [disabled]="busy()" (click)="addNote()">
+                  Add timeline note only
+                </ion-button>
+              </section>
+            } @else {
+              @if (row.coverNote) {
+                <section class="panel">
+                  <h2>Your cover note</h2>
+                  <p class="body">{{ row.coverNote }}</p>
+                </section>
               }
-              @if (ev.note) {
-                <p class="note">{{ ev.note }}</p>
+              @if (row.offerLetterText) {
+                <section class="panel offer">
+                  <h2>Offer / job letter</h2>
+                  <p class="body">{{ row.offerLetterText }}</p>
+                </section>
               }
-            </li>
-          } @empty {
-            <li class="empty">No timeline events yet.</li>
-          }
-        </ol>
-      </section>
+              @if (canWithdraw(row.status)) {
+                <ion-button
+                  class="withdraw"
+                  expand="block"
+                  fill="outline"
+                  color="medium"
+                  [disabled]="busy()"
+                  (click)="withdraw()"
+                >
+                  Withdraw application
+                </ion-button>
+              }
+            }
+          </div>
+        }
+
+        @case ('chat') {
+          <div class="tab-pane">
+            <section class="panel chat">
+              <h2>In-app chat</h2>
+              <ol class="chat-list">
+                @for (m of messages(); track m.id) {
+                  <li [attr.data-role]="m.senderRole">
+                    <div class="chat-meta">
+                      <span class="actor">{{ m.senderRole }}</span>
+                      <time>{{ m.createdAt | date: 'dd MMM, HH:mm' }}</time>
+                    </div>
+                    <p>{{ m.body }}</p>
+                  </li>
+                } @empty {
+                  <li class="empty">No messages yet. Say hello after applying.</li>
+                }
+              </ol>
+              @if (canChat(row.status)) {
+                <label>
+                  <span>Message</span>
+                  <textarea
+                    rows="2"
+                    [(ngModel)]="chatBody"
+                    placeholder="Ask about interview timing…"
+                    [disabled]="busy()"
+                  ></textarea>
+                </label>
+                <ion-button expand="block" color="primary" [disabled]="busy()" (click)="sendChat()">
+                  Send
+                </ion-button>
+              }
+            </section>
+          </div>
+        }
+
+        @case ('timeline') {
+          <div class="tab-pane">
+            <section class="timeline">
+              <h2>Status timeline</h2>
+              <p class="timeline-lead">
+                Each stage shows the exact date and time so you can follow the full history.
+              </p>
+              <ol>
+                @for (ev of row.timeline || []; track ev.id) {
+                  <li>
+                    <time [attr.datetime]="ev.at">
+                      {{ ev.at | date: 'dd MMM yyyy' }} · {{ ev.at | date: 'HH:mm' }}
+                    </time>
+                    <strong>
+                      @if (ev.toStatusLabel) {
+                        {{ ev.toStatusLabel }}
+                      } @else {
+                        {{ eventLabel(ev.type) }}
+                      }
+                    </strong>
+                    <span class="actor">by {{ ev.actorRole }}</span>
+                    @if (ev.fromStatusLabel && ev.toStatusLabel) {
+                      <p class="change">{{ ev.fromStatusLabel }} → {{ ev.toStatusLabel }}</p>
+                    }
+                    @if (ev.note) {
+                      <p class="note">{{ ev.note }}</p>
+                    }
+                  </li>
+                } @empty {
+                  <li class="empty">No timeline events yet.</li>
+                }
+              </ol>
+            </section>
+          </div>
+        }
+      }
     } @else if (!busy()) {
       <p class="empty">Application not found.</p>
     }

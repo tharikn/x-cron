@@ -52,6 +52,7 @@ export class JobDetailPage implements OnInit {
   readonly applyBusy = signal(false);
   readonly applyProfilesList = this.applyProfiles.items;
   readonly isSignedIn = this.auth.isSignedIn;
+  readonly isEmployer = this.auth.isEmployer;
   readonly signInOpen = signal(false);
   readonly signInReason = signal<GoogleSignInReason>('generic');
   selectedProfileId = '';
@@ -113,7 +114,7 @@ export class JobDetailPage implements OnInit {
     }
     if (!this.selectedProfileId) {
       this.toast.show(
-        'Create an apply profile version under Settings → Account first (no CV).',
+        'Create a profile version under Saved (skills / portfolio — no CV) before easy apply.',
         'error',
       );
       return;
@@ -239,6 +240,7 @@ export class JobDetailPage implements OnInit {
       }
       this.job.set(job);
       this.viewed.track(job);
+      this.jobsService.recordJobView(job.id);
       this.seo.setJob(job);
       this.related.set(await this.jobsService.related(job.id));
       if (this.auth.isSignedIn()) {

@@ -17,7 +17,8 @@ This marks the **product MVP slice** as complete for local demo and iteration. I
 | **Saved jobs** + **personalised feed** | Done |
 | **Account deletion** (`DELETE /v1/me`) | Done |
 | Import / unlock **quota enforcement** | Done |
-| Prisma schema (incl. SavedJob, Subscription) | Ready |
+| **Feedback hub** (FAQ + Contact Admin messenger seeker/recruiter → admin) | Done |
+| Prisma schema (incl. SavedJob, Subscription, FeedbackThread) | Ready |
 
 ## Still deferred (post-MVP / production)
 
