@@ -36,6 +36,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `docs/FILE_MAP.md` | This file — folder-wise inventory |
 | `docs/CHANNEL_PULL.md` | Job Fare Telegram / WA bridge design |
 | `docs/PERFORMANCE_SCORE.md` | Seeker + recruiter Performance Score + E2E diagram |
+| `docs/E2E.md` | Playwright one-command journeys + traditional QA pattern |
 | `docs/HIRING_ACTIVITY.md` | Job-list hiring-activity badge (Indeed/LinkedIn thresholds; no “low”) |
 
 ---
