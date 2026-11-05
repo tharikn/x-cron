@@ -485,6 +485,10 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `web/README.md` | Web package readme |
 | `web/CLAUDE.md` | Agent guide for Angular SSR web |
 | `web/public/favicon.ico` | Favicon |
+| `web/public/brand/xcron-logo-mark-square.png` | Square brand mark for browser OS notifications |
+| `mobile/src/assets/icon/xcron-logo-mark-square.png` | Square brand mark (mobile browser Notification icon) |
+| `mobile/android/.../drawable/ic_notification_large.png` | Android expanded notification large icon (X Cron square) |
+| `mobile/android/.../drawable/ic_stat_xcron.xml` | Android status-bar white silhouette for LocalNotifications / FCM |
 | `web/public/downloads/` | Local smoke APK (gitignored) + pointer `version.json` + README — **prod APK = GitHub Releases** |
 | `web/scripts/sync-apk.mjs` | Local-only debug APK copy for `ng serve` smoke |
 | `.github/workflows/android-release.yml` | Tag `v*` → build APK → GitHub Release + notes + assets |

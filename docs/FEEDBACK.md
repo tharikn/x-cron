@@ -63,7 +63,7 @@ Static “Waiting for admin/user…” fake typing rows were removed; turn statu
 
 Inbox `data.action=open_feedback` + `threadId` / `eventType`. Admin reply → user; user message → admin users from `AuthStore.listUsers()`.
 
-Channels: **in-app** always (badge + Notifications list) + **push/OS tray** when push alerts are on (mobile LocalNotifications / web + mobile browser `Notification` API; FCM when configured). Support alerts are **not** gated on job-alert prefs. Inbox / OS tap deep-links `?thread=` on Feedback / admin desk.
+Channels: **in-app** always (badge + Notifications list) + **push/OS tray** when push alerts are on (mobile LocalNotifications / web + mobile browser `Notification` API; FCM when configured). Support alerts are **not** gated on job-alert prefs. Inbox / OS tap deep-links `?thread=` on Feedback / admin desk. OS shade uses the square X Cron mark; admin-reply body is multi-line (`Your feedback` / `Re: {subject}`).
 
 **Bug fix (2026-11-05):** Inbox **Open feedback** used `[routerLink]` with a path that embedded `?thread=` (`/feedback?thread=…`). Angular encodes `?` as `%3F`, so the route never matched and the chat never opened. Fix: path + `[queryParams]="{ thread }"` on web + mobile notifications; mobile Feedback / admin desk also re-read `?thread=` on `ionViewWillEnter` (Ionic page reuse).
 

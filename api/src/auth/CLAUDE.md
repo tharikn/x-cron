@@ -6,7 +6,7 @@ Session auth + RBAC for X Cron API. In-memory users/sessions (+ optional Prisma 
 
 1. **`SecurityThrottlerGuard`** — rate limits (`api/src/security/`)
 2. **`CsrfGuard`** — double-submit when access cookie present
-3. **`AuthGuard`** — HttpOnly `xcron_access` cookie **or** Bearer → `request.user`; enforces `X-Tab-Id` when `AUTH_SINGLE_TAB=1`
+3. **`AuthGuard`** — Bearer (preferred) or HttpOnly `xcron_access` cookie → `request.user`; enforces `X-Tab-Id` when `AUTH_SINGLE_TAB=1` (public routes ignore tab mismatch so login can replace a stale cookie session)
 4. **`RolesGuard`** — `@Roles('seeker'|'employer'|'admin')`. Missing role → **403**. No session on a role route → **401**.
 
 **Rule:** `@Public()` never bypasses `@Roles()`. Admin APIs must use `@Roles('admin')` — never trust the client.

@@ -41,6 +41,7 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request & { user?: unknown }>();
     const token = extractAccessToken(request);
     const tabId = extractTabId(request);
+    const requiresAuth = roles.length > 0 || !isPublic;
 
     let user = undefined as ReturnType<AuthStore['getUserByToken']>;
     if (token) {
@@ -51,7 +52,13 @@ export class AuthGuard implements CanActivate {
         });
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'unauthorized';
-        throw new UnauthorizedException(reason);
+        // Public login/register must still run when a stale access cookie is
+        // bound to a previous X-Tab-Id (common on Capacitor cold start).
+        if (!requiresAuth) {
+          user = undefined;
+        } else {
+          throw new UnauthorizedException(reason);
+        }
       }
     }
 
@@ -59,7 +66,6 @@ export class AuthGuard implements CanActivate {
       request.user = user;
     }
 
-    const requiresAuth = roles.length > 0 || !isPublic;
     if (requiresAuth && !user) {
       throw new UnauthorizedException('Sign-in required');
     }

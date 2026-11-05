@@ -9,6 +9,9 @@ const config: CapacitorConfig = {
   },
   plugins: {
     LocalNotifications: {
+      // Android status-bar glyph (white silhouette drawable) + brand accent.
+      smallIcon: 'ic_stat_xcron',
+      iconColor: '#7c5cff',
       sound: 'default',
       presentationOptions: ['badge', 'sound', 'banner', 'list'],
     },

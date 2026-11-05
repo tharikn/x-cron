@@ -889,8 +889,8 @@ export class NotificationsService {
     }
 
     const prefs = await this.store.getNotificationPrefs(userId);
-    const title = `New job: ${job.title}`;
-    const body = `${job.employerName} · ${job.location.city}`;
+    const title = 'New job';
+    const body = `${job.title}\n${job.employerName}\n${job.location.city}`;
     const data = { jobId: job.id, slug: job.slug };
 
     if (!prefs.jobAlertsEnabled) {

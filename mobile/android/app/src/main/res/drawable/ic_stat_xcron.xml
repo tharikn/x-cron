@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- White-on-transparent status-bar glyph for LocalNotifications / FCM smallIcon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M5.2,4 L12,10.8 L18.8,4 L20,5.2 L13.2,12 L20,18.8 L18.8,20 L12,13.2 L5.2,20 L4,18.8 L10.8,12 L4,5.2 Z" />
+</vector>

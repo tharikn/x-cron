@@ -429,8 +429,12 @@ export class NotificationsService {
       notificationId: item.id,
     };
     if (item.jobId && !data['jobId']) data['jobId'] = item.jobId;
-    const note = new Notification(item.title || 'X Cron Jobs', {
-      body: item.body || 'New update',
+    const { title, body } = this.formatOsNotificationText(item);
+    const icon = this.osIconUrl();
+    const note = new Notification(title, {
+      body,
+      icon,
+      badge: icon,
       tag: item.id,
       silent: false,
       data,
@@ -441,6 +445,32 @@ export class NotificationsService {
       if (path) void this.router.navigateByUrl(path);
       note.close();
     };
+  }
+
+  /** Square X Cron mark for browser / Windows shade (not the plain X favicon). */
+  private osIconUrl(): string {
+    if (typeof window === 'undefined') {
+      return '/brand/xcron-logo-mark-square.png';
+    }
+    return `${window.location.origin}/brand/xcron-logo-mark-square.png`;
+  }
+
+  /**
+   * Keep the shade title short; put facts on separate body lines so Windows /
+   * Android wrap cleanly (middot runs become line breaks).
+   */
+  private formatOsNotificationText(item: InAppNotification): {
+    title: string;
+    body: string;
+  } {
+    const title = (item.title || 'X Cron Jobs').trim();
+    const raw = (item.body || 'New update').trim();
+    const body = raw
+      .replace(/\s*[·•]\s*/g, '\n')
+      .replace(/\s*\|\s*/g, '\n')
+      .replace(/\n{2,}/g, '\n')
+      .trim();
+    return { title, body: body || 'New update' };
   }
 
   private readSeenIds(): Set<string> {

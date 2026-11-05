@@ -721,6 +721,11 @@ export class NotificationsService {
     const fallbackBody = this.isJobAlertPayload(data)
       ? 'New job match'
       : 'New update';
+    const { title, body } = this.formatOsNotificationText(
+      item,
+      fallbackBody,
+    );
+    const icon = this.osIconUrl();
 
     try {
       if (Capacitor.isNativePlatform()) {
@@ -730,10 +735,14 @@ export class NotificationsService {
           notifications: [
             {
               id: this.toNotifId(item.id),
-              title: item.title || 'X Cron Jobs',
-              body: item.body || fallbackBody,
+              title,
+              body,
               sound: 'default',
               channelId: CHANNEL_ID,
+              // Status-bar: white silhouette. Expanded shade: full X Cron square mark.
+              smallIcon: 'ic_stat_xcron',
+              largeIcon: 'ic_notification_large',
+              iconColor: '#7c5cff',
               foreground: true,
               extra: data,
             },
@@ -745,8 +754,10 @@ export class NotificationsService {
       if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
         return;
       }
-      const note = new Notification(item.title || 'X Cron Jobs', {
-        body: item.body || fallbackBody,
+      const note = new Notification(title, {
+        body,
+        icon,
+        badge: icon,
         tag: item.id,
         silent: false,
         data,
@@ -759,6 +770,32 @@ export class NotificationsService {
     } catch (err) {
       console.warn('[notifications] showOsNotification failed', err);
     }
+  }
+
+  /** Square X Cron mark — browser shade (Ionic serve / PWA). */
+  private osIconUrl(): string {
+    if (typeof window === 'undefined') {
+      return '/assets/icon/xcron-logo-mark-square.png';
+    }
+    return `${window.location.origin}/assets/icon/xcron-logo-mark-square.png`;
+  }
+
+  /**
+   * Keep the shade title short; put facts on separate body lines so Windows /
+   * Android wrap cleanly (middot runs become line breaks).
+   */
+  private formatOsNotificationText(
+    item: InAppNotification,
+    fallbackBody: string,
+  ): { title: string; body: string } {
+    const title = (item.title || 'X Cron Jobs').trim();
+    const raw = (item.body || fallbackBody).trim();
+    const body = raw
+      .replace(/\s*[·•]\s*/g, '\n')
+      .replace(/\s*\|\s*/g, '\n')
+      .replace(/\n{2,}/g, '\n')
+      .trim();
+    return { title, body: body || fallbackBody };
   }
 
   private localTapBound = false;

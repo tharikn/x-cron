@@ -27,6 +27,8 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'nav.theme': 'Theme',
       'nav.settings': 'Settings',
       'nav.notifications': 'Alerts',
+      'nav.feedback': 'Feedback',
+      'nav.feedbackAdmin': 'Feedback desk',
       'settings.signInForMore':
         'Sign in to unlock Theme, Prefs, and Saved. Language works without an account.',
       'saved.lead': 'Jobs you saved from a role — open them again or remove anytime.',

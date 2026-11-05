@@ -6,8 +6,8 @@ Cross-cutting API security for the job portal: **rate limits**, **HttpOnly cooki
 
 1. **`InputProtectorMiddleware`** (`SecurityModule.configure`) — rejects XSS / SQLi *payload* patterns, null bytes, prototype-pollution keys on JSON body + query (not English SQL keyword blacklists; Prisma stays parameterized — never interpolate UI into SQL)
 2. **`SecurityThrottlerGuard`** — named throttlers (`default` / `auth` / `sensitive`)
-3. **`CsrfGuard`** — double-submit when access cookie is present
-4. **`AuthGuard`** — cookie or Bearer access → `request.user` + tab binding
+3. **`CsrfGuard`** — double-submit when access cookie is present; **skipped** when `Authorization: Bearer` is present (Capacitor / cross-origin cannot read `xcron_csrf` via `document.cookie`)
+4. **`AuthGuard`** — Bearer (preferred) or cookie access → `request.user` + tab binding; public routes do not hard-fail on `session_tab_mismatch` (stale cookie + new tab id)
 5. **`RolesGuard`** — `@Roles(...)` RBAC
 
 ## Validation (`validation/`)
@@ -31,7 +31,7 @@ Use the shared decorators on auth / seeker / jobs / applications / apply-profile
 | `xcron_refresh` | yes | Refresh token |
 | `xcron_csrf` | no | Double-submit CSRF twin |
 
-Clients must send `credentials: 'include'` and `X-CSRF-Token` (from `xcron_csrf`) on mutating cookie-auth calls. Bearer-only (no access cookie) skips CSRF for Capacitor/native.
+Clients must send `credentials: 'include'` and `X-CSRF-Token` (from `xcron_csrf`) on mutating **cookie-only** auth calls. Requests with `Authorization: Bearer` skip CSRF (native Capacitor + cross-origin web dual-auth). Token util prefers Bearer over access cookie when both are sent.
 
 ## One tab
 

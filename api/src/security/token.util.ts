@@ -7,30 +7,32 @@ function cookiesOf(req: Request): CookieBag {
   return (req.cookies ?? {}) as CookieBag;
 }
 
-/** Prefer HttpOnly access cookie; fall back to Authorization Bearer (native / legacy). */
+/**
+ * Prefer Authorization Bearer when present (native / dual-auth clients), then
+ * HttpOnly access cookie. Cookie-first caused session_tab_mismatch when a stale
+ * API cookie outlived a Capacitor WebView tab id / in-memory Bearer.
+ */
 export function extractAccessToken(req: Request): string | undefined {
-  const fromCookie = cookiesOf(req)[ACCESS_COOKIE]?.trim();
-  if (fromCookie) return fromCookie;
-
   const header =
     (req.headers['authorization'] as string | undefined) ||
     (req.headers['Authorization'] as string | undefined);
   if (header?.startsWith('Bearer ')) {
     const token = header.slice('Bearer '.length).trim();
-    return token || undefined;
+    if (token) return token;
   }
-  return undefined;
+
+  const fromCookie = cookiesOf(req)[ACCESS_COOKIE]?.trim();
+  return fromCookie || undefined;
 }
 
-/** Prefer HttpOnly refresh cookie; fall back to JSON body. */
+/** Prefer JSON body refresh; fall back to HttpOnly refresh cookie. */
 export function extractRefreshToken(
   req: Request,
   bodyToken?: string,
 ): string | undefined {
-  const fromCookie = cookiesOf(req)[REFRESH_COOKIE]?.trim();
-  if (fromCookie) return fromCookie;
   const fromBody = bodyToken?.trim();
-  return fromBody || undefined;
+  if (fromBody) return fromBody;
+  return cookiesOf(req)[REFRESH_COOKIE]?.trim() || undefined;
 }
 
 export function extractTabId(req: Request): string | undefined {
