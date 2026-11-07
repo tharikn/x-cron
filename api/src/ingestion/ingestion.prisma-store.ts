@@ -114,63 +114,80 @@ export class IngestionPrismaStore extends IngestionStore {
     await this.ensureEmployer(batch);
     batch.updatedAt = new Date().toISOString();
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.importBatch.update({
-        where: { id: batch.id },
-        data: {
-          status: batch.status,
-          sourceType: batch.sourceType,
-          filename: batch.filename,
-          totalRecords: batch.totalRecords,
-          processedRecords: batch.processedRecords,
-          errorCount: batch.errorCount,
-          warningsJson: batch.warnings,
-          employerName: batch.employerName,
-          ownerUserId: batch.ownerUserId,
-        },
-      });
-
-      const existing = await tx.importRecord.findMany({
-        where: { batchId: batch.id },
-        select: { id: true },
-      });
-      const existingIds = new Set(existing.map((row) => row.id));
-      const nextIds = new Set(batch.records.map((record) => record.id));
-
-      const toDelete = [...existingIds].filter((id) => !nextIds.has(id));
-      if (toDelete.length) {
-        await tx.importRecord.deleteMany({
-          where: { id: { in: toDelete } },
-        });
-      }
-
-      for (const record of batch.records) {
-        await tx.importRecord.upsert({
-          where: { id: record.id },
-          create: {
-            id: record.id,
-            batchId: batch.id,
-            sourceLocator: record.sourceLocator,
-            extractionJson: record.extraction as unknown as Prisma.InputJsonValue,
-            confidence: record.confidence,
-            dedupeStatus: record.dedupeStatus,
-            reviewStatus: record.reviewStatus,
-            jobId: record.jobId || null,
-            error: record.error || null,
-            createdAt: new Date(record.createdAt),
-          },
-          update: {
-            sourceLocator: record.sourceLocator,
-            extractionJson: record.extraction as unknown as Prisma.InputJsonValue,
-            confidence: record.confidence,
-            dedupeStatus: record.dedupeStatus,
-            reviewStatus: record.reviewStatus,
-            jobId: record.jobId || null,
-            error: record.error || null,
+    // Large CSV/Excel uploads (rich descriptions) exceed Prisma's default
+    // 5s interactive transaction when every row is upserted sequentially.
+    await this.prisma.$transaction(
+      async (tx) => {
+        await tx.importBatch.update({
+          where: { id: batch.id },
+          data: {
+            status: batch.status,
+            sourceType: batch.sourceType,
+            filename: batch.filename,
+            totalRecords: batch.totalRecords,
+            processedRecords: batch.processedRecords,
+            errorCount: batch.errorCount,
+            warningsJson: batch.warnings,
+            employerName: batch.employerName,
+            ownerUserId: batch.ownerUserId,
           },
         });
-      }
-    });
+
+        const existing = await tx.importRecord.findMany({
+          where: { batchId: batch.id },
+          select: { id: true },
+        });
+        const existingIds = new Set(existing.map((row) => row.id));
+        const nextIds = new Set(batch.records.map((record) => record.id));
+
+        const toDelete = [...existingIds].filter((id) => !nextIds.has(id));
+        if (toDelete.length) {
+          await tx.importRecord.deleteMany({
+            where: { id: { in: toDelete } },
+          });
+        }
+
+        const toCreate = batch.records.filter((record) => !existingIds.has(record.id));
+        const toUpdate = batch.records.filter((record) => existingIds.has(record.id));
+
+        const chunkSize = 25;
+        for (let i = 0; i < toCreate.length; i += chunkSize) {
+          const chunk = toCreate.slice(i, i + chunkSize);
+          await tx.importRecord.createMany({
+            data: chunk.map((record) => ({
+              id: record.id,
+              batchId: batch.id,
+              sourceLocator: record.sourceLocator,
+              extractionJson:
+                record.extraction as unknown as Prisma.InputJsonValue,
+              confidence: record.confidence,
+              dedupeStatus: record.dedupeStatus,
+              reviewStatus: record.reviewStatus,
+              jobId: record.jobId || null,
+              error: record.error || null,
+              createdAt: new Date(record.createdAt),
+            })),
+          });
+        }
+
+        for (const record of toUpdate) {
+          await tx.importRecord.update({
+            where: { id: record.id },
+            data: {
+              sourceLocator: record.sourceLocator,
+              extractionJson:
+                record.extraction as unknown as Prisma.InputJsonValue,
+              confidence: record.confidence,
+              dedupeStatus: record.dedupeStatus,
+              reviewStatus: record.reviewStatus,
+              jobId: record.jobId || null,
+              error: record.error || null,
+            },
+          });
+        }
+      },
+      { timeout: 120_000, maxWait: 20_000 },
+    );
 
     const refreshed = await this.get(batch.id);
     return refreshed ?? batch;

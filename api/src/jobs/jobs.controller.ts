@@ -14,6 +14,8 @@ import type { Request } from 'express';
 import { CurrentUser, Public, Roles } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
 import { AuthThrottle } from '../security/decorators';
+import { HideJobDto } from '../seeker/dto/seeker.dto';
+import { SeekerService } from '../seeker/seeker.service';
 import {
   CreateJobDto,
   PasteJobDto,
@@ -28,13 +30,30 @@ import { JobsService } from './jobs.service';
 
 @Controller('v1')
 export class JobsController {
-  constructor(private readonly jobsService: JobsService) {}
+  constructor(
+    private readonly jobsService: JobsService,
+    private readonly seekerService: SeekerService,
+  ) {}
 
   @Public()
   @Get('jobs')
   @Header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60')
-  search(@Query() query: SearchJobsDto) {
-    return this.jobsService.search(query);
+  search(@Query() query: SearchJobsDto, @CurrentUser() user?: AuthUser) {
+    return this.jobsService.search(query, user);
+  }
+
+  /** Doc alias for GET /v1/jobs — must stay above jobs/:id. */
+  @Public()
+  @Get('jobs/search')
+  @Header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60')
+  searchAlias(@Query() query: SearchJobsDto, @CurrentUser() user?: AuthUser) {
+    return this.jobsService.search(query, user);
+  }
+
+  /** Doc alias for GET /v1/feed. */
+  @Get('jobs/recommendations')
+  recommendations(@CurrentUser() user: AuthUser) {
+    return this.seekerService.feed(user);
   }
 
   @Public()
@@ -59,9 +78,24 @@ export class JobsController {
   }
 
   @Public()
+  @AuthThrottle(10, 60_000)
   @Post('jobs/:id/report')
-  report(@Param('id') id: string, @Body() dto: ReportJobDto) {
-    return this.jobsService.report(id, dto);
+  report(
+    @Param('id') id: string,
+    @Body() dto: ReportJobDto,
+    @CurrentUser() user?: AuthUser,
+  ) {
+    return this.jobsService.report(id, dto, user);
+  }
+
+  /** Doc alias for POST /v1/me/hidden-jobs/:jobId. */
+  @Post('jobs/:jobId/not-relevant')
+  notRelevant(
+    @CurrentUser() user: AuthUser,
+    @Param('jobId') jobId: string,
+    @Body() dto?: HideJobDto,
+  ) {
+    return this.seekerService.hideJob(user, jobId, dto ?? {});
   }
 
   @Public()
@@ -163,27 +197,48 @@ export class JobsController {
     return this.jobsService.publicEmployer(id);
   }
 
-  @Roles('admin')
+  @Roles('admin', 'moderator')
   @Get('admin/jobs')
   moderationQueue(@Query('status') status?: string) {
     return this.jobsService.moderationQueue(status || 'needs-review');
   }
 
-  @Roles('admin')
+  @Roles('admin', 'moderator')
   @Patch('admin/jobs/:id')
   updateForModeration(@Param('id') id: string, @Body() dto: UpdateJobDto) {
     return this.jobsService.updateForModeration(id, dto);
   }
 
-  @Roles('admin')
+  @Roles('admin', 'moderator')
   @Post('admin/jobs/:id/approve')
-  approve(@Param('id') id: string, @Body() dto: ModerateJobDto) {
-    return this.jobsService.approve(id, dto);
+  approve(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: ModerateJobDto,
+  ) {
+    return this.jobsService.approve(id, { ...dto, actorId: user.id });
   }
 
-  @Roles('admin')
+  @Roles('admin', 'moderator')
   @Post('admin/jobs/:id/reject')
-  reject(@Param('id') id: string, @Body() dto: ModerateJobDto) {
-    return this.jobsService.reject(id, dto);
+  reject(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: ModerateJobDto,
+  ) {
+    return this.jobsService.reject(id, { ...dto, actorId: user.id });
+  }
+
+  @Roles('admin', 'moderator')
+  @Post('admin/jobs/:id/remove')
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: ModerateJobDto,
+  ) {
+    return this.jobsService.removeForModeration(id, {
+      ...dto,
+      actorId: user.id,
+    });
   }
 }

@@ -25,7 +25,11 @@ import {
 } from '@ionic/angular';
 import type { Job } from '../../core/models/job.model';
 import { TranslatePipe } from '../../core/pipes/translate.pipe';
-import { AuthService } from '../../core/services/auth.service';
+import {
+  AuthService,
+  type AuthDeviceSession,
+} from '../../core/services/auth.service';
+import { formatPostedDate } from '../../core/utils/format';
 import { GoogleIdentityService } from '../../core/services/google-identity.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { NotificationsService } from '../../core/services/notifications.service';
@@ -40,6 +44,8 @@ import {
   type CareerStage,
   type EducationStatus,
   type NoticePeriod,
+  type ProfileCompletion,
+  type ProfileCompletionItemId,
   SeekerService,
 } from '../../core/services/seeker.service';
 import {
@@ -103,6 +109,7 @@ export class AccountPage implements OnInit {
   readonly employer = this.auth.employer;
   readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
+  readonly isModerator = this.auth.isModerator;
   readonly profileLabel = computed(() => {
     const u = this.auth.user();
     if (!u) return 'Account';
@@ -125,6 +132,12 @@ export class AccountPage implements OnInit {
   readonly postedJobs = signal<Job[]>([]);
   readonly profile = this.seeker.profile;
   readonly isEmployer = this.auth.isEmployer;
+  readonly profileCompletion = computed((): ProfileCompletion | null => {
+    if (this.isEmployer()) return null;
+    const completion = this.seeker.profile()?.completion;
+    if (!completion || completion.complete) return null;
+    return completion;
+  });
   /** Profile form — personal / location / career */
   profileName = '';
   profileMobile = '';
@@ -225,6 +238,9 @@ export class AccountPage implements OnInit {
     }
   }
 
+  readonly deviceSessions = signal<AuthDeviceSession[]>([]);
+  readonly sessionsBusy = signal(false);
+
   async onTabChange(value: string | number | undefined): Promise<void> {
     const next = this.clampTab(this.readTab(value == null ? null : String(value)));
     this.tab.set(next);
@@ -233,6 +249,121 @@ export class AccountPage implements OnInit {
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
+    if (next === 'account' && this.isSignedIn()) {
+      await this.loadSessions();
+    }
+  }
+
+  formatSessionWhen(iso: string): string {
+    return formatPostedDate(iso);
+  }
+
+  async loadSessions(): Promise<void> {
+    if (!this.isSignedIn()) {
+      this.deviceSessions.set([]);
+      return;
+    }
+    this.sessionsBusy.set(true);
+    try {
+      this.deviceSessions.set(await this.auth.listSessions());
+    } catch {
+      this.deviceSessions.set([]);
+    } finally {
+      this.sessionsBusy.set(false);
+    }
+  }
+
+  async revokeDeviceSession(session: AuthDeviceSession): Promise<void> {
+    if (session.current) {
+      const alert = await this.alertController.create({
+        header: 'Sign out this device?',
+        message: 'You will need to sign in again on this phone.',
+        buttons: [
+          { text: 'Cancel', role: 'cancel' },
+          {
+            text: 'Sign out',
+            role: 'destructive',
+            handler: () => {
+              void this.runRevokeSession(session);
+            },
+          },
+        ],
+      });
+      await alert.present();
+      return;
+    }
+    await this.runRevokeSession(session);
+  }
+
+  private async runRevokeSession(session: AuthDeviceSession): Promise<void> {
+    this.sessionsBusy.set(true);
+    try {
+      await this.auth.revokeSession(session.id);
+      if (session.current) {
+        this.auth.clearSession();
+        this.queue.set([]);
+        this.notifications.items.set([]);
+        this.seeker.saved.set([]);
+        this.seeker.feed.set([]);
+        this.deviceSessions.set([]);
+        await this.showToast('Signed out on this device.');
+        return;
+      }
+      await this.loadSessions();
+      await this.showToast('Session revoked.');
+    } catch {
+      await this.showToast('Could not revoke session.', 'error');
+    } finally {
+      this.sessionsBusy.set(false);
+    }
+  }
+
+  async logoutEverywhere(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Sign out everywhere?',
+      message: 'Every device signed into this account will be signed out.',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Sign out everywhere',
+          role: 'destructive',
+          handler: () => {
+            void this.runLogoutEverywhere();
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async runLogoutEverywhere(): Promise<void> {
+    this.sessionsBusy.set(true);
+    try {
+      await this.auth.logoutAll();
+      this.queue.set([]);
+      this.notifications.items.set([]);
+      this.seeker.saved.set([]);
+      this.seeker.feed.set([]);
+      this.deviceSessions.set([]);
+      await this.showToast('Signed out everywhere.');
+    } catch {
+      await this.showToast('Could not sign out everywhere.', 'error');
+    } finally {
+      this.sessionsBusy.set(false);
+    }
+  }
+
+  async focusCompletion(id: ProfileCompletionItemId): Promise<void> {
+    if (id === 'applyReady') {
+      await this.onTabChange('apply');
+      return;
+    }
+    if (id === 'skills') {
+      await this.router.navigate(['/onboarding/profile']);
+      return;
+    }
+    await this.onTabChange('profile');
+    this.profileAccordion = id;
   }
 
   private readTab(raw: string | null): AccountTab {
@@ -476,6 +607,15 @@ export class AccountPage implements OnInit {
     await this.showToast('Signed out. Guest browsing still works.');
   }
 
+  async exportAccount(): Promise<void> {
+    try {
+      await this.seeker.exportAccount();
+      await this.showToast('Data export downloaded.');
+    } catch {
+      await this.showToast('Could not export account data.', 'error');
+    }
+  }
+
   async deleteAccount(): Promise<void> {
     try {
       await this.seeker.deleteAccount();
@@ -526,6 +666,9 @@ export class AccountPage implements OnInit {
       }
       this.notifications.startPolling();
       this.tab.set(this.clampTab(this.tab()));
+      if (this.tab() === 'account') {
+        void this.loadSessions();
+      }
       if (this.isEmployer()) {
         const [apps, jobs] = await Promise.all([
           this.jobApplications.listEmployer(),
@@ -546,7 +689,7 @@ export class AccountPage implements OnInit {
     } catch {
       // API optional for account chrome
     }
-    if (this.isAdmin()) await this.reloadQueue();
+    if (this.isAdmin() || this.isModerator()) await this.reloadQueue();
   }
 
   setCareerStage(value: CareerStage): void {
@@ -812,6 +955,7 @@ export class AccountPage implements OnInit {
         await this.applyProfilesApi.create(payload);
       }
       await this.applyProfilesApi.list();
+      await this.seeker.loadProfile();
       this.startEditApply();
       await this.showToast('Apply profile version saved.');
     } catch {
@@ -825,6 +969,7 @@ export class AccountPage implements OnInit {
     try {
       await this.applyProfilesApi.setDefault(id);
       await this.applyProfilesApi.list();
+      await this.seeker.loadProfile();
       await this.showToast('Default apply version updated.');
     } catch {
       await this.showToast('Could not set default.', 'error');
@@ -840,6 +985,37 @@ export class AccountPage implements OnInit {
     } catch {
       await this.showToast('Could not remove apply profile.', 'error');
     }
+  }
+
+  openSavedSearch(row: { query: Record<string, unknown> }): void {
+    const q = row.query ?? {};
+    const queryParams: Record<string, string> = {};
+    const map: Record<string, string> = {
+      keyword: 'q',
+      q: 'q',
+      location: 'location',
+      jobType: 'jobType',
+      category: 'category',
+      language: 'language',
+      skills: 'skills',
+      salaryMin: 'salaryMin',
+      remote: 'remote',
+      postedWithin: 'postedWithin',
+      walkInOnly: 'walkInOnly',
+      verifiedEmployer: 'verifiedEmployer',
+      fresher: 'fresher',
+      easyApply: 'easyApply',
+      sort: 'sort',
+      nearLat: 'nearLat',
+      nearLng: 'nearLng',
+      radiusKm: 'radiusKm',
+    };
+    for (const [from, to] of Object.entries(map)) {
+      const value = q[from];
+      if (value == null || value === '' || value === false) continue;
+      queryParams[to] = String(value);
+    }
+    void this.router.navigate(['/tabs/discover'], { queryParams });
   }
 
   async deleteSavedSearch(id: string): Promise<void> {
@@ -877,7 +1053,7 @@ export class AccountPage implements OnInit {
       return;
     }
     if (!returnUrl?.startsWith('/') || returnUrl.startsWith('//')) return;
-    if (!this.isAdmin() && !this.isEmployer()) return;
+    if (!this.isAdmin() && !this.isModerator() && !this.isEmployer()) return;
     await this.router.navigateByUrl(returnUrl);
   }
 

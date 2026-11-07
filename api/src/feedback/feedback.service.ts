@@ -8,6 +8,7 @@ import {
 import type { AuthUser } from '../auth/auth.types';
 import { AuthStore } from '../auth/auth.store';
 import { NotificationsService } from '../notifications/notifications.service';
+import { RedisService } from '../redis/redis.service';
 import {
   CreateFeedbackThreadDto,
   SendFeedbackMessageDto,
@@ -27,14 +28,17 @@ import {
 
 @Injectable()
 export class FeedbackService {
-  private readonly presence = new FeedbackPresenceTracker();
+  private readonly presence: FeedbackPresenceTracker;
 
   constructor(
     private readonly store: FeedbackStore,
     @Inject(FAQ_PROVIDER) private readonly faq: FaqProvider,
     private readonly authStore: AuthStore,
     private readonly notifications: NotificationsService,
-  ) {}
+    redis: RedisService,
+  ) {
+    this.presence = new FeedbackPresenceTracker(redis);
+  }
 
   async listFaq() {
     const items = await this.faq.list();
@@ -52,7 +56,7 @@ export class FeedbackService {
   async getMyThread(user: AuthUser, id: string) {
     const thread = await this.requireOwnedThread(user, id);
     const role = thread.audience as FeedbackSenderRole;
-    this.presence.touch(thread.id, user.id, role);
+    await this.presence.touch(thread.id, user.id, role);
     const messages = await this.store.listMessages(thread.id);
     return this.toDetailDto(thread, messages, user, false);
   }
@@ -89,8 +93,8 @@ export class FeedbackService {
     });
 
     const fresh = (await this.store.getThread(thread.id))!;
-    this.presence.setTyping(fresh.id, user.id, senderRole, false);
-    this.presence.touch(fresh.id, user.id, senderRole);
+    await this.presence.setTyping(fresh.id, user.id, senderRole, false);
+    await this.presence.touch(fresh.id, user.id, senderRole);
     await this.notifyAdmins(fresh, message, 'New feedback message');
 
     const messages = await this.store.listMessages(fresh.id);
@@ -123,7 +127,7 @@ export class FeedbackService {
       status: 'awaiting_admin',
     });
 
-    this.presence.setTyping(thread.id, user.id, senderRole, false);
+    await this.presence.setTyping(thread.id, user.id, senderRole, false);
     await this.notifyAdmins(updated!, message, 'New feedback message');
     return message;
   }
@@ -133,14 +137,14 @@ export class FeedbackService {
     if (thread.status === 'closed') {
       return {
         ok: true as const,
-        presence: this.peerPresence(thread, user, false),
+        presence: await this.peerPresence(thread, user, false),
       };
     }
     const role = thread.audience as FeedbackSenderRole;
-    this.presence.setTyping(thread.id, user.id, role, typing);
+    await this.presence.setTyping(thread.id, user.id, role, typing);
     return {
       ok: true as const,
-      presence: this.peerPresence(thread, user, false),
+      presence: await this.peerPresence(thread, user, false),
     };
   }
 
@@ -175,11 +179,11 @@ export class FeedbackService {
 
   async getAdminThread(id: string, admin: AuthUser) {
     const thread = await this.requireThread(id);
-    this.presence.touch(thread.id, admin.id, 'admin');
+    await this.presence.touch(thread.id, admin.id, 'admin');
     const messages = await this.store.listMessages(thread.id);
     const user = this.authStore.getUser(thread.userId);
     return {
-      ...this.toDetailDto(thread, messages, admin, true),
+      ...(await this.toDetailDto(thread, messages, admin, true)),
       userDisplayName:
         user?.displayName || user?.username || user?.email || thread.userId,
     };
@@ -210,7 +214,7 @@ export class FeedbackService {
       status: 'awaiting_user',
     });
 
-    this.presence.setTyping(thread.id, admin.id, 'admin', false);
+    await this.presence.setTyping(thread.id, admin.id, 'admin', false);
     await this.notifications.onSupportEvent({
       threadId: thread.id,
       recipientUserId: thread.userId,
@@ -219,6 +223,7 @@ export class FeedbackService {
       body: `Your feedback\nRe: ${thread.subject}`,
       eventType: 'admin_reply',
       audience: thread.audience,
+      messageId: message.id,
     });
 
     return { message, thread: this.toThreadDto(updated!) };
@@ -229,13 +234,13 @@ export class FeedbackService {
     if (thread.status === 'closed') {
       return {
         ok: true as const,
-        presence: this.peerPresence(thread, admin, true),
+        presence: await this.peerPresence(thread, admin, true),
       };
     }
-    this.presence.setTyping(thread.id, admin.id, 'admin', typing);
+    await this.presence.setTyping(thread.id, admin.id, 'admin', typing);
     return {
       ok: true as const,
-      presence: this.peerPresence(thread, admin, true),
+      presence: await this.peerPresence(thread, admin, true),
     };
   }
 
@@ -322,6 +327,7 @@ export class FeedbackService {
           body: `${thread.audience === 'employer' ? 'Recruiter' : 'Seeker'}\n${thread.subject}`,
           eventType: 'user_message',
           audience: thread.audience,
+          messageId: message.id,
         }),
       ),
     );
@@ -346,7 +352,7 @@ export class FeedbackService {
     };
   }
 
-  private toDetailDto(
+  private async toDetailDto(
     thread: FeedbackThread,
     messages: FeedbackMessage[],
     viewer?: AuthUser,
@@ -362,7 +368,9 @@ export class FeedbackService {
         body: m.body,
         createdAt: m.createdAt,
       })),
-      presence: viewer ? this.peerPresence(thread, viewer, asAdmin) : null,
+      presence: viewer
+        ? await this.peerPresence(thread, viewer, asAdmin)
+        : null,
     };
   }
 

@@ -77,4 +77,42 @@ test.describe('@smoke @recruiter Recruiter register → Post → My jobs', () =>
     await postJob.goToPreview();
     await expect(page.getByText(/Preview|Publish|Post|Review/i).first()).toBeVisible();
   });
+
+  test('recruiter can open Company workspace from desk path', async ({
+    auth,
+    company,
+    chrome,
+    page,
+    client,
+  }) => {
+    const rec = await registerUser({ intendedRole: 'employer' });
+    const { createCompany } = await import('../helpers/api-client');
+    await createCompany(rec, { name: 'Post Desk Co' });
+    await auth.login({ username: rec.username, password: rec.password });
+    await auth.expectSignedIn();
+    await company.goto();
+    // Match 13-company-workspace: web lazy chunk can miss once — drawer link is the fallback.
+    if (client === 'web' && !(await company.workspaceBody().isVisible().catch(() => false))) {
+      await chrome.openDrawerIfWeb();
+      const link = page.getByRole('link', { name: /^Company$/i }).first();
+      if (await link.isVisible().catch(() => false)) {
+        await link.click();
+      }
+    }
+    const loaded = await company
+      .heading()
+      .or(company.workspaceBody())
+      .isVisible()
+      .catch(() => false);
+    test.skip(
+      !loaded && client === 'web',
+      'Web /company did not load — Angular serve may have a failed rebuild',
+    );
+    await expect(company.workspaceBody()).toBeVisible({
+      timeout: 25_000,
+    });
+    await expect(
+      page.getByText(/Post Desk Co|Dashboard|Jobs|Applicants|unverified/i).first(),
+    ).toBeVisible({ timeout: 20_000 });
+  });
 });

@@ -35,6 +35,8 @@ export abstract class JobsStore {
   ): Promise<JobRecord>;
   abstract listByStatus(status?: string): Promise<JobRecord[]>;
   abstract listByOwner(userId: string): Promise<JobRecord[]>;
+  /** Jobs belonging to a company workspace (`employerId`). */
+  abstract listByEmployer(employerId: string): Promise<JobRecord[]>;
   abstract listAll(): Promise<JobRecord[]>;
   abstract listByOwnerPaged(
     userId: string,

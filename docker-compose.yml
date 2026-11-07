@@ -13,5 +13,18 @@ services:
     volumes:
       - xcron_pg:/var/lib/postgresql/data
 
+  # Optional: public job cache, BullMQ notification queues, distributed throttle,
+  # feedback presence. API stays fully functional with REDIS_URL unset (memory).
+  redis:
+    image: redis:7-alpine
+    container_name: xcron-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+    volumes:
+      - xcron_redis:/data
+
 volumes:
   xcron_pg:
+  xcron_redis:

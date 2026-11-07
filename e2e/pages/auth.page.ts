@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import type { ClientKind } from '../helpers/env';
 import { pathsFor } from '../helpers/env';
+import { dismissThemePromptIfOpen } from '../helpers/theme-prompt';
 
 /** Sign-in / register UI shared patterns (mobile Account + web /sign-in). */
 export class AuthPage {
@@ -16,6 +17,7 @@ export class AuthPage {
   async gotoSignIn(): Promise<void> {
     await this.page.goto(this.paths().signIn);
     await this.page.waitForLoadState('networkidle').catch(() => undefined);
+    await dismissThemePromptIfOpen(this.page);
   }
 
   async openRegister(): Promise<void> {
@@ -176,9 +178,35 @@ export class AuthPage {
   }
 
   async signOut(): Promise<void> {
-    const btn = this.page.getByRole('button', { name: /Sign out|Log out/i });
-    if (await btn.first().isVisible().catch(() => false)) {
-      await btn.first().click();
+    const loginCta = () =>
+      this.page.getByRole('button', { name: /^(Login|Employer sign in)/i }).first();
+    const signOutBtn = () =>
+      this.page.getByRole('button', { name: /Sign out|Log out/i }).first();
+
+    // Applied / Discover hide Sign out — open Account tab where it lives.
+    if (!(await signOutBtn().isVisible().catch(() => false))) {
+      await this.page.goto(`${this.paths().account}?tab=account`);
+      await this.page.waitForLoadState('domcontentloaded').catch(() => undefined);
+      await this.openAccountTab('account').catch(() => undefined);
     }
+    if (await signOutBtn().isVisible().catch(() => false)) {
+      await signOutBtn().click();
+      if (await loginCta().isVisible({ timeout: 15_000 }).catch(() => false)) {
+        return;
+      }
+    }
+
+    // Guaranteed dual-role handoff: wipe client session then reload guest sign-in.
+    await this.page.evaluate(() => {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch {
+        /* ignore */
+      }
+    });
+    await this.page.context().clearCookies();
+    await this.gotoSignIn();
+    await loginCta().waitFor({ state: 'visible', timeout: 20_000 });
   }
 }

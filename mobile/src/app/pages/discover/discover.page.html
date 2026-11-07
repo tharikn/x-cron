@@ -134,6 +134,15 @@
         </ion-item>
         <ion-item>
           <ion-input
+            label="Skills"
+            labelPlacement="stacked"
+            [value]="query().skills ?? ''"
+            placeholder="e.g. excel, sales"
+            (ionChange)="onSkills($event.detail.value)"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input
             label="Min salary (₹)"
             labelPlacement="stacked"
             type="number"
@@ -175,27 +184,84 @@
             Walk-in only
           </ion-toggle>
         </ion-item>
+        <ion-item>
+          <ion-toggle
+            [checked]="!!query().verifiedEmployer"
+            (ionChange)="onVerified($event.detail.checked)"
+            labelPlacement="start"
+            justify="space-between"
+          >
+            Verified employers
+          </ion-toggle>
+        </ion-item>
+        <ion-item>
+          <ion-toggle
+            [checked]="!!query().fresher"
+            (ionChange)="onFresher($event.detail.checked)"
+            labelPlacement="start"
+            justify="space-between"
+          >
+            Fresher / entry
+          </ion-toggle>
+        </ion-item>
+        <ion-item>
+          <ion-toggle
+            [checked]="!!query().easyApply"
+            (ionChange)="onEasyApply($event.detail.checked)"
+            labelPlacement="start"
+            justify="space-between"
+          >
+            Easy apply
+          </ion-toggle>
+        </ion-item>
       </ion-list>
 
-      <ion-button
-        expand="block"
-        fill="solid"
-        color="dark"
-        class="search-clear"
-        (click)="saveCurrentSearch()"
-      >
-        Save this search
-      </ion-button>
+      @if (filterChips().length) {
+        <div class="filter-chips">
+          @for (chip of filterChips(); track chip.key) {
+            <button type="button" class="filter-chip" (click)="dismissChip(chip.key)">
+              <span>{{ chip.label }}</span>
+              <span aria-hidden="true">×</span>
+            </button>
+          }
+          <button type="button" class="filter-chip filter-chip--clear" (click)="clearFilters()">
+            Clear all
+          </button>
+        </div>
+      }
+
+      @if (isSignedIn()) {
+        <ion-button
+          expand="block"
+          fill="solid"
+          color="dark"
+          class="search-clear"
+          (click)="saveCurrentSearch()"
+        >
+          Save this search
+        </ion-button>
+      }
       <ion-button
         expand="block"
         fill="outline"
         color="dark"
         class="search-clear"
-        (click)="clearPreferences()"
+        (click)="clearFilters()"
       >
-        {{ 'home.clear' | t }}
+        Clear filters
       </ion-button>
     </div>
+
+    @if (isSignedIn() && feedJobs().length) {
+      <section class="recently-viewed for-you">
+        <h2>For you</h2>
+        <div class="job-list job-list--rail">
+          @for (job of feedJobs(); track job.id; let i = $index) {
+            <app-job-card [job]="job" [style.--i]="staggerIndex(i)"></app-job-card>
+          }
+        </div>
+      </section>
+    }
 
     @if (viewed.items().length) {
       <section class="recently-viewed">

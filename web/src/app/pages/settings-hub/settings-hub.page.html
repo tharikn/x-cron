@@ -12,6 +12,13 @@
         {{ 'nav.language' | t }}
         <span class="tabs__meta">{{ languageLabel() }}</span>
       </a>
+      <a
+        routerLink="/settings/privacy"
+        routerLinkActive="is-active"
+        class="tabs__btn"
+      >
+        Privacy
+      </a>
       @if (isSignedIn()) {
         <a
           routerLink="/settings/theme"
@@ -39,7 +46,7 @@
       }
     </nav>
 
-    <div class="panel">
+    <div class="panel" appRouteEnter="ltr" routeEnterScope="/settings">
       <router-outlet />
     </div>
   </div>

@@ -106,6 +106,9 @@ export class NotificationsPrismaStore extends NotificationsStore {
   private mapPrefs(row: {
     userId: string;
     jobAlertsEnabled: boolean;
+    applicationUpdatesEnabled: boolean;
+    recruiterMessagesEnabled: boolean;
+    productAnnouncementsEnabled: boolean;
     inAppEnabled: boolean;
     pushAlertsEnabled: boolean;
     emailAlertsEnabled: boolean;
@@ -115,13 +118,18 @@ export class NotificationsPrismaStore extends NotificationsStore {
     dailyCap: number;
     updatedAt: Date;
   }): NotificationPreferences {
+    const product =
+      row.productAnnouncementsEnabled === true || row.marketingEnabled === true;
     return {
       userId: row.userId,
       jobAlertsEnabled: row.jobAlertsEnabled,
+      applicationUpdatesEnabled: row.applicationUpdatesEnabled !== false,
+      recruiterMessagesEnabled: row.recruiterMessagesEnabled !== false,
+      productAnnouncementsEnabled: product,
       inAppEnabled: row.inAppEnabled,
       pushAlertsEnabled: row.pushAlertsEnabled,
       emailAlertsEnabled: row.emailAlertsEnabled,
-      marketingEnabled: row.marketingEnabled,
+      marketingEnabled: product,
       quietHoursStart: row.quietHoursStart,
       quietHoursEnd: row.quietHoursEnd,
       dailyCap: row.dailyCap,
@@ -302,6 +310,19 @@ export class NotificationsPrismaStore extends NotificationsStore {
     return true;
   }
 
+  async detachDeviceByToken(fcmToken: string): Promise<boolean> {
+    const row = await this.prisma.deviceRegistration.findUnique({
+      where: { fcmToken },
+    });
+    if (!row) return false;
+    if (!row.userId) return true;
+    await this.prisma.deviceRegistration.update({
+      where: { id: row.id },
+      data: { userId: null, lastSeenAt: new Date() },
+    });
+    return true;
+  }
+
   async listDevicesForUser(userId: string): Promise<DeviceRegistration[]> {
     const rows = await this.prisma.deviceRegistration.findMany({
       where: { userId },
@@ -318,6 +339,9 @@ export class NotificationsPrismaStore extends NotificationsStore {
       return {
         userId,
         jobAlertsEnabled: true,
+        applicationUpdatesEnabled: true,
+        recruiterMessagesEnabled: true,
+        productAnnouncementsEnabled: false,
         inAppEnabled: true,
         pushAlertsEnabled: true,
         emailAlertsEnabled: true,
@@ -337,13 +361,28 @@ export class NotificationsPrismaStore extends NotificationsStore {
   ): Promise<NotificationPreferences> {
     await this.ensureUser(userId);
     const current = await this.getNotificationPrefs(userId);
+    let productAnnouncementsEnabled =
+      patch.productAnnouncementsEnabled ?? current.productAnnouncementsEnabled;
+    let marketingEnabled = patch.marketingEnabled ?? current.marketingEnabled;
+    if (patch.productAnnouncementsEnabled !== undefined) {
+      marketingEnabled = patch.productAnnouncementsEnabled;
+      productAnnouncementsEnabled = patch.productAnnouncementsEnabled;
+    } else if (patch.marketingEnabled !== undefined) {
+      productAnnouncementsEnabled = patch.marketingEnabled;
+      marketingEnabled = patch.marketingEnabled;
+    }
     const next = {
       jobAlertsEnabled: patch.jobAlertsEnabled ?? current.jobAlertsEnabled,
+      applicationUpdatesEnabled:
+        patch.applicationUpdatesEnabled ?? current.applicationUpdatesEnabled,
+      recruiterMessagesEnabled:
+        patch.recruiterMessagesEnabled ?? current.recruiterMessagesEnabled,
+      productAnnouncementsEnabled,
       inAppEnabled: patch.inAppEnabled ?? current.inAppEnabled,
       pushAlertsEnabled: patch.pushAlertsEnabled ?? current.pushAlertsEnabled,
       emailAlertsEnabled:
         patch.emailAlertsEnabled ?? current.emailAlertsEnabled,
-      marketingEnabled: patch.marketingEnabled ?? current.marketingEnabled,
+      marketingEnabled,
       quietHoursStart:
         patch.quietHoursStart !== undefined
           ? patch.quietHoursStart
@@ -586,12 +625,24 @@ export class NotificationsPrismaStore extends NotificationsStore {
     return this.mapDelivery(created);
   }
 
-  async listDispatches(limit = 50): Promise<NotificationDispatch[]> {
-    const rows = await this.prisma.notificationDispatch.findMany({
-      orderBy: { startedAt: 'desc' },
-      take: Math.min(Math.max(limit, 1), 200),
-    });
-    return rows.map((r) => this.mapDispatch(r));
+  async listDispatches(opts?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: NotificationDispatch[]; total: number }> {
+    const take = Math.min(Math.max(opts?.limit ?? 50, 1), 200);
+    const skip = Math.max(opts?.offset ?? 0, 0);
+    const [rows, total] = await Promise.all([
+      this.prisma.notificationDispatch.findMany({
+        orderBy: { startedAt: 'desc' },
+        take,
+        skip,
+      }),
+      this.prisma.notificationDispatch.count(),
+    ]);
+    return {
+      items: rows.map((r) => this.mapDispatch(r)),
+      total,
+    };
   }
 
   async findDispatch(id: string): Promise<NotificationDispatch | undefined> {

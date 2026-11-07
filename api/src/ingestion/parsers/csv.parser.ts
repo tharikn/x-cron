@@ -15,8 +15,8 @@ export class CsvParser implements DocumentParser {
 
   async parse(input: ParseInput): Promise<ParseResult> {
     const raw = (input.text ?? input.buffer?.toString('utf8') ?? '').replace(/^\uFEFF/, '');
-    const lines = raw
-      .split(/\r?\n/)
+    // RFC4180: newlines inside quoted fields belong to the cell, not a new row.
+    const lines = this.splitCsvRecords(raw)
       .map((line) => line.trim())
       .filter(Boolean);
 
@@ -42,12 +42,21 @@ export class CsvParser implements DocumentParser {
         row['description'] || row['duties'] || row['about'] || 'Not provided';
       const phone = row['phone'] || row['contactphone'] || row['contact_phone'];
       const email = row['email'] || row['contactemail'] || row['contact_email'];
+      const whatsapp =
+        row['whatsapp'] || row['wa'] || row['contactwhatsapp'] || row['contact_whatsapp'];
       const website =
         row['website'] ||
         row['applyurl'] ||
         row['apply_url'] ||
         row['contactwebsite'] ||
         row['contact_website'];
+      const externalJobId =
+        row['externaljobid'] ||
+        row['external_job_id'] ||
+        row['jobid'] ||
+        row['job_id'] ||
+        row['requisitionid'] ||
+        row['requisition_id'];
 
       const missingRequired = !row['title'] || !description || description === 'Not provided';
       return {
@@ -63,7 +72,9 @@ export class CsvParser implements DocumentParser {
         contentLanguage: row['language'] || row['contentlanguage'] || 'en',
         contactPhone: phone,
         contactEmail: email,
+        contactWhatsapp: whatsapp,
         contactWebsite: website,
+        externalJobId: externalJobId?.trim() || undefined,
         confidence: missingRequired ? 0.4 : 0.85,
         sourceLocator: `${input.filename}#row-${index + 2}`,
         notes: missingRequired
@@ -78,6 +89,34 @@ export class CsvParser implements DocumentParser {
       drafts,
       warnings: drafts.length > 5000 ? ['Batch exceeds soft preview size; approve in chunks.'] : [],
     };
+  }
+
+  /** Split raw CSV into records; newlines inside quotes stay inside the record. */
+  private splitCsvRecords(raw: string): string[] {
+    const records: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+      if (ch === '"') {
+        current += ch;
+        if (inQuotes && raw[i + 1] === '"') {
+          current += raw[++i];
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+      if ((ch === '\n' || ch === '\r') && !inQuotes) {
+        if (ch === '\r' && raw[i + 1] === '\n') i++;
+        records.push(current);
+        current = '';
+        continue;
+      }
+      current += ch;
+    }
+    if (current.length) records.push(current);
+    return records;
   }
 
   private splitCsvLine(line: string): string[] {

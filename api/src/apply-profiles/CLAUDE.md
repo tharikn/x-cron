@@ -38,7 +38,7 @@ First version (or `isDefault: true`) becomes the default; clearing default promo
 
 ## Apply readiness
 
-`assertReadyForApply(profile)` — used by `ApplicationsService.apply`. A version is submit-ready when it has at least one of: **skills**, **headline**, **summary**, or a **project** with a title. Named empty shells are rejected.
+`isReadyForApply(profile)` (pure helper in `apply-profiles.types.ts`) + `assertReadyForApply(profile)` — used by `ApplicationsService.apply` and seeker profile `completion.applyReady`. A version is submit-ready when it has at least one of: **skills**, **headline**, **summary**, or a **project** with a title. Named empty shells are rejected.
 
 ## Agent rules
 

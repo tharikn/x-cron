@@ -1,6 +1,7 @@
 import type { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
 import { employerGuard } from './core/guards/employer.guard';
+import { moderatorGuard } from './core/guards/moderator.guard';
 
 function withQuery(path: string, queryParams: Record<string, string>): string {
   const q = new URLSearchParams();
@@ -18,6 +19,25 @@ export const routes: Routes = [
     path: '',
     loadComponent: () => import('./pages/home/home.page').then((m) => m.HomePage),
   },
+  // Doc 10 UX aliases → X Cron routes (do not rename canonical paths).
+  { path: 'login', redirectTo: 'sign-in', pathMatch: 'full' },
+  { path: 'register', redirectTo: 'sign-in', pathMatch: 'full' },
+  { path: 'profile', redirectTo: 'sign-in', pathMatch: 'full' },
+  { path: 'profile/resume', redirectTo: 'sign-in', pathMatch: 'full' },
+  { path: 'applications', redirectTo: 'me/applied', pathMatch: 'full' },
+  { path: 'saved-jobs', redirectTo: 'me', pathMatch: 'full' },
+  { path: 'alerts', redirectTo: 'notifications', pathMatch: 'full' },
+  { path: 'messages', redirectTo: 'feedback', pathMatch: 'full' },
+  { path: 'recruiter/dashboard', redirectTo: 'post', pathMatch: 'full' },
+  { path: 'recruiter/jobs', redirectTo: 'my-jobs', pathMatch: 'full' },
+  { path: 'recruiter/jobs/new', redirectTo: 'post', pathMatch: 'full' },
+  { path: 'recruiter/company', redirectTo: 'post', pathMatch: 'full' },
+  { path: 'recruiter/team', redirectTo: 'post', pathMatch: 'full' },
+  { path: 'admin/dashboard', redirectTo: 'admin', pathMatch: 'full' },
+  { path: 'admin/jobs/review', redirectTo: 'blog-approval', pathMatch: 'full' },
+  { path: 'admin/companies/verification', redirectTo: 'admin', pathMatch: 'full' },
+  { path: 'admin/reports', redirectTo: 'admin', pathMatch: 'full' },
+  { path: 'admin/audit', redirectTo: 'admin/notifications', pathMatch: 'full' },
   {
     path: 'settings',
     loadComponent: () =>
@@ -49,6 +69,11 @@ export const routes: Routes = [
           import('./pages/preferences/preferences.page').then((m) => m.PreferencesPage),
       },
       {
+        path: 'privacy',
+        loadComponent: () =>
+          import('./pages/privacy/privacy.page').then((m) => m.PrivacyPage),
+      },
+      {
         path: 'site',
         canActivate: [adminGuard],
         loadComponent: () =>
@@ -70,6 +95,28 @@ export const routes: Routes = [
     path: 'sign-in',
     loadComponent: () =>
       import('./pages/sign-in/sign-in.page').then((m) => m.SignInPage),
+  },
+  {
+    path: 'recruiter/jobs/:id/applicants',
+    redirectTo: 'employer-applications',
+  },
+  {
+    path: 'recruiter/jobs/:id',
+    redirectTo: ({ params }) => `/my-jobs/${params['id'] ?? ''}`,
+  },
+  {
+    path: 'applications/:id',
+    redirectTo: ({ params }) => `/me/applications/${params['id'] ?? ''}`,
+  },
+  {
+    path: 'privacy',
+    loadComponent: () =>
+      import('./pages/privacy/privacy.page').then((m) => m.PrivacyPage),
+  },
+  {
+    path: 'terms',
+    loadComponent: () =>
+      import('./pages/terms/terms.page').then((m) => m.TermsPage),
   },
   {
     path: 'onboarding/profile',
@@ -96,6 +143,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/admin-feedback/admin-feedback.page').then(
         (m) => m.AdminFeedbackPage,
+      ),
+  },
+  {
+    path: 'admin/trust',
+    canActivate: [moderatorGuard],
+    loadComponent: () =>
+      import('./pages/admin-trust/admin-trust.page').then(
+        (m) => m.AdminTrustPage,
       ),
   },
   {
@@ -130,6 +185,21 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/employer-applications/employer-applications.page').then(
         (m) => m.EmployerApplicationsPage,
+      ),
+  },
+  {
+    path: 'company',
+    canActivate: [employerGuard],
+    loadComponent: () =>
+      import('./pages/company-workspace/company-workspace.page').then(
+        (m) => m.CompanyWorkspacePage,
+      ),
+  },
+  {
+    path: 'company-invitations/:token/accept',
+    loadComponent: () =>
+      import('./pages/company-invite/company-invite.page').then(
+        (m) => m.CompanyInvitePage,
       ),
   },
   {
@@ -188,6 +258,19 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'admin/tracking',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/admin-tracking/admin-tracking.page').then(
+        (m) => m.AdminTrackingPage,
+      ),
+  },
+  {
+    path: 'admin/users',
+    redirectTo: 'admin/tracking',
+    pathMatch: 'full',
+  },
+  {
     path: 'admin/job-fare',
     canActivate: [adminGuard],
     loadComponent: () =>
@@ -197,7 +280,7 @@ export const routes: Routes = [
   },
   {
     path: 'blog-approval',
-    canActivate: [adminGuard],
+    canActivate: [moderatorGuard],
     loadComponent: () =>
       import('./pages/blog-approval/blog-approval.page').then((m) => m.BlogApprovalPage),
   },

@@ -1,11 +1,11 @@
 import { expect, test } from '../fixtures/test';
 import {
   applyToJob,
+  completeSeekerProfile,
   createApplyProfile,
   createPublishedJob,
   healthCheck,
   registerUser,
-  upsertSeekerProfile,
 } from '../helpers/api-client';
 import { pathsFor } from '../helpers/env';
 
@@ -49,7 +49,7 @@ test.describe('@journey Full user creation → end journey', () => {
       password: DEFAULT_PASSWORD,
       intendedRole: 'seeker',
     });
-    await upsertSeekerProfile(session);
+    await completeSeekerProfile(session);
     const profile = await createApplyProfile(session);
 
     // 4) Discover → job detail → Easy apply
@@ -73,9 +73,10 @@ test.describe('@journey Full user creation → end journey', () => {
         .first(),
     ).toBeVisible({ timeout: 25_000 });
 
-    // 6) Employer inbox (fresh context via goto + login; sign-out toast may be slow)
-    await page.goto(pathsFor(client).signIn);
+    // 6) Employer inbox — must leave the seeker session first or /sign-in shows Account hub
+    await auth.signOut();
     await auth.login({ username: employer.username, password: employer.password });
+    await auth.expectSignedIn();
     await page.goto(pathsFor(client).employerApplications);
     await expect(page).toHaveURL(/employer-applications/);
     await expect(
@@ -83,5 +84,7 @@ test.describe('@journey Full user creation → end journey', () => {
         .getByText(/application|Incoming|Review|Applicant|fit|match|No applications|desk|job/i)
         .first(),
     ).toBeVisible({ timeout: 25_000 });
+    // Company workspace is covered by 13-company-workspace (web /company is flaky after
+    // a long dual-role session — soft-lands on Account hub even with a created company).
   });
 });

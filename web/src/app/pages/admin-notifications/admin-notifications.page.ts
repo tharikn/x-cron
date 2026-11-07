@@ -31,6 +31,10 @@ export class AdminNotificationsPage implements OnInit {
   readonly selectedId = signal<string | null>(null);
   readonly selected = signal<NotificationDispatch | null>(null);
   readonly deliveries = signal<NotificationDelivery[]>([]);
+  readonly page = signal(1);
+  readonly limit = signal(25);
+  readonly total = signal(0);
+  readonly totalPages = signal(1);
 
   async ngOnInit(): Promise<void> {
     this.seo.setPage({
@@ -57,12 +61,25 @@ export class AdminNotificationsPage implements OnInit {
     this.busy.set(true);
     this.error.set(null);
     try {
-      const res = await this.notifications.listDispatches(100);
+      const limit = this.limit();
+      const offset = (this.page() - 1) * limit;
+      const res = await this.notifications.listDispatches({ limit, offset });
       this.rows.set(res.items);
       this.pushProvider.set(res.pushProvider);
       this.mailProvider.set(res.mailProvider);
+      this.total.set(res.total);
+      this.limit.set(res.limit);
+      const pages = Math.max(1, Math.ceil(res.total / res.limit) || 1);
+      this.totalPages.set(pages);
+      if (this.page() > pages) {
+        this.page.set(pages);
+      }
       const current = this.selectedId();
-      if (current) {
+      if (current && !res.items.some((row) => row.id === current)) {
+        this.selectedId.set(null);
+        this.selected.set(null);
+        this.deliveries.set([]);
+      } else if (current) {
         await this.openDispatch(current);
       }
     } catch {
@@ -73,6 +90,13 @@ export class AdminNotificationsPage implements OnInit {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  async goToPage(next: number): Promise<void> {
+    const page = Math.min(this.totalPages(), Math.max(1, next));
+    if (page === this.page()) return;
+    this.page.set(page);
+    await this.reload();
   }
 
   async openDispatch(id: string): Promise<void> {
@@ -90,5 +114,20 @@ export class AdminNotificationsPage implements OnInit {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  clearSelection(): void {
+    this.selectedId.set(null);
+    this.selected.set(null);
+    this.deliveries.set([]);
+  }
+
+  rangeFrom(): number {
+    if (this.total() === 0) return 0;
+    return (this.page() - 1) * this.limit() + 1;
+  }
+
+  rangeTo(): number {
+    return Math.min(this.page() * this.limit(), this.total());
   }
 }

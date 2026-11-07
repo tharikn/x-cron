@@ -14,6 +14,7 @@ import {
 } from '@angular/router';
 import { apiLoadingInterceptor } from './core/interceptors/api-loading.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { correlationInterceptor } from './core/interceptors/correlation.interceptor';
 import { AuthService } from './core/services/auth.service';
 import { PreferencesService } from './core/services/preferences.service';
 import { ThemeService } from './core/services/theme.service';
@@ -29,7 +30,11 @@ export const appConfig: ApplicationConfig = {
     ),
     provideHttpClient(
       withFetch(),
-      withInterceptors([authInterceptor, apiLoadingInterceptor]),
+      withInterceptors([
+        correlationInterceptor,
+        authInterceptor,
+        apiLoadingInterceptor,
+      ]),
     ),
     provideClientHydration(withEventReplay()),
     {

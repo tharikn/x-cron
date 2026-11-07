@@ -1,0 +1,149 @@
+<section class="page">
+  <p class="brand">X Cron <span>Jobs</span></p>
+  <h1>User tracking</h1>
+  <p class="lead">
+    Who created or opened the app, their emails and IPs, engagement mix
+    (search / apply / share), and hours spent.
+  </p>
+
+  @if (!isSignedIn() || !isAdmin()) {
+    <div class="gate">
+      <p>
+        @if (!isSignedIn()) {
+          Admins must sign in to view user tracking.
+        } @else {
+          This account is not an admin.
+        }
+      </p>
+      <a class="btn" routerLink="/sign-in">Go to Sign in</a>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <label>
+        <span>Search</span>
+        <input
+          type="search"
+          name="q"
+          [(ngModel)]="q"
+          placeholder="Email, username, IP…"
+          [disabled]="busy()"
+          (keyup.enter)="reload()"
+        />
+      </label>
+      <button type="button" class="btn" [disabled]="busy()" (click)="reload()">
+        {{ busy() ? 'Loading…' : 'Refresh' }}
+      </button>
+      <a class="link" routerLink="/admin">Dashboard</a>
+      <a class="link" routerLink="/admin/notifications">Alert dispatches</a>
+    </div>
+
+    @if (summary(); as s) {
+      <div class="cards">
+        <article class="stat">
+          <p class="stat__label">Users created</p>
+          <p class="stat__value">{{ s.usersCreated }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Users accessed</p>
+          <p class="stat__value">{{ s.usersAccessed }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Guests accessed</p>
+          <p class="stat__value">{{ s.guestsAccessed }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Total hours</p>
+          <p class="stat__value">{{ s.totalHours }}</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Search %</p>
+          <p class="stat__value">{{ s.engagement.searchPct }}%</p>
+          <p class="stat__hint">of accessors searched</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Apply %</p>
+          <p class="stat__value">{{ s.engagement.applyPct }}%</p>
+          <p class="stat__hint">of accessors applied</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Share %</p>
+          <p class="stat__value">{{ s.engagement.sharePct }}%</p>
+          <p class="stat__hint">of accessors shared</p>
+        </article>
+        <article class="stat">
+          <p class="stat__label">Page view %</p>
+          <p class="stat__value">{{ s.engagement.pageViewPct }}%</p>
+          <p class="stat__hint">of accessors browsed</p>
+        </article>
+      </div>
+    }
+
+    <p class="meta">{{ total() }} actor(s)</p>
+
+    @if (busy() && !rows().length) {
+      <app-table-skeleton [rows]="8" [columns]="8" />
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>IPs</th>
+              <th>Hours</th>
+              <th>Search</th>
+              <th>Apply</th>
+              <th>Share</th>
+              <th>Last seen</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.key) {
+              <tr>
+                <td>
+                  <strong>{{ labelOf(row) }}</strong>
+                  <span class="kind">{{ row.kind }}</span>
+                </td>
+                <td>{{ row.email || '—' }}</td>
+                <td class="ips">
+                  @if (row.ips.length) {
+                    @for (ip of row.ips; track ip) {
+                      <code>{{ ip }}</code>
+                    }
+                  } @else {
+                    —
+                  }
+                </td>
+                <td>{{ row.hoursSpent }}</td>
+                <td>
+                  {{ row.counts.search }}
+                  <span class="pct">{{ row.usagePct.search }}%</span>
+                </td>
+                <td>
+                  {{ row.counts.apply }}
+                  <span class="pct">{{ row.usagePct.apply }}%</span>
+                </td>
+                <td>
+                  {{ row.counts.share }}
+                  <span class="pct">{{ row.usagePct.share }}%</span>
+                </td>
+                <td>{{ row.lastSeenAt | date: 'medium' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8">
+                  No tracking data yet. Open the site (guest or signed-in) to start collecting access,
+                  search, share, and time-on-app events.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</section>

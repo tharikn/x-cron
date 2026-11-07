@@ -1,0 +1,48 @@
+.page {
+  max-width: 42rem;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-display);
+  color: var(--xcron-ink);
+}
+
+.lead {
+  margin: 0.4rem 0 1.25rem;
+  font-family: var(--xcron-font-body);
+  color: var(--xcron-ink-soft);
+}
+
+section {
+  margin-bottom: 1.1rem;
+}
+
+h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-title);
+  color: var(--xcron-ink);
+}
+
+p {
+  margin: 0;
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-body);
+  line-height: var(--xcron-leading-body, 1.5);
+  color: var(--xcron-ink-soft);
+}
+
+code {
+  font-size: 0.9em;
+  color: var(--xcron-accent);
+}
+
+.back {
+  margin-top: 1.5rem;
+}
+
+.back a {
+  color: var(--xcron-primary-hover);
+}

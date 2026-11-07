@@ -1,15 +1,19 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonApp, IonRouterOutlet, ToastController } from '@ionic/angular';
+import { AndroidBackService } from './core/services/android-back.service';
 import { ApiLoadingService } from './core/services/api-loading.service';
 import { AppUpdateService } from './core/services/app-update.service';
 import { AuthService } from './core/services/auth.service';
+import { ConnectivityService } from './core/services/connectivity.service';
+import { DeepLinkService } from './core/services/deep-link.service';
 import { LocaleService } from './core/services/locale.service';
 import { NotificationsService } from './core/services/notifications.service';
 import { OnboardingService } from './core/services/onboarding.service';
 import { PreferencesService } from './core/services/preferences.service';
 import { SeekerService } from './core/services/seeker.service';
 import { ThemeService } from './core/services/theme.service';
+import { TrackingService } from './core/services/tracking.service';
 import { HelpChatComponent } from './shared/help-chat/help-chat.component';
 import { ApiLoadingSkeletonComponent } from './shared/skeleton/api-loading-skeleton.component';
 import { ThemePromptComponent } from './shared/theme-prompt/theme-prompt.component';
@@ -38,12 +42,21 @@ export class AppComponent implements OnInit {
   private readonly locale = inject(LocaleService);
   private readonly appUpdate = inject(AppUpdateService);
   private readonly toastController = inject(ToastController);
+  private readonly deepLinks = inject(DeepLinkService);
+  private readonly androidBack = inject(AndroidBackService);
+  private readonly connectivity = inject(ConnectivityService);
+  private readonly tracking = inject(TrackingService);
 
   readonly busy = this.apiLoading.visible;
   readonly themePromptOpen = this.onboarding.themePromptOpen;
+  readonly online = this.connectivity.online;
 
   async ngOnInit(): Promise<void> {
     this.theme.init();
+    this.connectivity.start();
+    this.tracking.start();
+    this.deepLinks.start();
+    this.androidBack.start();
     await this.auth.ensureSession();
     await this.preferences.hydrate();
     this.theme.syncFromRemote(this.preferences.preferences().theme);

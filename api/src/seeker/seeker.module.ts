@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { AdsModule } from '../ads/ads.module';
+import { ApplyProfilesModule } from '../apply-profiles/apply-profiles.module';
 import { JobsModule } from '../jobs/jobs.module';
 import { PreferencesModule } from '../preferences/preferences.module';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,6 +22,7 @@ function resolveStoreMode(): 'prisma' | 'memory' {
 @Module({
   imports: [
     forwardRef(() => JobsModule),
+    ApplyProfilesModule,
     PreferencesModule,
     SiteModule,
     forwardRef(() => AdsModule),

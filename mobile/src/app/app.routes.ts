@@ -24,6 +24,27 @@ export const routes: Routes = [
         (m) => m.ProfileSetupPage,
       ),
   },
+  // Doc 10 UX aliases → Ionic tab paths (deep links also mapped in DeepLinkService).
+  { path: 'login', redirectTo: 'tabs/account', pathMatch: 'full' },
+  { path: 'register', redirectTo: 'tabs/account', pathMatch: 'full' },
+  { path: 'profile', redirectTo: 'tabs/account', pathMatch: 'full' },
+  { path: 'applications', redirectTo: 'tabs/applied', pathMatch: 'full' },
+  { path: 'saved-jobs', redirectTo: 'tabs/settings', pathMatch: 'full' },
+  { path: 'alerts', redirectTo: 'tabs/notifications', pathMatch: 'full' },
+  { path: 'messages', redirectTo: 'tabs/feedback', pathMatch: 'full' },
+  { path: 'settings/privacy', redirectTo: 'tabs/privacy', pathMatch: 'full' },
+  { path: 'privacy', redirectTo: 'tabs/privacy', pathMatch: 'full' },
+  { path: 'recruiter/dashboard', redirectTo: 'tabs/company', pathMatch: 'full' },
+  { path: 'recruiter/jobs', redirectTo: 'tabs/my-jobs', pathMatch: 'full' },
+  { path: 'recruiter/jobs/new', redirectTo: 'tabs/post', pathMatch: 'full' },
+  {
+    path: 'applications/:id',
+    redirectTo: ({ params }) => `/tabs/applications/${params['id'] ?? ''}`,
+  },
+  {
+    path: 'jobs/:id',
+    redirectTo: ({ params }) => `/tabs/jobs/${params['id'] ?? ''}`,
+  },
   {
     path: 'tabs',
     component: TabsPage,
@@ -71,6 +92,11 @@ export const routes: Routes = [
         path: 'account',
         loadComponent: () =>
           import('./pages/account/account.page').then((m) => m.AccountPage),
+      },
+      {
+        path: 'privacy',
+        loadComponent: () =>
+          import('./pages/privacy/privacy.page').then((m) => m.PrivacyPage),
       },
       {
         path: 'saved',
@@ -123,6 +149,21 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/employer-applications/employer-applications.page').then(
             (m) => m.EmployerApplicationsPage,
+          ),
+      },
+      {
+        path: 'company',
+        canActivate: [employerGuard],
+        loadComponent: () =>
+          import('./pages/company-workspace/company-workspace.page').then(
+            (m) => m.CompanyWorkspacePage,
+          ),
+      },
+      {
+        path: 'company-invitations/:token/accept',
+        loadComponent: () =>
+          import('./pages/company-invite/company-invite.page').then(
+            (m) => m.CompanyInvitePage,
           ),
       },
       {

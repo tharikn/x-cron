@@ -9,6 +9,11 @@
     <app-api-loading-skeleton />
   </div>
 }
+@if (!online()) {
+  <div class="offline-banner" role="status" aria-live="polite">
+    You’re offline — reconnect to search, apply, or sync.
+  </div>
+}
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
   <app-help-chat />

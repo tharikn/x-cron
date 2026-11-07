@@ -1,0 +1,216 @@
+.page {
+  padding: 1.75rem 0 2.5rem;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
+}
+
+.brand {
+  margin: 0 0 0.35rem;
+  font-family: var(--xcron-font-display);
+  font-size: clamp(1.55rem, 3.5vw, 2rem);
+  letter-spacing: -0.045em;
+  font-weight: 800;
+}
+
+.brand span {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-family: var(--xcron-font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+  vertical-align: middle;
+}
+
+h1 {
+  margin: 0 0 0.4rem;
+  font-family: var(--xcron-font-display);
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  letter-spacing: -0.03em;
+  font-weight: 650;
+}
+
+.lead {
+  margin: 0 0 1.5rem;
+  color: var(--xcron-muted);
+  max-width: 40rem;
+}
+
+.gate {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 28rem;
+  margin-bottom: 1.25rem;
+  padding: 1.15rem;
+  background: var(--xcron-wash);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1.25rem;
+}
+
+.toolbar label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.toolbar span {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.toolbar input {
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  padding: 0.65rem 0.75rem;
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  font: inherit;
+  min-width: 14rem;
+}
+
+.btn {
+  display: inline-flex;
+  width: fit-content;
+  text-decoration: none;
+  border: 0;
+  background: var(--xcron-cta-gradient);
+  color: #fff;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  border-radius: var(--xcron-radius-sm);
+  cursor: pointer;
+  font: inherit;
+  min-height: var(--xcron-btn-height);
+  align-items: center;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.link {
+  color: var(--xcron-primary-hover);
+  font-weight: 600;
+  padding: 0.7rem 0.2rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.stat {
+  padding: 0.9rem 1rem;
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+}
+
+.stat__label {
+  margin: 0;
+  font-size: var(--xcron-text-label);
+  font-weight: var(--xcron-weight-label);
+  letter-spacing: var(--xcron-tracking-label);
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.stat__value {
+  margin: 0.35rem 0 0;
+  font-family: var(--xcron-font-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.stat__hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  color: var(--xcron-muted);
+}
+
+.meta {
+  margin: 0 0 0.75rem;
+  color: var(--xcron-muted);
+  font-size: var(--xcron-text-meta);
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--xcron-text-meta);
+}
+
+th,
+td {
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--xcron-line);
+  vertical-align: top;
+}
+
+th {
+  font-size: var(--xcron-text-label);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+  background: var(--xcron-wash);
+  position: sticky;
+  top: 0;
+}
+
+.kind {
+  display: inline-block;
+  margin-left: 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--xcron-muted);
+}
+
+.ips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ips code {
+  font-size: 0.78rem;
+  padding: 0.15rem 0.35rem;
+  background: var(--xcron-wash);
+  border-radius: 6px;
+}
+
+.pct {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--xcron-muted);
+}
+
+.error {
+  margin-top: 1rem;
+  color: var(--xcron-danger, #f43f5e);
+}

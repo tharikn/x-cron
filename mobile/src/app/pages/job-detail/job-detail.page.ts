@@ -13,6 +13,7 @@ import {
   IonNote,
   IonTitle,
   IonToolbar,
+  ActionSheetController,
   ToastController,
 } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
@@ -23,6 +24,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { SeekerService } from '../../core/services/seeker.service';
+import { TrackingService } from '../../core/services/tracking.service';
 import { ViewedJobsService } from '../../core/services/viewed-jobs.service';
 import {
   formatJobType,
@@ -77,6 +79,8 @@ export class JobDetailPage implements OnInit {
   private readonly applyProfiles = inject(ApplyProfilesService);
   readonly auth = inject(AuthService);
   private readonly toastController = inject(ToastController);
+  private readonly tracking = inject(TrackingService);
+  private readonly actionSheet = inject(ActionSheetController);
   private readonly locale = inject(LocaleService);
   private readonly viewed = inject(ViewedJobsService);
 
@@ -277,6 +281,7 @@ export class JobDetailPage implements OnInit {
       return;
     }
     const url = `https://xcron.jobs/jobs/${job.slug}`;
+    this.tracking.trackShare(job.id);
     if (navigator.share) {
       await navigator.share({ title: job.title, text: `${job.title} at ${job.employerName}`, url });
       return;
@@ -288,9 +293,45 @@ export class JobDetailPage implements OnInit {
   async reportJob(): Promise<void> {
     const job = this.job();
     if (!job) return;
+    const sheet = await this.actionSheet.create({
+      header: 'Report this job',
+      subHeader: 'Your identity is never shared with the employer.',
+      buttons: [
+        {
+          text: 'Scam / fraud',
+          handler: () => void this.submitReport(job.id, 'scam'),
+        },
+        {
+          text: 'Spam',
+          handler: () => void this.submitReport(job.id, 'spam'),
+        },
+        {
+          text: 'Asks for payment',
+          handler: () => void this.submitReport(job.id, 'payment_request'),
+        },
+        {
+          text: 'Misleading',
+          handler: () => void this.submitReport(job.id, 'misleading'),
+        },
+        {
+          text: 'Other',
+          handler: () => void this.submitReport(job.id, 'other'),
+        },
+        { text: 'Cancel', role: 'cancel' },
+      ],
+    });
+    await sheet.present();
+  }
+
+  private async submitReport(jobId: string, category: string): Promise<void> {
     try {
-      await this.jobsService.reportJob(job.id, 'Reported as suspicious or incorrect from mobile app');
-      await this.showToast('Report submitted for moderation.');
+      const res = await this.jobsService.reportJob(jobId, {
+        category,
+        details: `Reported as ${category} from mobile`,
+      });
+      await this.showToast(
+        res.acknowledgement || 'Report submitted for moderation.',
+      );
     } catch {
       await this.showToast('Could not submit report.');
     }

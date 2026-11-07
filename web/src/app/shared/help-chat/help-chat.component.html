@@ -2,15 +2,22 @@
   <div class="help-chat" [class.help-chat--open]="open()">
     @if (open()) {
       <section
+        id="xcron-help"
         class="help-chat__panel"
         role="dialog"
         aria-label="X Cron help assistant"
         aria-modal="false"
       >
         <header class="help-chat__head">
-          <div>
-            <p class="help-chat__brand">X Cron</p>
-            <p class="help-chat__title">Help</p>
+          <div class="help-chat__identity">
+            <span class="help-chat__avatar" aria-hidden="true">XC</span>
+            <div class="help-chat__who">
+              <p class="help-chat__title">Help</p>
+              <p class="help-chat__status">
+                <span class="help-chat__pulse" aria-hidden="true"></span>
+                X Cron assistant
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -18,7 +25,15 @@
             aria-label="Close help"
             (click)="toggle()"
           >
-            ×
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <path
+                d="M6.5 6.5l11 11M17.5 6.5l-11 11"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
           </button>
         </header>
 
@@ -29,14 +44,48 @@
           }
         </p>
 
-        <div class="help-chat__log" role="log" aria-live="polite">
+        <div class="help-chat__log" #log role="log" aria-live="polite">
           @for (msg of messages(); track msg.id) {
-            <p
-              class="help-chat__bubble"
-              [class.help-chat__bubble--user]="msg.role === 'user'"
+            <div
+              class="help-chat__row"
+              [class.help-chat__row--user]="msg.role === 'user'"
+              [class.help-chat__row--assistant]="msg.role === 'assistant'"
             >
-              {{ msg.content }}
-            </p>
+              @if (msg.role === 'assistant') {
+                <span class="help-chat__mini-avatar" aria-hidden="true">XC</span>
+              }
+              <p
+                class="help-chat__bubble"
+                [class.help-chat__bubble--user]="msg.role === 'user'"
+                [class.help-chat__bubble--assistant]="msg.role === 'assistant'"
+              >
+                {{ msg.content }}
+              </p>
+            </div>
+          }
+
+          @if (busy()) {
+            <div class="help-chat__row help-chat__row--assistant" aria-live="polite">
+              <span class="help-chat__mini-avatar" aria-hidden="true">XC</span>
+              <div class="help-chat__typing" aria-label="Assistant is typing">
+                <i></i><i></i><i></i>
+              </div>
+            </div>
+          }
+
+          @if (showSuggestions()) {
+            <div class="help-chat__suggestions" aria-label="Suggested questions">
+              @for (chip of suggestions; track chip) {
+                <button
+                  type="button"
+                  class="help-chat__chip"
+                  [disabled]="busy() || cooldownLeft() > 0"
+                  (click)="useSuggestion(chip)"
+                >
+                  {{ chip }}
+                </button>
+              }
+            </div>
           }
         </div>
 
@@ -48,23 +97,32 @@
           class="help-chat__compose"
           (ngSubmit)="send(); $event.preventDefault()"
         >
-          <textarea
-            id="xcron-help-input"
-            rows="2"
-            maxlength="400"
-            aria-label="Message"
-            placeholder="Ask how to use X Cron…"
-            [ngModel]="draft()"
-            (ngModelChange)="draft.set($event)"
-            name="helpDraft"
-            [disabled]="busy() || cooldownLeft() > 0"
-          ></textarea>
+          <label class="help-chat__field">
+            <textarea
+              id="xcron-help-input"
+              rows="1"
+              maxlength="400"
+              aria-label="Message"
+              placeholder="Message Help…"
+              [ngModel]="draft()"
+              (ngModelChange)="draft.set($event)"
+              (keydown)="onComposerKeydown($event)"
+              name="helpDraft"
+              [disabled]="busy() || cooldownLeft() > 0"
+            ></textarea>
+          </label>
           <button
             type="submit"
             class="help-chat__send"
+            aria-label="Send message"
             [disabled]="busy() || !draft().trim() || cooldownLeft() > 0"
           >
-            {{ busy() ? '…' : 'Send' }}
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path
+                d="M4.5 19.5L20 12 4.5 4.5 4.5 10.5 14 12 4.5 13.5z"
+                fill="currentColor"
+              />
+            </svg>
           </button>
         </form>
       </section>
@@ -78,7 +136,27 @@
       [attr.aria-label]="open() ? 'Close help' : 'Open help'"
       (click)="toggle()"
     >
-      ?
+      @if (open()) {
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path
+            d="M6.5 6.5l11 11M17.5 6.5l-11 11"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+          />
+        </svg>
+      } @else {
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path
+            d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H10l-4 3.2V16H7.5A2.5 2.5 0 0 1 5 13.5z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+          />
+        </svg>
+      }
     </button>
   </div>
 }

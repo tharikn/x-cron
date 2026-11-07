@@ -4,10 +4,17 @@ import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AuthService } from '../../core/services/auth.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { SeoService } from '../../core/services/seo.service';
+import { RouteEnterDirective } from '../../shared/route-enter/route-enter.directive';
 
 @Component({
   selector: 'app-settings-hub',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    TranslatePipe,
+    RouteEnterDirective,
+  ],
   templateUrl: './settings-hub.page.html',
   styleUrl: './settings-hub.page.scss',
 })

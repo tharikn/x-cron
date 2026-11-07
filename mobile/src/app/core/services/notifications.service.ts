@@ -12,6 +12,9 @@ import { PreferencesService } from './preferences.service';
 
 export interface NotificationPrefs {
   jobAlertsEnabled: boolean;
+  applicationUpdatesEnabled?: boolean;
+  recruiterMessagesEnabled?: boolean;
+  productAnnouncementsEnabled?: boolean;
   inAppEnabled?: boolean;
   pushAlertsEnabled?: boolean;
   emailAlertsEnabled?: boolean;
@@ -47,6 +50,9 @@ export class NotificationsService {
 
   readonly prefs = signal<NotificationPrefs>({
     jobAlertsEnabled: true,
+    applicationUpdatesEnabled: true,
+    recruiterMessagesEnabled: true,
+    productAnnouncementsEnabled: false,
     inAppEnabled: true,
     pushAlertsEnabled: true,
     emailAlertsEnabled: true,
@@ -173,23 +179,53 @@ export class NotificationsService {
         { headers: this.auth.authHeaders() },
       ),
     );
-    this.prefs.set(remote);
+    const product =
+      remote.productAnnouncementsEnabled === true ||
+      remote.marketingEnabled === true;
+    this.prefs.set({
+      ...remote,
+      applicationUpdatesEnabled: remote.applicationUpdatesEnabled ?? true,
+      recruiterMessagesEnabled: remote.recruiterMessagesEnabled ?? true,
+      productAnnouncementsEnabled: product,
+      marketingEnabled: product,
+    });
   }
 
   async savePrefs(partial: Partial<NotificationPrefs>): Promise<void> {
     const next = { ...this.prefs(), ...partial };
+    if (
+      partial.productAnnouncementsEnabled !== undefined ||
+      partial.marketingEnabled !== undefined
+    ) {
+      const value =
+        partial.productAnnouncementsEnabled ?? partial.marketingEnabled ?? false;
+      next.productAnnouncementsEnabled = value;
+      next.marketingEnabled = value;
+    }
     if (partial.pushAlertsEnabled === true) {
       await this.ensurePushPermission();
       await this.registerDevice();
     }
+    const {
+      userId: _userId,
+      updatedAt: _updatedAt,
+      ...body
+    } = next as NotificationPrefs & { userId?: string; updatedAt?: string };
     const remote = await firstValueFrom(
       this.http.put<NotificationPrefs>(
         `${environment.apiUrl}/notifications/preferences`,
-        next,
+        body,
         { headers: this.auth.authHeaders() },
       ),
     );
-    this.prefs.set(remote);
+    const product =
+      remote.productAnnouncementsEnabled === true ||
+      remote.marketingEnabled === true;
+    this.prefs.set({
+      ...remote,
+      productAnnouncementsEnabled: product,
+      marketingEnabled: product,
+    });
   }
 
   async refreshInbox(options?: { announce?: boolean }): Promise<void> {
@@ -686,7 +722,7 @@ export class NotificationsService {
 
   private pathFromPayload(data?: Record<string, string> | null): string | null {
     const action = data?.['action']?.trim();
-    if (action === 'complete_profile') return '/tabs/account';
+    if (action === 'complete_profile') return '/onboarding/profile';
     if (action === 'browse_jobs') return '/tabs/discover';
     if (action === 'open_feedback') {
       const threadId = data?.['threadId']?.trim();

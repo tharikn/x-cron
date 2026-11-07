@@ -171,9 +171,13 @@ export class PreferencesPage implements OnInit {
   async toggleAlert(
     key:
       | 'jobAlertsEnabled'
+      | 'applicationUpdatesEnabled'
+      | 'recruiterMessagesEnabled'
+      | 'productAnnouncementsEnabled'
       | 'inAppEnabled'
       | 'pushAlertsEnabled'
-      | 'emailAlertsEnabled',
+      | 'emailAlertsEnabled'
+      | 'marketingEnabled',
     enabled: boolean,
   ): Promise<void> {
     if (!this.auth.isSignedIn()) {
@@ -181,7 +185,19 @@ export class PreferencesPage implements OnInit {
       return;
     }
     try {
-      await this.notifications.savePrefs({ [key]: enabled });
+      const patch: Partial<
+        Record<
+          | typeof key
+          | 'marketingEnabled'
+          | 'productAnnouncementsEnabled',
+          boolean
+        >
+      > = { [key]: enabled };
+      if (key === 'productAnnouncementsEnabled' || key === 'marketingEnabled') {
+        patch.productAnnouncementsEnabled = enabled;
+        patch.marketingEnabled = enabled;
+      }
+      await this.notifications.savePrefs(patch);
       if (key === 'pushAlertsEnabled' && enabled) {
         const result = await this.notifications.promptOsPermissionAfterSignIn();
         await this.showToast(

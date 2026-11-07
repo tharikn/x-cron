@@ -135,7 +135,11 @@
 
 .card--unread {
   background:
-    linear-gradient(90deg, rgba(10, 10, 10, 0.03) 0%, transparent 28%),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--xcron-primary) 16%, transparent) 0%,
+      transparent 28%
+    ),
     var(--xcron-bg-elevated);
   border-color: var(--xcron-line-strong);
   box-shadow: var(--xcron-shadow-hover);
@@ -148,7 +152,7 @@
   bottom: 12px;
   width: 3px;
   border-radius: 999px;
-  background: var(--xcron-ink);
+  background: var(--xcron-primary);
 }
 
 .card__sheen {
@@ -167,7 +171,7 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #fff;
-  background: var(--xcron-ink);
+  background: var(--xcron-primary);
 }
 
 .card strong {
@@ -199,13 +203,31 @@
 .card__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 2px;
 }
 
-.card--unread ion-button {
+/* Theme-safe actions: outline uses ink/line tokens; solid keeps CTA gradient + white label */
+.inbox__actions ion-button[fill='outline'],
+.card__actions ion-button[fill='outline'] {
+  --border-width: 1px;
   --border-color: var(--xcron-line-strong);
   --color: var(--xcron-ink);
+  --background: color-mix(in srgb, var(--xcron-ink) 6%, transparent);
+  --background-activated: color-mix(in srgb, var(--xcron-ink) 10%, transparent);
+  --background-hover: color-mix(in srgb, var(--xcron-ink) 10%, transparent);
+  --ion-color-base: var(--xcron-ink);
+}
+
+.card__actions ion-button[fill='solid'],
+.card__actions ion-button:not([fill]) {
+  --background: var(--xcron-cta-gradient);
+  --background-activated: var(--xcron-cta-gradient-hover);
+  --background-hover: var(--xcron-cta-gradient-hover);
+  --color: #fff;
+  --ion-color-contrast: #ffffff;
+  --border-color: transparent;
 }
 
 .empty {

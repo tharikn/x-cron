@@ -20,6 +20,7 @@ export class CreateImportBatchDto {
   @IsOptional()
   @IsIn([
     'csv',
+    'excel',
     'text',
     'whatsapp',
     'telegram',
@@ -30,6 +31,7 @@ export class CreateImportBatchDto {
   ])
   sourceType?:
     | 'csv'
+    | 'excel'
     | 'text'
     | 'whatsapp'
     | 'telegram'

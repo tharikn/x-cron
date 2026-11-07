@@ -9,6 +9,9 @@ import { AuthService } from './auth.service';
 export interface NotificationPrefs {
   userId?: string;
   jobAlertsEnabled: boolean;
+  applicationUpdatesEnabled: boolean;
+  recruiterMessagesEnabled: boolean;
+  productAnnouncementsEnabled: boolean;
   inAppEnabled: boolean;
   pushAlertsEnabled: boolean;
   emailAlertsEnabled: boolean;
@@ -73,6 +76,9 @@ export class NotificationsService {
 
   readonly prefs = signal<NotificationPrefs>({
     jobAlertsEnabled: true,
+    applicationUpdatesEnabled: true,
+    recruiterMessagesEnabled: true,
+    productAnnouncementsEnabled: false,
     inAppEnabled: true,
     pushAlertsEnabled: true,
     emailAlertsEnabled: true,
@@ -159,12 +165,18 @@ export class NotificationsService {
         { headers: this.auth.authHeaders() },
       ),
     );
+    const product =
+      remote.productAnnouncementsEnabled === true ||
+      remote.marketingEnabled === true;
     this.prefs.set({
       jobAlertsEnabled: remote.jobAlertsEnabled ?? true,
+      applicationUpdatesEnabled: remote.applicationUpdatesEnabled ?? true,
+      recruiterMessagesEnabled: remote.recruiterMessagesEnabled ?? true,
+      productAnnouncementsEnabled: product,
       inAppEnabled: remote.inAppEnabled ?? true,
       pushAlertsEnabled: remote.pushAlertsEnabled ?? true,
       emailAlertsEnabled: remote.emailAlertsEnabled ?? true,
-      marketingEnabled: remote.marketingEnabled ?? false,
+      marketingEnabled: product,
       quietHoursStart: remote.quietHoursStart ?? null,
       quietHoursEnd: remote.quietHoursEnd ?? null,
       dailyCap: remote.dailyCap ?? 20,
@@ -176,10 +188,11 @@ export class NotificationsService {
   async savePrefs(partial: Partial<NotificationPrefs>): Promise<void> {
     if (!this.auth.isSignedIn()) return;
     const next = { ...this.prefs(), ...partial };
+    const { userId: _userId, updatedAt: _updatedAt, ...body } = next;
     const remote = await firstValueFrom(
       this.http.put<NotificationPrefs>(
         `${environment.apiUrl}/notifications/preferences`,
-        next,
+        body,
         { headers: this.auth.authHeaders() },
       ),
     );
@@ -399,7 +412,7 @@ export class NotificationsService {
   ): string | null {
     const data = item.data ?? {};
     const action = data['action']?.trim();
-    if (action === 'complete_profile') return '/settings/account';
+    if (action === 'complete_profile') return '/onboarding/profile';
     if (action === 'browse_jobs') return '/';
     if (action === 'open_feedback') {
       const threadId = data['threadId']?.trim();
@@ -488,19 +501,28 @@ export class NotificationsService {
     localStorage.setItem(SEEN_IDS_KEY, JSON.stringify([...ids].slice(-200)));
   }
 
-  listDispatches(limit = 50): Promise<{
+  listDispatches(opts?: { limit?: number; offset?: number }): Promise<{
     pushProvider: string;
     mailProvider: string;
     items: NotificationDispatch[];
+    total: number;
+    limit: number;
+    offset: number;
   }> {
+    const limit = opts?.limit ?? 25;
+    const offset = opts?.offset ?? 0;
     return firstValueFrom(
       this.http.get<{
         pushProvider: string;
         mailProvider: string;
         items: NotificationDispatch[];
-      }>(`${environment.apiUrl}/admin/notification-dispatches?limit=${limit}`, {
-        headers: this.auth.authHeaders(),
-      }),
+        total: number;
+        limit: number;
+        offset: number;
+      }>(
+        `${environment.apiUrl}/admin/notification-dispatches?limit=${limit}&offset=${offset}`,
+        { headers: this.auth.authHeaders() },
+      ),
     );
   }
 

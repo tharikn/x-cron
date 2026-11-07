@@ -6,7 +6,7 @@ export const SEED_FOOTER: Omit<SiteFooterConfig, 'updatedAt'> = {
     name: 'X Cron',
     productLabel: 'Jobs',
     blurb:
-      'Local-first job discovery for younger seekers. Browse as a guest — contact details stay private until unlock.',
+      'Local-first job discovery for younger seekers. Browse as a guest; sign in to save, apply, and manage privacy.',
   },
   headings: {
     quickLinks: 'Quick links',
@@ -52,8 +52,8 @@ export const SEED_FOOTER: Omit<SiteFooterConfig, 'updatedAt'> = {
     { id: 'ql_signin', label: 'Sign in', href: '/sign-in', sortOrder: 5 },
   ],
   legalLinks: [
-    { id: 'leg_privacy', label: 'Privacy', href: '/preferences', sortOrder: 1 },
-    { id: 'leg_terms', label: 'Terms', href: '/preferences', sortOrder: 2 },
+    { id: 'leg_privacy', label: 'Privacy', href: '/privacy', sortOrder: 1 },
+    { id: 'leg_terms', label: 'Terms', href: '/terms', sortOrder: 2 },
   ],
   copyright: '© X Cron Jobs. Guest browsing supported.',
 };

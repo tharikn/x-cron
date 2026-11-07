@@ -1,14 +1,19 @@
 # CLAUDE.md — `api/src/security/`
 
-Cross-cutting API security for the job portal: **rate limits**, **HttpOnly cookie sessions**, **CSRF**, **one-tab binding**, **input protector**, **shared field validators**.
+Cross-cutting API security for the job portal: **rate limits**, **HttpOnly cookie sessions**, **CSRF**, **one-tab binding**, **input protector**, **shared field validators**, **upload allow-list**, **privileged audit ring**.
+
+Design map: [../../../docs/SECURITY_PRIVACY.md](../../../docs/SECURITY_PRIVACY.md).
 
 ## Guards / middleware order
 
-1. **`InputProtectorMiddleware`** (`SecurityModule.configure`) — rejects XSS / SQLi *payload* patterns, null bytes, prototype-pollution keys on JSON body + query (not English SQL keyword blacklists; Prisma stays parameterized — never interpolate UI into SQL)
-2. **`SecurityThrottlerGuard`** — named throttlers (`default` / `auth` / `sensitive`)
-3. **`CsrfGuard`** — double-submit when access cookie is present; **skipped** when `Authorization: Bearer` is present, or on auth bootstrap (`/auth/login|register|refresh|google|admin/login`) so a stale cookie cannot block re-login
-4. **`AuthGuard`** — Bearer (preferred) or cookie access → `request.user` + tab binding; public routes do not hard-fail on `session_tab_mismatch` (stale cookie + new tab id)
-5. **`RolesGuard`** — `@Roles(...)` RBAC
+1. **`CorrelationIdMiddleware`** (`SecurityModule.configure`, applied before the input protector so rejected requests still carry an id) — assign/echo `X-Request-Id` (`req.correlationId`); CORS exposes the header; validation 400s include `correlationId`
+2. **`InputProtectorMiddleware`** (`SecurityModule.configure`) — rejects XSS / SQLi *payload* patterns, null bytes, prototype-pollution keys on JSON body + query (not English SQL keyword blacklists; Prisma stays parameterized — never interpolate UI into SQL)
+3. **`SecurityThrottlerGuard`** — named throttlers (`default` / `auth` / `sensitive`)
+4. **`CsrfGuard`** — double-submit when access cookie is present; **skipped** when `Authorization: Bearer` is present, or on auth bootstrap (`/auth/login|register|refresh|google|admin/login`) so a stale cookie cannot block re-login
+5. **`AuthGuard`** — Bearer (preferred) or cookie access → `request.user` + tab binding; public routes do not hard-fail on `session_tab_mismatch` (stale cookie + new tab id)
+6. **`RolesGuard`** — `@Roles(...)` RBAC
+
+Clients send `X-Request-Id` via `correlationInterceptor`; `friendlyHttpMessage` may append `(ref: …)` for support.
 
 ## Validation (`validation/`)
 
@@ -49,8 +54,20 @@ Clients must send `credentials: 'include'` and `X-CSRF-Token` (from `xcron_csrf`
 | `@SensitiveThrottle()` | **1 / hour** — admin login, account delete, payment `dev/confirm`, notification `dev/*` |
 | `@NoThrottle()` | Health only |
 
+## Upload hardening (`upload-guard.ts`)
+
+Admin import uploads: allow-list CSV/TXT/PDF/PNG/JPEG/WEBP, magic-byte checks, reject SVG/HTML, **8MB** cap (`UPLOAD_MAX_BYTES`). Wired from `ingestion` controller limits + `IngestionService.uploadFile`.
+
+## Audit (`audit.service.ts`)
+
+Provided + exported from global `SecurityModule` (injectable in `AuthService` / `AccountService` / `IngestionService`). In-process ring (≤500) + structured logs for `admin.login` / `admin.login_failed`, `account.export`, `account.delete`, `import.upload`. Not durable SIEM — upgrade before production launch.
+
 ## Env
 
 `RATE_LIMIT_*`, `APPLY_RATE_LIMIT_*`, `APPLY_DAILY_CAP`, `AI_HELP_RATE_LIMIT_*`, `AUTH_COOKIE_SAMESITE`, `AUTH_COOKIE_SECURE`, `AUTH_SINGLE_TAB` (default `1`), `AUTH_SINGLE_SESSION` (default `1`).
+
+`REDIS_URL` + `REDIS_THROTTLE_ENABLED` (default on when URL set) → `@nest-lab/throttler-storage-redis` for multi-instance counters; unset → in-memory Nest storage.
+
+Production: `helmet` HSTS when `NODE_ENV=production` (`main.ts`).
 
 Update `.env.example`, `.env`, and `env-dev` when changing keys.

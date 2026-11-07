@@ -71,4 +71,24 @@ test.describe('@admin Admin desk', () => {
     });
     expect(res.status).toBeLessThan(500);
   });
+
+  test('admin Trust desk route loads (web)', async ({ page, client }) => {
+    const paths = pathsFor(client);
+    test.skip(!paths.adminTrust, 'Trust desk is web-only');
+    test.skip(
+      !adminOk,
+      (globalThis as { __adminSkipReason?: string }).__adminSkipReason ||
+        'admin login unavailable',
+    );
+
+    await page.goto(`${paths.signIn}?mode=admin`);
+    await page.locator('input[type="email"], input[name="email"]').first().fill(SUPER_ADMIN_EMAIL);
+    await page.locator('input[type="password"]').first().fill(SUPER_ADMIN_PASSWORD);
+    await page.getByRole('button', { name: /Login|Sign in|Admin/i }).first().click();
+
+    await page.goto(paths.adminTrust!);
+    await expect(
+      page.getByText(/Trust|verification|queue|moderat|company|suspend|desk/i).first(),
+    ).toBeVisible({ timeout: 25_000 });
+  });
 });

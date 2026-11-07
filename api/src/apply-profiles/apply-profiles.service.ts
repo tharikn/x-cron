@@ -11,6 +11,7 @@ import {
   ApplyProfile,
   ApplyProfileLink,
   ApplyProfileProject,
+  isReadyForApply,
 } from './apply-profiles.types';
 import {
   CreateApplyProfileDto,
@@ -133,11 +134,7 @@ export class ApplyProfilesService {
    * Needs at least one of: skills, headline, summary, or a project.
    */
   assertReadyForApply(profile: ApplyProfile): void {
-    const hasSkills = profile.skills.length > 0;
-    const hasHeadline = Boolean(profile.headline?.trim());
-    const hasSummary = Boolean(profile.summary?.trim());
-    const hasProjects = profile.projects.some((p) => p.title?.trim());
-    if (!hasSkills && !hasHeadline && !hasSummary && !hasProjects) {
+    if (!isReadyForApply(profile)) {
       throw new BadRequestException(
         'Complete your apply profile: add skills, a headline, summary, or a project before applying',
       );

@@ -7,9 +7,16 @@ import {
   AuthUser,
   EmployerProfile,
   IssueSessionOptions,
+  PublicSession,
   SessionRecord,
   UserRole,
 } from './auth.types';
+
+interface RevokedRefreshRecord {
+  userId: string;
+  familyId: string;
+  expiresAt: string;
+}
 
 export interface SignInEvent {
   userId: string;
@@ -30,6 +37,8 @@ export class AuthStore implements OnModuleInit {
   private readonly sessions = new Map<string, SessionRecord>();
   /** refreshToken → accessToken */
   private readonly refreshIndex = new Map<string, string>();
+  /** Retired refresh tokens → family (reuse detection). */
+  private readonly revokedRefresh = new Map<string, RevokedRefreshRecord>();
   private readonly employers = new Map<string, EmployerProfile>();
   /** username:x / phone:x / email:x -> userId */
   private readonly identityIndex = new Map<string, string>();
@@ -233,6 +242,9 @@ export class AuthStore implements OnModuleInit {
         roles: this.mergePublicRoles(undefined, intended),
       });
     } else {
+      if (user.status !== 'active') {
+        throw new Error('invalid_credentials');
+      }
       // Google never grants admin — password login only. Keep employer if already held.
       user.roles = this.mergePublicRoles(user.roles, intended);
       if (input.displayName) user.displayName = input.displayName;
@@ -263,7 +275,12 @@ export class AuthStore implements OnModuleInit {
     if (options?.enforceTab) {
       this.assertTabBinding(session, options.tabId);
     }
-    return this.users.get(session.userId);
+    const user = this.users.get(session.userId);
+    if (!user || user.status !== 'active') {
+      this.revokeSession(session);
+      return undefined;
+    }
+    return this.applyModeratorAllowlist(user);
   }
 
   getAccessTtlSeconds(): number {
@@ -274,11 +291,24 @@ export class AuthStore implements OnModuleInit {
     return Math.floor(this.sessionTtlMs / 1000);
   }
 
-  /** Rotate tokens; old refresh is invalidated. Sliding refresh TTL from now. */
+  /**
+   * Rotate tokens; old refresh is retired (not merely deleted).
+   * Presenting a retired refresh revokes the entire token family.
+   */
   refreshSession(
     refreshToken: string,
     options?: IssueSessionOptions,
   ): AuthTokens {
+    const retired = this.revokedRefresh.get(refreshToken);
+    if (retired) {
+      if (new Date(retired.expiresAt).getTime() < Date.now()) {
+        this.revokedRefresh.delete(refreshToken);
+        throw new Error('invalid_refresh_token');
+      }
+      this.revokeFamily(retired.familyId);
+      throw new Error('refresh_token_reuse');
+    }
+
     const accessToken = this.refreshIndex.get(refreshToken);
     if (!accessToken) {
       throw new Error('invalid_refresh_token');
@@ -298,12 +328,142 @@ export class AuthStore implements OnModuleInit {
       throw new Error('invalid_refresh_token');
     }
     const tabId = options?.tabId?.trim() || session.tabId;
+    const familyId = session.familyId;
+    this.retireRefreshToken(session);
     this.revokeSession(session);
     return this.issueTokens(user.id, {
       recordSignIn: false,
       tabId,
+      familyId,
       revokeOtherSessions: false,
+      ip: options?.ip ?? session.ip,
+      userAgent: options?.userAgent ?? session.userAgent,
     });
+  }
+
+  /** Disable or re-enable an account (revokes sessions when disabling). */
+  setUserStatus(userId: string, status: 'active' | 'disabled'): AuthUser | undefined {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    user.status = status;
+    this.users.set(userId, user);
+    void this.persistUser(user);
+    if (status === 'disabled') {
+      this.revokeAllSessionsForUser(userId);
+    }
+    return user;
+  }
+
+  /**
+   * Grant or revoke staff roles. Only `admin` / `moderator` may be toggled here —
+   * never via register/Google. `admin` still requires SUPER_ADMIN password path
+   * for bootstrap; this is for assigning `moderator` (or stripping it).
+   */
+  setStaffRoles(
+    userId: string,
+    patch: { moderator?: boolean; admin?: boolean },
+  ): AuthUser | undefined {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    const roles = new Set<UserRole>(user.roles.filter((r) => r !== 'admin' && r !== 'moderator'));
+    roles.add('seeker');
+    const keepAdmin =
+      patch.admin === true || (patch.admin !== false && user.roles.includes('admin'));
+    const keepModerator =
+      patch.moderator === true ||
+      (patch.moderator !== false && user.roles.includes('moderator'));
+    if (keepAdmin) roles.add('admin');
+    if (keepModerator) roles.add('moderator');
+    user.roles = [...roles];
+    this.users.set(userId, user);
+    void this.persistUser(user);
+    return user;
+  }
+
+  /** Apply MODERATOR_EMAILS allowlist when the user has a matching email. */
+  applyModeratorAllowlist(user: AuthUser): AuthUser {
+    const email = user.email?.trim().toLowerCase();
+    if (!email || user.roles.includes('moderator') || user.roles.includes('admin')) {
+      return user;
+    }
+    if (!this.moderatorEmails().includes(email)) return user;
+    return this.setStaffRoles(user.id, { moderator: true }) ?? user;
+  }
+
+  findUsersByQuery(q: string, limit = 20): AuthUser[] {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return [];
+    return this.listUsers()
+      .filter((u) => {
+        const hay = [u.id, u.username, u.email, u.displayName]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return hay.includes(needle);
+      })
+      .slice(0, limit);
+  }
+
+  /** Active sessions for the principal (no token secrets). */
+  listSessionsForUser(
+    userId: string,
+    currentAccessToken?: string,
+  ): PublicSession[] {
+    const now = Date.now();
+    const rows: PublicSession[] = [];
+    for (const session of this.sessions.values()) {
+      if (session.userId !== userId) continue;
+      if (new Date(session.refreshExpiresAt).getTime() < now) {
+        this.revokeSession(session);
+        continue;
+      }
+      rows.push({
+        id: session.id,
+        createdAt: session.createdAt,
+        expiresAt: session.expiresAt,
+        refreshExpiresAt: session.refreshExpiresAt,
+        current: !!currentAccessToken && session.token === currentAccessToken,
+        ip: session.ip,
+        userAgent: session.userAgent,
+        lastSeenAt: session.lastSeenAt,
+      });
+    }
+    return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  /** Distinct IPs from active sessions (admin tracking). */
+  listSessionIpsForUser(userId: string): string[] {
+    const ips: string[] = [];
+    const now = Date.now();
+    for (const session of this.sessions.values()) {
+      if (session.userId !== userId) continue;
+      if (new Date(session.refreshExpiresAt).getTime() < now) continue;
+      if (session.ip && !ips.includes(session.ip)) ips.push(session.ip);
+    }
+    return ips;
+  }
+
+  /** Revoke one of the caller's sessions by public session id. */
+  revokeSessionForUser(userId: string, sessionId: string): boolean {
+    for (const session of this.sessions.values()) {
+      if (session.id === sessionId && session.userId === userId) {
+        this.revokeSession(session);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Logout everywhere — revoke every refresh/access pair for the user. */
+  revokeAllSessionsForUser(userId: string): number {
+    let count = 0;
+    for (const session of [...this.sessions.values()]) {
+      if (session.userId === userId) {
+        this.revokeSession(session);
+        count += 1;
+      }
+    }
+    return count;
   }
 
   getUser(id: string): AuthUser | undefined {
@@ -353,6 +513,9 @@ export class AuthStore implements OnModuleInit {
     for (const session of [...this.sessions.values()]) {
       if (session.userId === userId) this.revokeSession(session);
     }
+    for (const [token, record] of [...this.revokedRefresh.entries()]) {
+      if (record.userId === userId) this.revokedRefresh.delete(token);
+    }
     for (const [key, id] of this.identityIndex) {
       if (id === userId) this.identityIndex.delete(key);
     }
@@ -364,10 +527,28 @@ export class AuthStore implements OnModuleInit {
     return true;
   }
 
-  createEmployer(ownerUserId: string, name: string): EmployerProfile {
+  createEmployer(
+    ownerUserId: string,
+    name: string,
+    extras?: Partial<
+      Pick<
+        EmployerProfile,
+        | 'legalName'
+        | 'about'
+        | 'website'
+        | 'industry'
+        | 'sizeBand'
+        | 'headquarters'
+        | 'hiringLocations'
+        | 'logoUrl'
+      >
+    >,
+  ): EmployerProfile {
     const existing = [...this.employers.values()].find((e) => e.ownerUserId === ownerUserId);
     if (existing) {
       existing.name = name.trim() || existing.name;
+      if (extras) Object.assign(existing, this.pickEmployerExtras(extras));
+      existing.updatedAt = new Date().toISOString();
       this.employers.set(existing.id, existing);
       const owner = this.users.get(ownerUserId);
       if (owner && !owner.roles.includes('employer')) {
@@ -381,6 +562,7 @@ export class AuthStore implements OnModuleInit {
 
     const id = `emp_${randomUUID().slice(0, 8)}`;
     const safeName = name.trim() || 'Employer';
+    const now = new Date().toISOString();
     const profile: EmployerProfile = {
       id,
       name: safeName,
@@ -389,10 +571,21 @@ export class AuthStore implements OnModuleInit {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
         .slice(0, 48)}-${id.slice(-4)}`,
-      about: '',
+      about: extras?.about ?? '',
+      legalName: extras?.legalName,
+      website: extras?.website,
+      industry: extras?.industry,
+      sizeBand: extras?.sizeBand,
+      headquarters: extras?.headquarters,
+      hiringLocations: extras?.hiringLocations ?? [],
+      logoUrl: extras?.logoUrl,
       verificationStatus: 'unverified',
+      trustTier: 'standard',
+      riskFlags: [],
+      workspaceSettings: {},
       ownerUserId,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
     this.employers.set(profile.id, profile);
     const owner = this.users.get(ownerUserId);
@@ -405,12 +598,74 @@ export class AuthStore implements OnModuleInit {
     return profile;
   }
 
+  updateEmployer(
+    id: string,
+    patch: Partial<
+      Omit<EmployerProfile, 'id' | 'createdAt'>
+    >,
+  ): EmployerProfile {
+    const existing = this.employers.get(id);
+    if (!existing) {
+      throw new Error(`Employer ${id} not found`);
+    }
+    const next: EmployerProfile = {
+      ...existing,
+      ...this.pickEmployerExtras(patch),
+      name: patch.name?.trim() || existing.name,
+      ownerUserId: patch.ownerUserId ?? existing.ownerUserId,
+      verificationStatus:
+        patch.verificationStatus ?? existing.verificationStatus,
+      updatedAt: new Date().toISOString(),
+    };
+    this.employers.set(id, next);
+    void this.persistEmployer(next);
+    return next;
+  }
+
+  listEmployers(): EmployerProfile[] {
+    return [...this.employers.values()];
+  }
+
+  /** Persist an in-memory user mutation (roles etc.). */
+  saveUser(user: AuthUser): void {
+    this.users.set(user.id, user);
+    void this.persistUser(user);
+  }
+
   getEmployerByOwner(userId: string): EmployerProfile | undefined {
     return [...this.employers.values()].find((e) => e.ownerUserId === userId);
   }
 
   getEmployer(id: string): EmployerProfile | undefined {
     return this.employers.get(id);
+  }
+
+  private pickEmployerExtras(
+    patch: Partial<EmployerProfile>,
+  ): Partial<EmployerProfile> {
+    const out: Partial<EmployerProfile> = {};
+    const keys: (keyof EmployerProfile)[] = [
+      'legalName',
+      'slug',
+      'about',
+      'logoUrl',
+      'website',
+      'verifiedEmailDomain',
+      'industry',
+      'sizeBand',
+      'headquarters',
+      'hiringLocations',
+      'verificationNotes',
+      'trustTier',
+      'riskFlags',
+      'workspaceSettings',
+    ];
+    for (const key of keys) {
+      if (patch[key] !== undefined) {
+        (out as Record<string, unknown>)[key] = patch[key];
+      }
+    }
+    return out;
   }
 
   toPublicUser(user: AuthUser) {
@@ -511,7 +766,10 @@ export class AuthStore implements OnModuleInit {
     return this.issueTokens(userId, {
       recordSignIn: true,
       tabId: options?.tabId,
+      familyId: options?.familyId,
       revokeOtherSessions: options?.revokeOtherSessions,
+      ip: options?.ip,
+      userAgent: options?.userAgent,
     });
   }
 
@@ -551,7 +809,10 @@ export class AuthStore implements OnModuleInit {
     options: {
       recordSignIn: boolean;
       tabId?: string;
+      familyId?: string;
       revokeOtherSessions?: boolean;
+      ip?: string;
+      userAgent?: string;
     },
   ): AuthTokens {
     const shouldRevoke =
@@ -560,22 +821,31 @@ export class AuthStore implements OnModuleInit {
       this.revokeOtherSessions(userId);
     }
 
+    const id = randomUUID();
     const token = randomUUID();
     const refreshToken = randomUUID();
+    const familyId = options.familyId?.trim() || randomUUID();
     const createdAt = new Date().toISOString();
     const expiresAt = new Date(Date.now() + this.accessTtlMs).toISOString();
     const refreshExpiresAt = new Date(
       Date.now() + this.sessionTtlMs,
     ).toISOString();
     const tabId = options.tabId?.trim() || undefined;
+    const ip = options.ip?.trim() || undefined;
+    const userAgent = options.userAgent?.trim()?.slice(0, 512) || undefined;
     const session: SessionRecord = {
+      id,
       token,
       refreshToken,
       userId,
+      familyId,
       createdAt,
       expiresAt,
       refreshExpiresAt,
       tabId,
+      ip,
+      userAgent,
+      lastSeenAt: createdAt,
     };
     this.sessions.set(token, session);
     this.refreshIndex.set(refreshToken, token);
@@ -592,6 +862,31 @@ export class AuthStore implements OnModuleInit {
     void this.deleteSessionPersisted(session);
   }
 
+  private retireRefreshToken(session: SessionRecord) {
+    const record: RevokedRefreshRecord = {
+      userId: session.userId,
+      familyId: session.familyId,
+      expiresAt: session.refreshExpiresAt,
+    };
+    this.revokedRefresh.set(session.refreshToken, record);
+    void this.persistRevokedRefresh(session.refreshToken, record);
+  }
+
+  /** Suspected theft: drop every live session in the family + clear retired peers. */
+  private revokeFamily(familyId: string) {
+    for (const session of [...this.sessions.values()]) {
+      if (session.familyId === familyId) {
+        this.revokeSession(session);
+      }
+    }
+    for (const [token, record] of [...this.revokedRefresh.entries()]) {
+      if (record.familyId === familyId) {
+        this.revokedRefresh.delete(token);
+        void this.deleteRevokedRefreshPersisted(token);
+      }
+    }
+  }
+
   private mergePublicRoles(
     existing: UserRole[] | undefined,
     intended: UserRole,
@@ -599,8 +894,17 @@ export class AuthStore implements OnModuleInit {
     const roles = new Set<UserRole>(['seeker']);
     if (existing?.includes('employer')) roles.add('employer');
     if (intended === 'employer') roles.add('employer');
-    // Admin only via SUPER_ADMIN password login — never username/Google.
+    // Preserve staff roles; never grant admin/moderator via register/login/Google.
+    if (existing?.includes('admin')) roles.add('admin');
+    if (existing?.includes('moderator')) roles.add('moderator');
     return [...roles];
+  }
+
+  private moderatorEmails(): string[] {
+    return (process.env.MODERATOR_EMAILS ?? '')
+      .split(',')
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean);
   }
 
   private hashPassword(password: string): { saltHex: string; hashHex: string } {
@@ -714,7 +1018,12 @@ export class AuthStore implements OnModuleInit {
     if (!Array.isArray(value)) return ['seeker'];
     const out = new Set<UserRole>();
     for (const item of value) {
-      if (item === 'seeker' || item === 'employer' || item === 'admin') {
+      if (
+        item === 'seeker' ||
+        item === 'employer' ||
+        item === 'admin' ||
+        item === 'moderator'
+      ) {
         out.add(item);
       }
     }
@@ -775,28 +1084,56 @@ export class AuthStore implements OnModuleInit {
         const profile: EmployerProfile = {
           id: row.id,
           name: row.name,
+          legalName: row.legalName ?? undefined,
           slug: row.slug ?? undefined,
           about: row.about ?? undefined,
           logoUrl: row.logoUrl ?? undefined,
+          website: row.website ?? undefined,
+          verifiedEmailDomain: row.verifiedEmailDomain ?? undefined,
+          industry: row.industry ?? undefined,
+          sizeBand: row.sizeBand ?? undefined,
+          headquarters: row.headquarters ?? undefined,
+          hiringLocations: this.parseJsonStringArray(row.hiringLocationsJson),
           verificationStatus: (row.verificationStatus as EmployerProfile['verificationStatus']) ||
             'unverified',
+          verificationNotes: row.verificationNotes ?? undefined,
+          trustTier: (row.trustTier as EmployerProfile['trustTier']) || 'standard',
+          riskFlags: this.parseJsonStringArray(row.riskFlagsJson),
+          workspaceSettings: this.parseJsonObject(row.workspaceSettingsJson),
           ownerUserId: row.ownerUserId,
           createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
         };
         this.employers.set(profile.id, profile);
       }
 
       for (const row of dbSessions) {
         const session: SessionRecord = {
+          id: row.id,
           token: row.accessToken,
           refreshToken: row.refreshToken,
           userId: row.userId,
+          familyId: row.familyId || row.id,
           createdAt: row.createdAt.toISOString(),
           expiresAt: row.expiresAt.toISOString(),
           refreshExpiresAt: row.refreshExpiresAt.toISOString(),
+          ip: row.ip ?? undefined,
+          userAgent: row.userAgent ?? undefined,
+          lastSeenAt: row.lastSeenAt?.toISOString(),
         };
         this.sessions.set(session.token, session);
         this.refreshIndex.set(session.refreshToken, session.token);
+      }
+
+      const dbRevoked = await this.prisma.revokedRefreshToken.findMany({
+        where: { expiresAt: { gt: now } },
+      });
+      for (const row of dbRevoked) {
+        this.revokedRefresh.set(row.refreshToken, {
+          userId: row.userId,
+          familyId: row.familyId,
+          expiresAt: row.expiresAt.toISOString(),
+        });
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -915,6 +1252,19 @@ export class AuthStore implements OnModuleInit {
     if (!this.persistenceEnabled) return;
     try {
       await this.ensureUserRow(profile.ownerUserId);
+      const workspacePayload = {
+        legalName: profile.legalName,
+        website: profile.website,
+        verifiedEmailDomain: profile.verifiedEmailDomain,
+        industry: profile.industry,
+        sizeBand: profile.sizeBand,
+        headquarters: profile.headquarters,
+        hiringLocationsJson: JSON.stringify(profile.hiringLocations ?? []),
+        verificationNotes: profile.verificationNotes,
+        trustTier: profile.trustTier ?? 'standard',
+        riskFlagsJson: JSON.stringify(profile.riskFlags ?? []),
+        workspaceSettingsJson: JSON.stringify(profile.workspaceSettings ?? {}),
+      };
       await this.prisma.employer.upsert({
         where: { id: profile.id },
         create: {
@@ -926,6 +1276,7 @@ export class AuthStore implements OnModuleInit {
           verificationStatus: profile.verificationStatus,
           ownerUserId: profile.ownerUserId,
           createdAt: new Date(profile.createdAt),
+          ...workspacePayload,
         },
         update: {
           name: profile.name,
@@ -934,6 +1285,7 @@ export class AuthStore implements OnModuleInit {
           logoUrl: profile.logoUrl,
           verificationStatus: profile.verificationStatus,
           ownerUserId: profile.ownerUserId,
+          ...workspacePayload,
         },
       });
     } catch (error) {
@@ -946,6 +1298,30 @@ export class AuthStore implements OnModuleInit {
     }
   }
 
+  private parseJsonStringArray(raw: string | null | undefined): string[] {
+    if (!raw) return [];
+    try {
+      const v = JSON.parse(raw) as unknown;
+      return Array.isArray(v)
+        ? v.filter((x): x is string => typeof x === 'string')
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private parseJsonObject(raw: string | null | undefined): Record<string, unknown> {
+    if (!raw) return {};
+    try {
+      const v = JSON.parse(raw) as unknown;
+      return v && typeof v === 'object' && !Array.isArray(v)
+        ? (v as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
   private async persistSession(session: SessionRecord): Promise<void> {
     if (!this.persistenceEnabled) return;
     try {
@@ -953,13 +1329,19 @@ export class AuthStore implements OnModuleInit {
       await this.ensureUserRow(session.userId);
       await this.prisma.authSession.create({
         data: {
-          id: randomUUID(),
+          id: session.id,
           userId: session.userId,
           accessToken: session.token,
           refreshToken: session.refreshToken,
+          familyId: session.familyId,
           createdAt: new Date(session.createdAt),
           expiresAt: new Date(session.expiresAt),
           refreshExpiresAt: new Date(session.refreshExpiresAt),
+          ip: session.ip ?? null,
+          userAgent: session.userAgent ?? null,
+          lastSeenAt: session.lastSeenAt
+            ? new Date(session.lastSeenAt)
+            : null,
         },
       });
     } catch (error) {
@@ -968,6 +1350,48 @@ export class AuthStore implements OnModuleInit {
         '[auth] persistSession failed',
         error instanceof Error ? error.message : error,
       );
+    }
+  }
+
+  private async persistRevokedRefresh(
+    refreshToken: string,
+    record: RevokedRefreshRecord,
+  ): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    try {
+      await this.prisma.revokedRefreshToken.upsert({
+        where: { refreshToken },
+        create: {
+          refreshToken,
+          userId: record.userId,
+          familyId: record.familyId,
+          expiresAt: new Date(record.expiresAt),
+        },
+        update: {
+          userId: record.userId,
+          familyId: record.familyId,
+          expiresAt: new Date(record.expiresAt),
+        },
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[auth] persistRevokedRefresh failed',
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  private async deleteRevokedRefreshPersisted(
+    refreshToken: string,
+  ): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    try {
+      await this.prisma.revokedRefreshToken
+        .delete({ where: { refreshToken } })
+        .catch(() => undefined);
+    } catch {
+      // ignore
     }
   }
 
@@ -1010,6 +1434,7 @@ export class AuthStore implements OnModuleInit {
     if (!this.persistenceEnabled) return;
     try {
       await this.prisma.authSession.deleteMany({ where: { userId } });
+      await this.prisma.revokedRefreshToken.deleteMany({ where: { userId } });
       await this.prisma.employer.deleteMany({ where: { ownerUserId: userId } });
       await this.prisma.userIdentity.deleteMany({ where: { userId } });
       await this.prisma.user.delete({ where: { id: userId } }).catch(() => undefined);

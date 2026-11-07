@@ -20,6 +20,11 @@ export class SearchJobsDto {
   @IsString()
   keyword?: string;
 
+  /** Alias for keyword (`q` from shareable URLs). */
+  @IsOptional()
+  @IsString()
+  q?: string;
+
   @IsOptional()
   @IsString()
   location?: string;
@@ -85,6 +90,26 @@ export class SearchJobsDto {
   @Transform(({ value }) => toOptionalBoolean(value))
   @IsBoolean()
   walkInOnly?: boolean;
+
+  /** Comma-separated skills; job must overlap at least one. */
+  @IsOptional()
+  @IsString()
+  skills?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => toOptionalBoolean(value))
+  @IsBoolean()
+  verifiedEmployer?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => toOptionalBoolean(value))
+  @IsBoolean()
+  fresher?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => toOptionalBoolean(value))
+  @IsBoolean()
+  easyApply?: boolean;
 
   @IsOptional()
   @IsIn([

@@ -21,6 +21,7 @@ import { TranslatePipe } from '../core/pipes/translate.pipe';
 import { AuthService } from '../core/services/auth.service';
 import { LocaleService } from '../core/services/locale.service';
 import { NotificationsService } from '../core/services/notifications.service';
+import { playBottomToTopEnter } from '../core/utils/xcron-nav-animation';
 
 @Component({
   selector: 'app-tabs',
@@ -39,6 +40,7 @@ import { NotificationsService } from '../core/services/notifications.service';
 export class TabsPage {
   private readonly auth = inject(AuthService);
   private readonly locale = inject(LocaleService);
+  private booted = false;
 
   readonly isEmployer = this.auth.isEmployer;
   readonly isSignedIn = this.auth.isSignedIn;
@@ -66,6 +68,20 @@ export class TabsPage {
       notificationsOutline,
       personOutline,
       person,
+    });
+  }
+
+  /** Bottom-nav tab switches skip Ionic stack transitions — play B→T overlay. */
+  onTabsDidChange(): void {
+    if (!this.booted) {
+      this.booted = true;
+      return;
+    }
+    requestAnimationFrame(() => {
+      const page = document.querySelector(
+        'ion-tabs .tabs-inner > ion-router-outlet > .ion-page:not(.ion-page-hidden)',
+      ) as HTMLElement | null;
+      playBottomToTopEnter(page);
     });
   }
 }

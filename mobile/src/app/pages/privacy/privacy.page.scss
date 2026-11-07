@@ -1,0 +1,45 @@
+h1 {
+  margin: 0 0 0.4rem;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-display);
+  font-weight: var(--xcron-weight-display);
+  letter-spacing: var(--xcron-tracking-display);
+}
+
+.lead {
+  margin: 0 0 1.25rem;
+  color: var(--xcron-muted);
+  font-size: var(--xcron-text-body);
+  line-height: var(--xcron-leading-body);
+}
+
+.block {
+  margin: 0 0 0.9rem;
+  padding: 0.9rem 1rem;
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+}
+
+.block h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-title);
+  font-weight: var(--xcron-weight-title);
+}
+
+.block p {
+  margin: 0;
+  color: var(--xcron-ink-soft);
+  font-size: var(--xcron-text-body);
+  line-height: var(--xcron-leading-body);
+}
+
+.foot {
+  margin: 1.25rem 0 2rem;
+  font-size: var(--xcron-text-meta);
+}
+
+.foot a {
+  color: var(--xcron-primary-hover);
+}

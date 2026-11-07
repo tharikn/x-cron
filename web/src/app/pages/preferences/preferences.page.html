@@ -44,6 +44,22 @@
       <label class="check">
         <input
           type="checkbox"
+          [ngModel]="notifPrefs().applicationUpdatesEnabled"
+          (ngModelChange)="toggleAlert('applicationUpdatesEnabled', $event)"
+        />
+        <span>Application updates</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="notifPrefs().recruiterMessagesEnabled"
+          (ngModelChange)="toggleAlert('recruiterMessagesEnabled', $event)"
+        />
+        <span>Recruiter / application messages</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
           [ngModel]="notifPrefs().inAppEnabled"
           (ngModelChange)="toggleAlert('inAppEnabled', $event)"
         />
@@ -65,6 +81,20 @@
         />
         <span>Email alerts</span>
       </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          [ngModel]="notifPrefs().productAnnouncementsEnabled"
+          (ngModelChange)="toggleAlert('productAnnouncementsEnabled', $event)"
+        />
+        <span>Product announcements (optional)</span>
+      </label>
+      <p class="hint">
+        Category and channel toggles are separate consents. Security notices
+        cannot be turned off. Profile contact visibility is under Account → Profile.
+        See
+        <a routerLink="/privacy">Privacy</a>.
+      </p>
       <p
         class="perm"
         [class.perm--ok]="pushPermission() === 'granted'"

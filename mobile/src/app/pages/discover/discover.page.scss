@@ -264,3 +264,40 @@
 }
 
 
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.65rem 0 0.25rem;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 32px;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  font-weight: 500;
+}
+
+.filter-chip--clear {
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+}
+
+.for-you {
+  margin-top: 1rem;
+}
+
+.job-list--rail {
+  display: grid;
+  gap: 0.65rem;
+}

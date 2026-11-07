@@ -112,6 +112,20 @@ export interface JobSearchQuery {
   excludeJobIds?: string[];
   /** When true, only jobs with walkInAt set. */
   walkInOnly?: boolean | null;
+  /** Comma-separated or array — job must overlap at least one skill. */
+  skills?: string | string[];
+  /** When true, only verified employers. */
+  verifiedEmployer?: boolean | null;
+  /** When true, fresher / entry-friendly roles. */
+  fresher?: boolean | null;
+  /** When true, jobs with at least one public contact path. */
+  easyApply?: boolean | null;
+  /** Optional seeker skills for ranking / match reasons (not a hard filter). */
+  seekerSkills?: string[];
+  /** Preferred cities for ranking / match reasons. */
+  preferredLocations?: string[];
+  /** Remote preference for ranking / match reasons. */
+  remotePreferred?: boolean | null;
   sort?:
     | 'relevance'
     | 'newest'

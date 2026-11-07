@@ -19,7 +19,36 @@ export const DEFAULT_PASSWORD = 'TestPass1!';
 
 export type ClientKind = 'mobile' | 'web';
 
-export function pathsFor(client: ClientKind) {
+export type ClientPaths = {
+  home: string;
+  account: string;
+  signIn: string;
+  post: string;
+  job: (id: string) => string;
+  applied: string;
+  application: (id: string) => string;
+  myJobs: string;
+  myJob: (id: string) => string;
+  employerApplications: string;
+  company: string;
+  companyInvite: (token: string) => string;
+  performance: string;
+  feedback: string;
+  adminFeedback: string;
+  /** Present on web; Trust desk / Tracking admin are web-only. */
+  adminTrust?: string;
+  adminTracking?: string;
+  notifications: string;
+  settings: string;
+  settingsTheme: string;
+  settingsPrefs: string;
+  settingsSaved: string;
+  import: string;
+  jobFare: string;
+  me: string;
+};
+
+export function pathsFor(client: ClientKind): ClientPaths {
   if (client === 'mobile') {
     return {
       home: '/tabs/discover',
@@ -32,6 +61,8 @@ export function pathsFor(client: ClientKind) {
       myJobs: '/tabs/my-jobs',
       myJob: (id: string) => `/tabs/my-jobs/${id}`,
       employerApplications: '/tabs/employer-applications',
+      company: '/tabs/company',
+      companyInvite: (token: string) => `/tabs/company-invitations/${token}/accept`,
       performance: '/tabs/performance',
       feedback: '/tabs/feedback',
       adminFeedback: '/tabs/admin-feedback',
@@ -43,7 +74,7 @@ export function pathsFor(client: ClientKind) {
       import: '/tabs/import',
       jobFare: '/tabs/job-fare',
       me: '/tabs/account?tab=activity',
-    } as const;
+    };
   }
   return {
     home: '/',
@@ -56,9 +87,13 @@ export function pathsFor(client: ClientKind) {
     myJobs: '/my-jobs',
     myJob: (id: string) => `/my-jobs/${id}`,
     employerApplications: '/employer-applications',
+    company: '/company',
+    companyInvite: (token: string) => `/company-invitations/${token}/accept`,
     performance: '/performance',
     feedback: '/feedback',
     adminFeedback: '/admin/feedback',
+    adminTrust: '/admin/trust',
+    adminTracking: '/admin/tracking',
     notifications: '/notifications',
     settings: '/settings',
     settingsTheme: '/settings/theme',
@@ -67,5 +102,5 @@ export function pathsFor(client: ClientKind) {
     import: '/import',
     jobFare: '/admin/job-fare',
     me: '/me',
-  } as const;
+  };
 }

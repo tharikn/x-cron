@@ -38,7 +38,7 @@ those are seeker↔employer and bot FAQ respectively.
 | POST | `/v1/admin/feedback/threads/:id/messages` | admin |
 | POST | `/v1/admin/feedback/threads/:id/close` \| `.../reopen` | admin |
 
-Presence/typing: in-memory `FeedbackPresenceTracker` (`feedback-presence.ts`) — online ~20s, typing TTL ~5s; not Prisma-backed.
+Presence/typing: `FeedbackPresenceTracker` (`feedback-presence.ts`) — online ~20s, typing TTL ~5s; memory Maps by default, Redis keys when `REDIS_URL` connected (multi-instance); not Prisma-backed.
 
 Create/send use `@AuthThrottle`. Audience `employer` requires employer (or admin) role.
 

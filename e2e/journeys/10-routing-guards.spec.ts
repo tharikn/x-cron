@@ -88,4 +88,34 @@ test.describe('@routing Guards + role chrome', () => {
       page.getByText(/Sign in|Admin|Job Fare|password|Login|Discover|Home/i).first(),
     ).toBeVisible({ timeout: 20_000 });
   });
+
+  test('guest Trust desk / Tracking admin routes are gated (web)', async ({
+    page,
+    client,
+  }) => {
+    const paths = pathsFor(client);
+    test.skip(!paths.adminTrust || !paths.adminTracking, 'Trust desk + Tracking admin are web-only');
+    await page.goto(paths.adminTrust!);
+    await expect(
+      page.getByText(/Sign in|Admin|Trust|password|Login|Discover|Home|not/i).first(),
+    ).toBeVisible({ timeout: 20_000 });
+    await page.goto(paths.adminTracking!);
+    await expect(
+      page.getByText(/Sign in|Admin|Tracking|password|Login|Discover|Home|not/i).first(),
+    ).toBeVisible({ timeout: 20_000 });
+  });
+
+  test('seeker does not see Post / Company recruiter chrome', async ({
+    auth,
+    chrome,
+    page,
+    client,
+  }) => {
+    const seeker = await registerUser({ intendedRole: 'seeker' });
+    await auth.login({ username: seeker.username, password: seeker.password });
+    await auth.expectSignedIn();
+    await page.goto(pathsFor(client).home);
+    const result = await chrome.seekerShouldHideRecruiterChrome();
+    expect(result.issues, result.issues.join('; ')).toEqual([]);
+  });
 });

@@ -2,16 +2,21 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Param,
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CurrentUser, Roles } from '../auth/decorators';
+import type { Response } from 'express';
+import * as XLSX from 'xlsx';
+import { CurrentUser, Public, Roles } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
+import { UPLOAD_MAX_BYTES } from '../security/upload-guard';
 import {
   ApproveRecordsDto,
   CreateImportBatchDto,
@@ -24,6 +29,44 @@ import { IngestionService } from './ingestion.service';
 @Controller('v1/import-batches')
 export class IngestionController {
   constructor(private readonly ingestionService: IngestionService) {}
+
+  /** Free CSV template for bulk job import (Excel-compatible). */
+  @Public()
+  @Get('template.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header(
+    'Content-Disposition',
+    'attachment; filename="xcron-job-import-template.csv"',
+  )
+  templateCsv() {
+    return this.ingestionService.importTemplateCsv();
+  }
+
+  /** Free Excel template (same columns as CSV). */
+  @Public()
+  @Get('template.xlsx')
+  templateXlsx(@Res() res: Response) {
+    const rows = this.ingestionService.importTemplateCsv()
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => line.split(','));
+    const sheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Jobs');
+    const buffer = XLSX.write(workbook, {
+      type: 'buffer',
+      bookType: 'xlsx',
+    }) as Buffer;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="xcron-job-import-template.xlsx"',
+    );
+    res.send(buffer);
+  }
 
   @Roles('admin')
   @Post()
@@ -61,7 +104,11 @@ export class IngestionController {
 
   @Roles('admin')
   @Post(':id/uploads')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: UPLOAD_MAX_BYTES, files: 1 },
+    }),
+  )
   uploadFile(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

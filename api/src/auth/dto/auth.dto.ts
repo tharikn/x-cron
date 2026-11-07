@@ -109,6 +109,16 @@ export class AdminLoginDto {
   password!: string;
 }
 
+/** Platform admin assigns/revokes moderator (never via register/Google). */
+export class StaffRolesDto {
+  @IsString()
+  @MinLength(8)
+  userId!: string;
+
+  @IsOptional()
+  moderator?: boolean;
+}
+
 /** Rotate access + refresh tokens (body optional when HttpOnly refresh cookie is set). */
 export class RefreshTokenDto {
   @IsOptional()

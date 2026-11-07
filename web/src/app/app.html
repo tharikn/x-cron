@@ -69,6 +69,12 @@
     </div>
   }
 
+  @if (!online()) {
+    <div class="offline-banner" role="status" aria-live="polite">
+      You’re offline — reconnect to search, apply, or sync.
+    </div>
+  }
+
   <div
     class="backdrop"
     [class.backdrop--open]="menuOpen()"
@@ -113,6 +119,9 @@
             {{ 'nav.myJobs' | t }}
           </a>
         }
+        <a routerLink="/company" routerLinkActive="is-active" (click)="closeMenu()">
+          Company
+        </a>
       }
       @if (isAdmin()) {
         <a routerLink="/admin" routerLinkActive="is-active" (click)="closeMenu()">
@@ -127,14 +136,28 @@
             <a routerLink="/admin/notifications" routerLinkActive="is-active" (click)="closeMenu()">
               {{ 'nav.notifAdmin' | t }}
             </a>
+            <a routerLink="/admin/tracking" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.trackingAdmin' | t }}
+            </a>
             <a routerLink="/admin/feedback" routerLinkActive="is-active" (click)="closeMenu()">
               {{ 'nav.feedbackAdmin' | t }}
+            </a>
+            <a routerLink="/admin/trust" routerLinkActive="is-active" (click)="closeMenu()">
+              Trust desk
             </a>
             <a routerLink="/my-jobs" routerLinkActive="is-active" (click)="closeMenu()">
               {{ 'nav.myJobs' | t }}
             </a>
           </div>
         </div>
+        <a routerLink="/blog-approval" routerLinkActive="is-active" (click)="closeMenu()">
+          {{ 'nav.blogApproval' | t }}
+        </a>
+      }
+      @if (isModerator() && !isAdmin()) {
+        <a routerLink="/admin/trust" routerLinkActive="is-active" (click)="closeMenu()">
+          Trust desk
+        </a>
         <a routerLink="/blog-approval" routerLinkActive="is-active" (click)="closeMenu()">
           {{ 'nav.blogApproval' | t }}
         </a>
@@ -201,7 +224,7 @@
     }
   </aside>
 
-  <main>
+  <main appRouteEnter="ltr">
     <router-outlet />
   </main>
 

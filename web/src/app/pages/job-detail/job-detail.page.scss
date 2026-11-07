@@ -745,3 +745,46 @@ a.revealed__value:hover {
   font-size: var(--xcron-text-button);
   font-weight: var(--xcron-weight-semibold);
 }
+
+.report-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(7, 4, 18, 0.72);
+}
+
+.report-modal__card {
+  width: min(420px, 100%);
+  padding: 1.25rem;
+  border-radius: var(--xcron-radius-lg, 16px);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  display: grid;
+  gap: 0.75rem;
+
+  h2 {
+    margin: 0;
+    font: var(--xcron-weight-title) var(--xcron-text-title) / 1.2 var(--xcron-display);
+  }
+
+  p {
+    margin: 0;
+    color: var(--xcron-ink-soft);
+    font: var(--xcron-weight-meta) var(--xcron-text-meta) / 1.4 var(--xcron-sans);
+  }
+
+  label {
+    display: grid;
+    gap: 0.35rem;
+    font: var(--xcron-weight-label) var(--xcron-text-label) / 1.2 var(--xcron-sans);
+  }
+}
+
+.report-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

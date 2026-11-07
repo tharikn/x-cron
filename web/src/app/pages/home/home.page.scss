@@ -387,18 +387,7 @@
 }
 
 .layout {
-  display: grid;
-  gap: 1.25rem;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
   padding-bottom: 2rem;
-}
-
-@media (min-width: 960px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr) 250px;
-    gap: 1.5rem;
-  }
 }
 
 .job-card__meta {
@@ -530,6 +519,7 @@
 .status--maintenance {
   display: grid;
   gap: 0.4rem;
+  justify-items: start;
 }
 
 .status__title {
@@ -541,8 +531,27 @@
   color: var(--xcron-ink);
 }
 
-.status--maintenance > p:last-child {
+.status--maintenance > p {
   margin: 0;
+}
+
+.status__retry {
+  margin-top: 0.35rem;
+  min-height: var(--xcron-btn-height, 44px);
+  padding: 0 1rem;
+  border-radius: var(--xcron-radius, 12px);
+  border: 1px solid var(--xcron-line);
+  background: transparent;
+  color: var(--xcron-ink);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-button);
+  font-weight: var(--xcron-weight-semibold, 600);
+  cursor: pointer;
+}
+
+.status__retry:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .status--loading {
@@ -559,4 +568,54 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  font-weight: var(--xcron-weight-medium, 500);
+  cursor: pointer;
+}
+
+.filter-chip--clear {
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.match-reasons {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.match-reasons li {
+  margin: 0;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--xcron-primary) 18%, transparent);
+  color: var(--xcron-ink-soft, var(--xcron-ink));
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-label);
+  font-weight: var(--xcron-weight-semibold, 600);
 }

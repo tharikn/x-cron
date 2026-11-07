@@ -1,11 +1,13 @@
 import { isPlatformBrowser } from '@angular/common';
 import {
   Component,
+  ElementRef,
   OnDestroy,
   PLATFORM_ID,
   effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -28,6 +30,7 @@ export class HelpChatComponent implements OnDestroy {
   private readonly ai = inject(AiService);
   private readonly auth = inject(AuthService);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly log = viewChild<ElementRef<HTMLElement>>('log');
 
   readonly isSignedIn = this.auth.isSignedIn;
   readonly open = signal(false);
@@ -38,6 +41,12 @@ export class HelpChatComponent implements OnDestroy {
   readonly status = signal<HelpChatStatus | null>(null);
   readonly error = signal<string | null>(null);
   readonly cooldownLeft = signal(0);
+
+  readonly suggestions = [
+    'How do I search for jobs?',
+    'How does Easy apply work?',
+    'Where are my saved jobs?',
+  ] as const;
 
   private msgSeq = 0;
   private loadedForUser: string | null = null;
@@ -57,10 +66,33 @@ export class HelpChatComponent implements OnDestroy {
       this.loadedForUser = userId;
       void this.hydrate();
     });
+
+    effect(() => {
+      this.messages();
+      this.busy();
+      if (!this.open()) return;
+      queueMicrotask(() => this.scrollLogToEnd());
+    });
   }
 
   ngOnDestroy(): void {
     this.clearCooldownTimer();
+  }
+
+  showSuggestions(): boolean {
+    return this.messages().length <= 1 && !this.busy();
+  }
+
+  useSuggestion(text: string): void {
+    if (this.busy() || this.cooldownLeft() > 0) return;
+    this.draft.set(text);
+    void this.send();
+  }
+
+  onComposerKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    void this.send();
   }
 
   toggle(): void {
@@ -117,6 +149,12 @@ export class HelpChatComponent implements OnDestroy {
     const s = this.status();
     if (!s) return '';
     return `${s.remainingTokens} / ${s.dailyTokenBudget} tokens left today`;
+  }
+
+  private scrollLogToEnd(): void {
+    const el = this.log()?.nativeElement;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }
 
   private async hydrate(): Promise<void> {

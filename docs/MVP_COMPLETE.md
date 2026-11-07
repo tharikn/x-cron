@@ -7,9 +7,11 @@ This marks the **product MVP slice** as complete for local demo and iteration. I
 | Area | Status |
 | --- | --- |
 | Guest search + monochrome UI | Done |
+| Discovery Phase 1 (URL chips, match reasons, richer filters) | Done — [JOB_DISCOVERY.md](./JOB_DISCOVERY.md); Meilisearch/metrics deferred |
 | Username/password auth, employer post, admin moderation | Done |
 | SSR SEO job pages + sitemap | Done |
-| Bulk import (CSV/text/OCR stub) | Done |
+| Bulk import (CSV/Excel/text/OCR stub) | Done |
+| Partner API + XML/JSON feeds + Zapier/Sheet (lean, ₹0) | Done |
 | ₹5 contact unlock + Razorpay webhook stub | Done |
 | **Subscriptions** (weekly/monthly unlimited unlocks) | Done |
 | Prefs sync + FCM stub + in-app alerts | Done |
@@ -18,7 +20,8 @@ This marks the **product MVP slice** as complete for local demo and iteration. I
 | **Account deletion** (`DELETE /v1/me`) | Done |
 | Import / unlock **quota enforcement** | Done |
 | **Feedback hub** (FAQ + Contact Admin messenger seeker/recruiter → admin) | Done |
-| Prisma schema (incl. SavedJob, Subscription, FeedbackThread) | Ready |
+| **Admin trust & moderation** (cases, reports, audit, suspend, appeals, `moderator`) | Done — [ADMIN_TRUST_MODERATION.md](./ADMIN_TRUST_MODERATION.md) |
+| Prisma schema (incl. SavedJob, Subscription, FeedbackThread, ModerationCase) | Ready |
 
 ## Still deferred (post-MVP / production)
 

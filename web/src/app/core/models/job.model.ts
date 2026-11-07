@@ -91,6 +91,8 @@ export interface Job {
   walkInAt?: string | null;
   applyBy?: string | null;
   distanceKm?: number;
+  /** Truthful discovery chips — never a match %. */
+  matchReasons?: string[];
   promoted?: boolean;
   promotionBadge?: string | null;
   /** Earned recruiter signal: high | medium only — never a public “low”. */
@@ -111,4 +113,7 @@ export interface Job {
   };
   /** Admin moderation only — apply/info URL for edit boxes. */
   contactWebsite?: string | null;
+  /** Admin / Blog Approval — abuse report counter. */
+  reportCount?: number;
+  moderationNote?: string | null;
 }

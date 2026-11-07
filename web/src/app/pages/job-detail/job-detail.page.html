@@ -158,6 +158,11 @@
               (skills / portfolio — no CV) before easy apply.
             </p>
           }
+          <p class="note">
+            Easy apply shares your selected profile version and contact with this
+            employer for this job.
+            <a routerLink="/privacy">Privacy</a>
+          </p>
           <button
             type="button"
             class="action action--save"
@@ -180,10 +185,37 @@
         <button type="button" class="action" (click)="shareJob()">Share</button>
       </div>
       <button type="button" class="action" (click)="hideJob()">Not interested</button>
-      <button type="button" class="action action--report" (click)="reportJob()">
+      <button type="button" class="action action--report" (click)="openReport()">
         Report job
       </button>
     </div>
+
+    @if (reportOpen()) {
+      <div class="report-modal" role="dialog" aria-modal="true">
+        <div class="report-modal__card">
+          <h2>Report this job</h2>
+          <p>We review every report. Your identity is never shared with the employer.</p>
+          <label>
+            Category
+            <select [(ngModel)]="reportCategory">
+              @for (opt of reportCategories; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Details (optional)
+            <textarea rows="3" [(ngModel)]="reportDetails" placeholder="What looked wrong?"></textarea>
+          </label>
+          <div class="report-modal__actions">
+            <button type="button" class="action" (click)="reportOpen.set(false)">Cancel</button>
+            <button type="button" class="action action--report" (click)="reportJob()">
+              Submit report
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     @if (related().length) {
       <section class="related-block">

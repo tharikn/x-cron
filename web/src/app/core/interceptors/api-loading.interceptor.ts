@@ -15,6 +15,7 @@ const SILENT_PATH_MARKERS = [
   '/languages',
   '/feedback',
   '/ai/help',
+  '/tracking/events',
 ];
 
 function isSilent(url: string): boolean {

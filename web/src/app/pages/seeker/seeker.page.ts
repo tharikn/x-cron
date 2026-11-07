@@ -1,11 +1,15 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApplyProfilesService } from '../../core/services/apply-profiles.service';
 import { ApplicationsService } from '../../core/services/applications.service';
 import { AuthService } from '../../core/services/auth.service';
-import { SeekerService } from '../../core/services/seeker.service';
+import {
+  type ProfileCompletion,
+  type ProfileCompletionItemId,
+  SeekerService,
+} from '../../core/services/seeker.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ViewedJobsService } from '../../core/services/viewed-jobs.service';
@@ -42,6 +46,11 @@ export class SeekerPage implements OnInit {
   readonly tab = signal<SeekerTab>('apply');
   readonly feedTab = signal<FeedTab>('recent');
   readonly jobPath = jobPath;
+  readonly profileCompletion = computed((): ProfileCompletion | null => {
+    const completion = this.seeker.profile()?.completion;
+    if (!completion || completion.complete) return null;
+    return completion;
+  });
 
   versionName = '';
   versionHeadline = '';
@@ -75,12 +84,27 @@ export class SeekerPage implements OnInit {
       await Promise.all([
         this.seeker.loadSaved(),
         this.seeker.loadFeed(),
+        this.seeker.loadProfile(),
         this.applications.listMine(),
         this.applyProfilesApi.list(),
       ]);
     } catch {
       this.error.set('Could not load your jobs.');
     }
+  }
+
+  async focusCompletion(id: ProfileCompletionItemId): Promise<void> {
+    if (id === 'applyReady') {
+      await this.setTab('apply');
+      return;
+    }
+    if (id === 'skills') {
+      await this.router.navigate(['/onboarding/profile']);
+      return;
+    }
+    await this.router.navigate(['/sign-in'], {
+      queryParams: { tab: 'profile' },
+    });
   }
 
   async setTab(next: SeekerTab): Promise<void> {
@@ -160,6 +184,7 @@ export class SeekerPage implements OnInit {
         isDefault: this.applyProfiles().length === 0,
       });
       await this.applyProfilesApi.list();
+      await this.seeker.loadProfile();
       this.versionName = '';
       this.versionHeadline = '';
       this.versionSkills = [];

@@ -20,12 +20,13 @@ Session auth + RBAC for X Cron API. In-memory users/sessions (+ optional Prisma 
 | CSRF | readable `xcron_csrf` + request header `X-CSRF-Token` | follows refresh |
 
 Sign-in (`register`, `login`, `google`, `admin/login`) returns `{ token, refreshToken, expiresAt, user, employer }` **and** sets cookies.  
-Refresh **rotates** both tokens and invalidates the old refresh. Logout / account delete revoke the pair + clear cookies.
+Refresh **rotates** both tokens and **retires** the old refresh (same `familyId`). Presenting a retired refresh → **`refresh_token_reuse`** and the whole family is revoked. Logout / logout-all / account delete / `disabled` status revoke live pairs + clear cookies.
 
 **First login after account create:** `register` and Google `isNewUser` fire `NotificationsService.onUserFirstLogin` (welcome + day-0 profile-complete nudge). Re-logins do not re-send. Day 1–N profile reminders: see `notifications` scheduler.
 
 **Single session:** new sign-in revokes other refresh sessions (`AUTH_SINGLE_SESSION=1`).  
-**One tab:** clients send `X-Tab-Id`; mismatch → **401** `session_tab_mismatch`.
+**One tab:** clients send `X-Tab-Id`; mismatch → **401** `session_tab_mismatch`.  
+**Client forensics:** sessions store `ip` / `userAgent` / `lastSeenAt` (sign-in + refresh) for admin user tracking.
 
 **Local auth (beginner default):** username + password (scrypt). No email/SMS OTP.  
 `POST /auth/register` requires `confirmPassword` match. Optional `intendedRole` = `seeker` (default) or `employer` (Recruiter) — clients collect this on Create account. Username: `^[a-z0-9_]{3,32}$` (stored lowercase). Password hashes live on `User.passwordHash` / `passwordSalt` — never on public DTOs.
@@ -43,8 +44,14 @@ Refresh **rotates** both tokens and invalidates the old refresh. Logout / accoun
 | POST | `/v1/auth/refresh` | Public (refresh cookie/body) | auth |
 | GET | `/v1/auth/me` | Authenticated | default |
 | POST | `/v1/auth/logout` | Authenticated | default |
+| POST | `/v1/auth/logout-all` | Authenticated | default |
+| GET | `/v1/auth/sessions` | Authenticated | default |
+| DELETE | `/v1/auth/sessions/:sessionId` | Authenticated | default |
 
 Admin role is granted **only** via `SUPER_ADMIN_EMAIL` + `SUPER_ADMIN_PASSWORD` password login — not Google/register/login.
+Moderator role: `MODERATOR_EMAILS` allowlist on session, or `POST /v1/admin/staff/roles` (`@Roles('admin')`) — never via register/Google.
+
+**Disabled users:** `status=disabled` → sessions revoked; `getUserByToken` / refresh / password+Google login fail. Design doc: [docs/AUTHENTICATION.md](../../../docs/AUTHENTICATION.md). Persistence adds `AuthSession.familyId` + `RevokedRefreshToken` (migration `20261107103000_auth_session_family_reuse`). Unit tests: `auth.store.spec.ts`. Clients: Account **Devices & sessions** UI + mobile `TokenVaultService` (Capacitor Preferences).
 
 ## Agent rules
 

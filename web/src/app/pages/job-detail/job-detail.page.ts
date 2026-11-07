@@ -8,9 +8,14 @@ import { ApplicationsService } from '../../core/services/applications.service';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
+import {
+  REPORT_CATEGORY_OPTIONS,
+  type ReportCategory,
+} from '../../core/services/moderation.service';
 import { SeekerService } from '../../core/services/seeker.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
+import { TrackingService } from '../../core/services/tracking.service';
 import { ViewedJobsService } from '../../core/services/viewed-jobs.service';
 import {
   formatJobType,
@@ -50,6 +55,7 @@ export class JobDetailPage implements OnInit {
   private readonly locale = inject(LocaleService);
   private readonly toast = inject(ToastService);
   private readonly viewed = inject(ViewedJobsService);
+  private readonly tracking = inject(TrackingService);
 
   readonly job = signal<Job | null>(null);
   readonly related = signal<Job[]>([]);
@@ -63,6 +69,10 @@ export class JobDetailPage implements OnInit {
   readonly signInOpen = signal(false);
   readonly signInReason = signal<GoogleSignInReason>('generic');
   selectedProfileId = '';
+  readonly reportOpen = signal(false);
+  readonly reportCategories = REPORT_CATEGORY_OPTIONS;
+  reportCategory: ReportCategory = 'other';
+  reportDetails = '';
 
   private pendingAction: PendingAction | null = null;
 
@@ -191,6 +201,7 @@ export class JobDetailPage implements OnInit {
       return;
     }
     const url = `${typeof location !== 'undefined' ? location.origin : 'https://xcron.jobs'}/jobs/${job.slug}`;
+    this.tracking.trackShare(job.id);
     if (typeof navigator !== 'undefined' && navigator.share) {
       await navigator.share({
         title: job.title,
@@ -207,15 +218,31 @@ export class JobDetailPage implements OnInit {
     this.toast.show(url);
   }
 
+  openReport(): void {
+    this.reportCategory = 'other';
+    this.reportDetails = '';
+    this.reportOpen.set(true);
+  }
+
   async reportJob(): Promise<void> {
     const job = this.job();
     if (!job) return;
+    const details =
+      this.reportDetails.trim() ||
+      `Reported as ${this.reportCategory} from web`;
+    if (details.length < 5) {
+      this.toast.show('Please add a bit more detail.', 'error');
+      return;
+    }
     try {
-      await this.seeker.report(
-        job.id,
-        'Reported as suspicious or incorrect from web',
+      const res = await this.seeker.report(job.id, {
+        category: this.reportCategory,
+        details,
+      });
+      this.reportOpen.set(false);
+      this.toast.show(
+        res.acknowledgement || 'Report submitted for moderation.',
       );
-      this.toast.show('Report submitted for moderation.');
     } catch {
       this.toast.show('Could not submit report.', 'error');
     }

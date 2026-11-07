@@ -1,4 +1,5 @@
 import {
+  Allow,
   IsBoolean,
   IsIn,
   IsInt,
@@ -34,9 +35,31 @@ export class UnlinkDeviceDto {
 }
 
 export class NotificationPreferencesDto {
+  /** Echoed from GET; ignored — user comes from the session. */
+  @Allow()
+  @IsOptional()
+  userId?: string;
+
+  /** Echoed from GET; ignored — server sets on save. */
+  @Allow()
+  @IsOptional()
+  updatedAt?: string;
+
   @IsOptional()
   @IsBoolean()
   jobAlertsEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  applicationUpdatesEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recruiterMessagesEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  productAnnouncementsEnabled?: boolean;
 
   @IsOptional()
   @IsBoolean()

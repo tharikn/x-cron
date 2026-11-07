@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
 import type { Response } from 'express';
+import type { RequestWithCorrelation } from '../correlation-id.middleware';
 
 export type FieldErrorMap = Record<string, string>;
 
@@ -47,14 +48,17 @@ export class ValidationExceptionFilter implements ExceptionFilter {
   catch(exception: BadRequestException, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const res = ctx.getResponse<Response>();
+    const req = ctx.getRequest<RequestWithCorrelation>();
     const status = exception.getStatus();
     const body = exception.getResponse();
+    const correlationId = req.correlationId;
 
     if (typeof body === 'string') {
       res.status(status).json({
         statusCode: status,
         error: 'Bad Request',
         message: body,
+        ...(correlationId ? { correlationId } : {}),
       });
       return;
     }
@@ -67,6 +71,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
         error: 'Bad Request',
         message: typeof payload.message === 'string' ? payload.message : 'Validation failed',
         errors: payload.errors,
+        ...(correlationId ? { correlationId } : {}),
       });
       return;
     }
@@ -79,6 +84,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
         message: 'Validation failed',
         errors: { _form: (payload.message as string[]).join('; ') },
         details: payload.message,
+        ...(correlationId ? { correlationId } : {}),
       });
       return;
     }
@@ -88,6 +94,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
       error: typeof payload.error === 'string' ? payload.error : 'Bad Request',
       message: typeof payload.message === 'string' ? payload.message : 'Bad Request',
       ...(payload.errors ? { errors: payload.errors } : {}),
+      ...(correlationId ? { correlationId } : {}),
     });
   }
 }

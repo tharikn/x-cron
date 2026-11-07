@@ -1,0 +1,221 @@
+<section class="page">
+  <header class="head">
+    <div>
+      <p class="eyebrow">Logs</p>
+      <h1>Trust desk</h1>
+      <p class="lead">
+        Moderation queues, reports, risk signals, suspensions, and appeals. Reporter identity stays
+        staff-only.
+      </p>
+    </div>
+    <div class="head__links">
+      <a routerLink="/blog-approval">Blog Approval</a>
+      <a routerLink="/admin/feedback">Feedback</a>
+      @if (isAdmin()) {
+        <a routerLink="/admin">Ops dashboard</a>
+      }
+    </div>
+  </header>
+
+  @if (!isModerator()) {
+    <div class="gate">
+      <p>Sign in as a moderator or admin to open the trust desk.</p>
+      <a class="btn" routerLink="/sign-in" [queryParams]="{ mode: 'admin' }">Sign in</a>
+    </div>
+  } @else {
+    @if (dash(); as d) {
+      <div class="tiles">
+        <article class="tile">
+          <span>Open</span>
+          <strong>{{ d.openTotal }}</strong>
+        </article>
+        <article class="tile tile--warn">
+          <span>Overdue SLA</span>
+          <strong>{{ d.overdue }}</strong>
+        </article>
+        @for (q of queues; track q) {
+          <button type="button" class="tile" (click)="selectQueue(q)">
+            <span>{{ queueLabels[q] }}</span>
+            <strong>{{ d.queues[q] || 0 }}</strong>
+          </button>
+        }
+      </div>
+    }
+
+    <div class="toolbar">
+      <label>
+        Status
+        <select [(ngModel)]="statusFilter" (ngModelChange)="reload()">
+          <option value="open">Open</option>
+          <option value="in_review">In review</option>
+          <option value="resolved">Resolved</option>
+          <option value="dismissed">Dismissed</option>
+          <option value="all">All</option>
+        </select>
+      </label>
+      <button type="button" class="secondary" [disabled]="busy()" (click)="reload()">
+        Refresh
+      </button>
+      <div class="search">
+        <input
+          type="search"
+          [(ngModel)]="searchQ"
+          placeholder="Search users, companies, jobs"
+          (keyup.enter)="runSearch()"
+        />
+        <button type="button" class="secondary" (click)="runSearch()">Search</button>
+      </div>
+    </div>
+
+    @if (searchHits(); as hits) {
+      <section class="search-panel">
+        <h2>Search</h2>
+        <div class="search-cols">
+          <div>
+            <h3>Users</h3>
+            @for (u of hits.users; track $index) {
+              <p>{{ u['displayName'] || u['username'] || u['id'] }} · {{ u['status'] }}</p>
+            } @empty {
+              <p class="muted">None</p>
+            }
+          </div>
+          <div>
+            <h3>Companies</h3>
+            @for (e of hits.employers; track $index) {
+              <p>{{ e['name'] }} · {{ e['verificationStatus'] }}</p>
+            } @empty {
+              <p class="muted">None</p>
+            }
+          </div>
+          <div>
+            <h3>Jobs</h3>
+            @for (j of hits.jobs; track $index) {
+              <p>{{ j['title'] }} · {{ j['status'] }} · reports {{ j['reportCount'] }}</p>
+            } @empty {
+              <p class="muted">None</p>
+            }
+          </div>
+        </div>
+      </section>
+    }
+
+    <div class="layout">
+      <section class="queue">
+        <h2>
+          {{ activeQueue === 'all' ? 'All queues' : queueLabels[activeQueue] }}
+        </h2>
+        @for (row of cases(); track row.id) {
+          <button
+            type="button"
+            class="case"
+            [class.case--active]="active()?.id === row.id"
+            [class.case--overdue]="overdue(row)"
+            (click)="openCase(row)"
+          >
+            <strong>{{ row.targetType }} · {{ row.targetId.slice(0, 8) }}</strong>
+            <span>{{ row.priority }} · {{ row.status }} · risk {{ row.riskScore }}</span>
+            @if (row.slaAt) {
+              <span>SLA {{ row.slaAt | date: 'dd MMM, HH:mm' }}</span>
+            }
+          </button>
+        } @empty {
+          <p class="muted">No cases in this filter.</p>
+        }
+      </section>
+
+      <section class="detail">
+        @if (active(); as c) {
+          <h2>Case detail</h2>
+          <p class="meta">
+            {{ queueLabels[c.queue] }} · {{ c.status }} · priority {{ c.priority }}
+          </p>
+          <p>{{ c.details || 'No details' }}</p>
+          @if (c.riskFlags.length) {
+            <div class="flags">
+              @for (f of c.riskFlags; track f) {
+                <span class="chip">{{ f }}</span>
+              }
+              <button type="button" class="secondary" (click)="dismissFlags()">
+                Override risk flags
+              </button>
+            </div>
+          }
+          <div class="actions">
+            <button type="button" class="secondary" (click)="assignToMe()">Assign to me</button>
+            @if (c.targetType === 'job') {
+              <a class="btn secondary" routerLink="/blog-approval">Open Blog Approval</a>
+              <button type="button" (click)="decide('approve')">Approve job</button>
+              <button type="button" class="secondary" (click)="decide('reject')">Reject</button>
+              <button type="button" class="danger" (click)="decide('remove')">Remove</button>
+            }
+            @if (c.targetType === 'employer') {
+              <button type="button" (click)="decide('verify_company')">Verify company</button>
+              <button type="button" class="secondary" (click)="decide('reject_company')">
+                Reject company
+              </button>
+              <button type="button" class="danger" (click)="decide('suspend_company')">
+                Suspend company
+              </button>
+            }
+            @if (c.targetType === 'user') {
+              <button type="button" class="danger" (click)="suspendTargetUser()">
+                Suspend user
+              </button>
+              <button type="button" (click)="decide('reactivate_user')">Reactivate</button>
+            }
+            @if (c.queue === 'appeal') {
+              <button type="button" (click)="decide('reinstate')">Reinstate</button>
+              <button type="button" class="secondary" (click)="decide('uphold')">Uphold</button>
+            }
+            <button type="button" class="secondary" (click)="decide('dismiss')">Dismiss case</button>
+          </div>
+          <label class="field">
+            Reason (required)
+            <textarea rows="3" [(ngModel)]="decideReason"></textarea>
+          </label>
+          <label class="field">
+            Reason code
+            <input [(ngModel)]="decideCode" />
+          </label>
+          @if (c.targetType === 'user') {
+            <label class="field">
+              Suspend hours (blank = indefinite)
+              <input type="number" [(ngModel)]="suspendHours" min="1" />
+            </label>
+          }
+
+          <h3>Reports</h3>
+          @for (r of reports(); track r.id) {
+            <article class="report">
+              <strong>{{ r.category }}</strong>
+              <p>{{ r.details }}</p>
+              <span class="muted">
+                {{ r.createdAt | date: 'dd MMM yyyy, HH:mm' }}
+                @if (r.reporterUserId) {
+                  · reporter {{ r.reporterUserId.slice(0, 8) }}…
+                }
+              </span>
+            </article>
+          } @empty {
+            <p class="muted">No report rows.</p>
+          }
+
+          <h3>Audit</h3>
+          @for (a of audit(); track a.id) {
+            <p class="audit-row">
+              <strong>{{ a.action }}</strong>
+              · {{ a.createdAt | date: 'dd MMM, HH:mm' }}
+              @if (a.reason) {
+                — {{ a.reason }}
+              }
+            </p>
+          } @empty {
+            <p class="muted">No audit yet.</p>
+          }
+        } @else {
+          <p class="muted">Select a case to review evidence and decide.</p>
+        }
+      </section>
+    </div>
+  }
+</section>

@@ -19,11 +19,15 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 ## Trigger flow
 
 1. Job publish / approve → `NotificationsService.onJobPublished(jobId)`
-2. Creates `NotificationDispatch` (history row)
-3. Collects subscribers (job prefs ∪ alert prefs ∪ active users with alerts on)
-4. Preference match (empty filters = all-job subscriber); daily cap + quiet hours
-5. Channels: in-app always (if enabled); push/mail when not quiet
-6. Each attempt → `NotificationDelivery` log + inbox/`NotificationRecord` for in-app
+2. When outbox enabled (`OUTBOX_ENABLED` / `JOBS_STORE=prisma`): `OutboxService.record('job.published')`; `OutboxRelay` → BullMQ or inline
+3. Else when `REDIS_URL` + `REDIS_QUEUES_ENABLED`: enqueue BullMQ `notification-fanout` (`{ jobId }`); else run inline
+4. Worker / inline → `runJobPublishedFanout` creates `NotificationDispatch` (history row — durable store, not Redis-only)
+5. Collects subscribers (job prefs ∪ alert prefs ∪ active users with alerts on)
+5. Preference match (empty filters = all-job subscriber); daily cap + quiet hours
+6. Channels: in-app always (if enabled); push/mail via queues `push-delivery` / `email-delivery` when Redis queues on, else sync
+7. Each attempt → `NotificationDelivery` log + inbox/`NotificationRecord` for in-app
+
+See [redis/CLAUDE.md](../redis/CLAUDE.md) · [docs/REDIS.md](../../../docs/REDIS.md).
 
 **ATS applications:** `onApplicationEvent(...)` (trigger `application_event`) — targeted fan-out to seeker or employer on apply / first view / status change / offer letter / note / withdraw / chat. Called from `applications` module only. Inbox `data` includes `applicationId`, `eventType`, `status`, `recipientRole` so clients open the application timeline (not only the job). Design: [../../../docs/APPLICATIONS_TIMELINE.md](../../../docs/APPLICATIONS_TIMELINE.md).
 
@@ -48,6 +52,7 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 | `FCM_ANDROID_CHANNEL_ID` | `xcron-job-alerts-v2` | Must match mobile LocalNotifications channel |
 | `MAIL_PROVIDER` | `stub` | Log-only; `console` alias; `smtp` → stub until `MAIL_SMTP_URL` |
 | `NOTIFICATION_FANOUT_BATCH` | `25` | Yield between batches for large user sets |
+| `REDIS_URL` / `REDIS_QUEUES_ENABLED` | unset / `1` | Optional BullMQ offload — see redis module |
 | `NOTIFICATION_MODE` | — | Legacy push mode alias |
 | `PROFILE_REMINDER_SCHEDULE_ENABLED` | `1` | `0` disables day 1–N profile nudge watcher |
 | `PROFILE_REMINDER_MAX_DAYS` | `2` | Auto profile nudges while account age ≤ N days (day 0 = first login) |
@@ -60,22 +65,38 @@ Providers are Strategy/Adapter — zero-cost stubs by default; swap in FCM / SMT
 - Push send targets devices still linked to `userId` (logout → `POST /devices/unlink`). Do **not** gate FCM on in-memory refresh sessions — those reset on Render restart while device rows persist, which blocked closed-app tray alerts.
 - On Render set `FIREBASE_SERVICE_ACCOUNT_JSON` (one-line JSON). `FIREBASE_SERVICE_ACCOUNT_PATH` is a **file path** only — never paste JSON into PATH.
 
+## Preference categories
+
+Channel toggles (`inApp` / `push` / `email`) stay global. Category gates decide whether a non-security event may notify:
+
+| Field | Default | Gates |
+| --- | --- | --- |
+| `jobAlertsEnabled` | true | `job_published` |
+| `applicationUpdatesEnabled` | true | ATS apply/view/status/offer/note/withdraw |
+| `recruiterMessagesEnabled` | true | ATS `chat_message` |
+| `productAnnouncementsEnabled` / `marketingEnabled` | false (synced) | product tips (opt-in) |
+| *(security)* | always on | no user toggle |
+
+Support (`support_event`) stays independent of job alerts; still respects channel + quiet hours.
+
+Idempotent inbox: `dedupeKey` uses stable event/message ids (no `Date.now()`). Memory + Prisma `createNotification` return the existing row on duplicate key. Invalid FCM tokens → `detachDeviceByToken`.
+
 ## Endpoints
 
 - `POST /v1/devices` — link stub/FCM token to signed-in user
 - `POST /v1/devices/unlink` — detach device (logout / session death)
-- `GET|PUT|POST /v1/notifications/preferences` — channel toggles + quiet hours + daily cap
-- `GET /v1/notifications` · `POST /v1/notifications/:id/read` — in-app inbox
-- `GET /v1/admin/notification-dispatches` · `.../:id` — trigger + delivery history
+- `GET|PUT|POST|PATCH /v1/notifications/preferences` — category + channel toggles + quiet hours + daily cap. PUT body may echo GET `userId` / `updatedAt` (allowed + ignored); clients should omit them.
+- `GET /v1/notifications` · `POST|PATCH /v1/notifications/:id/read` — in-app inbox
+- `GET /v1/admin/notification-dispatches?limit=&offset=` · `.../:id` — paginated trigger history (`items` + `total` + `limit` + `offset`) and per-dispatch delivery detail
 - `POST /v1/notifications/dev/send` · `.../dev/dispatch-published/:jobId` — **admin** + `@SensitiveThrottle` (1/hour); not public
 
 ## UI
 
 - Web user inbox: `/notifications` — **list only** (Refresh + Inbox); no channel toggles
-- Web alert channels: `/settings/preferences` (Settings → Preferences) — job/in-app/push/email
+- Web alert channels: `/settings/preferences` — job / application / recruiter messages / in-app / push / email / product announcements
 - Web admin log: `/admin/notifications` (drawer Logs → menu label Notification)
 - Mobile inbox: Notifications tab (`/tabs/notifications`) — list only
-- Mobile channel toggles: Settings → Prefs (`/tabs/settings?tab=preferences`) — job/in-app/push/email
+- Mobile channel toggles: Settings → Prefs — same category + channel set as web
 - Mobile OS tray (closed/background app): live FCM via `@capacitor/push-notifications` + API `PUSH_PROVIDER=fcm`
 - Mobile OS tray (foreground / browser): `@capacitor/local-notifications` or Web Notification API; inbox poll ~8s remains for in-app list
 - Shade copy: short title + multi-line body (`\n` between job title/employer/city; feedback `Your feedback\nRe: …`). Clients also split middot runs for older rows.

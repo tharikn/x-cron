@@ -10,10 +10,10 @@ Local-first, multilingual job discovery (India-first). PRD baseline v1.0.
 | `api/` | NestJS `/v1/*` API | [api/CLAUDE.md](api/CLAUDE.md) |
 | `mobile/` | Ionic + Capacitor Android client | [mobile/CLAUDE.md](mobile/CLAUDE.md) |
 | `web/` | Angular SSR public SEO site | [web/CLAUDE.md](web/CLAUDE.md) |
-| `e2e/` | Playwright journeys (mobile + web) | [e2e/README.md](e2e/README.md) |
-| `docs/` | Roadmap, FILE_MAP, DEVELOPER, MVP notes | — |
+| `e2e/` | Playwright journeys (mobile + web + opt-in Android) | [e2e/README.md](e2e/README.md) |
+| `docs/` | Roadmap, FILE_MAP, DEVELOPER, [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md), [REDIS.md](docs/REDIS.md), MVP notes | — |
 
-**E2E:** from repo root `npm run test:e2e` → `scripts/run-e2e.mjs` (API + clients + Playwright). Failures listed in `e2e/test-results/ISSUES.md`.
+**E2E:** from repo root `npm run test:e2e` → `scripts/run-e2e.mjs` (API + clients + Playwright api+mobile+web; `npm run test:e2e:api` = browserless `/v1` contract specs). **Unit:** `npm test` in `api/`, `npm run test:unit` in `web/` + `mobile/`. Android Chrome (emulator/device): `npm run test:e2e:android` (needs `adb devices`). Failures listed in `e2e/test-results/ISSUES.md`.
 
 ## UI / UX standards (web + mobile)
 
@@ -56,7 +56,7 @@ Keep **web (`:4201`)** and **mobile (`:4200`)** visually aligned. Prefer modern 
 - **Guest chrome:** hide Settings, Notifications, My Rating, Applied jobs, and Saved jobs (plus header notif bell / auth-only footer quick links) until `isSignedIn()` after `/auth/me`. Guests keep Home/Discover, Get the app, and Sign in. Follow [`.cursor/skills/xcron-ui-auth/SKILL.md`](.cursor/skills/xcron-ui-auth/SKILL.md).
 - **Role chrome (seeker vs recruiter):** `isEmployer()` gates Post / Feeds / Recruiter desk. Seekers only: Account **Apply**, Easy apply, Applied/Saved nav, Career accordion. Recruiters’ Account **Activity** shows incoming applications + posted jobs — never seeker saved/applied lists. Same skill.
 - House ad slots / Ads admin UI are removed from clients; promoted jobs may still use an explicit badge when the API returns one.
-- Respect `prefers-reduced-motion`; keep motion intentional (enter rise, hover lift, drawer/tab transitions) — 2–3 motions, not noise.
+- Respect `prefers-reduced-motion`; keep motion intentional (enter rise, hover lift, drawer/tab transitions) — 2–3 motions, not noise. Menu/nav route opens use a light overlay: **web left→right**, **mobile/Android bottom→top** (`web/.../route-enter`, `mobile/.../xcron-nav-animation`).
 - **Loading UX:** prefer **layout-matched** shimmer skeletons (job cards, tables, list rows, detail panels) over spinners or centered icon stacks. Shared: `web|mobile/src/app/shared/skeleton/` + `.sk*` tokens. Global API busy = thin top bar only. Button busy = `.sk--btn-bar`, never a circular spinner icon.
 
 ### Tokens & files of record
@@ -77,6 +77,7 @@ When changing UI, update **both** clients unless the change is package-specific 
 - Optional AI job-text enrich is **off by default** (`AI_ENRICH_ENABLED=0`). Prefer free Groq or local Ollama — see `api/src/ai/CLAUDE.md`. Never invent contacts in public descriptions.
 - In-app help chatbot is **off by default** (`AI_HELP_ENABLED=0`); signed-in floating FAB only. Free/low model + heavy throttle/token budget — see `api/src/ai/help/CLAUDE.md`.
 - Job Fare channel pull is **free-first**: Telegram Bot API + WhatsApp paste bridge only — never unofficial WA scrapers. See [docs/CHANNEL_PULL.md](docs/CHANNEL_PULL.md) · [api/src/channels/CLAUDE.md](api/src/channels/CLAUDE.md).
+- Free recruiter job import integrations (Excel/CSV, Partner API, XML/JSON feeds, Zapier/Sheet webhook) — see [docs/JOB_IMPORT_INTEGRATIONS.md](docs/JOB_IMPORT_INTEGRATIONS.md) · [api/src/integrations/CLAUDE.md](api/src/integrations/CLAUDE.md).
 - When you change a package or feature folder, update that package’s `CLAUDE.md` (and add a folder `CLAUDE.md` for new modules). Keep technical project docs current for every feature, bug fix, and release (`docs/DEVELOPER.md`, `ROADMAP.md`, `FILE_MAP.md`, etc.) — follow [`.cursor/skills/xcron-claude-md/SKILL.md`](.cursor/skills/xcron-claude-md/SKILL.md).
 - Guest vs signed-in **and** seeker vs recruiter menus/nav: follow [`.cursor/skills/xcron-ui-auth/SKILL.md`](.cursor/skills/xcron-ui-auth/SKILL.md) whenever adding drawer, tab, header, account links, Easy apply, or Activity.
 - Default data store is **in-memory**; Prisma schema exists but is not the live path yet.
@@ -91,10 +92,16 @@ When changing UI, update **both** clients unless the change is package-specific 
 - [docs/ROADMAP.md](docs/ROADMAP.md) — R0–R5 + MVP+  
 - [docs/MVP_COMPLETE.md](docs/MVP_COMPLETE.md) — MVP vs production gaps  
 - [docs/CHANNEL_PULL.md](docs/CHANNEL_PULL.md) — Job Fare Telegram/WA bridge design
+- [docs/JOB_IMPORT_INTEGRATIONS.md](docs/JOB_IMPORT_INTEGRATIONS.md) — Excel / Partner API / feeds / Zapier (free)
 - [docs/PERFORMANCE_SCORE.md](docs/PERFORMANCE_SCORE.md) — seeker + recruiter Performance Score
 - [docs/APPLICATIONS_TIMELINE.md](docs/APPLICATIONS_TIMELINE.md) — Applied jobs timeline + dual-role notify + scale plan
 - [docs/HIRING_ACTIVITY.md](docs/HIRING_ACTIVITY.md) — job-list hiring-activity badge (Indeed/LinkedIn; no public “low”)
-- [docs/FEEDBACK.md](docs/FEEDBACK.md) — FAQ + Contact Admin messenger (seeker/recruiter → admin)  
+- [docs/FEEDBACK.md](docs/FEEDBACK.md) — FAQ + Contact Admin messenger (seeker/recruiter → admin) 
+- [docs/JOB_DISCOVERY.md](docs/JOB_DISCOVERY.md) — search filters, ranking, match reasons, aliases (Phase 1)
+- [docs/WEBSITE_AND_ANDROID_UX.md](docs/WEBSITE_AND_ANDROID_UX.md) — Doc 10 UX map (routes, deep links, split view, correlation)
+- [docs/SECURITY_PRIVACY.md](docs/SECURITY_PRIVACY.md) — threat model, privacy/AI/DPDP, incident response
+- [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) — sessions, refresh reuse, RBAC, account status
+- [docs/TRACKING.md](docs/TRACKING.md) — admin user access / engagement / hours spent  
 
 ## Release reality
 

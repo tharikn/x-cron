@@ -17,13 +17,18 @@ import {
   type JobApplication,
 } from '../../core/services/applications.service';
 import { ApplyProfilesService } from '../../core/services/apply-profiles.service';
-import { AuthService } from '../../core/services/auth.service';
+import {
+  AuthService,
+  type AuthDeviceSession,
+} from '../../core/services/auth.service';
 import { GoogleIdentityService } from '../../core/services/google-identity.service';
 import { JobsService } from '../../core/services/jobs.service';
 import {
   type CareerStage,
   type EducationStatus,
   type NoticePeriod,
+  type ProfileCompletion,
+  type ProfileCompletionItemId,
   SeekerService,
 } from '../../core/services/seeker.service';
 import { NotificationsService } from '../../core/services/notifications.service';
@@ -39,7 +44,7 @@ import {
   validateSeekerProfileFields,
   type FieldErrors,
 } from '../../core/utils/form-validation';
-import { jobPath } from '../../core/utils/format';
+import { formatPostedDate, jobPath } from '../../core/utils/format';
 import type { Job } from '../../core/models/job.model';
 import { PiiFieldComponent } from '../../shared/pii-field/pii-field.component';
 
@@ -113,6 +118,12 @@ export class SignInPage implements OnInit, AfterViewInit {
   readonly jobApps = this.jobApplications.mine;
   readonly applyProfiles = this.applyProfilesApi.items;
   readonly savedSearches = this.seeker.savedSearches;
+  readonly profileCompletion = computed((): ProfileCompletion | null => {
+    if (this.isEmployer()) return null;
+    const completion = this.seeker.profile()?.completion;
+    if (!completion || completion.complete) return null;
+    return completion;
+  });
   readonly employerApps = signal<JobApplication[]>([]);
   readonly postedJobs = signal<Job[]>([]);
   readonly jobPath = jobPath;
@@ -230,6 +241,93 @@ export class SignInPage implements OnInit, AfterViewInit {
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
+    if (tab === 'account' && this.isSignedIn()) {
+      await this.loadSessions();
+    }
+  }
+
+  readonly deviceSessions = signal<AuthDeviceSession[]>([]);
+  readonly sessionsBusy = signal(false);
+
+  formatSessionWhen(iso: string): string {
+    return formatPostedDate(iso);
+  }
+
+  async loadSessions(): Promise<void> {
+    if (!this.isSignedIn()) {
+      this.deviceSessions.set([]);
+      return;
+    }
+    this.sessionsBusy.set(true);
+    try {
+      this.deviceSessions.set(await this.auth.listSessions());
+    } catch {
+      this.deviceSessions.set([]);
+    } finally {
+      this.sessionsBusy.set(false);
+    }
+  }
+
+  async revokeDeviceSession(session: AuthDeviceSession): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (session.current) {
+      if (
+        !window.confirm(
+          'Revoke this device? You will be signed out here.',
+        )
+      ) {
+        return;
+      }
+    }
+    this.sessionsBusy.set(true);
+    try {
+      await this.auth.revokeSession(session.id);
+      if (session.current) {
+        this.auth.clearSession();
+        this.seeker.saved.set([]);
+        this.seeker.feed.set([]);
+        this.seeker.applications.set([]);
+        this.seeker.savedSearches.set([]);
+        this.applyProfilesApi.items.set([]);
+        this.jobApplications.mine.set([]);
+        this.deviceSessions.set([]);
+        this.toast.show('Signed out on this device.');
+        return;
+      }
+      await this.loadSessions();
+      this.toast.show('Session revoked.');
+    } catch {
+      this.toast.error('Could not revoke session.');
+    } finally {
+      this.sessionsBusy.set(false);
+    }
+  }
+
+  async logoutEverywhere(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (
+      !window.confirm(
+        'Sign out on every device? You will need to sign in again everywhere.',
+      )
+    ) {
+      return;
+    }
+    this.sessionsBusy.set(true);
+    try {
+      await this.auth.logoutAll();
+      this.seeker.saved.set([]);
+      this.seeker.feed.set([]);
+      this.seeker.applications.set([]);
+      this.seeker.savedSearches.set([]);
+      this.applyProfilesApi.items.set([]);
+      this.jobApplications.mine.set([]);
+      this.deviceSessions.set([]);
+      this.toast.show('Signed out everywhere.');
+    } catch {
+      this.toast.error('Could not sign out everywhere.');
+    } finally {
+      this.sessionsBusy.set(false);
+    }
   }
 
   async submitAccount(): Promise<void> {
@@ -291,6 +389,16 @@ export class SignInPage implements OnInit, AfterViewInit {
     this.toast.show('Signed out. Guest browsing still works.');
   }
 
+  async exportAccount(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      await this.seeker.exportAccount();
+      this.toast.show('Data export downloaded.');
+    } catch {
+      this.toast.error('Could not export account data.');
+    }
+  }
+
   async deleteAccount(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
     if (!window.confirm('Delete this account and all synced data? This cannot be undone.')) {
@@ -318,6 +426,23 @@ export class SignInPage implements OnInit, AfterViewInit {
     this.profileOpen = {
       ...this.profileOpen,
       [key]: !this.profileOpen[key],
+    };
+  }
+
+  async focusCompletion(id: ProfileCompletionItemId): Promise<void> {
+    if (id === 'applyReady') {
+      await this.setTab('apply');
+      return;
+    }
+    if (id === 'skills') {
+      await this.router.navigate(['/onboarding/profile']);
+      return;
+    }
+    await this.setTab('profile');
+    this.profileOpen = {
+      personal: id === 'personal',
+      location: id === 'location',
+      career: id === 'career',
     };
   }
 
@@ -519,6 +644,7 @@ export class SignInPage implements OnInit, AfterViewInit {
         await this.applyProfilesApi.create(payload);
       }
       await this.applyProfilesApi.list();
+      await this.seeker.loadProfile();
       this.startEditApply();
       this.toast.show('Apply profile version saved.');
     } catch {
@@ -532,6 +658,7 @@ export class SignInPage implements OnInit, AfterViewInit {
     try {
       await this.applyProfilesApi.setDefault(id);
       await this.applyProfilesApi.list();
+      await this.seeker.loadProfile();
       this.toast.show('Default apply version updated.');
     } catch {
       this.toast.error('Could not set default.');
@@ -565,6 +692,34 @@ export class SignInPage implements OnInit, AfterViewInit {
     } catch {
       this.toast.error('Could not remove saved search.');
     }
+  }
+
+  openSavedSearch(row: { query: Record<string, unknown> }): void {
+    const q = row.query ?? {};
+    const queryParams: Record<string, string> = {};
+    const map: Record<string, string> = {
+      keyword: 'q',
+      q: 'q',
+      location: 'location',
+      jobType: 'jobType',
+      category: 'category',
+      language: 'language',
+      skills: 'skills',
+      salaryMin: 'salaryMin',
+      remote: 'remote',
+      postedWithin: 'postedWithin',
+      walkInOnly: 'walkInOnly',
+      verifiedEmployer: 'verifiedEmployer',
+      fresher: 'fresher',
+      easyApply: 'easyApply',
+      sort: 'sort',
+    };
+    for (const [from, to] of Object.entries(map)) {
+      const value = q[from];
+      if (value == null || value === '' || value === false) continue;
+      queryParams[to] = String(value);
+    }
+    void this.router.navigate(['/'], { queryParams });
   }
 
   private async mountGoogleButton(): Promise<void> {
@@ -696,6 +851,9 @@ export class SignInPage implements OnInit, AfterViewInit {
 
   private async loadAccountHub(): Promise<void> {
     try {
+      if (this.tab() === 'account') {
+        void this.loadSessions();
+      }
       const profile = await this.seeker.loadProfile();
       const u = this.user();
       this.profileDisplayName =

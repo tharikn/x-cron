@@ -24,11 +24,20 @@ export type PublishedJob = {
 
 type Json = Record<string, unknown>;
 
-function newTabId(): string {
+export function newTabId(): string {
   return `e2e-${Math.random().toString(36).slice(2, 12)}`;
 }
 
-async function request<T = Json>(
+/** Max wait honoured from a 429 `Retry-After` (shared prod-like APIs throttle auth ~10/min). */
+const MAX_RETRY_AFTER_MS = 65_000;
+
+function retryAfterMs(res: Response): number {
+  const raw = Number(res.headers.get('retry-after'));
+  const ms = Number.isFinite(raw) && raw > 0 ? raw * 1000 : 15_000;
+  return Math.min(ms, MAX_RETRY_AFTER_MS);
+}
+
+export async function request<T = Json>(
   method: string,
   path: string,
   opts: {
@@ -36,11 +45,15 @@ async function request<T = Json>(
     token?: string;
     tabId?: string;
     expectOk?: boolean;
+    headers?: Record<string, string>;
+    /** Retries on 429 before giving up (0 disables). */
+    retries429?: number;
   } = {},
 ): Promise<{ status: number; data: T; headers: Headers }> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'X-Tab-Id': opts.tabId || newTabId(),
+    ...opts.headers,
   };
   if (opts.body !== undefined) {
     headers['Content-Type'] = 'application/json';
@@ -48,11 +61,17 @@ async function request<T = Json>(
   if (opts.token) {
     headers.Authorization = `Bearer ${opts.token}`;
   }
-  const res = await fetch(`${API_BASE}${path.startsWith('/') ? path : `/${path}`}`, {
+  const url = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+  const init: RequestInit = {
     method,
     headers,
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-  });
+  };
+  let res = await fetch(url, init);
+  for (let attempt = 0; res.status === 429 && attempt < (opts.retries429 ?? 2); attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, retryAfterMs(res)));
+    res = await fetch(url, init);
+  }
   const text = await res.text();
   let data = {} as T;
   if (text) {
@@ -143,6 +162,7 @@ export async function adminLogin(
     tabId,
     body: { email, password },
     expectOk: false,
+    retries429: 0,
   });
   if (status === 429) {
     throw new Error(
@@ -175,6 +195,20 @@ export async function upsertSeekerProfile(
   });
 }
 
+/** Contact + experience/skills/cities so seeker UI skips forced `/onboarding/profile`. */
+export async function completeSeekerProfile(session: AuthSession): Promise<void> {
+  await upsertSeekerProfile(session);
+  await request('PATCH', '/me/profile', {
+    token: session.token,
+    tabId: session.tabId,
+    body: {
+      experienceBand: 'fresher',
+      skills: ['excel'],
+      preferredCities: ['Chennai'],
+    },
+  });
+}
+
 export async function createApplyProfile(session: AuthSession): Promise<{ id: string }> {
   const { data } = await request<{ id: string }>('POST', '/me/apply-profiles', {
     token: session.token,
@@ -201,6 +235,9 @@ export async function createPublishedJob(
     employerName: string;
     locationCity: string;
     screeningQuestion: string;
+    skills: string[];
+    remote: boolean;
+    experienceLabel: string;
   }> = {},
 ): Promise<PublishedJob> {
   const title = overrides.title || uniqueLabel('E2E Role');
@@ -222,6 +259,9 @@ export async function createPublishedJob(
       vacancies: 2,
       directPublish: true,
       screeningQuestion: overrides.screeningQuestion,
+      skills: overrides.skills,
+      remote: overrides.remote,
+      experienceLabel: overrides.experienceLabel,
     },
   });
   if (!data?.id) {
@@ -299,5 +339,65 @@ export async function getReputation(session: AuthSession): Promise<unknown> {
     token: session.token,
     tabId: session.tabId,
   });
+  return data;
+}
+
+export type CompanyDto = {
+  id: string;
+  name: string;
+  verificationStatus?: string;
+  memberRole?: string;
+};
+
+export async function createCompany(
+  session: AuthSession,
+  opts: { name?: string; website?: string; industry?: string } = {},
+): Promise<CompanyDto> {
+  const { data } = await request<CompanyDto>('POST', '/companies', {
+    token: session.token,
+    tabId: session.tabId,
+    body: {
+      name: opts.name || uniqueLabel('E2E Co'),
+      website: opts.website || 'https://e2eco.example',
+      industry: opts.industry || 'Technology',
+    },
+  });
+  if (!data?.id) {
+    throw new Error(`create company missing id: ${JSON.stringify(data).slice(0, 200)}`);
+  }
+  return data;
+}
+
+export async function getRecruiterDashboard(
+  session: AuthSession,
+): Promise<{ company: CompanyDto; jobs: { total: number }; applicants: { total: number } }> {
+  const { data } = await request<{
+    company: CompanyDto;
+    jobs: { total: number };
+    applicants: { total: number };
+  }>('GET', '/recruiter/dashboard', {
+    token: session.token,
+    tabId: session.tabId,
+  });
+  return data;
+}
+
+export async function inviteCompanyMember(
+  session: AuthSession,
+  companyId: string,
+  opts: { email: string; role?: string } = { email: '' },
+): Promise<{ id: string; acceptToken?: string; email: string }> {
+  const { data } = await request<{ id: string; acceptToken?: string; email: string }>(
+    'POST',
+    `/companies/${companyId}/invitations`,
+    {
+      token: session.token,
+      tabId: session.tabId,
+      body: {
+        email: opts.email || `invite_${Date.now()}@example.com`,
+        role: opts.role || 'recruiter',
+      },
+    },
+  );
   return data;
 }

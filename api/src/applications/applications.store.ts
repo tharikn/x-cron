@@ -55,6 +55,9 @@ export abstract class ApplicationsStore {
 
   abstract listForOwner(ownerUserId: string): Promise<JobApplication[]>;
 
+  /** Applications for a company workspace (`employerId`). */
+  abstract listForEmployer(employerId: string): Promise<JobApplication[]>;
+
   abstract updateApplication(
     id: string,
     patch: Partial<
@@ -67,6 +70,8 @@ export abstract class ApplicationsStore {
         | 'seekerEmail'
         | 'offerLetterText'
         | 'viewedAt'
+        | 'seekerLastReadAt'
+        | 'employerLastReadAt'
       >
     >,
   ): Promise<JobApplication | undefined>;
@@ -92,6 +97,12 @@ export abstract class ApplicationsStore {
   }): Promise<ApplicationMessage>;
 
   abstract listMessages(applicationId: string): Promise<ApplicationMessage[]>;
+
+  /** Newest-first page; `before` is exclusive createdAt ISO cursor. */
+  abstract listMessagesPage(
+    applicationId: string,
+    opts?: { limit?: number; before?: string },
+  ): Promise<ApplicationMessage[]>;
 
   abstract clearForUser(userId: string): Promise<void>;
 }

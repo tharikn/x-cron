@@ -72,7 +72,12 @@
                 </ion-button>
               }
               @if (item.status !== 'read') {
-                <ion-button size="small" color="dark" (click)="markRead(item.id)">
+                <ion-button
+                  size="small"
+                  fill="solid"
+                  color="primary"
+                  (click)="markRead(item.id)"
+                >
                   {{ 'notif.markRead' | t }}
                 </ion-button>
               }

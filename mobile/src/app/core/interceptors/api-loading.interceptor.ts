@@ -14,6 +14,7 @@ const SILENT_PATH_MARKERS = [
   '/i18n',
   '/languages',
   '/feedback',
+  '/tracking/events',
   '/ai/help',
 ];
 

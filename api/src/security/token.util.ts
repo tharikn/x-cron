@@ -41,3 +41,21 @@ export function extractTabId(req: Request): string | undefined {
   if (Array.isArray(raw) && raw[0]?.trim()) return raw[0].trim();
   return undefined;
 }
+
+/** Best-effort client IP (proxy-aware). */
+export function extractClientIp(req: Request): string | undefined {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0]?.trim() || undefined;
+  }
+  if (Array.isArray(forwarded) && forwarded[0]?.trim()) {
+    return forwarded[0].split(',')[0]?.trim() || undefined;
+  }
+  return req.ip?.trim() || undefined;
+}
+
+export function extractUserAgent(req: Request): string | undefined {
+  const ua = req.headers['user-agent'];
+  if (typeof ua === 'string' && ua.trim()) return ua.trim().slice(0, 512);
+  return undefined;
+}

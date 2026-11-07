@@ -13,6 +13,12 @@ import { JobRecord } from '../jobs/job.types';
 import { JobsStore } from '../jobs/jobs.store';
 import { PreferencesService } from '../preferences/preferences.service';
 import { PreferenceRecord } from '../preferences/preferences.types';
+import type {
+  EmailDeliveryJob,
+  PushDeliveryJob,
+} from '../redis/queues/queue.types';
+import { OutboxService } from '../outbox/outbox.service';
+import { NotificationQueueService } from '../redis/queues/notification-queue.service';
 import { SeekerService } from '../seeker/seeker.service';
 import {
   DevSendNotificationDto,
@@ -22,7 +28,9 @@ import {
 } from './dto/notifications.dto';
 import { NotificationsStore } from './notifications.store';
 import {
+  NotificationCategory,
   NotificationChannel,
+  NotificationPreferences,
   NotificationStatus,
 } from './notifications.types';
 import { createMailProvider } from './providers/mail-provider.factory';
@@ -39,6 +47,11 @@ export class NotificationsService {
     private readonly jobs: JobsStore,
     private readonly preferences: PreferencesService,
     private readonly auth: AuthStore,
+    @Optional()
+    private readonly queues?: NotificationQueueService,
+    @Optional()
+    @Inject(forwardRef(() => OutboxService))
+    private readonly outbox?: OutboxService,
     @Optional()
     @Inject(forwardRef(() => SeekerService))
     private readonly seeker?: SeekerService,
@@ -110,11 +123,20 @@ export class NotificationsService {
     };
   }
 
-  async listDispatches(limit = 50) {
+  async listDispatches(limit = 50, offset = 0) {
+    const pageLimit = Math.min(Math.max(limit, 1), 200);
+    const pageOffset = Math.max(offset, 0);
+    const { items, total } = await this.store.listDispatches({
+      limit: pageLimit,
+      offset: pageOffset,
+    });
     return {
       pushProvider: this.push.name,
       mailProvider: this.mail.name,
-      items: await this.store.listDispatches(limit),
+      items,
+      total,
+      limit: pageLimit,
+      offset: pageOffset,
     };
   }
 
@@ -129,9 +151,52 @@ export class NotificationsService {
 
   /**
    * Fan-out job alerts to preference-matched subscribers (in-app + push + mail).
-   * Zero-cost providers by default; writes dispatch + delivery history.
+   * When Redis queues are on, enqueues BullMQ `notification-fanout` (identifiers only).
+   * Dispatch + delivery history stay in the notifications store (not Redis-only).
    */
   async onJobPublished(jobId: string) {
+    // Prefer durable outbox (same DB as SoR) so publish≠lost-notify after crash.
+    if (this.outbox?.enabled) {
+      const row = await this.outbox.record('job.published', { jobId });
+      if (row) {
+        this.logger.log(`Outbox job.published jobId=${jobId} id=${row.id}`);
+        return {
+          queued: true,
+          via: 'outbox',
+          jobId,
+          matched: 0,
+          sent: 0,
+          suppressed: 0,
+          failed: 0,
+        };
+      }
+    }
+
+    if (this.queues?.queuesActive) {
+      const queued = await this.queues.enqueueJobPublishedFanout(jobId);
+      if (queued) {
+        this.logger.log(`Queued notification-fanout jobId=${jobId}`);
+        return {
+          queued: true,
+          via: 'bullmq',
+          jobId,
+          matched: 0,
+          sent: 0,
+          suppressed: 0,
+          failed: 0,
+        };
+      }
+      this.logger.warn(
+        `Queue enqueue failed — running fan-out inline jobId=${jobId}`,
+      );
+    }
+    return this.runJobPublishedFanout(jobId);
+  }
+
+  /**
+   * Worker / inline path: preference match → in-app + push/mail (queued or sync).
+   */
+  async runJobPublishedFanout(jobId: string) {
     const job = await this.jobs.findById(jobId);
     const dispatch = await this.store.startDispatch({
       triggerType: 'job_published',
@@ -139,6 +204,7 @@ export class NotificationsService {
       meta: {
         pushProvider: this.push.name,
         mailProvider: this.mail.name,
+        queue: this.queues?.queuesActive ? 'bullmq' : 'inline',
       },
     });
 
@@ -222,6 +288,16 @@ export class NotificationsService {
       failed,
       jobId,
     };
+  }
+
+  /** BullMQ push worker entry — idempotent via delivery dedupe keys. */
+  processQueuedPush(payload: PushDeliveryJob) {
+    return this.deliverPush(payload);
+  }
+
+  /** BullMQ email worker entry — idempotent via delivery dedupe keys. */
+  processQueuedEmail(payload: EmailDeliveryJob) {
+    return this.deliverMail(payload);
   }
 
   async devSend(dto: DevSendNotificationDto) {
@@ -519,6 +595,8 @@ export class NotificationsService {
     title: string;
     body: string;
     eventType: string;
+    /** Stable id for idempotent inbox rows (ApplicationEvent.id or message id). */
+    eventId?: string;
   }) {
     const dispatch = await this.store.startDispatch({
       triggerType: 'application_event',
@@ -528,12 +606,29 @@ export class NotificationsService {
         eventType: input.eventType,
         status: input.status,
         recipientRole: input.recipientRole,
+        eventId: input.eventId ?? null,
         pushProvider: this.push.name,
         mailProvider: this.mail.name,
       },
     });
 
     const prefs = await this.store.getNotificationPrefs(input.recipientUserId);
+    const category: NotificationCategory =
+      input.eventType === 'chat_message'
+        ? 'recruiter_messages'
+        : 'application_updates';
+    if (!this.categoryAllowed(prefs, category)) {
+      await this.store.updateDispatch(dispatch.id, {
+        matchedCount: 1,
+        sentCount: 0,
+        suppressedCount: 1,
+        failedCount: 0,
+        skippedReason: `${category}_disabled`,
+      });
+      await this.store.finishDispatch(dispatch.id, 'completed');
+      return { dispatchId: dispatch.id, sent: 0, suppressed: 1, failed: 0 };
+    }
+
     const quiet = this.inQuietHours(
       prefs.quietHoursStart,
       prefs.quietHoursEnd,
@@ -546,7 +641,10 @@ export class NotificationsService {
       status: input.status,
       recipientRole: input.recipientRole,
     };
-    const dedupeKey = `application:${input.applicationId}:${input.eventType}:${input.status}:${Date.now()}`;
+    const stableId =
+      input.eventId?.trim() ||
+      `${input.eventType}:${input.status}`;
+    const dedupeKey = `application:${input.applicationId}:${input.eventType}:${stableId}`;
 
     let sent = 0;
     let suppressed = 0;
@@ -593,6 +691,7 @@ export class NotificationsService {
             body: input.body,
             data,
           });
+          await this.handleInvalidPushToken(device.fcmToken, device.id, result);
           await this.recordChannel({
             userId: input.recipientUserId,
             channel: 'push',
@@ -665,6 +764,8 @@ export class NotificationsService {
     body: string;
     eventType: string;
     audience: 'seeker' | 'employer';
+    /** FeedbackMessage.id for idempotent inbox rows. */
+    messageId?: string;
   }) {
     const dispatch = await this.store.startDispatch({
       triggerType: 'support_event',
@@ -673,12 +774,14 @@ export class NotificationsService {
         eventType: input.eventType,
         audience: input.audience,
         recipientRole: input.recipientRole,
+        messageId: input.messageId ?? null,
         pushProvider: this.push.name,
         mailProvider: this.mail.name,
       },
     });
 
     const prefs = await this.store.getNotificationPrefs(input.recipientUserId);
+    // Support stays independent of job alerts; channel toggles still apply.
     const quiet = this.inQuietHours(
       prefs.quietHoursStart,
       prefs.quietHoursEnd,
@@ -690,7 +793,8 @@ export class NotificationsService {
       recipientRole: input.recipientRole,
       action: 'open_feedback',
     };
-    const dedupeKey = `support:${input.threadId}:${input.eventType}:${Date.now()}`;
+    const stableId = input.messageId?.trim() || input.eventType;
+    const dedupeKey = `support:${input.threadId}:${input.eventType}:${stableId}`;
 
     let sent = 0;
     let suppressed = 0;
@@ -735,6 +839,7 @@ export class NotificationsService {
             body: input.body,
             data,
           });
+          await this.handleInvalidPushToken(device.fcmToken, device.id, result);
           await this.recordChannel({
             userId: input.recipientUserId,
             channel: 'push',
@@ -950,7 +1055,7 @@ export class NotificationsService {
 
     if (!quiet) {
       if (prefs.pushAlertsEnabled !== false) {
-        const pushResult = await this.deliverPush({
+        const pushPayload = {
           userId,
           title,
           body,
@@ -958,13 +1063,25 @@ export class NotificationsService {
           jobId: job.id,
           baseDedupe: dedupeKey,
           dispatchId: opts?.dispatchId,
-        });
-        if (pushResult.sent) anySent = true;
-        if (pushResult.failed) anyFailed = true;
+        };
+        if (this.queues?.queuesActive) {
+          const queued = await this.queues.enqueuePush(pushPayload);
+          if (queued) {
+            anySent = true;
+          } else {
+            const pushResult = await this.deliverPush(pushPayload);
+            if (pushResult.sent) anySent = true;
+            if (pushResult.failed) anyFailed = true;
+          }
+        } else {
+          const pushResult = await this.deliverPush(pushPayload);
+          if (pushResult.sent) anySent = true;
+          if (pushResult.failed) anyFailed = true;
+        }
       }
 
       if (prefs.emailAlertsEnabled !== false) {
-        const mailResult = await this.deliverMail({
+        const mailPayload = {
           userId,
           title,
           body,
@@ -972,9 +1089,21 @@ export class NotificationsService {
           jobId: job.id,
           baseDedupe: dedupeKey,
           dispatchId: opts?.dispatchId,
-        });
-        if (mailResult.sent) anySent = true;
-        if (mailResult.failed) anyFailed = true;
+        };
+        if (this.queues?.queuesActive) {
+          const queued = await this.queues.enqueueEmail(mailPayload);
+          if (queued) {
+            anySent = true;
+          } else {
+            const mailResult = await this.deliverMail(mailPayload);
+            if (mailResult.sent) anySent = true;
+            if (mailResult.failed) anyFailed = true;
+          }
+        } else {
+          const mailResult = await this.deliverMail(mailPayload);
+          if (mailResult.sent) anySent = true;
+          if (mailResult.failed) anyFailed = true;
+        }
       }
     } else {
       await this.logDelivery(opts?.dispatchId, {
@@ -1057,6 +1186,7 @@ export class NotificationsService {
         body: input.body,
         data: input.data,
       });
+      await this.handleInvalidPushToken(device.fcmToken, device.id, result);
       await this.recordChannel({
         userId: input.userId,
         channel: 'push',
@@ -1293,5 +1423,55 @@ export class NotificationsService {
     if (start === end) return true;
     if (start < end) return hour >= start && hour < end;
     return hour >= start || hour < end;
+  }
+
+  /** Category gates (security is always allowed; no user toggle). */
+  private categoryAllowed(
+    prefs: NotificationPreferences,
+    category: NotificationCategory,
+  ): boolean {
+    switch (category) {
+      case 'security':
+        return true;
+      case 'job_alerts':
+        return prefs.jobAlertsEnabled !== false;
+      case 'application_updates':
+        return prefs.applicationUpdatesEnabled !== false;
+      case 'recruiter_messages':
+        return prefs.recruiterMessagesEnabled !== false;
+      case 'product_announcements':
+        return (
+          prefs.productAnnouncementsEnabled === true ||
+          prefs.marketingEnabled === true
+        );
+      default:
+        return true;
+    }
+  }
+
+  private async handleInvalidPushToken(
+    fcmToken: string,
+    deviceId: string,
+    result: { ok: boolean; error?: string },
+  ): Promise<void> {
+    if (result.ok || !this.isInvalidPushTokenError(result.error)) return;
+    await this.store.detachDeviceByToken(fcmToken);
+    this.logger.warn(
+      `Detached invalid push token for device ${deviceId}: ${result.error}`,
+    );
+  }
+
+  private isInvalidPushTokenError(error?: string): boolean {
+    if (!error) return false;
+    const lower = error.toLowerCase();
+    return (
+      lower.includes('invalid_token') ||
+      lower.includes('stub_or_invalid_token') ||
+      lower.includes('registration-token-not-registered') ||
+      lower.includes('invalidregistration') ||
+      lower.includes('notregistered') ||
+      lower.includes('unregistered') ||
+      lower.includes('requested entity was not found')
+    );
   }
 }

@@ -11,15 +11,30 @@ export interface DeviceRegistration {
   lastSeenAt: string;
 }
 
+/** Non-channel preference categories (security has no user toggle). */
+export type NotificationCategory =
+  | 'security'
+  | 'job_alerts'
+  | 'application_updates'
+  | 'recruiter_messages'
+  | 'product_announcements';
+
 export interface NotificationPreferences {
   userId: string;
   jobAlertsEnabled: boolean;
+  /** Apply / view / status / offer / note / withdraw (not chat). */
+  applicationUpdatesEnabled: boolean;
+  /** ATS application chat messages. */
+  recruiterMessagesEnabled: boolean;
+  /** Product tips / announcements (opt-in). */
+  productAnnouncementsEnabled: boolean;
   /** In-app inbox (always free). */
   inAppEnabled: boolean;
   /** Device push via PUSH_PROVIDER (stub/fcm). */
   pushAlertsEnabled: boolean;
   /** Email via MAIL_PROVIDER (stub/console/smtp). */
   emailAlertsEnabled: boolean;
+  /** Alias of productAnnouncementsEnabled (legacy field). */
   marketingEnabled: boolean;
   quietHoursStart: number | null; // 0–23 local hour, null = off
   quietHoursEnd: number | null;

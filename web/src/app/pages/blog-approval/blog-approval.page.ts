@@ -50,6 +50,7 @@ export class BlogApprovalPage implements OnInit {
 
   readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
+  readonly isModerator = this.auth.isModerator;
   readonly queueBusy = signal(false);
   readonly queue = signal<Job[]>([]);
   readonly previewJob = signal<Job | null>(null);

@@ -1,10 +1,10 @@
 import { expect, test } from '../fixtures/test';
 import {
+  completeSeekerProfile,
   createApplyProfile,
   createPublishedJob,
   healthCheck,
   registerUser,
-  upsertSeekerProfile,
 } from '../helpers/api-client';
 import { pathsFor } from '../helpers/env';
 
@@ -19,11 +19,14 @@ test.describe('@seeker Profile + apply version + Easy apply', () => {
     client,
   }) => {
     const seeker = await registerUser({ intendedRole: 'seeker' });
-    await upsertSeekerProfile(seeker);
+    await completeSeekerProfile(seeker);
     await auth.login({ username: seeker.username, password: seeker.password });
     await auth.expectSignedIn();
-    await auth.openAccountTab('profile');
-    await expect(page.getByText(/Personal|Name|Your profile/i).first()).toBeVisible();
+    // Prefer URL tab sync — clicking Profile while already active races Angular re-renders.
+    await page.goto(`${pathsFor(client).account}?tab=profile`);
+    await expect(page.getByText(/Personal|Name|Your profile/i).first()).toBeVisible({
+      timeout: 20_000,
+    });
   });
 
   test('Apply tab is visible for seeker and hidden deep-link clamp works', async ({
@@ -32,6 +35,7 @@ test.describe('@seeker Profile + apply version + Easy apply', () => {
     client,
   }) => {
     const seeker = await registerUser({ intendedRole: 'seeker' });
+    await completeSeekerProfile(seeker);
     await createApplyProfile(seeker);
     await auth.login({ username: seeker.username, password: seeker.password });
     await auth.expectSignedIn();
@@ -47,7 +51,7 @@ test.describe('@seeker Profile + apply version + Easy apply', () => {
     page,
   }) => {
     const seeker = await registerUser({ intendedRole: 'seeker' });
-    await upsertSeekerProfile(seeker);
+    await completeSeekerProfile(seeker);
     const profile = await createApplyProfile(seeker);
     const employer = await registerUser({ intendedRole: 'employer' });
     const job = await createPublishedJob(employer, {

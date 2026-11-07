@@ -66,7 +66,7 @@
       }
     </div>
 
-    @if (isSignedIn() && isAdmin() && !needsAdminLogin()) {
+    @if (isSignedIn() && (isAdmin() || isModerator()) && !needsAdminLogin()) {
       <ion-list lines="full" class="panel">
         <ion-item>
           <ion-label>Signed in</ion-label>
@@ -79,18 +79,23 @@
       </ion-list>
 
       <div class="admin-links">
-        <ion-button expand="block" color="dark" routerLink="/tabs/post">
-          Recruiter desk / Post
-        </ion-button>
-        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/notifications">
-          Notifications inbox
-        </ion-button>
-        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/feedback">
-          {{ 'nav.feedback' | t }}
-        </ion-button>
-        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/admin-feedback">
-          {{ 'nav.feedbackAdmin' | t }}
-        </ion-button>
+        @if (isAdmin()) {
+          <ion-button expand="block" color="dark" routerLink="/tabs/post">
+            Recruiter desk / Post
+          </ion-button>
+          <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/notifications">
+            Notifications inbox
+          </ion-button>
+          <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/feedback">
+            {{ 'nav.feedback' | t }}
+          </ion-button>
+          <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/admin-feedback">
+            {{ 'nav.feedbackAdmin' | t }}
+          </ion-button>
+        }
+        <ion-note class="trust-note">
+          Full Trust desk is on web (/admin/trust). Use the queue below for quick Approve/Reject.
+        </ion-note>
       </div>
 
       <section class="moderation">
@@ -103,7 +108,12 @@
         @for (job of queue(); track job.id) {
           <div class="mod-card">
             <strong>{{ job.title }}</strong>
-            <p>{{ job.employerName }} · {{ job.status }}</p>
+            <p>
+              {{ job.employerName }} · {{ job.status }}
+              @if (job.reportCount) {
+                · {{ job.reportCount }} reports
+              }
+            </p>
             <div class="mod-card__actions">
               <ion-button size="small" color="dark" (click)="approve(job)">Approve</ion-button>
               <ion-button size="small" fill="outline" color="dark" (click)="reject(job)">
@@ -131,6 +141,35 @@
                 Update personal details and career info. Apply versions stay on Apply.
               }
             </p>
+
+            @if (profileCompletion(); as completion) {
+              <aside class="completion-card" aria-label="Profile completion">
+                <div class="completion-card__head">
+                  <strong>Profile {{ completion.percent }}%</strong>
+                  <span>Finish these to improve matching</span>
+                </div>
+                <div
+                  class="completion-card__bar"
+                  role="progressbar"
+                  [attr.aria-valuenow]="completion.percent"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  <span [style.width.%]="completion.percent"></span>
+                </div>
+                <ul class="completion-card__list">
+                  @for (item of completion.items; track item.id) {
+                    @if (!item.done) {
+                      <li>
+                        <button type="button" (click)="focusCompletion(item.id)">
+                          {{ item.hint }}
+                        </button>
+                      </li>
+                    }
+                  }
+                </ul>
+              </aside>
+            }
 
             <ion-accordion-group
               class="profile-accordions"
@@ -421,6 +460,34 @@
               Create Frontend / Backend versions with skills, summary, and portfolio links. Pick one when
               you easy-apply. No resume upload.
             </p>
+            @if (profileCompletion(); as completion) {
+              <aside class="completion-card" aria-label="Profile completion">
+                <div class="completion-card__head">
+                  <strong>Profile {{ completion.percent }}%</strong>
+                  <span>Finish these to improve matching</span>
+                </div>
+                <div
+                  class="completion-card__bar"
+                  role="progressbar"
+                  [attr.aria-valuenow]="completion.percent"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  <span [style.width.%]="completion.percent"></span>
+                </div>
+                <ul class="completion-card__list">
+                  @for (item of completion.items; track item.id) {
+                    @if (!item.done) {
+                      <li>
+                        <button type="button" (click)="focusCompletion(item.id)">
+                          {{ item.hint }}
+                        </button>
+                      </li>
+                    }
+                  }
+                </ul>
+              </aside>
+            }
             @if (!applyProfiles().length) {
               <p class="empty">Add your first version to unlock easy apply.</p>
             }
@@ -724,6 +791,14 @@
                   <p>{{ row.alertEnabled ? 'Alerts on' : 'Alerts off' }}</p>
                   <ion-button
                     size="small"
+                    fill="solid"
+                    color="dark"
+                    (click)="openSavedSearch(row)"
+                  >
+                    Open
+                  </ion-button>
+                  <ion-button
+                    size="small"
                     fill="outline"
                     color="dark"
                     (click)="deleteSavedSearch(row.id)"
@@ -779,6 +854,14 @@
                 >
                   Review applications
                 </ion-button>
+                <ion-button
+                  expand="block"
+                  fill="outline"
+                  color="dark"
+                  routerLink="/tabs/company"
+                >
+                  Company workspace
+                </ion-button>
               </div>
             </section>
           }
@@ -787,9 +870,59 @@
             {{ 'nav.feedback' | t }}
           </ion-button>
 
+          <section class="sessions">
+            <h2>Devices &amp; sessions</h2>
+            <p class="hint">
+              Review where you are signed in. Revoke a session you do not recognise, or sign out
+              everywhere.
+            </p>
+            @if (sessionsBusy() && deviceSessions().length === 0) {
+              <p class="hint">Loading sessions…</p>
+            } @else if (deviceSessions().length === 0) {
+              <p class="hint">No active sessions listed.</p>
+            } @else {
+              <ion-list lines="full" class="panel session-list">
+                @for (s of deviceSessions(); track s.id) {
+                  <ion-item [class.session-current]="s.current">
+                    <ion-label>
+                      <h3>{{ s.current ? 'This device' : 'Other session' }}</h3>
+                      <p>Signed in {{ formatSessionWhen(s.createdAt) }}</p>
+                      <p>Refresh until {{ formatSessionWhen(s.refreshExpiresAt) }}</p>
+                    </ion-label>
+                    <ion-button
+                      slot="end"
+                      fill="clear"
+                      color="danger"
+                      [disabled]="sessionsBusy()"
+                      (click)="revokeDeviceSession(s)"
+                    >
+                      {{ s.current ? 'Sign out' : 'Revoke' }}
+                    </ion-button>
+                  </ion-item>
+                }
+              </ion-list>
+            }
+            <ion-button
+              expand="block"
+              fill="outline"
+              color="danger"
+              [disabled]="sessionsBusy()"
+              (click)="logoutEverywhere()"
+            >
+              Sign out everywhere
+            </ion-button>
+          </section>
+
           <ion-button expand="block" fill="outline" color="danger" (click)="logout()">
             Sign out
           </ion-button>
+          <ion-button expand="block" fill="outline" color="dark" (click)="exportAccount()">
+            Export my data
+          </ion-button>
+          <p class="hint">
+            Downloads a JSON copy of your profile, prefs, apply versions, and applications.
+            <a routerLink="/tabs/privacy">Privacy</a>
+          </p>
           <ion-button expand="block" fill="clear" color="dark" (click)="deleteAccount()">
             Delete account
           </ion-button>

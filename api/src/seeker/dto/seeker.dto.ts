@@ -75,6 +75,26 @@ export class SavedSearchQueryDto {
   @IsOptional()
   @IsIn(['1d', '7d', '30d', null])
   postedWithin?: '1d' | '7d' | '30d' | null;
+
+  @IsOptional()
+  @IsString()
+  skills?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  verifiedEmployer?: boolean | null;
+
+  @IsOptional()
+  @IsBoolean()
+  fresher?: boolean | null;
+
+  @IsOptional()
+  @IsBoolean()
+  easyApply?: boolean | null;
+
+  @IsOptional()
+  @IsString()
+  sort?: string;
 }
 
 export class CreateSavedSearchDto {

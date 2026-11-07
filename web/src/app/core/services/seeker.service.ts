@@ -9,6 +9,25 @@ export type CareerStage = 'fresher' | 'experienced';
 export type EducationStatus = 'pursuing' | 'completed';
 export type NoticePeriod = 'serving' | '1' | '2' | '3' | 'immediate';
 
+export type ProfileCompletionItemId =
+  | 'personal'
+  | 'location'
+  | 'career'
+  | 'skills'
+  | 'applyReady';
+
+export interface ProfileCompletionItem {
+  id: ProfileCompletionItemId;
+  done: boolean;
+  hint: string;
+}
+
+export interface ProfileCompletion {
+  percent: number;
+  complete: boolean;
+  items: ProfileCompletionItem[];
+}
+
 export interface SeekerProfile {
   displayName?: string;
   mobile?: string;
@@ -34,6 +53,7 @@ export interface SeekerProfile {
   preferredCities: string[];
   openToWork: boolean;
   updatedAt: string;
+  completion?: ProfileCompletion;
 }
 
 export interface SavedSearch {
@@ -174,6 +194,22 @@ export class SeekerService {
     return response.items;
   }
 
+  async createSavedSearch(input: {
+    name: string;
+    query: Record<string, unknown>;
+    alertEnabled?: boolean;
+  }): Promise<SavedSearch> {
+    const row = await firstValueFrom(
+      this.http.post<SavedSearch>(
+        `${environment.apiUrl}/me/saved-searches`,
+        input,
+        { headers: this.auth.authHeaders() },
+      ),
+    );
+    this.savedSearches.update((list) => [row, ...list]);
+    return row;
+  }
+
   async deleteSavedSearch(id: string): Promise<void> {
     await firstValueFrom(
       this.http.delete(`${environment.apiUrl}/me/saved-searches/${id}`, {
@@ -183,9 +219,21 @@ export class SeekerService {
     this.savedSearches.update((list) => list.filter((s) => s.id !== id));
   }
 
-  async report(jobId: string, reason: string): Promise<void> {
-    await firstValueFrom(
-      this.http.post(`${environment.apiUrl}/jobs/${jobId}/report`, { reason }),
+  async report(
+    jobId: string,
+    body: { category?: string; details?: string; reason?: string },
+  ): Promise<{ caseId?: string; acknowledgement?: string }> {
+    const details = body.details || body.reason || 'Reported from web';
+    return firstValueFrom(
+      this.http.post<{ caseId?: string; acknowledgement?: string }>(
+        `${environment.apiUrl}/jobs/${jobId}/report`,
+        {
+          category: body.category || 'other',
+          details,
+          reason: details,
+        },
+        { headers: this.auth.authHeaders() },
+      ),
     );
   }
 
@@ -195,5 +243,27 @@ export class SeekerService {
         headers: this.auth.authHeaders(),
       }),
     );
+  }
+
+  /** Download portable personal-data JSON (DPDP-oriented export). */
+  async exportAccount(): Promise<void> {
+    const data = await firstValueFrom(
+      this.http.get<Record<string, unknown>>(`${environment.apiUrl}/me/export`, {
+        headers: this.auth.authHeaders(),
+      }),
+    );
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const day =
+      typeof data['exportedAt'] === 'string'
+        ? String(data['exportedAt']).slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `xcron-data-export-${day}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

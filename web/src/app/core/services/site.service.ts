@@ -14,7 +14,7 @@ const FALLBACK_FOOTER: SiteFooterConfig = {
     name: 'X Cron',
     productLabel: 'Jobs',
     blurb:
-      'Local-first job discovery for younger seekers. Search freely — contact details stay private until unlock.',
+      'Local-first job discovery for younger seekers. Browse roles freely — employer contact is shown on each listing.',
   },
   headings: {
     quickLinks: 'Quick links',
@@ -58,10 +58,10 @@ const FALLBACK_FOOTER: SiteFooterConfig = {
     { id: 'ql_settings', label: 'Settings', href: '/settings', sortOrder: 3 },
   ],
   legalLinks: [
-    { id: 'leg_privacy', label: 'Privacy', href: '/settings/preferences', sortOrder: 1 },
-    { id: 'leg_terms', label: 'Terms', href: '/settings/preferences', sortOrder: 2 },
+    { id: 'leg_privacy', label: 'Privacy', href: '/privacy', sortOrder: 1 },
+    { id: 'leg_terms', label: 'Terms', href: '/terms', sortOrder: 2 },
   ],
-  copyright: '© X Cron Jobs. Search open — sign in with Google to save or unlock.',
+  copyright: '© X Cron Jobs. Search open — sign in to save jobs and sync preferences.',
   updatedAt: new Date(0).toISOString(),
 };
 

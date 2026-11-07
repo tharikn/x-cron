@@ -7,6 +7,7 @@ import { PaymentsModule } from '../payments/payments.module';
 import { PreferencesModule } from '../preferences/preferences.module';
 import { ReputationModule } from '../reputation/reputation.module';
 import { SeekerModule } from '../seeker/seeker.module';
+import { TrackingModule } from '../tracking/tracking.module';
 import { AccountController } from './account.controller';
 import { AccountService } from './account.service';
 
@@ -20,6 +21,7 @@ import { AccountService } from './account.service';
     FeedbackModule,
     ReputationModule,
     NotificationsModule,
+    TrackingModule,
   ],
   controllers: [AccountController],
   providers: [AccountService],

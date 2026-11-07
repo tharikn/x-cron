@@ -146,13 +146,21 @@ export class ApplicationsService {
     );
   }
 
-  async listMessages(id: string, asEmployer = false): Promise<ApplicationMessage[]> {
+  async listMessages(
+    id: string,
+    asEmployer = false,
+    opts?: { limit?: number; before?: string },
+  ): Promise<ApplicationMessage[]> {
     const path = asEmployer
       ? `${environment.apiUrl}/employers/applications/${id}/messages`
       : `${environment.apiUrl}/me/job-applications/${id}/messages`;
+    const params: Record<string, string> = {};
+    if (opts?.limit != null) params['limit'] = String(opts.limit);
+    if (opts?.before) params['before'] = opts.before;
     const res = await firstValueFrom(
       this.http.get<{ items: ApplicationMessage[] }>(path, {
         headers: this.auth.authHeaders(),
+        params,
       }),
     );
     return res.items;
@@ -173,6 +181,19 @@ export class ApplicationsService {
         { headers: this.auth.authHeaders() },
       ),
     );
+  }
+
+  async markConversationRead(id: string, asEmployer = false): Promise<void> {
+    const path = asEmployer
+      ? `${environment.apiUrl}/employers/applications/${id}/messages/read`
+      : `${environment.apiUrl}/me/job-applications/${id}/messages/read`;
+    try {
+      await firstValueFrom(
+        this.http.post(path, {}, { headers: this.auth.authHeaders() }),
+      );
+    } catch {
+      // best-effort
+    }
   }
 
   async listEmployer(): Promise<JobApplication[]> {

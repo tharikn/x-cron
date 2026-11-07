@@ -1,0 +1,61 @@
+.cw {
+  --padding-start: 1rem;
+  --padding-end: 1rem;
+  --padding-top: 0.75rem;
+  --padding-bottom: 1.5rem;
+}
+
+.cw__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.cw__tabs button {
+  min-height: 40px;
+  padding: 0 0.85rem;
+  border-radius: var(--xcron-radius, 12px);
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink);
+  font: 600 13px / 1 var(--xcron-font-body);
+}
+
+.cw__tabs button.is-on {
+  border-color: transparent;
+  background: var(--xcron-cta-gradient);
+  color: #fff;
+}
+
+.cw__card {
+  padding: 1rem;
+  border-radius: var(--xcron-radius-lg, 14px);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+}
+
+.cw__card h2 {
+  margin: 0 0 0.35rem;
+  font: 600 17px / 1.3 var(--xcron-font-display);
+  color: var(--xcron-ink);
+}
+
+.meta {
+  margin: 0.25rem 0;
+  font: 500 14px / 1.4 var(--xcron-font-body);
+  color: color-mix(in srgb, var(--xcron-ink) 70%, transparent);
+  word-break: break-all;
+}
+
+.cw__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.cw__form {
+  margin: 0 0 0.75rem;
+  background: transparent;
+}

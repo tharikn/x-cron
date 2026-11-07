@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   Optional,
   UnauthorizedException,
   forwardRef,
@@ -15,13 +17,16 @@ import {
   clearAuthCookies,
   setAuthCookies,
 } from '../security/auth-cookies';
+import { AuditService } from '../security/audit.service';
 import { AuthStore } from './auth.store';
+import type { AuthUser } from './auth.types';
 import {
   AdminLoginDto,
   CreateEmployerDto,
   GoogleAuthDto,
   LoginDto,
   RegisterDto,
+  StaffRolesDto,
 } from './dto/auth.dto';
 
 @Injectable()
@@ -31,12 +36,17 @@ export class AuthService {
 
   constructor(
     private readonly store: AuthStore,
+    private readonly audit: AuditService,
     @Optional()
     @Inject(forwardRef(() => NotificationsService))
     private readonly notifications?: NotificationsService,
   ) {}
 
-  register(dto: RegisterDto, res: Response, tabId?: string) {
+  register(
+    dto: RegisterDto,
+    res: Response,
+    opts?: { tabId?: string; ip?: string; userAgent?: string },
+  ) {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Passwords do not match');
     }
@@ -48,7 +58,7 @@ export class AuthService {
             password: dto.password,
             intendedRole: dto.intendedRole ?? 'seeker',
           },
-          { tabId },
+          opts,
         );
       this.attachSessionCookies(res, token, refreshToken);
       this.fireFirstLoginNotifications(user.id);
@@ -71,7 +81,11 @@ export class AuthService {
     }
   }
 
-  login(dto: LoginDto, res: Response, tabId?: string) {
+  login(
+    dto: LoginDto,
+    res: Response,
+    opts?: { tabId?: string; ip?: string; userAgent?: string },
+  ) {
     try {
       const { user, token, refreshToken, expiresAt } =
         this.store.loginWithPassword(
@@ -80,7 +94,7 @@ export class AuthService {
             password: dto.password,
             intendedRole: dto.intendedRole ?? 'seeker',
           },
-          { tabId },
+          opts,
         );
       this.attachSessionCookies(res, token, refreshToken);
       return {
@@ -96,13 +110,17 @@ export class AuthService {
     }
   }
 
-  refresh(refreshToken: string | undefined, res: Response, tabId?: string) {
+  refresh(
+    refreshToken: string | undefined,
+    res: Response,
+    opts?: { tabId?: string; ip?: string; userAgent?: string },
+  ) {
     const token = refreshToken?.trim();
     if (!token) {
       throw new UnauthorizedException('invalid_refresh_token');
     }
     try {
-      const next = this.store.refreshSession(token, { tabId });
+      const next = this.store.refreshSession(token, opts);
       this.attachSessionCookies(res, next.token, next.refreshToken);
       return next;
     } catch (error) {
@@ -127,6 +145,42 @@ export class AuthService {
     return { ok: true };
   }
 
+  /** Revoke every session for the caller (logout everywhere). */
+  logoutAll(token: string | undefined, res: Response) {
+    const user = this.requireUser(token);
+    this.store.revokeAllSessionsForUser(user.id);
+    clearAuthCookies(res);
+    return { ok: true };
+  }
+
+  listSessions(token?: string) {
+    const user = this.requireUser(token);
+    return {
+      sessions: this.store.listSessionsForUser(user.id, token),
+    };
+  }
+
+  revokeSession(token: string | undefined, sessionId: string, res: Response) {
+    const user = this.requireUser(token);
+    const id = sessionId?.trim();
+    if (!id) {
+      throw new BadRequestException('session_id_required');
+    }
+    const before = this.store.listSessionsForUser(user.id, token);
+    const target = before.find((s) => s.id === id);
+    if (!target) {
+      throw new NotFoundException('session_not_found');
+    }
+    const revoked = this.store.revokeSessionForUser(user.id, id);
+    if (!revoked) {
+      throw new NotFoundException('session_not_found');
+    }
+    if (target.current) {
+      clearAuthCookies(res);
+    }
+    return { ok: true };
+  }
+
   createEmployer(userId: string, dto: CreateEmployerDto) {
     const profile = this.store.createEmployer(userId, dto.name);
     const user = this.store.getUser(userId)!;
@@ -136,7 +190,11 @@ export class AuthService {
     };
   }
 
-  async google(dto: GoogleAuthDto, res: Response, tabId?: string) {
+  async google(
+    dto: GoogleAuthDto,
+    res: Response,
+    opts?: { tabId?: string; ip?: string; userAgent?: string },
+  ) {
     const identity = await this.resolveGoogleIdentity(dto);
     try {
       const { user, token, refreshToken, expiresAt, isNewUser } =
@@ -145,7 +203,7 @@ export class AuthService {
             ...identity,
             intendedRole: dto.intendedRole ?? 'seeker',
           },
-          { tabId },
+          opts,
         );
       this.attachSessionCookies(res, token, refreshToken);
       if (isNewUser) {
@@ -176,11 +234,19 @@ export class AuthService {
     });
   }
 
-  adminLogin(dto: AdminLoginDto, res: Response, tabId?: string) {
+  adminLogin(
+    dto: AdminLoginDto,
+    res: Response,
+    opts?: { tabId?: string; ip?: string; userAgent?: string },
+  ) {
     try {
       const { user, token, refreshToken, expiresAt } =
-        this.store.signInSuperAdmin(dto.email, dto.password, { tabId });
+        this.store.signInSuperAdmin(dto.email, dto.password, opts);
       this.attachSessionCookies(res, token, refreshToken);
+      this.audit.record('admin.login', {
+        actorUserId: user.id,
+        meta: { email: dto.email.trim().toLowerCase() },
+      });
       return {
         token,
         refreshToken,
@@ -190,6 +256,9 @@ export class AuthService {
       };
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'invalid_credentials';
+      this.audit.record('admin.login_failed', {
+        meta: { email: dto.email?.trim()?.toLowerCase() ?? null, reason },
+      });
       throw new UnauthorizedException(reason);
     }
   }
@@ -307,6 +376,25 @@ export class AuthService {
     const user = this.store.getUserByToken(token);
     if (!user) throw new UnauthorizedException('Sign-in required');
     return user;
+  }
+
+  /** Platform admin grants/revokes `moderator` on an existing user. */
+  setStaffRoles(actor: AuthUser, dto: StaffRolesDto) {
+    if (!actor.roles.includes('admin')) {
+      throw new ForbiddenException('Admin only');
+    }
+    if (dto.moderator === undefined) {
+      throw new BadRequestException('moderator flag required');
+    }
+    const updated = this.store.setStaffRoles(dto.userId, {
+      moderator: dto.moderator,
+    });
+    if (!updated) throw new NotFoundException('User not found');
+    this.audit.record('staff.roles', {
+      actorUserId: actor.id,
+      meta: { userId: dto.userId, moderator: dto.moderator },
+    });
+    return this.store.toPublicUser(updated);
   }
 
   purgeUserRecord(userId: string, token?: string) {

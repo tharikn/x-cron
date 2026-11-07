@@ -59,6 +59,17 @@ function asSavedSearchQuery(
   ) {
     out.postedWithin = row.postedWithin;
   }
+  if (typeof row.skills === 'string') out.skills = row.skills;
+  if (typeof row.verifiedEmployer === 'boolean' || row.verifiedEmployer === null) {
+    out.verifiedEmployer = row.verifiedEmployer as boolean | null;
+  }
+  if (typeof row.fresher === 'boolean' || row.fresher === null) {
+    out.fresher = row.fresher as boolean | null;
+  }
+  if (typeof row.easyApply === 'boolean' || row.easyApply === null) {
+    out.easyApply = row.easyApply as boolean | null;
+  }
+  if (typeof row.sort === 'string') out.sort = row.sort;
   return out;
 }
 

@@ -55,7 +55,7 @@ Open threads **poll quietly ~2.5s** (plus tab focus / Ionic re-enter) so replies
 | `GET …/threads/:id` | Touches viewer last-seen; returns `presence: { peerOnline, peerLastSeenAt, peerTyping, peerLabel }` |
 | `POST …/threads/:id/typing` `{ typing }` | User heartbeat (TTL ~5s); admin twin under `/admin/feedback/…` |
 | Online window | Peer seen within ~20s while chat is open |
-| Storage | In-memory only (not Prisma) — multi-instance needs Redis later |
+| Storage | Memory Maps by default; Redis when `REDIS_URL` set (multi-instance). Not Prisma. |
 
 Static “Waiting for admin/user…” fake typing rows were removed; turn status stays on the thread meta label only.
 

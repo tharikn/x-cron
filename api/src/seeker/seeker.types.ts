@@ -53,6 +53,11 @@ export interface SavedSearchQuery {
   nearLng?: number | null;
   walkInOnly?: boolean | null;
   postedWithin?: '1d' | '7d' | '30d' | null;
+  skills?: string;
+  verifiedEmployer?: boolean | null;
+  fresher?: boolean | null;
+  easyApply?: boolean | null;
+  sort?: string;
 }
 
 export interface SavedSearch {
@@ -71,3 +76,80 @@ export const DEFAULT_SEEKER_PROFILE: SeekerProfile = {
   openToWork: true,
   updatedAt: new Date(0).toISOString(),
 };
+
+export type ProfileCompletionItemId =
+  | 'personal'
+  | 'location'
+  | 'career'
+  | 'skills'
+  | 'applyReady';
+
+export interface ProfileCompletionItem {
+  id: ProfileCompletionItemId;
+  done: boolean;
+  /** Value-forward hint for Account /me callouts (not a hard gate). */
+  hint: string;
+}
+
+/** Progressive profile checklist returned on GET/PATCH /v1/me/profile. */
+export interface ProfileCompletion {
+  percent: number;
+  complete: boolean;
+  items: ProfileCompletionItem[];
+}
+
+export type SeekerProfileResponse = SeekerProfile & {
+  completion: ProfileCompletion;
+};
+
+export function buildProfileCompletion(
+  profile: SeekerProfile,
+  applyReady: boolean,
+): ProfileCompletion {
+  const personal = Boolean(
+    profile.displayName?.trim() &&
+      (profile.mobile?.trim() || profile.email?.trim()),
+  );
+  const location = Boolean(profile.address?.trim() || profile.pincode?.trim());
+  const career = Boolean(profile.experienceBand || profile.careerStage);
+  const skills = Boolean(
+    (profile.skills?.length ?? 0) > 0 &&
+      (profile.preferredCities?.length ?? 0) > 0,
+  );
+
+  const items: ProfileCompletionItem[] = [
+    {
+      id: 'personal',
+      done: personal,
+      hint: 'Add your name and a phone or email so employers can reach you.',
+    },
+    {
+      id: 'location',
+      done: location,
+      hint: 'Add where you are based to improve local matching.',
+    },
+    {
+      id: 'career',
+      done: career,
+      hint: 'Add experience to improve matching.',
+    },
+    {
+      id: 'skills',
+      done: skills,
+      hint: 'Add skills and preferred cities to improve matching.',
+    },
+    {
+      id: 'applyReady',
+      done: applyReady,
+      hint: 'Finish an Apply version to unlock Easy apply.',
+    },
+  ];
+
+  const doneCount = items.filter((item) => item.done).length;
+  const percent = Math.round((doneCount / items.length) * 100);
+  return {
+    percent,
+    complete: doneCount === items.length,
+    items,
+  };
+}

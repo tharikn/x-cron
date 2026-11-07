@@ -4,8 +4,11 @@
   "description": "X Cron Jobs monorepo — API, mobile, web, Playwright journeys",
   "scripts": {
     "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:api": "node scripts/run-e2e.mjs --project=api",
     "test:e2e:mobile": "node scripts/run-e2e.mjs --project=mobile",
     "test:e2e:web": "node scripts/run-e2e.mjs --project=web",
+    "test:e2e:android": "node scripts/run-e2e.mjs --project=android",
+    "test:e2e:android:smoke": "node scripts/run-e2e.mjs --project=android --grep @smoke",
     "test:e2e:report": "npx --prefix e2e playwright show-report e2e/playwright-report"
   },
   "engines": {

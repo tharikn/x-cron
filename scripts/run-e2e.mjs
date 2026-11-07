@@ -136,11 +136,28 @@ const e2eApiEnv = {
   SEEKER_STORE: 'memory',
   REPUTATION_STORE: 'memory',
   FEEDBACK_STORE: 'memory',
+  TRACKING_STORE: 'memory',
+  MODERATION_STORE: 'memory',
+  FILE_STORAGE: 'stub',
+  OCR_PROVIDER: 'stub',
   AUTH_SINGLE_TAB: '0',
   AUTH_SINGLE_SESSION: '0',
   RATE_LIMIT_MAX: '1000',
   RATE_LIMIT_AUTH_MAX: '200',
   RATE_LIMIT_SENSITIVE_MAX: '50',
+  APPLY_RATE_LIMIT_MAX: '100',
+  // `0` falls back to the 30s default in ApplicationsService — 1ms effectively disables it.
+  APPLY_COOLDOWN_MS: '1',
+  APPLY_HOURLY_CAP: '1000',
+  APPLY_DAILY_CAP: '1000',
+  JOB_EXPIRE_SCHEDULE_ENABLED: '0',
+  JOB_FEED_SCHEDULE_ENABLED: '0',
+  PROFILE_REMINDER_SCHEDULE_ENABLED: '0',
+  MODERATION_SCHEDULE_ENABLED: '0',
+  CHANNEL_SCHEDULE_ENABLED: '0',
+  // Never long-poll a real bot from e2e (would steal getUpdates from the dev API).
+  TELEGRAM_BOT_TOKEN: '',
+  TELEGRAM_MODE: 'webhook',
   AI_HELP_ENABLED: '0',
   AI_ENRICH_ENABLED: '0',
   ENABLE_SWAGGER: '0',
@@ -167,8 +184,46 @@ async function main() {
     log('Reusing existing API on :3000.');
   }
 
-  const needMobile = !project || project === 'mobile';
+  const needMobile = !project || project === 'mobile' || project === 'android';
   const needWeb = !project || project === 'web';
+  // project === 'api' needs only the API (started above).
+
+  if (project === 'android') {
+    const adbCheck = spawn('adb devices', {
+      cwd: root,
+      shell: true,
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const adbOut = await new Promise((resolve) => {
+      let buf = '';
+      adbCheck.stdout?.on('data', (d) => {
+        buf += d;
+      });
+      adbCheck.stderr?.on('data', (d) => {
+        buf += d;
+      });
+      adbCheck.on('exit', () => resolve(buf));
+    });
+    const serials = adbOut
+      .split(/\r?\n/)
+      .slice(1)
+      .map((l) => l.trim())
+      .filter((l) => l.endsWith('device'))
+      .map((l) => l.split(/\s+/)[0])
+      .filter(Boolean);
+    if (!serials.length) {
+      console.error(
+        '[e2e] Android project needs a running emulator or USB device.\n' +
+          '  1) Start an AVD from Android Studio (Device Manager), or plug in a phone with USB debugging.\n' +
+          '  2) Confirm: adb devices\n' +
+          '  3) Chrome installed on the device; optional: chrome://flags → Enable command line on non-rooted devices\n' +
+          '  4) Re-run: npm run test:e2e:android',
+      );
+      process.exit(1);
+    }
+    log(`Android device(s): ${serials.join(', ')} — adb reverse :3000 :4200 will run per test.`);
+  }
 
   let startedMobile = false;
   if (needMobile && !(await urlUp(mobileUrl))) {
@@ -193,7 +248,12 @@ async function main() {
   }
 
   const pwArgs = ['playwright', 'test'];
-  if (project) pwArgs.push(`--project=${project}`);
+  if (project) {
+    pwArgs.push(`--project=${project}`);
+  } else {
+    // Default suite is API contract + desktop Chromium mobile+web. Android needs a device — use test:e2e:android.
+    pwArgs.push('--project=api', '--project=mobile', '--project=web');
+  }
   pwArgs.push(...extra);
 
   log(`Running: npx ${pwArgs.join(' ')}`);

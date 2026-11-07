@@ -1,0 +1,55 @@
+.page {
+  padding: 1.75rem 0 2.5rem;
+  animation: xcron-rise 480ms var(--xcron-ease) both;
+  max-width: 40rem;
+}
+
+h1 {
+  margin: 0 0 0.4rem;
+  font-family: var(--xcron-font-display);
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  letter-spacing: -0.045em;
+}
+
+.lead {
+  margin: 0 0 1.75rem;
+  color: var(--xcron-muted);
+  line-height: var(--xcron-leading-body);
+}
+
+.block {
+  margin: 0 0 1.4rem;
+  padding: 1.1rem 1.15rem;
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  box-shadow: var(--xcron-shadow);
+}
+
+.block h2 {
+  margin: 0 0 0.45rem;
+  font-family: var(--xcron-font-display);
+  font-size: var(--xcron-text-title);
+  font-weight: var(--xcron-weight-title);
+}
+
+.block p {
+  margin: 0;
+  color: var(--xcron-ink-soft);
+  font-size: var(--xcron-text-body);
+  line-height: var(--xcron-leading-body);
+}
+
+.block a {
+  color: var(--xcron-primary-hover);
+}
+
+.foot-links {
+  margin: 1.5rem 0 0;
+  color: var(--xcron-muted);
+  font-size: var(--xcron-text-meta);
+}
+
+.foot-links a {
+  color: var(--xcron-ink-soft);
+}

@@ -21,6 +21,11 @@ Field rules:
 
 Moderator instruction (when provided): follow it strictly for rewrite style, language, field focus, or formatting — still never invent salary, contacts, vacancies, or employer claims missing from the source. Keep description as • bullet lines unless the instruction asks otherwise.
 
+Privacy / fairness:
+- Never infer or invent protected traits (caste, religion, gender, disability, political views, sexual orientation, health).
+- Do not rank, score, or reject candidates — this tool only cleans job ads for human review before publish.
+- Minimise personal data: do not copy seeker resumes or private seeker profiles into outputs.
+
 Return ONLY compact JSON with keys:
 title, employerName, locationCity, jobType, salaryText, vacancies, contactWebsite, description, contentLanguage, notes (string array).`;
 

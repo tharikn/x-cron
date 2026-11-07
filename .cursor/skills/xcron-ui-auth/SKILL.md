@@ -25,6 +25,7 @@ desk / Post / applicant review unless they also hold `employer` (or admin).
 | `isSignedIn()` | Validated session after `/auth/me` |
 | `isEmployer()` | Validated + `employer` **or** `admin` |
 | `isAdmin()` | Validated + `admin` |
+| `isModerator()` | Validated + `moderator` **or** `admin` (Trust desk / Blog Approval) |
 | Seeker chrome | `@if (!isEmployer())` — prefer omit, don’t grey-lock |
 | Recruiter chrome | `@if (isEmployer())` |
 
@@ -71,8 +72,8 @@ Recruiters hire; they do **not** easy-apply or manage seeker apply versions.
 | --- | --- |
 | Account hub **Activity** | **Incoming applications** + **Posted jobs** (not seeker lists) |
 | Account **Account** tab | Recruiter desk links (Post + Review applications) |
-| Web drawer / mobile tabs | **Post** · **Feeds** / my-jobs |
-| Routes | `/post`, `/my-jobs`, `/employer-applications` via `employerGuard` |
+| Web drawer / mobile tabs | **Post** · **Feeds** / my-jobs · **Company** |
+| Routes | `/post`, `/my-jobs`, `/employer-applications`, `/company` (mobile `/tabs/company`) via `employerGuard` |
 | Performance | “As recruiter” score view when dual-role UI exists |
 
 ### Recruiter Activity (when `isEmployer()`)

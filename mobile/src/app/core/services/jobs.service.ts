@@ -68,6 +68,10 @@ export class JobsService {
         params = params.set('radiusKm', String(query.radiusKm));
       }
       if (query.walkInOnly) params = params.set('walkInOnly', 'true');
+      if (query.skills?.trim()) params = params.set('skills', query.skills.trim());
+      if (query.verifiedEmployer) params = params.set('verifiedEmployer', 'true');
+      if (query.fresher) params = params.set('fresher', 'true');
+      if (query.easyApply) params = params.set('easyApply', 'true');
       params = params.set('sort', query.sort || 'newest');
       if (query.cursor) params = params.set('cursor', query.cursor);
       if (query.limit != null) params = params.set('limit', String(query.limit));
@@ -234,9 +238,24 @@ export class JobsService {
     );
   }
 
-  async reportJob(id: string, reason: string): Promise<void> {
-    await firstValueFrom(
-      this.http.post(`${environment.apiUrl}/jobs/${id}/report`, { reason }),
+  async reportJob(
+    id: string,
+    body: { category?: string; details?: string; reason?: string } | string,
+  ): Promise<{ caseId?: string; acknowledgement?: string }> {
+    const payload =
+      typeof body === 'string'
+        ? { category: 'other', details: body, reason: body }
+        : {
+            category: body.category || 'other',
+            details: body.details || body.reason || 'Reported from mobile',
+            reason: body.reason || body.details || 'Reported from mobile',
+          };
+    return firstValueFrom(
+      this.http.post<{ caseId?: string; acknowledgement?: string }>(
+        `${environment.apiUrl}/jobs/${id}/report`,
+        payload,
+        { headers: this.auth.authHeaders() },
+      ),
     );
   }
 

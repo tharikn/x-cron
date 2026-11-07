@@ -105,6 +105,9 @@ export class NotificationsMemoryStore extends NotificationsStore {
       this.prefs.get(userId) ?? {
         userId,
         jobAlertsEnabled: true,
+        applicationUpdatesEnabled: true,
+        recruiterMessagesEnabled: true,
+        productAnnouncementsEnabled: false,
         inAppEnabled: true,
         pushAlertsEnabled: true,
         emailAlertsEnabled: true,
@@ -128,8 +131,31 @@ export class NotificationsMemoryStore extends NotificationsStore {
       userId,
       updatedAt: new Date().toISOString(),
     };
+    // Keep marketing ↔ product announcements in sync when either is patched.
+    if (patch.productAnnouncementsEnabled !== undefined) {
+      next.marketingEnabled = patch.productAnnouncementsEnabled;
+      next.productAnnouncementsEnabled = patch.productAnnouncementsEnabled;
+    } else if (patch.marketingEnabled !== undefined) {
+      next.productAnnouncementsEnabled = patch.marketingEnabled;
+      next.marketingEnabled = patch.marketingEnabled;
+    }
     this.prefs.set(userId, next);
     return next;
+  }
+
+  async detachDeviceByToken(fcmToken: string): Promise<boolean> {
+    for (const [id, device] of this.devices.entries()) {
+      if (device.fcmToken === fcmToken) {
+        this.devices.set(id, {
+          ...device,
+          userId: undefined,
+          lastSeenAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        return true;
+      }
+    }
+    return false;
   }
 
   async listNotificationPrefUserIds(): Promise<string[]> {
@@ -149,6 +175,11 @@ export class NotificationsMemoryStore extends NotificationsStore {
       status?: NotificationStatus;
     },
   ): Promise<NotificationRecord> {
+    for (const existing of this.notifications.values()) {
+      if (existing.dedupeKey === input.dedupeKey) {
+        return { ...existing };
+      }
+    }
     const record: NotificationRecord = {
       id: `ntf_${uuidv4().slice(0, 8)}`,
       createdAt: new Date().toISOString(),
@@ -264,10 +295,19 @@ export class NotificationsMemoryStore extends NotificationsStore {
     return record;
   }
 
-  async listDispatches(limit = 50): Promise<NotificationDispatch[]> {
-    return [...this.dispatches.values()]
-      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
-      .slice(0, limit);
+  async listDispatches(opts?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: NotificationDispatch[]; total: number }> {
+    const limit = Math.min(Math.max(opts?.limit ?? 50, 1), 200);
+    const offset = Math.max(opts?.offset ?? 0, 0);
+    const sorted = [...this.dispatches.values()].sort((a, b) =>
+      b.startedAt.localeCompare(a.startedAt),
+    );
+    return {
+      items: sorted.slice(offset, offset + limit),
+      total: sorted.length,
+    };
   }
 
   async findDispatch(id: string): Promise<NotificationDispatch | undefined> {

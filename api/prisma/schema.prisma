@@ -66,7 +66,7 @@ model User {
   passwordSalt    String?
   phone           String?
   email           String?
-  /// JSON array of roles: seeker | employer | admin
+  /// JSON array of roles: seeker | employer | admin | moderator
   rolesJson       Json             @default("[\"seeker\"]")
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -78,6 +78,10 @@ model User {
   ownedEmployers  Employer[]       @relation("EmployerOwner")
   memberships     EmployerMember[]
   auditEvents     AuditEvent[]
+  trustAuditEvents TrustAuditEvent[]
+  accountSuspensions AccountSuspension[]
+  moderationCasesAssigned ModerationCase[] @relation("ModerationCaseAssignee")
+  moderationReports ModerationReport[]
   savedJobs       SavedJob[]
   subscriptions   Subscription[]
   devices         DeviceRegistration[]
@@ -97,6 +101,8 @@ model User {
   savedSearches   SavedSearch[]
   reputations     UserReputation[]
   reputationEvents ReputationEvent[]
+  trackingEvents  TrackingEvent[]
+  storedFiles     StoredFile[]
 
   @@unique([username])
   @@index([email])
@@ -146,13 +152,55 @@ model AuthSession {
   userId           String
   accessToken      String   @unique
   refreshToken     String   @unique
+  /// Refresh-token family — reuse of a rotated refresh revokes the whole family.
+  familyId         String
   createdAt        DateTime @default(now())
   expiresAt        DateTime
   refreshExpiresAt DateTime
+  /// Client IP at issue / last refresh (admin tracking).
+  ip               String?
+  userAgent        String?
+  lastSeenAt       DateTime?
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([familyId])
   @@index([refreshExpiresAt])
+  @@schema("xcron")
+}
+
+/// Product analytics events (access, search, share, apply, heartbeat, page_view).
+model TrackingEvent {
+  id         String   @id @default(uuid())
+  type       String
+  userId     String?
+  visitorKey String?
+  jobId      String?
+  path       String?
+  ip         String?
+  userAgent  String?
+  durationMs Int?
+  metaJson   Json?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([visitorKey, createdAt])
+  @@index([type, createdAt])
+  @@index([createdAt])
+  @@schema("xcron")
+}
+
+/// Retired refresh tokens kept until expiry so reuse can revoke the family.
+model RevokedRefreshToken {
+  refreshToken String   @id
+  userId       String
+  familyId     String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([familyId])
+  @@index([expiresAt])
   @@schema("xcron")
 }
 
@@ -188,21 +236,46 @@ model UserPreference {
   @@schema("xcron")
 }
 
+/// Company workspace (API surface `/v1/companies`; legacy clients still say “employer”).
 model Employer {
-  id                 String           @id @default(uuid())
-  name               String
-  slug               String?
-  about              String?
-  logoUrl            String?
-  verificationStatus String           @default("unverified")
-  ownerUserId        String
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  owner              User             @relation("EmployerOwner", fields: [ownerUserId], references: [id])
-  members            EmployerMember[]
-  jobs               Job[]
-  sources            JobSource[]
-  importBatches      ImportBatch[]
+  id                    String                     @id @default(uuid())
+  name                  String
+  /// Legal / registered name when distinct from display `name`.
+  legalName             String?
+  slug                  String?
+  about                 String?
+  logoUrl               String?
+  website               String?
+  /// Verified or claimed email domain (e.g. acme.com) — lowercase.
+  verifiedEmailDomain   String?
+  industry              String?
+  /// Company size band, e.g. "1-10" | "11-50" | "51-200" | "201-1000" | "1000+".
+  sizeBand              String?
+  headquarters          String?
+  /// JSON string array of hiring location labels.
+  hiringLocationsJson   String                     @default("[]")
+  /// unverified | pending | verified | rejected | suspended | reverify_required
+  verificationStatus    String                     @default("unverified")
+  verificationNotes     String?
+  /// Internal-only trust tier: standard | elevated | restricted
+  trustTier             String                     @default("standard")
+  /// JSON string array of internal risk flags.
+  riskFlagsJson         String                     @default("[]")
+  /// JSON workspace settings (notify prefs, pipeline defaults).
+  workspaceSettingsJson String                     @default("{}")
+  ownerUserId           String
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  owner                 User                       @relation("EmployerOwner", fields: [ownerUserId], references: [id])
+  members               EmployerMember[]
+  invitations           EmployerInvitation[]
+  verificationEvidence  EmployerVerificationEvidence[]
+  verificationAudits    EmployerVerificationAudit[]
+  internalNotes         CompanyInternalNote[]
+  interviews            CompanyInterview[]
+  jobs                  Job[]
+  sources               JobSource[]
+  importBatches         ImportBatch[]
 
   @@unique([slug])
   @@index([ownerUserId])
@@ -210,16 +283,108 @@ model Employer {
 }
 
 model EmployerMember {
-  id         String   @id @default(uuid())
-  employerId String
-  userId     String
-  role       String   @default("staff")
-  createdAt  DateTime @default(now())
-  employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid())
+  employerId      String
+  userId          String
+  /// owner | admin | recruiter | hiring_manager | viewer
+  role            String    @default("recruiter")
+  /// invited | active | revoked
+  status          String    @default("active")
+  invitedByUserId String?
+  joinedAt        DateTime?
+  revokedAt       DateTime?
+  /// JSON saved applicant-pipeline filters for this member.
+  savedFiltersJson String   @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  employer        Employer  @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([employerId, userId])
   @@index([userId])
+  @@index([employerId, status])
+  @@schema("xcron")
+}
+
+model EmployerInvitation {
+  id              String    @id @default(uuid())
+  employerId      String
+  email           String
+  /// admin | recruiter | hiring_manager | viewer (never owner via invite)
+  role            String    @default("recruiter")
+  token           String    @unique
+  invitedByUserId String
+  status          String    @default("pending")
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  employer        Employer  @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  @@index([employerId, status])
+  @@index([email])
+  @@schema("xcron")
+}
+
+model EmployerVerificationEvidence {
+  id           String   @id @default(uuid())
+  employerId   String
+  /// domain_email | business_registration | website | other
+  kind         String
+  label        String
+  /// Private reference (URL or storage key) — never public on job DTOs.
+  reference    String
+  submittedBy  String
+  createdAt    DateTime @default(now())
+  employer     Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  @@index([employerId])
+  @@schema("xcron")
+}
+
+model EmployerVerificationAudit {
+  id         String   @id @default(uuid())
+  employerId String
+  actorUserId String
+  action     String
+  detail     String   @default("")
+  createdAt  DateTime @default(now())
+  employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  @@index([employerId, createdAt])
+  @@schema("xcron")
+}
+
+/// Notes visible only to authorised company members (not seekers).
+model CompanyInternalNote {
+  id            String   @id @default(uuid())
+  employerId    String
+  applicationId String?
+  body          String
+  authorUserId  String
+  createdAt     DateTime @default(now())
+  employer      Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  @@index([employerId, applicationId])
+  @@schema("xcron")
+}
+
+model CompanyInterview {
+  id            String   @id @default(uuid())
+  employerId    String
+  applicationId String
+  scheduledAt   String
+  mode          String   @default("video")
+  locationOrLink String  @default("")
+  notes         String   @default("")
+  status        String   @default("scheduled")
+  createdByUserId String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  employer      Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  @@index([employerId, applicationId])
+  @@index([scheduledAt])
   @@schema("xcron")
 }
 
@@ -411,6 +576,10 @@ model JobApplication {
   viewedAt             DateTime?
   /// Skills/experience fit % vs job at apply (Performance Score input).
   matchPercent         Int?
+  /// Last time seeker opened chat / marked conversation read.
+  seekerLastReadAt     DateTime?
+  /// Last time employer opened chat / marked conversation read.
+  employerLastReadAt   DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   job                  Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
@@ -765,18 +934,21 @@ model DeviceRegistration {
 
 /// Per-user alert channel toggles (in-app / push / mail).
 model NotificationPreference {
-  id                  String   @id @default(uuid())
-  userId              String   @unique
-  jobAlertsEnabled    Boolean  @default(true)
-  inAppEnabled        Boolean  @default(true)
-  pushAlertsEnabled   Boolean  @default(true)
-  emailAlertsEnabled  Boolean  @default(true)
-  marketingEnabled    Boolean  @default(false)
-  quietHoursStart     Int?
-  quietHoursEnd       Int?
-  dailyCap            Int      @default(20)
-  updatedAt           DateTime @updatedAt
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                           String   @id @default(uuid())
+  userId                       String   @unique
+  jobAlertsEnabled             Boolean  @default(true)
+  applicationUpdatesEnabled    Boolean  @default(true)
+  recruiterMessagesEnabled     Boolean  @default(true)
+  productAnnouncementsEnabled  Boolean  @default(false)
+  inAppEnabled                 Boolean  @default(true)
+  pushAlertsEnabled            Boolean  @default(true)
+  emailAlertsEnabled           Boolean  @default(true)
+  marketingEnabled             Boolean  @default(false)
+  quietHoursStart              Int?
+  quietHoursEnd                Int?
+  dailyCap                     Int      @default(20)
+  updatedAt                    DateTime @updatedAt
+  user                         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@schema("xcron")
 }
@@ -853,5 +1025,140 @@ model NotificationDelivery {
   @@index([dispatchId, createdAt])
   @@index([userId, createdAt])
   @@index([channel, status])
+  @@schema("xcron")
+}
+
+/// Trust desk moderation case (queues: verification, job review, reports, dupes, suspicious, appeal).
+model ModerationCase {
+  id                 String   @id @default(uuid())
+  queue              String
+  status             String   @default("open")
+  priority           String   @default("normal")
+  targetType         String
+  targetId           String
+  category           String?
+  details            String?
+  evidenceJson       Json     @default("{}")
+  riskFlagsJson      Json     @default("[]")
+  riskScore          Int      @default(0)
+  dismissedRiskFlagsJson Json @default("[]")
+  assigneeUserId     String?
+  slaAt              DateTime?
+  decision           String?
+  reasonCode         String?
+  reason             String?
+  decidedByUserId    String?
+  decidedAt          DateTime?
+  relatedCaseId      String?
+  feedbackThreadId   String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  assignee           User?    @relation("ModerationCaseAssignee", fields: [assigneeUserId], references: [id])
+  reports            ModerationReport[]
+
+  @@index([queue, status, updatedAt])
+  @@index([targetType, targetId, status])
+  @@index([assigneeUserId, status])
+  @@schema("xcron")
+}
+
+model ModerationReport {
+  id             String   @id @default(uuid())
+  caseId         String
+  targetType     String
+  targetId       String
+  category       String
+  details        String   @default("")
+  reporterUserId String?
+  createdAt      DateTime @default(now())
+  case           ModerationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  reporter       User?    @relation(fields: [reporterUserId], references: [id])
+
+  @@index([caseId, createdAt])
+  @@index([targetType, targetId])
+  @@index([reporterUserId])
+  @@schema("xcron")
+}
+
+/// Append-only trust/moderation audit (separate from payment AuditEvent).
+model TrustAuditEvent {
+  id             String   @id @default(uuid())
+  actorId        String?
+  action         String
+  resourceType   String
+  resourceId     String
+  reason         String?
+  reasonCode     String?
+  correlationId  String?
+  beforeJson     Json?
+  afterJson      Json?
+  createdAt      DateTime @default(now())
+  actor          User?    @relation(fields: [actorId], references: [id])
+
+  @@index([resourceType, resourceId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+  @@schema("xcron")
+}
+
+model AccountSuspension {
+  id               String    @id @default(uuid())
+  userId           String
+  reasonCode       String
+  reason           String
+  startsAt         DateTime
+  endsAt           DateTime?
+  actorId          String
+  active           Boolean   @default(true)
+  clearedAt        DateTime?
+  clearedByUserId  String?
+  clearReason      String?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+  @@index([active, endsAt])
+  @@schema("xcron")
+}
+
+/// Singleton-ish moderation config (key = "default").
+model ModerationConfigRow {
+  id        String   @id @default("default")
+  configJson Json
+  updatedAt DateTime @updatedAt
+
+  @@schema("xcron")
+}
+
+/// Durable async side-effect log (transactional outbox). Relay → BullMQ / inline.
+model OutboxEvent {
+  id          String    @id @default(uuid())
+  topic       String
+  payloadJson Json
+  status      String    @default("pending")
+  attempts    Int       @default(0)
+  availableAt DateTime  @default(now())
+  processedAt DateTime?
+  lastError   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, availableAt])
+  @@index([topic, createdAt])
+  @@schema("xcron")
+}
+
+/// Uploaded blob metadata (bytes live in object storage / local disk).
+model StoredFile {
+  id           String   @id @default(uuid())
+  ownerUserId  String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String
+  backend      String
+  createdAt    DateTime @default(now())
+  owner        User     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId, createdAt])
   @@schema("xcron")
 }

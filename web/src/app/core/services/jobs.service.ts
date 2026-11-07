@@ -27,6 +27,7 @@ export class JobsService {
 
   search(input: {
     keyword?: string;
+    q?: string;
     location?: string;
     jobType?: string;
     category?: string;
@@ -38,6 +39,10 @@ export class JobsService {
     nearLng?: number | null;
     radiusKm?: number | null;
     walkInOnly?: boolean | null;
+    skills?: string;
+    verifiedEmployer?: boolean | null;
+    fresher?: boolean | null;
+    easyApply?: boolean | null;
     sort?: string;
     cursor?: string;
     limit?: number;

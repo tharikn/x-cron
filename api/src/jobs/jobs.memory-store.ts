@@ -9,6 +9,7 @@ import {
 } from './job.types';
 import {
   filterJobs,
+  matchContextFromQuery,
   paginateHits,
   sortJobHits,
 } from './jobs-search.util';
@@ -65,7 +66,7 @@ export class JobsMemoryStore extends JobsStore implements OnModuleInit {
     const sorted = sortJobHits(
       filtered,
       query.sort ?? 'newest',
-      query.keyword ?? '',
+      matchContextFromQuery(query),
     );
     return paginateHits(sorted, query.cursor, query.limit);
   }
@@ -226,6 +227,10 @@ export class JobsMemoryStore extends JobsStore implements OnModuleInit {
 
   async listByOwner(userId: string): Promise<JobRecord[]> {
     return this.jobs.filter((job) => job.ownerUserId === userId);
+  }
+
+  async listByEmployer(employerId: string): Promise<JobRecord[]> {
+    return this.jobs.filter((job) => job.employerId === employerId);
   }
 
   async listAll(): Promise<JobRecord[]> {

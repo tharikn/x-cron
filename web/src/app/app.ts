@@ -22,14 +22,17 @@ import { filter, Subscription } from 'rxjs';
 import { TranslatePipe } from './core/pipes/translate.pipe';
 import { ApiLoadingService } from './core/services/api-loading.service';
 import { AuthService } from './core/services/auth.service';
+import { ConnectivityService } from './core/services/connectivity.service';
 import { LocaleService } from './core/services/locale.service';
 import { NotificationsService } from './core/services/notifications.service';
 import { OnboardingService } from './core/services/onboarding.service';
 import { SeekerService } from './core/services/seeker.service';
 import { SiteService } from './core/services/site.service';
 import { ToastService } from './core/services/toast.service';
+import { TrackingService } from './core/services/tracking.service';
 import { GetAppCtaComponent } from './shared/get-app-cta/get-app-cta.component';
 import { HelpChatComponent } from './shared/help-chat/help-chat.component';
+import { RouteEnterDirective } from './shared/route-enter/route-enter.directive';
 import { ApiLoadingSkeletonComponent } from './shared/skeleton/api-loading-skeleton.component';
 import { ThemePromptComponent } from './shared/theme-prompt/theme-prompt.component';
 
@@ -54,6 +57,7 @@ const FOOTER_ITEM_KEYS: Record<string, string> = {
     TranslatePipe,
     GetAppCtaComponent,
     HelpChatComponent,
+    RouteEnterDirective,
     ApiLoadingSkeletonComponent,
     ThemePromptComponent,
   ],
@@ -71,6 +75,8 @@ export class App implements OnInit, OnDestroy {
   private readonly notifications = inject(NotificationsService);
   private readonly onboarding = inject(OnboardingService);
   private readonly seeker = inject(SeekerService);
+  private readonly connectivity = inject(ConnectivityService);
+  private readonly tracking = inject(TrackingService);
   private navSub?: Subscription;
   private notifPollId: ReturnType<typeof setInterval> | null = null;
   private readonly onVisChange = () => {
@@ -84,8 +90,10 @@ export class App implements OnInit, OnDestroy {
   readonly apiBusy = this.apiLoading.visible;
   readonly toasts = this.toastService.messages;
   readonly themePromptOpen = this.onboarding.themePromptOpen;
+  readonly online = this.connectivity.online;
   readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
+  readonly isModerator = this.auth.isModerator;
   readonly isEmployer = this.auth.isEmployer;
   /** Drawer label when signed in: display name → username → email. */
   readonly profileLabel = computed(() => {
@@ -117,6 +125,8 @@ export class App implements OnInit, OnDestroy {
     void this.site.hydrateFooter();
     void this.hydrateNotifications();
     if (isPlatformBrowser(this.platformId)) {
+      this.connectivity.start();
+      this.tracking.start();
       this.onboarding.openThemePromptIfNeeded();
       if (!this.onboarding.themePromptOpen()) {
         void this.maybeForceProfileSetup();

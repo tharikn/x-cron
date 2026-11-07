@@ -12,9 +12,9 @@ npm start                  # ng serve
 npm run build              # www/ for Capacitor
 npm run build:prod
 npm run lint
-npm run test:unit
+npm run test:unit          # ng test (Vitest): core/utils, guards, deep-link mapper, correlation interceptor
 npm run test:e2e           # Playwright package smoke only
-# Full mobile+web journeys from monorepo root: npm run test:e2e  (see ../e2e/README.md)
+# Full journeys from monorepo root: npm run test:e2e (api+mobile+web); Android Chrome: npm run test:e2e:android (see ../e2e/README.md)
 npm run cap:sync           # build + npx cap sync
 npm run cap:android        # open Android Studio
 npm run release:apk        # bump APK versionCode + versionName (patch)
@@ -28,16 +28,18 @@ Requires API running for live data (`../api`). Env: `src/environments/environmen
 ## Architecture
 
 - Ionic 9 + Angular 22 standalone components; Capacitor 8 (`capacitor.config.ts`)
+- **Route overlay enter (2026-11-07):** global Ionic `navAnimation` = bottom → top overlay (`core/utils/xcron-nav-animation.ts` via `provideIonicAngular`); bottom tab bar switches play the same B→T enter in `tabs.page` `ionTabsDidChange`. Web uses left → right instead. Honours `prefers-reduced-motion`.
 - Routes: `src/app/app.routes.ts` under `/tabs/*`
 - Tabs: Discover · (signed-in) Notifications · (signed-in) Settings · **Sign in / Profile** (last) (`src/app/tabs/`) — employers also Post. Profile tab is `/tabs/account` (standalone auth + signed-in account desk). Settings hosts Language always; **Theme · Prefs · Saved only after sign-in** (`/tabs/settings?tab=`). Theme = `system|light|dark|warm` (`ThemeService` + prefs sync). First-open `shared/theme-prompt` asks theme for everyone; seeker incomplete profiles redirect to `/onboarding/profile` wizard (Remind later 24h). Guests who open Theme/Prefs/Saved are sent to Sign in. Guest chrome skill: [../.cursor/skills/xcron-ui-auth/SKILL.md](../.cursor/skills/xcron-ui-auth/SKILL.md). No Ads tab / discover feed ad slot.
 - Pages: `src/app/pages/<name>/` (`*.page.ts|html|scss`)
-- Shared: `src/app/shared/job-card/`, `src/app/shared/pii-field/` (profile PII View/Hide mask), `src/app/shared/help-chat/` (signed-in floating help FAB on `app.component`), `src/app/shared/skeleton/` (layout-matched job-list / table / list variants / detail / score / analytics; global API = top shimmer bar — prefer over `ion-spinner`; bones `.sk*` in `global.scss`)
+- Shared: `src/app/shared/job-card/`, `src/app/shared/pii-field/` (profile PII View/Hide mask), `src/app/shared/help-chat/` (signed-in floating help chatbot — messenger UI on `app.component`), `src/app/shared/skeleton/` (layout-matched job-list / table / list variants / detail / score / analytics; global API = top shimmer bar — prefer over `ion-spinner`; bones `.sk*` in `global.scss`)
 - Profile validation: `core/utils/form-validation.ts` + `fieldErrorsFromHttp` (aligned with API `{ errors }` map)
-- Core services: `src/app/core/services/` — `auth` (access + refresh), `jobs`, `preferences`, `ingestion`, `channels`, `payments`, `notifications`, `ads`, `seeker`
+- Core services: `src/app/core/services/` — `auth` (access + refresh via `TokenVaultService` / Capacitor Preferences on native), `jobs`, `preferences`, `ingestion`, `channels`, `payments`, `notifications`, `ads`, `seeker`, `tracking` (access / heartbeat / search / share → `/v1/tracking/events`)
 - Models/utils: `core/models/`, `core/utils/format.ts`, offline `core/data/mock-jobs.ts`
 - App init: `AuthService.ensureSession()` (`APP_INITIALIZER` + `app.component`) via `/auth/me`; memory Bearer + `localStorage` refresh (survives Capacitor process death) + one-tab (`TabSessionService` / `X-Tab-Id`); **native** uses Bearer-only (`withCredentials: false` via `api-credentials.ts`) to avoid cross-origin cookie/CSRF traps; browser/`ng serve` keeps cookie dual-auth + CSRF headers. `adminGuard` blocks Import/Job Fare until admin is confirmed; `employerGuard` gates Post (employer username/password register/login, not admin); `authInterceptor` refreshes once on 401 then clears; foreground resume calls `slideSessionIfNeeded` for long-lived alerts
-- Admin tabs render only when `isAdmin()` is true after session validation — never from localStorage roles alone. Post is employer+admin; Import/Job Fare stay admin-only
-- Android project: `android/` (permissions in `AndroidManifest.xml`; camera for import)
+- Admin tabs render only when `isAdmin()` is true after session validation — never from localStorage roles alone. Post is employer+admin; Import/Job Fare stay admin-only. Moderation Approve/Reject queue also when `isModerator()`; full Trust desk stays on web `/admin/trust`
+- Android UX (Doc 10): `DeepLinkService` (`https://x-cron.onrender.com` + `xcron://`) → jobs/applications/feedback; `AndroidBackService`; offline banner; `correlationInterceptor` — [../docs/WEBSITE_AND_ANDROID_UX.md](../docs/WEBSITE_AND_ANDROID_UX.md)
+- Android project: `android/` (permissions + deep-link intent filters in `AndroidManifest.xml`; camera for import)
 - **Boot splash:** `index.html` `#boot-splash` shows `assets/icon/xcron-logo-mark-square.png` on `#070412` until `AppComponent` finishes session/prefs hydrate; native uses `@capacitor/splash-screen` (`launchAutoHide: false`) + Android `drawable/splash.xml` / `splash_logo` (`AppTheme.NoActionBarLaunch`). Hide via `dismissBootSplash()` — do not auto-hide before the app is ready.
 
 ## Product / UI rules
@@ -61,7 +63,7 @@ Full standards: [../CLAUDE.md](../CLAUDE.md) § **UI / UX standards**. Mobile sp
 - Job list type ladder (shared `job-card`): title = Outfit `--xcron-text-title` / bold / `--xcron-ink`; employer = Manrope `--xcron-text-body` / medium / `--xcron-ink-soft`; facts + posted time = Manrope `--xcron-text-meta` (time uses `--xcron-faint`); CTA = label token — no one-off rem sizes or Ionic `color="medium"` on time
 - Job detail contact mirrors web: show contact values directly; Save/Share in a two-column secondary row
 - Labelled ad slots + Discover/notification empty states use elevated/wash dark tokens (not light grey wash) so they sit on the night-sky canvas
-- Notifications inbox: elevated night-sky cards (unread = left blue beam + wash); quiet count/unread pills; no sheen/pulse chrome
+- Notifications inbox: elevated cards (unread = primary left beam + wash); primary **New** badge; outline Open/Refresh + gradient **Mark read** (theme tokens — never solid `color="dark"` / ink-on-ink); quiet count/unread pills; no sheen/pulse chrome
 - Prefer existing Ionic components restyled to tokens — do not invent a second visual language
 - Stay visually aligned with web (`:4201`); do not regress to light mint/teal / Plus Jakarta / white chrome
 
@@ -69,26 +71,27 @@ Full standards: [../CLAUDE.md](../CLAUDE.md) § **UI / UX standards**. Mobile sp
 
 | Flow | Where |
 | --- | --- |
-| Search / pref prompt | `pages/discover` — salary/remote/postedWithin/walk-in/nearby/save search/recently viewed |
-| Clear preferences / filters | Discover **Clear preferences** (also Settings → Prefs Clear) |
+| Search / pref prompt | `pages/discover` — skills/verified/fresher/easyApply + salary/remote/postedWithin/walk-in/nearby; URL query sync + filter chips; save search; **For you** rail (`/v1/feed`); recently viewed. Design: [../docs/JOB_DISCOVERY.md](../docs/JOB_DISCOVERY.md) |
+| Clear filters / preferences | Discover **Clear filters** (filters only) · prefs clear still via Settings → Prefs / legacy clear |
 | Contact (direct) | `pages/job-detail` from public job DTO (+ contacted marker, hide, employer link) |
 | Save job | job-detail → `seeker.service` |
 | Saved jobs list / remove | Settings → **Saved** after sign-in (`pages/saved-jobs`; `/tabs/saved` redirects there) |
-| Seeker profile / apply versions / applications / saved searches | Bottom-nav **Sign in / Profile** (`/tabs/account`) — guest stack Login → Sign Up (**Job Seeker / Recruiter** role picker → `intendedRole`) → Google → Forgot password; signed-in desk uses header segments **Profile · Apply (seeker-only) · Activity · Rating · Account** (`?tab=`). Incomplete seekers redirect to `/onboarding/profile` (Personal → Location → Career → Skills/cities + progress + Remind later + congrats; skills seed Default Easy apply version). **Profile** accordion: Personal · Location · Career seeker-only. **Apply** versions (no CV, seekers only): skills as removable **badges** (2–7). **Activity** role-split. **Rating** → My Rating; red **Sign out** on Account. |
+| Seeker profile / apply versions / applications / saved searches | Bottom-nav **Sign in / Profile** (`/tabs/account`) — guest stack Login → Sign Up (**Job Seeker / Recruiter** role picker → `intendedRole`) → Google → Forgot password; signed-in desk uses header segments **Profile · Apply (seeker-only) · Activity · Rating · Account** (`?tab=`). Incomplete seekers redirect to `/onboarding/profile` (Personal → Location → Career → Skills/cities + progress + Remind later + congrats; skills seed Default Easy apply version). **Profile** accordion: Personal · Location · Career seeker-only; incomplete seekers also see a **profile completion** callout from `GET /v1/me/profile` `completion` on Profile + Apply. **Apply** versions (no CV, seekers only): skills as removable **badges** (2–7). **Activity** role-split. **Rating** → My Rating; red **Sign out** on Account. |
 | Applied jobs list | `/tabs/applied` (Account Activity **Open all**; status + updated date/time) |
-| Apply + timeline | Job detail **Easy apply** is seeker-only (`!isEmployer()`); needs an Account apply-profile version; then `/tabs/applications/:id` with segments **Overview · Chat · Timeline** (`?tab=`). Inbox CTA uses `data.applicationId` → timeline. Design: [../docs/APPLICATIONS_TIMELINE.md](../docs/APPLICATIONS_TIMELINE.md) |
+| Apply + timeline | Job detail **Easy apply** is seeker-only (`!isEmployer()`); needs an Account apply-profile version; then `/tabs/applications/:id` with segments **Overview · Chat · Timeline** (`?tab=`). Opening Chat marks conversation read. Inbox CTA uses `data.applicationId` → timeline. Design: [../docs/APPLICATIONS_TIMELINE.md](../docs/APPLICATIONS_TIMELINE.md) |
 | Employer applicant review | Post tab / Account → `/tabs/employer-applications` (+ detail `?as=employer`) |
+| Company workspace | Account → `/tabs/company` (dashboard / profile / team / verification); invite accept `/tabs/company-invitations/:token/accept` — see [../docs/COMPANY_WORKSPACE.md](../docs/COMPANY_WORKSPACE.md) |
 | Posted jobs + analytics | Post tab → `/tabs/my-jobs` (metric cards) → `/tabs/my-jobs/:id` analytics board (KPI + daily funnel); job detail records `POST /jobs/:id/events` views |
 | Employer public page | `/tabs/employers/:id` |
 | Recruiter desk (post) | `pages/post-job` (`employerGuard`) — Compose \| Review \| Preview panels; AI Improve + chat (`core/services/ai.service.ts` → `/v1/ai/job-enrich`); confirm alert (“did you preview?”) then `directPublish: true` (live, skips Blog Approval). Compose starts with empty employer + city (no Palani / employer-profile prefill). Link to Posted jobs & analytics. Admin Import/Job Fare links only when `isAdmin()`. Field validation via `core/utils/job-form.validation.ts` |
 | Bulk CSV/camera/clipboard | `pages/import-batch` — full-width review rows (checkbox + body, actions wrap below; no viewport 3-col table — `ion-app` is 480px) + **Edit** / **Chat** / **Improve with AI** in a **popup modal** (`updateRecord` + `enrichRecord` with optional instruction); Edit Save uses the same `job-form.validation` helpers (vacancies integer, language code, apply URL) |
 | Job Fare channel workflow | `pages/job-fare` (admin; reach from Post tab, not Account). Web parity: `/admin/job-fare` under Post drawer group |
 | Language / Theme / Prefs / Saved | Settings segments → `pages/language`, `pages/theme`, `pages/preferences`, `pages/saved-jobs` (Theme + Prefs + Saved gated to signed-in) |
-| Prefs + alert channel toggles | Settings → Prefs (`pages/preferences`) after sign-in; shows live OS notification permission + Enable CTA |
+| Prefs + alert channel toggles | Settings → Prefs (`pages/preferences`) after sign-in — job / application updates / recruiter messages / channels / product announcements; live OS permission + Enable CTA |
 | Sign-in → OS alerts prompt | Account / sheet / app boot: `promptOsPermissionAfterSignIn` + toast when permission updates |
 | Notifications inbox | `pages/notifications` — job Open + `data.action` CTAs (`complete_profile` → Account, `browse_jobs` → Discover, `open_feedback` → Feedback / admin desk via `[routerLink]` + `[queryParams].thread` — never embed `?` in the path) |
 | Feedback / Contact Admin | `pages/feedback` — FAQ + messenger; `pages/admin-feedback` admin desk; Account + guest CTA. Open threads quiet-poll ~2.5s (+ focus / `ionViewWillEnter`); **optimistic send** (pending bubble, no global spinner / Sending spinner row); peer typing + Online/Last active |
-| Sign in / Profile / delete | Bottom-nav Profile tab (`pages/account`) — signed-in segments Profile · Apply (seeker) · Activity (role-split) · Rating · Account (no subscription UI). Settings **Saved** is seeker-only. |
+| Sign in / Profile / delete | Bottom-nav Profile tab (`pages/account`) — signed-in segments Profile · Apply (seeker) · Activity (role-split) · Rating · Account (Devices & sessions + Export/Delete + Privacy). Prefs: marketing consent separate from job alerts. Settings **Saved** is seeker-only. Refresh vault: `TokenVaultService` (Capacitor Preferences). Design: [../docs/SECURITY_PRIVACY.md](../docs/SECURITY_PRIVACY.md) · [../docs/AUTHENTICATION.md](../docs/AUTHENTICATION.md). |
 | Auth toasts | Bottom-center Ionic toast: success → `xcron-toast--success` (primary), error → `xcron-toast--error` (red) + `friendlyHttpMessage` |
 | My Rating | `/tabs/performance` (Account callout + employer inbox fit/score badges) |
 

@@ -68,6 +68,35 @@
     @switch (tab()) {
       @case ('apply') {
         <div class="tab-pane">
+          @if (profileCompletion(); as completion) {
+            <aside class="completion-card" aria-label="Profile completion">
+              <div class="completion-card__head">
+                <strong>Profile {{ completion.percent }}%</strong>
+                <span>Finish these to improve matching</span>
+              </div>
+              <div
+                class="completion-card__bar"
+                role="progressbar"
+                [attr.aria-valuenow]="completion.percent"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <span [style.width.%]="completion.percent"></span>
+              </div>
+              <ul class="completion-card__list">
+                @for (item of completion.items; track item.id) {
+                  @if (!item.done) {
+                    <li>
+                      <button type="button" (click)="focusCompletion(item.id)">
+                        {{ item.hint }}
+                      </button>
+                    </li>
+                  }
+                }
+              </ul>
+            </aside>
+          }
+
           <section class="panel">
             <h2>Apply profile versions</h2>
             <p class="hint">

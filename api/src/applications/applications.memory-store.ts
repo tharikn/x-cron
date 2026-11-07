@@ -32,6 +32,14 @@ export class ApplicationsMemoryStore extends ApplicationsStore {
     spamReasons?: string[];
     matchPercent?: number;
   }): Promise<JobApplication> {
+    for (const existing of this.applications.values()) {
+      if (
+        existing.seekerUserId === input.seekerUserId &&
+        existing.jobId === input.jobId
+      ) {
+        throw new Error('duplicate_application');
+      }
+    }
     const now = new Date().toISOString();
     const row: JobApplication = {
       id: randomUUID(),
@@ -143,6 +151,13 @@ export class ApplicationsMemoryStore extends ApplicationsStore {
       .map((a) => this.cloneApp(a));
   }
 
+  async listForEmployer(employerId: string): Promise<JobApplication[]> {
+    return [...this.applications.values()]
+      .filter((a) => a.employerId === employerId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map((a) => this.cloneApp(a));
+  }
+
   async updateApplication(
     id: string,
     patch: Partial<
@@ -155,6 +170,8 @@ export class ApplicationsMemoryStore extends ApplicationsStore {
         | 'seekerEmail'
         | 'offerLetterText'
         | 'viewedAt'
+        | 'seekerLastReadAt'
+        | 'employerLastReadAt'
       >
     >,
   ): Promise<JobApplication | undefined> {
@@ -232,6 +249,19 @@ export class ApplicationsMemoryStore extends ApplicationsStore {
     return [...(this.messages.get(applicationId) ?? [])].sort((a, b) =>
       a.createdAt.localeCompare(b.createdAt),
     );
+  }
+
+  async listMessagesPage(
+    applicationId: string,
+    opts?: { limit?: number; before?: string },
+  ): Promise<ApplicationMessage[]> {
+    const limit = Math.min(Math.max(opts?.limit ?? 50, 1), 100);
+    let rows = await this.listMessages(applicationId);
+    if (opts?.before) {
+      rows = rows.filter((m) => m.createdAt < opts.before!);
+    }
+    // Return chronological page ending at newest included message.
+    return rows.slice(Math.max(0, rows.length - limit));
   }
 
   async clearForUser(userId: string): Promise<void> {

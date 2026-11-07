@@ -140,14 +140,21 @@ export class ApplicationsService {
     );
   }
 
-  listMessages(id: string, asEmployer = false) {
+  listMessages(id: string, asEmployer = false, opts?: { limit?: number; before?: string }) {
     const path = asEmployer
       ? `${environment.apiUrl}/employers/applications/${id}/messages`
       : `${environment.apiUrl}/me/job-applications/${id}/messages`;
+    const params: Record<string, string> = {};
+    if (opts?.limit != null) params['limit'] = String(opts.limit);
+    if (opts?.before) params['before'] = opts.before;
     return firstValueFrom(
-      this.http.get<{ items: ApplicationMessage[] }>(path, {
-        headers: this.auth.authHeaders(),
-      }),
+      this.http.get<{ items: ApplicationMessage[]; nextBefore?: string | null }>(
+        path,
+        {
+          headers: this.auth.authHeaders(),
+          params,
+        },
+      ),
     ).then((res) => res.items);
   }
 
@@ -162,6 +169,15 @@ export class ApplicationsService {
         { headers: this.auth.authHeaders() },
       ),
     );
+  }
+
+  markConversationRead(id: string, asEmployer = false) {
+    const path = asEmployer
+      ? `${environment.apiUrl}/employers/applications/${id}/messages/read`
+      : `${environment.apiUrl}/me/job-applications/${id}/messages/read`;
+    return firstValueFrom(
+      this.http.post(path, {}, { headers: this.auth.authHeaders() }),
+    ).catch(() => null);
   }
 
   listEmployer() {

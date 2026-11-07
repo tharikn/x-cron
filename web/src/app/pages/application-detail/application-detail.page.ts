@@ -67,6 +67,9 @@ export class ApplicationDetailPage implements OnInit {
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
+    if (next === 'chat') {
+      await this.markChatRead();
+    }
   }
 
   async reload(id?: string): Promise<void> {
@@ -79,10 +82,18 @@ export class ApplicationDetailPage implements OnInit {
         ? await this.applications.getEmployer(appId)
         : await this.applications.getMine(appId);
       this.app.set(detail);
-      this.messages.set(detail.messages ?? []);
+      const page = await this.applications.listMessages(
+        appId,
+        this.asEmployer(),
+        { limit: 50 },
+      );
+      this.messages.set(page.length ? page : detail.messages ?? []);
       this.offerLetterText = detail.offerLetterText || '';
       if (!this.nextStatus) {
         this.nextStatus = this.defaultNext(detail.status);
+      }
+      if (this.tab() === 'chat') {
+        await this.markChatRead();
       }
     } catch {
       this.error.set('Could not load application.');
@@ -90,6 +101,15 @@ export class ApplicationDetailPage implements OnInit {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  private async markChatRead(): Promise<void> {
+    const current = this.app();
+    if (!current) return;
+    await this.applications.markConversationRead(
+      current.id,
+      this.asEmployer(),
+    );
   }
 
   async withdraw(): Promise<void> {

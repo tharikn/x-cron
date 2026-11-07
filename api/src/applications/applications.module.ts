@@ -1,11 +1,13 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ApplyProfilesModule } from '../apply-profiles/apply-profiles.module';
+import { CompaniesModule } from '../companies/companies.module';
 import { JobsModule } from '../jobs/jobs.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReputationModule } from '../reputation/reputation.module';
 import { SeekerModule } from '../seeker/seeker.module';
 import { SiteModule } from '../site/site.module';
+import { TrackingModule } from '../tracking/tracking.module';
 import { ApplicationsController } from './applications.controller';
 import { ApplicationsMemoryStore } from './applications.memory-store';
 import { ApplicationsPrismaStore } from './applications.prisma-store';
@@ -30,6 +32,8 @@ function resolveApplicationsStoreMode(): 'prisma' | 'memory' {
     ApplyProfilesModule,
     ReputationModule,
     SeekerModule,
+    forwardRef(() => CompaniesModule),
+    TrackingModule,
   ],
   controllers: [ApplicationsController],
   providers: [

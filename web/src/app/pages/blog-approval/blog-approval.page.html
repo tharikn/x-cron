@@ -5,13 +5,13 @@
     publish.
   </p>
 
-  @if (!isSignedIn() || !isAdmin()) {
+  @if (!isSignedIn() || !isModerator()) {
     <div class="gate">
       <p>
         @if (!isSignedIn()) {
-          Admins must sign in before reviewing posts.
+          Moderators must sign in before reviewing posts.
         } @else {
-          This account is not an admin. Use admin&#64;xcron.local.
+          This account is not a moderator or admin.
         }
       </p>
       <a class="btn" routerLink="/sign-in">Go to Sign in</a>
@@ -34,7 +34,12 @@
         @for (job of queue(); track job.id) {
           <article class="mod-card" [class.mod-card--active]="previewJob()?.id === job.id">
             <strong>{{ job.title }}</strong>
-            <p>{{ job.employerName }} · {{ job.status }}</p>
+            <p>
+              {{ job.employerName }} · {{ job.status }}
+              @if (job.reportCount) {
+                · {{ job.reportCount }} report{{ job.reportCount === 1 ? '' : 's' }}
+              }
+            </p>
             <div class="mod-card__actions">
               <button
                 type="button"

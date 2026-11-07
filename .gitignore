@@ -57,6 +57,9 @@ mobile/playwright-report/
 .turbo/
 .capacitor/
 *.tsbuildinfo
-
+api/uploads/
+api/openapi.json
+*.mjs
+*.csv
 # Tesseract OCR language packs (downloaded locally)
 *.traineddata

@@ -31,6 +31,9 @@ export abstract class NotificationsStore {
     fcmToken: string;
   }): Promise<boolean>;
 
+  /** Detach any device holding this FCM token (invalid/unregistered cleanup). */
+  abstract detachDeviceByToken(fcmToken: string): Promise<boolean>;
+
   abstract listDevicesForUser(userId: string): Promise<DeviceRegistration[]>;
 
   abstract getNotificationPrefs(
@@ -98,7 +101,10 @@ export abstract class NotificationsStore {
     input: Omit<NotificationDeliveryLog, 'id' | 'createdAt'>,
   ): Promise<NotificationDeliveryLog>;
 
-  abstract listDispatches(limit?: number): Promise<NotificationDispatch[]>;
+  abstract listDispatches(opts?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: NotificationDispatch[]; total: number }>;
 
   abstract findDispatch(id: string): Promise<NotificationDispatch | undefined>;
 

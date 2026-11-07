@@ -32,6 +32,13 @@
       <span class="job-card__sep" aria-hidden="true">·</span>
       {{ formatSalary(job.salary) }}
     </p>
+    @if (job.matchReasons?.length) {
+      <ul class="job-card__reasons">
+        @for (reason of job.matchReasons; track reason) {
+          <li>{{ reason }}</li>
+        }
+      </ul>
+    }
     <span class="job-card__cta" aria-hidden="true">View role</span>
   </ion-card-content>
 </ion-card>

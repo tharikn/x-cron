@@ -1,0 +1,52 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/account"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Privacy</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <h1>Privacy</h1>
+  <p class="lead">
+    How X Cron Jobs handles your data. Product disclosure for the India-first MVP — not legal
+    advice.
+  </p>
+
+  <section class="block">
+    <h2>Profile visibility</h2>
+    <p>
+      Show my contact is off by default and reversible. Recruiters see your contact and apply
+      profile when you Easy apply — not before.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Separate consents</h2>
+    <p>
+      Job match alerts, marketing tips, and channel toggles (in-app / push / email) are separate.
+      Manage them under Settings → Prefs.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Easy apply</h2>
+    <p>
+      Shares your selected apply-profile snapshot and contact with that employer for that job. We
+      do not sell candidate lists.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Your controls</h2>
+    <p>
+      Export my data and Delete account live on the Account tab. Optional AI tools clean job text
+      or help you use the app — they do not rank candidates or infer sensitive traits.
+    </p>
+  </section>
+
+  <p class="foot">
+    <a routerLink="/tabs/account" [queryParams]="{ tab: 'account' }">Back to Account</a>
+  </p>
+</ion-content>

@@ -105,6 +105,28 @@
     </ion-item>
     <ion-item>
       <ion-toggle
+        [ngModel]="notifPrefs().applicationUpdatesEnabled ?? true"
+        (ngModelChange)="toggleAlert('applicationUpdatesEnabled', $event)"
+        labelPlacement="start"
+        justify="space-between"
+        [disabled]="!isSignedIn()"
+      >
+        Application updates
+      </ion-toggle>
+    </ion-item>
+    <ion-item>
+      <ion-toggle
+        [ngModel]="notifPrefs().recruiterMessagesEnabled ?? true"
+        (ngModelChange)="toggleAlert('recruiterMessagesEnabled', $event)"
+        labelPlacement="start"
+        justify="space-between"
+        [disabled]="!isSignedIn()"
+      >
+        Recruiter messages
+      </ion-toggle>
+    </ion-item>
+    <ion-item>
+      <ion-toggle
         [ngModel]="notifPrefs().inAppEnabled ?? true"
         (ngModelChange)="toggleAlert('inAppEnabled', $event)"
         labelPlacement="start"
@@ -134,6 +156,17 @@
         [disabled]="!isSignedIn()"
       >
         {{ 'prefs.emailAlerts' | t }}
+      </ion-toggle>
+    </ion-item>
+    <ion-item>
+      <ion-toggle
+        [ngModel]="notifPrefs().productAnnouncementsEnabled ?? notifPrefs().marketingEnabled"
+        (ngModelChange)="toggleAlert('productAnnouncementsEnabled', $event)"
+        labelPlacement="start"
+        justify="space-between"
+        [disabled]="!isSignedIn()"
+      >
+        Product announcements
       </ion-toggle>
     </ion-item>
     @if (!isSignedIn()) {

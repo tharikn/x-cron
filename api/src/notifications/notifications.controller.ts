@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -63,6 +64,15 @@ export class NotificationsController {
     return this.notificationsService.saveNotificationPreferences(user, dto);
   }
 
+  /** Doc-shaped PATCH alias (same as PUT). */
+  @Patch('notifications/preferences')
+  savePrefsPatch(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: NotificationPreferencesDto,
+  ) {
+    return this.notificationsService.saveNotificationPreferences(user, dto);
+  }
+
   @Get('notifications')
   list(@CurrentUser() user: AuthUser) {
     return this.notificationsService.listInApp(user);
@@ -73,13 +83,20 @@ export class NotificationsController {
     return this.notificationsService.markRead(user, id);
   }
 
-  /** Trigger history (batch fan-outs). Admin only. */
+  /** Doc-shaped PATCH alias for mark-read. */
+  @Patch('notifications/:id/read')
+  markReadPatch(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.notificationsService.markRead(user, id);
+  }
+
+  /** Trigger history (batch fan-outs). Admin only. Paginated via limit + offset. */
   @Roles('admin')
   @Get('admin/notification-dispatches')
   listDispatches(
-    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+    @Query('limit', new DefaultValuePipe(25), ParseIntPipe) limit: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
   ) {
-    return this.notificationsService.listDispatches(limit);
+    return this.notificationsService.listDispatches(limit, offset);
   }
 
   @Roles('admin')

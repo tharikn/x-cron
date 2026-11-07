@@ -15,7 +15,7 @@ import { TabSessionService } from './tab-session.service';
 
 export interface AuthUser {
   id: string;
-  roles: Array<'seeker' | 'employer' | 'admin'>;
+  roles: Array<'seeker' | 'employer' | 'admin' | 'moderator'>;
   username?: string;
   email?: string;
   displayName?: string;
@@ -41,6 +41,14 @@ interface TokenPairResponse {
   token: string;
   refreshToken: string;
   expiresAt?: string;
+}
+
+export interface AuthDeviceSession {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  refreshExpiresAt: string;
+  current: boolean;
 }
 
 /** Profile only in storage. Refresh may live in sessionStorage as cross-origin fallback. */
@@ -71,6 +79,13 @@ export class AuthService {
   readonly isAdmin = computed(
     () =>
       this.sessionValidated() && !!this.user()?.roles.includes('admin'),
+  );
+  /** Trust desk / Blog Approval — moderator or platform admin. */
+  readonly isModerator = computed(
+    () =>
+      this.sessionValidated() &&
+      (!!this.user()?.roles.includes('moderator') ||
+        !!this.user()?.roles.includes('admin')),
   );
   readonly isEmployer = computed(
     () =>
@@ -218,6 +233,45 @@ export class AuthService {
     } finally {
       this.clearSession({ unlinkPush: false });
     }
+  }
+
+  /** Revoke every refresh/access pair for this account. */
+  async logoutAll(): Promise<void> {
+    await this.unlinkPushDevice();
+    try {
+      await firstValueFrom(
+        this.http.post(
+          `${environment.apiUrl}/auth/logout-all`,
+          {},
+          { withCredentials: true, headers: this.authHeaders() },
+        ),
+      );
+    } catch {
+      // still clear local session
+    } finally {
+      this.clearSession({ unlinkPush: false });
+    }
+  }
+
+  async listSessions(): Promise<AuthDeviceSession[]> {
+    const response = await firstValueFrom(
+      this.http.get<{ sessions: AuthDeviceSession[] }>(
+        `${environment.apiUrl}/auth/sessions`,
+        { withCredentials: true, headers: this.authHeaders() },
+      ),
+    );
+    return response.sessions ?? [];
+  }
+
+  async revokeSession(sessionId: string): Promise<void> {
+    const target = sessionId.trim();
+    if (!target) return;
+    await firstValueFrom(
+      this.http.delete(
+        `${environment.apiUrl}/auth/sessions/${encodeURIComponent(target)}`,
+        { withCredentials: true, headers: this.authHeaders() },
+      ),
+    );
   }
 
   /** Local wipe only (used by 401 interceptor — avoid logout loops). */

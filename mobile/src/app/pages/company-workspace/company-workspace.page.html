@@ -1,0 +1,100 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Company</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="cw">
+  <div class="cw__tabs">
+    <button type="button" [class.is-on]="tab() === 'dashboard'" (click)="setTab('dashboard')">Dashboard</button>
+    <button type="button" [class.is-on]="tab() === 'profile'" (click)="setTab('profile')">Profile</button>
+    <button type="button" [class.is-on]="tab() === 'team'" (click)="setTab('team')">Team</button>
+    <button type="button" [class.is-on]="tab() === 'verification'" (click)="setTab('verification')">Verify</button>
+  </div>
+
+  @if (loading()) {
+    <div class="sk sk--panel" aria-hidden="true"></div>
+  } @else if (tab() === 'dashboard' && dashboard(); as d) {
+    <article class="cw__card">
+      <h2>{{ d.company.name }}</h2>
+      <p class="meta">{{ d.company.verificationStatus }} · {{ d.company.memberRole }}</p>
+      <p class="meta">{{ responseLabel(d.responseQuality.indicator) }}
+        @if (d.responseQuality.unreviewedReminderCount > 0) {
+          · {{ d.responseQuality.unreviewedReminderCount }} unreviewed
+        }
+      </p>
+      <p class="meta">Jobs {{ d.jobs.total }} · Applicants {{ d.applicants.total }} · Members {{ d.membersActive }}</p>
+      <div class="cw__actions">
+        <ion-button routerLink="/tabs/post" size="small">Post</ion-button>
+        <ion-button routerLink="/tabs/employer-applications" fill="outline" size="small" color="dark">Applicants</ion-button>
+        <ion-button routerLink="/tabs/my-jobs" fill="outline" size="small" color="dark">My jobs</ion-button>
+      </div>
+    </article>
+  } @else if (tab() === 'profile') {
+    <ion-list class="cw__form">
+      <ion-item><ion-input label="Display name" labelPlacement="stacked" [(ngModel)]="name"></ion-input></ion-item>
+      <ion-item><ion-input label="Legal name" labelPlacement="stacked" [(ngModel)]="legalName"></ion-input></ion-item>
+      <ion-item><ion-input label="Website" labelPlacement="stacked" [(ngModel)]="website"></ion-input></ion-item>
+      <ion-item><ion-input label="Industry" labelPlacement="stacked" [(ngModel)]="industry"></ion-input></ion-item>
+      <ion-item>
+        <ion-select label="Size" labelPlacement="stacked" [(ngModel)]="sizeBand">
+          <ion-select-option value="">—</ion-select-option>
+          <ion-select-option value="1-10">1–10</ion-select-option>
+          <ion-select-option value="11-50">11–50</ion-select-option>
+          <ion-select-option value="51-200">51–200</ion-select-option>
+          <ion-select-option value="201-1000">201–1000</ion-select-option>
+          <ion-select-option value="1000+">1000+</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-item><ion-input label="Headquarters" labelPlacement="stacked" [(ngModel)]="headquarters"></ion-input></ion-item>
+      <ion-item><ion-input label="Hiring locations" labelPlacement="stacked" [(ngModel)]="hiringLocationsText"></ion-input></ion-item>
+      <ion-item><ion-textarea label="About" labelPlacement="stacked" [(ngModel)]="about" autoGrow="true"></ion-textarea></ion-item>
+    </ion-list>
+    <ion-button expand="block" (click)="saveProfile()" [disabled]="saving()">Save profile</ion-button>
+  } @else if (tab() === 'team') {
+    <ion-list>
+      @for (m of members(); track m.id) {
+        <ion-item>
+          <ion-label>
+            <h3>{{ m.displayName || m.username || m.email || m.userId }}</h3>
+            <p>{{ m.role }} · {{ m.status }}</p>
+          </ion-label>
+          @if (m.role !== 'owner' && m.status === 'active') {
+            <ion-button slot="end" fill="clear" color="danger" (click)="revokeMember(m)">Revoke</ion-button>
+          }
+        </ion-item>
+      }
+    </ion-list>
+    <ion-list class="cw__form">
+      <ion-item><ion-input type="email" label="Invite email" labelPlacement="stacked" [(ngModel)]="inviteEmail"></ion-input></ion-item>
+      <ion-item>
+        <ion-select label="Role" labelPlacement="stacked" [(ngModel)]="inviteRole">
+          <ion-select-option value="admin">Admin</ion-select-option>
+          <ion-select-option value="recruiter">Recruiter</ion-select-option>
+          <ion-select-option value="hiring_manager">Hiring manager</ion-select-option>
+          <ion-select-option value="viewer">Viewer</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-list>
+    <ion-button expand="block" (click)="sendInvite()" [disabled]="saving()">Send invite</ion-button>
+    @if (lastInviteLink()) {
+      <p class="meta">{{ lastInviteLink() }}</p>
+    }
+  } @else if (tab() === 'verification') {
+    <p class="meta">Status: {{ company()?.verificationStatus }}</p>
+    <ion-list class="cw__form">
+      <ion-item>
+        <ion-select label="Kind" labelPlacement="stacked" [(ngModel)]="verifyKind">
+          <ion-select-option value="domain_email">Domain email</ion-select-option>
+          <ion-select-option value="business_registration">Registration</ion-select-option>
+          <ion-select-option value="website">Website</ion-select-option>
+          <ion-select-option value="other">Other</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-item><ion-input label="Label" labelPlacement="stacked" [(ngModel)]="verifyLabel"></ion-input></ion-item>
+      <ion-item><ion-input label="Reference" labelPlacement="stacked" [(ngModel)]="verifyReference"></ion-input></ion-item>
+      <ion-item><ion-input label="Email domain" labelPlacement="stacked" [(ngModel)]="claimedDomain"></ion-input></ion-item>
+    </ion-list>
+    <ion-button expand="block" (click)="submitVerification()" [disabled]="saving()">Submit evidence</ion-button>
+  }
+</ion-content>

@@ -1,5 +1,7 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { Prisma } from '@prisma/client';
+import { isSearchFtsEnabled } from '../config/env.validation';
 import { PrismaService } from '../prisma/prisma.service';
 import { cityCentroid } from './geo';
 import {
@@ -16,6 +18,7 @@ import {
 } from './jobs.prisma-map';
 import {
   filterJobs,
+  matchContextFromQuery,
   paginateHits,
   sortJobHits,
 } from './jobs-search.util';
@@ -27,6 +30,7 @@ const SEED_EMPLOYER_ID = 'emp_seed_system';
 
 @Injectable()
 export class JobsPrismaStore extends JobsStore implements OnModuleInit {
+  private readonly logger = new Logger(JobsPrismaStore.name);
   private jobs: JobRecord[] = [];
 
   constructor(private readonly prisma: PrismaService) {
@@ -172,14 +176,66 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
   async search(
     query: JobSearchQuery,
   ): Promise<{ items: JobRecord[]; nextCursor?: string; total: number }> {
-    const published = await this.listPublished();
+    const keyword = (query.keyword ?? '').trim();
+    let published = await this.listPublished();
+
+    if (keyword && isSearchFtsEnabled()) {
+      const rankedIds = await this.searchIdsByFts(keyword);
+      if (rankedIds.length) {
+        const byId = new Map(published.map((j) => [j.id, j]));
+        const ranked: JobRecord[] = [];
+        for (const id of rankedIds) {
+          const hit = byId.get(id);
+          if (hit) ranked.push(hit);
+        }
+        // Keep FTS misses out when keyword present — fall back to in-memory if empty.
+        if (ranked.length) published = ranked;
+      }
+    }
+
     const filtered = filterJobs(published, query);
     const sorted = sortJobHits(
       filtered,
       query.sort ?? 'newest',
-      query.keyword ?? '',
+      matchContextFromQuery(query),
     );
     return paginateHits(sorted, query.cursor, query.limit);
+  }
+
+  /**
+   * Postgres tsvector + pg_trgm title/city matching. Returns job ids best-first.
+   * Falls back to [] on SQL errors so in-memory search still works.
+   */
+  private async searchIdsByFts(keyword: string): Promise<string[]> {
+    try {
+      const rows = await this.prisma.$queryRaw<Array<{ id: string }>>(
+        Prisma.sql`
+          SELECT j.id
+          FROM "xcron"."Job" j
+          WHERE j.status = 'PUBLISHED'
+            AND j."searchDocument" IS NOT NULL
+            AND (
+              j."searchDocument" @@ plainto_tsquery('simple', ${keyword})
+              OR j.title % ${keyword}
+              OR similarity(j.title, ${keyword}) > 0.25
+              OR j.city % ${keyword}
+            )
+          ORDER BY
+            ts_rank(j."searchDocument", plainto_tsquery('simple', ${keyword})) DESC,
+            similarity(j.title, ${keyword}) DESC,
+            j."publishedAt" DESC NULLS LAST
+          LIMIT 500
+        `,
+      );
+      return rows.map((r) => r.id);
+    } catch (err) {
+      this.logger.warn(
+        `FTS search fell back to memory: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return [];
+    }
   }
 
   async related(job: JobRecord, limit = 3): Promise<JobRecord[]> {
@@ -388,6 +444,10 @@ export class JobsPrismaStore extends JobsStore implements OnModuleInit {
 
   async listByOwner(userId: string): Promise<JobRecord[]> {
     return this.jobs.filter((job) => job.ownerUserId === userId);
+  }
+
+  async listByEmployer(employerId: string): Promise<JobRecord[]> {
+    return this.jobs.filter((job) => job.employerId === employerId);
   }
 
   async listAll(): Promise<JobRecord[]> {

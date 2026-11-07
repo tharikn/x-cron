@@ -100,8 +100,13 @@ export interface Job {
   walkInAt?: string | null;
   applyBy?: string | null;
   distanceKm?: number;
+  /** Truthful discovery chips — never a match %. */
+  matchReasons?: string[];
   /** Present on GET /employers/jobs (owner list). */
   analytics?: JobAnalyticsTotals;
+  /** Admin / Blog Approval — abuse report counter. */
+  reportCount?: number;
+  moderationNote?: string | null;
 }
 
 export interface JobSearchQuery {
@@ -117,6 +122,10 @@ export interface JobSearchQuery {
   nearLng?: number | null;
   radiusKm?: number | null;
   walkInOnly?: boolean | null;
+  skills?: string;
+  verifiedEmployer?: boolean | null;
+  fresher?: boolean | null;
+  easyApply?: boolean | null;
   sort:
     | 'relevance'
     | 'newest'

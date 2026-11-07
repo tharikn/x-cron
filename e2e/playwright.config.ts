@@ -25,6 +25,12 @@ export default defineConfig({
     navigationTimeout: 45_000,
   },
   projects: [
+    /** HTTP contract specs against API :3000 — no browser, runs before UI journeys. */
+    {
+      name: 'api',
+      testDir: './api',
+      testMatch: /.*\.api\.spec\.ts$/,
+    },
     {
       name: 'mobile',
       use: {
@@ -38,6 +44,20 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         baseURL: WEB_BASE,
         viewport: { width: 1280, height: 800 },
+      },
+    },
+    /**
+     * Real Android (emulator/device) via Playwright experimental `_android`.
+     * Same Ionic journeys as `mobile`; fixture swaps Page to Chrome on device
+     * after `adb reverse` for :3000 / :4200. Requires: adb + Chrome + awake device.
+     */
+    {
+      name: 'android',
+      use: {
+        ...devices['Pixel 7'],
+        baseURL: MOBILE_BASE,
+        // Desktop Chromium still boots briefly; fixture closes it and opens Android Chrome.
+        headless: true,
       },
     },
   ],

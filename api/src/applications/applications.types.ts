@@ -50,6 +50,10 @@ export interface JobApplication {
   viewedAt?: string;
   /** Skills/experience fit % vs job at apply (0–100). */
   matchPercent?: number;
+  /** Seeker chat read cursor (ISO). */
+  seekerLastReadAt?: string;
+  /** Employer chat read cursor (ISO). */
+  employerLastReadAt?: string;
   createdAt: string;
   updatedAt: string;
 }

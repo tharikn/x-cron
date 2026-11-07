@@ -84,7 +84,8 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
         'Your profile is ready. Discover roles that match your skills.',
       'onboarding.congrats.cta': 'Browse jobs',
       'home.headline': '“Find your next opportunity, closer to you.”',
-      'home.lead': 'Sign in with Google to save, share, or unlock contact.',
+      'home.lead':
+        'Browse freely — employer contact is on each role. Sign in to save, apply, and sync.',
       'home.clear': 'Clear preferences',
       'common.any': 'Any',
       'common.language': 'Language',
@@ -107,6 +108,7 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'prefs.inAppAlerts': 'In-app inbox',
       'prefs.pushAlerts': 'Push alerts',
       'prefs.emailAlerts': 'Email alerts',
+      'prefs.marketing': 'Marketing / product tips',
       'prefs.signInForAlerts': 'Sign in to enable push / in-app job alerts.',
       'prefs.saved': 'Preferences saved.',
       'notif.lead':

@@ -2,13 +2,17 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
   Optional,
+  forwardRef,
 } from '@nestjs/common';
 import { toSnapshot } from '../apply-profiles/apply-profiles.types';
 import { ApplyProfilesService } from '../apply-profiles/apply-profiles.service';
 import { AuthUser } from '../auth/auth.types';
+import { CompaniesService } from '../companies/companies.service';
+import { JobsLifecycleService } from '../jobs/jobs.lifecycle';
 import { toPublicJob } from '../jobs/jobs.mapper';
 import { JobsStore } from '../jobs/jobs.store';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -16,10 +20,12 @@ import { OpsService } from '../ops/ops.service';
 import { ReputationService } from '../reputation/reputation.service';
 import { SeekerService } from '../seeker/seeker.service';
 import { SiteService } from '../site/site.service';
+import { TrackingService } from '../tracking/tracking.service';
 import { ApplicationsStore } from './applications.store';
 import {
   APPLICATION_SPAM_REASON_LABELS,
   APPLICATION_STATUS_LABELS,
+  ApplicationMessage,
   ApplicationStatus,
   EMPLOYER_TRANSITIONS,
   JobApplication,
@@ -42,12 +48,17 @@ export class ApplicationsService {
   constructor(
     private readonly store: ApplicationsStore,
     private readonly jobs: JobsStore,
+    private readonly jobLifecycle: JobsLifecycleService,
     private readonly site: SiteService,
     private readonly notifications: NotificationsService,
     private readonly applyProfiles: ApplyProfilesService,
     private readonly reputation: ReputationService,
     private readonly seeker: SeekerService,
+    @Optional()
+    @Inject(forwardRef(() => CompaniesService))
+    private readonly companies?: CompaniesService,
     @Optional() private readonly ops?: OpsService,
+    @Optional() private readonly tracking?: TrackingService,
   ) {}
 
   /**
@@ -69,8 +80,28 @@ export class ApplicationsService {
   }
 
   async apply(user: AuthUser, jobId: string, dto: ApplyJobDto) {
-    const job = await this.jobs.findById(jobId);
-    if (!job || job.status !== 'published') {
+    let job = await this.jobs.findById(jobId);
+    if (
+      job?.status === 'published' &&
+      this.jobLifecycle.isPastExpiry(job)
+    ) {
+      this.jobLifecycle.assertTransition(job.status, 'expired', 'system');
+      job =
+        (await this.jobs.setStatus(
+          job.id,
+          'expired',
+          'Auto-expired: listing window ended',
+        )) ?? job;
+    }
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+    if (job.status === 'expired' || !this.isOpenForApply(job)) {
+      throw new BadRequestException(
+        'This job is no longer accepting applications',
+      );
+    }
+    if (job.status !== 'published') {
       throw new NotFoundException('Job not found');
     }
     if (!job.ownerUserId || !job.employerId) {
@@ -101,22 +132,32 @@ export class ApplicationsService {
     const spamRisk = await this.evaluateSpamRisk(user.id);
     const matchPercent = this.reputation.computeMatch(snapshot, job);
 
-    const app = await this.store.createApplication({
-      jobId,
-      employerId: job.employerId,
-      seekerUserId: user.id,
-      ownerUserId: job.ownerUserId,
-      coverNote,
-      applyProfileId: profile.id,
-      applyProfileSnapshot: snapshot,
-      seekerName: contact.name,
-      seekerPhone: contact.phone,
-      seekerEmail: contact.email,
-      screeningAnswer,
-      likelySpam: spamRisk.likelySpam,
-      spamReasons: spamRisk.spamReasons,
-      matchPercent,
-    });
+    let app;
+    try {
+      app = await this.store.createApplication({
+        jobId,
+        employerId: job.employerId,
+        seekerUserId: user.id,
+        ownerUserId: job.ownerUserId,
+        coverNote,
+        applyProfileId: profile.id,
+        applyProfileSnapshot: snapshot,
+        seekerName: contact.name,
+        seekerPhone: contact.phone,
+        seekerEmail: contact.email,
+        screeningAnswer,
+        likelySpam: spamRisk.likelySpam,
+        spamReasons: spamRisk.spamReasons,
+        matchPercent,
+      });
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      const message = err instanceof Error ? err.message : '';
+      if (code === 'P2002' || message === 'duplicate_application') {
+        throw new ConflictException('You already applied to this job');
+      }
+      throw err;
+    }
 
     const event = await this.store.appendEvent({
       applicationId: app.id,
@@ -147,6 +188,7 @@ export class ApplicationsService {
       title: 'New job application',
       body: `${app.seekerName || 'A seeker'} applied for ${job.title} (${snapshot.name})`,
       eventType: 'applied',
+      eventId: event.id,
     });
 
     await this.reputation.onSeekerApply({
@@ -157,6 +199,11 @@ export class ApplicationsService {
     });
 
     this.ops?.recordApply();
+    void this.tracking?.record({
+      type: 'apply',
+      userId: user.id,
+      jobId: job.id,
+    });
 
     return this.toDetailDto(app, [event], job);
   }
@@ -224,7 +271,24 @@ export class ApplicationsService {
   }
 
   async listForEmployer(user: AuthUser) {
-    const rows = await this.store.listForOwner(user.id);
+    const companyIds = this.companies?.accessibleCompanyIds(user) ?? [];
+    let rows: JobApplication[] = [];
+    if (companyIds.length) {
+      const batches = await Promise.all(
+        companyIds.map((id) => this.store.listForEmployer(id)),
+      );
+      const seen = new Set<string>();
+      for (const batch of batches) {
+        for (const app of batch) {
+          if (seen.has(app.id)) continue;
+          seen.add(app.id);
+          rows.push(app);
+        }
+      }
+      rows = rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    } else {
+      rows = await this.store.listForOwner(user.id);
+    }
     const items = [];
     for (const row of rows) {
       const job = await this.jobs.findById(row.jobId);
@@ -247,7 +311,7 @@ export class ApplicationsService {
       const now = new Date().toISOString();
       current =
         (await this.store.updateApplication(app.id, { viewedAt: now })) ?? app;
-      await this.store.appendEvent({
+      const viewEvent = await this.store.appendEvent({
         applicationId: app.id,
         type: 'viewed_by_employer',
         actorUserId: user.id,
@@ -266,6 +330,7 @@ export class ApplicationsService {
         title: 'Employer viewed your application',
         body: `Your application for ${job.title} was opened`,
         eventType: 'viewed_by_employer',
+        eventId: viewEvent.id,
       });
       await this.reputation.onEmployerViewed({
         employerUserId: user.id,
@@ -318,7 +383,7 @@ export class ApplicationsService {
     const job = await this.jobs.findById(app.jobId);
     if (!job) throw new NotFoundException('Job not found');
 
-    await this.store.appendEvent({
+    const noteEvent = await this.store.appendEvent({
       applicationId: app.id,
       type: 'note_added',
       actorUserId: user.id,
@@ -338,6 +403,7 @@ export class ApplicationsService {
       title: 'Update on your application',
       body: `Employer added a note on ${job.title}`,
       eventType: 'note_added',
+      eventId: noteEvent.id,
     });
 
     const timeline = await this.store.listEvents(app.id);
@@ -345,10 +411,115 @@ export class ApplicationsService {
     return this.toDetailDto(app, timeline, job, true, messages);
   }
 
-  async listMessages(user: AuthUser, id: string) {
+  async listMessages(
+    user: AuthUser,
+    id: string,
+    opts?: { limit?: number; before?: string },
+  ) {
     const app = await this.requireParticipant(user, id);
+    if (opts?.limit != null || opts?.before) {
+      const limit = opts.limit ?? 50;
+      const items = await this.store.listMessagesPage(app.id, {
+        limit,
+        before: opts.before,
+      });
+      return {
+        items,
+        nextBefore:
+          items.length >= limit ? (items[0]?.createdAt ?? null) : null,
+      };
+    }
     const items = await this.store.listMessages(app.id);
+    return { items, nextBefore: null as string | null };
+  }
+
+  /**
+   * Thin conversations inbox — applicationId is the conversation id.
+   * Seeker sees own applies; employer/admin sees owned applications.
+   */
+  async listConversations(user: AuthUser) {
+    const isEmployer =
+      user.roles.includes('employer') || user.roles.includes('admin');
+    const rows = isEmployer
+      ? user.roles.includes('admin')
+        ? await this.store.listForOwner(user.id).then(async (owned) => {
+            // Admin without owned apps: still list employer-side via owner
+            if (owned.length) return owned;
+            return this.store.listForSeeker(user.id);
+          })
+        : await this.listEmployerAppsForUser(user)
+      : await this.store.listForSeeker(user.id);
+
+    const items = [];
+    for (const row of rows) {
+      const job = await this.jobs.findById(row.jobId);
+      if (!job || job.status === 'removed') continue;
+      const messages = await this.store.listMessages(row.id);
+      if (!messages.length) continue;
+      const last = messages[messages.length - 1]!;
+      const asEmployer =
+        isEmployer &&
+        (row.ownerUserId === user.id ||
+          user.roles.includes('admin') ||
+          row.seekerUserId !== user.id);
+      const unreadCount = this.countUnread(row, messages, asEmployer);
+      items.push({
+        id: row.id,
+        applicationId: row.id,
+        jobId: row.jobId,
+        jobTitle: job.title,
+        employerName: job.employerName,
+        status: row.status,
+        lastMessageAt: last.createdAt,
+        lastBody: last.body.slice(0, 160),
+        lastSenderRole: last.senderRole,
+        unreadCount,
+        peerRole: asEmployer ? ('seeker' as const) : ('employer' as const),
+      });
+    }
+    items.sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
     return { items };
+  }
+
+  async markConversationRead(user: AuthUser, id: string) {
+    const app = await this.requireParticipant(user, id);
+    const now = new Date().toISOString();
+    const isSeeker = app.seekerUserId === user.id;
+    const patch = isSeeker
+      ? { seekerLastReadAt: now }
+      : { employerLastReadAt: now };
+    const updated =
+      (await this.store.updateApplication(app.id, patch)) ?? app;
+    return {
+      id: updated.id,
+      applicationId: updated.id,
+      seekerLastReadAt: updated.seekerLastReadAt ?? null,
+      employerLastReadAt: updated.employerLastReadAt ?? null,
+      readAt: now,
+    };
+  }
+
+  private async listEmployerAppsForUser(user: AuthUser) {
+    if (this.companies) {
+      // Prefer company-scoped list when available via existing employer list path.
+      return this.store.listForOwner(user.id);
+    }
+    return this.store.listForOwner(user.id);
+  }
+
+  private countUnread(
+    app: JobApplication,
+    messages: ApplicationMessage[],
+    asEmployer: boolean,
+  ): number {
+    const cursor = asEmployer
+      ? app.employerLastReadAt
+      : app.seekerLastReadAt;
+    return messages.filter((m) => {
+      if (cursor && m.createdAt <= cursor) return false;
+      if (asEmployer) return m.senderRole === 'seeker';
+      return m.senderRole === 'employer' || m.senderRole === 'admin';
+    }).length;
   }
 
   async sendMessage(
@@ -357,8 +528,14 @@ export class ApplicationsService {
     dto: SendApplicationMessageDto,
   ) {
     const app = await this.requireParticipant(user, id);
-    if (app.status === 'withdrawn') {
-      throw new BadRequestException('Cannot chat on a withdrawn application');
+    if (
+      app.status === 'withdrawn' ||
+      app.status === 'hired' ||
+      app.status === 'rejected'
+    ) {
+      throw new BadRequestException(
+        `Cannot chat on a ${app.status} application`,
+      );
     }
     const body = dto.body.trim();
     if (!body) throw new BadRequestException('Message body is required');
@@ -407,6 +584,7 @@ export class ApplicationsService {
         title: 'New application message',
         body: `${isSeeker ? app.seekerName || 'Seeker' : 'Recruiter'}: ${body.slice(0, 120)}`,
         eventType: 'chat_message',
+        eventId: message.id,
       });
       await this.reputation.onChatReply({
         senderUserId: user.id,
@@ -450,7 +628,7 @@ export class ApplicationsService {
     const updated =
       (await this.store.updateApplication(input.app.id, patch)) ?? input.app;
 
-    await this.store.appendEvent({
+    const transitionEvent = await this.store.appendEvent({
       applicationId: input.app.id,
       type: input.eventType,
       fromStatus: input.app.status,
@@ -475,6 +653,7 @@ export class ApplicationsService {
       title: input.title,
       body: input.body,
       eventType: input.eventType,
+      eventId: transitionEvent.id,
     });
 
     if (input.actorRole === 'employer' || input.actorRole === 'admin') {
@@ -506,7 +685,20 @@ export class ApplicationsService {
     const app = await this.store.findById(id);
     if (!app) throw new NotFoundException('Application not found');
     const isAdmin = user.roles.includes('admin');
-    if (!isAdmin && app.ownerUserId !== user.id) {
+    if (isAdmin) return app;
+    if (this.companies && app.employerId) {
+      try {
+        this.companies.requireAction(
+          user,
+          app.employerId,
+          'review_applicants',
+        );
+        return app;
+      } catch {
+        throw new ForbiddenException('Not your job application');
+      }
+    }
+    if (app.ownerUserId !== user.id) {
       throw new ForbiddenException('Not your job application');
     }
     return app;
@@ -516,11 +708,20 @@ export class ApplicationsService {
     const app = await this.store.findById(id);
     if (!app) throw new NotFoundException('Application not found');
     const isAdmin = user.roles.includes('admin');
-    if (
-      !isAdmin &&
-      app.seekerUserId !== user.id &&
-      app.ownerUserId !== user.id
-    ) {
+    if (isAdmin || app.seekerUserId === user.id) return app;
+    if (this.companies && app.employerId) {
+      try {
+        this.companies.requireAction(
+          user,
+          app.employerId,
+          'review_applicants',
+        );
+        return app;
+      } catch {
+        throw new ForbiddenException('Not a participant on this application');
+      }
+    }
+    if (app.ownerUserId !== user.id) {
       throw new ForbiddenException('Not a participant on this application');
     }
     return app;
@@ -530,7 +731,16 @@ export class ApplicationsService {
     const job = await this.jobs.findById(jobId);
     if (!job) throw new NotFoundException('Job not found');
     const isAdmin = user.roles.includes('admin');
-    if (!isAdmin && job.ownerUserId !== user.id) {
+    if (isAdmin) return job;
+    if (this.companies && job.employerId) {
+      try {
+        this.companies.requireAction(user, job.employerId, 'review_applicants');
+        return job;
+      } catch {
+        throw new ForbiddenException('Not your job');
+      }
+    }
+    if (job.ownerUserId !== user.id) {
       throw new ForbiddenException('Not your job');
     }
     return job;
@@ -777,6 +987,23 @@ export class ApplicationsService {
 
   private normalizeCoverNote(raw: string): string {
     return raw.trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  /** Match public listing window + optional apply-by deadline. */
+  private isOpenForApply(job: {
+    status?: string;
+    effectiveFrom?: string;
+    publishedAt: string;
+    expiresAt: string;
+    applyBy?: string;
+  }): boolean {
+    if (job.status && job.status !== 'published') return false;
+    if (!this.jobLifecycle.isListingWindowOpen(job)) return false;
+    if (job.applyBy) {
+      const applyUntil = Date.parse(job.applyBy);
+      if (Number.isFinite(applyUntil) && Date.now() > applyUntil) return false;
+    }
+    return true;
   }
 
   /**

@@ -26,6 +26,8 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'nav.payments': 'Payments',
       'nav.notifications': 'Notifications',
       'nav.notifAdmin': 'Notification',
+      'nav.trackingAdmin': 'User tracking',
+      'nav.feedbackAdmin': 'Feedback desk',
       'nav.logs': 'Logs',
       'nav.jobFare': 'Job Fare',
       'nav.preferences': 'Preferences',
@@ -45,7 +47,7 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'footer.quick.settings': 'Settings',
       'footer.tagline': 'X Cron Jobs · local-first · open browse',
       'footer.blurb':
-        'Local-first job discovery for younger seekers. Search freely — contact details stay private until unlock.',
+        'Local-first job discovery for younger seekers. Browse roles freely — employer contact is shown on each listing.',
       'footer.headings.quickLinks': 'Quick links',
       'footer.headings.address': 'Visit',
       'footer.headings.social': 'Connect',
@@ -58,11 +60,13 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
       'footer.legal.terms': 'Terms',
       'footer.address.operations': 'Operations',
       'footer.map': 'Map',
-      'footer.copyright': '© X Cron Jobs. Search open — sign in with Google to save or unlock.',
+      'footer.copyright':
+        '© X Cron Jobs. Search open — sign in to save jobs and sync preferences.',
       'menu.open': 'Open menu',
       'menu.close': 'Close menu',
       'home.headline': '“Find your next opportunity, closer to you.”',
-      'home.lead': 'Sign in with Google to save, share, or unlock contact.',
+      'home.lead':
+        'Browse freely — employer contact is on each role. Sign in to save, apply, and sync.',
       'home.keyword': 'Keyword',
       'home.keywordPlaceholder': 'Role, skill, employer',
       'home.location': 'Location',

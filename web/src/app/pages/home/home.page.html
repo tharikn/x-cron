@@ -55,6 +55,34 @@
     }
   </div>
   <label class="search__field">
+    <span>Job type</span>
+    <select [(ngModel)]="jobType" name="jobType">
+      <option value="">Any type</option>
+      @for (t of jobTypes; track t) {
+        @if (t) {
+          <option [value]="t">{{ formatJobType(t) }}</option>
+        }
+      }
+    </select>
+  </label>
+  <label class="search__field">
+    <span>Category</span>
+    <select [(ngModel)]="category" name="category">
+      <option value="">Any category</option>
+      @for (c of categories(); track c) {
+        <option [value]="c">{{ c }}</option>
+      }
+    </select>
+  </label>
+  <label class="search__field">
+    <span>Skills</span>
+    <input
+      [(ngModel)]="skills"
+      name="skills"
+      placeholder="e.g. excel, sales"
+    />
+  </label>
+  <label class="search__field">
     <span>Min salary (₹)</span>
     <input
       type="number"
@@ -80,17 +108,54 @@
     <input type="checkbox" [(ngModel)]="walkInOnly" name="walkInOnly" />
     <span>Walk-in only</span>
   </label>
+  <label class="search__field search__field--check">
+    <input type="checkbox" [(ngModel)]="verifiedEmployer" name="verifiedEmployer" />
+    <span>Verified employers</span>
+  </label>
+  <label class="search__field search__field--check">
+    <input type="checkbox" [(ngModel)]="fresher" name="fresher" />
+    <span>Fresher / entry</span>
+  </label>
+  <label class="search__field search__field--check">
+    <input type="checkbox" [(ngModel)]="easyApply" name="easyApply" />
+    <span>Easy apply</span>
+  </label>
   <div class="search__actions">
-    <button
-      type="button"
-      class="search__clear"
-      (click)="clearPreferences()"
-    >
-      {{ 'home.clear' | t }}
+    <button type="button" class="search__clear" (click)="clearFilters()">
+      Clear filters
     </button>
+    @if (isSignedIn()) {
+      <button
+        type="button"
+        class="search__clear"
+        [disabled]="savingSearch()"
+        (click)="saveCurrentSearch()"
+      >
+        Save search
+      </button>
+    }
     <button type="submit" class="search__go">{{ 'home.search' | t }}</button>
   </div>
 </form>
+
+@if (filterChips().length) {
+  <div class="filter-chips" role="list">
+    @for (chip of filterChips(); track chip.key) {
+      <button
+        type="button"
+        class="filter-chip"
+        role="listitem"
+        (click)="dismissChip(chip.key)"
+      >
+        <span>{{ chip.label }}</span>
+        <span aria-hidden="true">×</span>
+      </button>
+    }
+    <button type="button" class="filter-chip filter-chip--clear" (click)="clearFilters()">
+      Clear all
+    </button>
+  </div>
+}
 
 <app-get-app-cta />
 
@@ -100,6 +165,14 @@
       <div class="status status--maintenance" role="alert">
         <p class="status__title">{{ 'home.maintenanceTitle' | t }}</p>
         <p>{{ 'home.maintenanceLead' | t }}</p>
+        <button
+          type="button"
+          class="status__retry"
+          [disabled]="loading()"
+          (click)="search()"
+        >
+          Retry
+        </button>
       </div>
     } @else if (loading() && jobs().length === 0) {
       <div class="results-head">
@@ -117,9 +190,14 @@
         </div>
       </div>
 
-      <div class="job-list">
+      <div class="job-list" role="list">
         @for (job of jobs(); track job.id; let i = $index) {
-          <a class="job-card" [routerLink]="jobPath(job)" [style.--i]="staggerIndex(i)">
+          <a
+            class="job-card"
+            role="listitem"
+            [routerLink]="jobPath(job)"
+            [style.--i]="staggerIndex(i)"
+          >
             <div class="job-card__meta">
               <span class="badge">{{ languageLabel(job.contentLanguage) }}</span>
               @if (job.promoted) {
@@ -148,6 +226,13 @@
               <span class="facts__sep" aria-hidden="true">·</span>
               {{ formatSalary(job.salary) }}
             </p>
+            @if (job.matchReasons?.length) {
+              <ul class="match-reasons">
+                @for (reason of job.matchReasons; track reason) {
+                  <li>{{ reason }}</li>
+                }
+              </ul>
+            }
             <span class="job-card__cta" aria-hidden="true">{{ 'home.viewRole' | t }}</span>
           </a>
         } @empty {
@@ -167,5 +252,4 @@
       </div>
     }
   </div>
-
 </div>

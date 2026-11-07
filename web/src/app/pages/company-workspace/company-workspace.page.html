@@ -1,0 +1,196 @@
+<section class="cw">
+  <header class="cw__hero">
+    <p class="cw__eyebrow">Recruiter</p>
+    <h1>Company workspace</h1>
+    <p class="cw__lead">
+      Manage your company profile, team, verification, and hiring dashboard.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <div class="cw__sk sk sk--panel" aria-hidden="true"></div>
+  } @else {
+    <nav class="cw__tabs" aria-label="Company sections">
+      <button type="button" [class.is-on]="tab() === 'dashboard'" (click)="setTab('dashboard')">Dashboard</button>
+      <button type="button" [class.is-on]="tab() === 'profile'" (click)="setTab('profile')">Profile</button>
+      <button type="button" [class.is-on]="tab() === 'team'" (click)="setTab('team')">Team</button>
+      <button type="button" [class.is-on]="tab() === 'verification'" (click)="setTab('verification')">Verification</button>
+    </nav>
+
+    @if (tab() === 'dashboard' && dashboard(); as d) {
+      <div class="cw__grid">
+        <article class="cw__card">
+          <h2>{{ d.company.name }}</h2>
+          <p class="meta">
+            {{ d.company.verificationStatus }}
+            · role {{ d.company.memberRole }}
+            · {{ d.membersActive }} active members
+          </p>
+          <p class="meta">
+            Response:
+            <strong>{{ responseLabel(d.responseQuality.indicator) }}</strong>
+            @if (d.responseQuality.unreviewedReminderCount > 0) {
+              · {{ d.responseQuality.unreviewedReminderCount }} unreviewed
+            }
+          </p>
+          <div class="cw__actions">
+            <a routerLink="/post" class="btn btn--primary">Post a job</a>
+            <a routerLink="/employer-applications" class="btn btn--ghost">Review applicants</a>
+            <a routerLink="/my-jobs" class="btn btn--ghost">My jobs</a>
+          </div>
+        </article>
+
+        <article class="cw__card">
+          <h3>Jobs</h3>
+          <p class="stat">{{ d.jobs.total }}</p>
+          <ul class="chips">
+            @for (entry of d.jobs.byStatus | keyvalue; track entry.key) {
+              <li>{{ entry.key }}: {{ entry.value }}</li>
+            }
+          </ul>
+        </article>
+
+        <article class="cw__card">
+          <h3>Applicants</h3>
+          <p class="stat">{{ d.applicants.total }}</p>
+          <p class="meta">Unreviewed: {{ d.applicants.unreviewed }}</p>
+          @if (d.responseQuality.viewedWithin48hPct != null) {
+            <p class="meta">Viewed in 48h: {{ d.responseQuality.viewedWithin48hPct }}%</p>
+          }
+        </article>
+
+        <article class="cw__card">
+          <h3>Upcoming interviews</h3>
+          @if (!d.upcomingInterviews.length) {
+            <p class="meta">None scheduled.</p>
+          } @else {
+            <ul class="list">
+              @for (i of d.upcomingInterviews; track i.id) {
+                <li>{{ i.scheduledAt }} · {{ i.mode }} · {{ i.status }}</li>
+              }
+            </ul>
+          }
+        </article>
+      </div>
+    }
+
+    @if (tab() === 'profile') {
+      <form class="cw__form" (ngSubmit)="saveProfile()">
+        <label>Display name <input [(ngModel)]="name" name="name" required /></label>
+        <label>Legal name <input [(ngModel)]="legalName" name="legalName" /></label>
+        <label>Website <input [(ngModel)]="website" name="website" placeholder="https://" /></label>
+        <label>Industry <input [(ngModel)]="industry" name="industry" /></label>
+        <label>
+          Size
+          <select [(ngModel)]="sizeBand" name="sizeBand">
+            <option value="">—</option>
+            <option value="1-10">1–10</option>
+            <option value="11-50">11–50</option>
+            <option value="51-200">51–200</option>
+            <option value="201-1000">201–1000</option>
+            <option value="1000+">1000+</option>
+          </select>
+        </label>
+        <label>Headquarters <input [(ngModel)]="headquarters" name="hq" /></label>
+        <label>Hiring locations <input [(ngModel)]="hiringLocationsText" name="locs" placeholder="Chennai, Coimbatore" /></label>
+        <label class="full">About <textarea [(ngModel)]="about" name="about" rows="4"></textarea></label>
+        <button type="submit" class="btn btn--primary" [disabled]="saving()">Save profile</button>
+      </form>
+    }
+
+    @if (tab() === 'team') {
+      <div class="cw__panel">
+        <h3>Members</h3>
+        <ul class="list">
+          @for (m of members(); track m.id) {
+            <li class="row">
+              <div>
+                <strong>{{ m.displayName || m.username || m.email || m.userId }}</strong>
+                <span class="meta"> · {{ m.role }} · {{ m.status }}</span>
+              </div>
+              @if (m.role !== 'owner' && m.status === 'active') {
+                <button type="button" class="btn btn--ghost" (click)="revokeMember(m)">Revoke</button>
+              }
+            </li>
+          }
+        </ul>
+
+        <h3>Pending invites</h3>
+        @if (!invitations().length) {
+          <p class="meta">No pending invites.</p>
+        } @else {
+          <ul class="list">
+            @for (i of invitations(); track i.id) {
+              <li>{{ i.email }} · {{ i.role }} · expires {{ i.expiresAt }}</li>
+            }
+          </ul>
+        }
+
+        <form class="cw__form cw__form--compact" (ngSubmit)="sendInvite()">
+          <label>Invite email <input type="email" [(ngModel)]="inviteEmail" name="inviteEmail" required /></label>
+          <label>
+            Role
+            <select [(ngModel)]="inviteRole" name="inviteRole">
+              <option value="admin">Admin</option>
+              <option value="recruiter">Recruiter</option>
+              <option value="hiring_manager">Hiring manager</option>
+              <option value="viewer">Viewer</option>
+            </select>
+          </label>
+          <button type="submit" class="btn btn--primary" [disabled]="saving()">Send invite</button>
+        </form>
+        @if (lastInviteLink()) {
+          <p class="meta">Accept link (share privately): <code>{{ lastInviteLink() }}</code></p>
+        }
+
+        <h3>Transfer ownership</h3>
+        <form class="cw__form cw__form--compact" (ngSubmit)="transferOwnership()">
+          <label>
+            New owner member
+            <select [(ngModel)]="transferMemberId" name="transferMemberId" required>
+              <option value="">—</option>
+              @for (m of members(); track m.id) {
+                @if (m.role !== 'owner' && m.status === 'active') {
+                  <option [value]="m.id">{{ m.displayName || m.username || m.email }} ({{ m.role }})</option>
+                }
+              }
+            </select>
+          </label>
+          <label>
+            Type company name to confirm
+            <input [(ngModel)]="transferConfirmName" name="transferConfirmName" required />
+          </label>
+          <button type="submit" class="btn btn--ghost" [disabled]="saving()">Transfer ownership</button>
+        </form>
+      </div>
+    }
+
+    @if (tab() === 'verification') {
+      <div class="cw__panel">
+        <p class="meta">
+          Status: <strong>{{ company()?.verificationStatus }}</strong>
+          @if (company()?.verified) { · verified badge }
+        </p>
+        <p class="cw__note">
+          Verification requires substantive evidence (domain email, registration, or website).
+          It is never sold without review.
+        </p>
+        <form class="cw__form" (ngSubmit)="submitVerification()">
+          <label>
+            Evidence kind
+            <select [(ngModel)]="verifyKind" name="verifyKind">
+              <option value="domain_email">Domain email</option>
+              <option value="business_registration">Business registration</option>
+              <option value="website">Website</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Label <input [(ngModel)]="verifyLabel" name="verifyLabel" placeholder="GST certificate" /></label>
+          <label>Reference <input [(ngModel)]="verifyReference" name="verifyReference" placeholder="URL or file key" required /></label>
+          <label>Claimed email domain <input [(ngModel)]="claimedDomain" name="claimedDomain" placeholder="acme.com" /></label>
+          <button type="submit" class="btn btn--primary" [disabled]="saving()">Submit for review</button>
+        </form>
+      </div>
+    }
+  }
+</section>

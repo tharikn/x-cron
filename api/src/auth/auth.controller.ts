@@ -1,12 +1,23 @@
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import {
   AuthThrottle,
   SensitiveThrottle,
 } from '../security/decorators';
 import {
+  extractClientIp,
   extractRefreshToken,
   extractTabId,
+  extractUserAgent,
 } from '../security/token.util';
 import { AuthService } from './auth.service';
 import { AccessToken, CurrentUser, Public, Roles } from './decorators';
@@ -17,8 +28,17 @@ import {
   LoginDto,
   RefreshTokenDto,
   RegisterDto,
+  StaffRolesDto,
 } from './dto/auth.dto';
 import type { AuthUser } from './auth.types';
+
+function clientSessionOpts(req: Request) {
+  return {
+    tabId: extractTabId(req),
+    ip: extractClientIp(req),
+    userAgent: extractUserAgent(req),
+  };
+}
 
 @Controller('v1/auth')
 export class AuthController {
@@ -33,7 +53,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.register(dto, res, extractTabId(req));
+    return this.authService.register(dto, res, clientSessionOpts(req));
   }
 
   /** Sign in with local username/password. */
@@ -45,7 +65,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.login(dto, res, extractTabId(req));
+    return this.authService.login(dto, res, clientSessionOpts(req));
   }
 
   @Public()
@@ -56,7 +76,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.google(dto, res, extractTabId(req));
+    return this.authService.google(dto, res, clientSessionOpts(req));
   }
 
   /** Super-admin password login — 1 attempt per hour per tracker. */
@@ -68,7 +88,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.adminLogin(dto, res, extractTabId(req));
+    return this.authService.adminLogin(dto, res, clientSessionOpts(req));
   }
 
   @Public()
@@ -80,7 +100,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = extractRefreshToken(req, dto.refreshToken);
-    return this.authService.refresh(refreshToken, res, extractTabId(req));
+    return this.authService.refresh(refreshToken, res, clientSessionOpts(req));
   }
 
   @Get('me')
@@ -94,6 +114,31 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.logout(token, res);
+  }
+
+  /** Revoke every session for the caller. */
+  @Post('logout-all')
+  logoutAll(
+    @AccessToken() token: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.logoutAll(token, res);
+  }
+
+  /** List active sessions (no token secrets). */
+  @Get('sessions')
+  sessions(@AccessToken() token?: string) {
+    return this.authService.listSessions(token);
+  }
+
+  /** Revoke one session by id. Revoking the current session clears cookies. */
+  @Delete('sessions/:sessionId')
+  revokeSession(
+    @AccessToken() token: string | undefined,
+    @Param('sessionId') sessionId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.revokeSession(token, sessionId, res);
   }
 }
 
@@ -111,5 +156,16 @@ export class EmployersController {
   @Get('me')
   me(@AccessToken() token?: string) {
     return this.authService.me(token);
+  }
+}
+
+@Controller('v1/admin/staff')
+export class StaffController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Roles('admin')
+  @Post('roles')
+  setRoles(@CurrentUser() user: AuthUser, @Body() dto: StaffRolesDto) {
+    return this.authService.setStaffRoles(user, dto);
   }
 }

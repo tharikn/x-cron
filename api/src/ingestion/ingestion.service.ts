@@ -11,6 +11,8 @@ import type { AuthUser } from '../auth/auth.types';
 import { JobsStore } from '../jobs/jobs.store';
 import { JobType } from '../jobs/job.types';
 import { OpsService } from '../ops/ops.service';
+import { AuditService } from '../security/audit.service';
+import { assertSafeUpload } from '../security/upload-guard';
 import {
   ApproveRecordsDto,
   CreateImportBatchDto,
@@ -31,6 +33,7 @@ export class IngestionService {
     private readonly authStore: AuthStore,
     private readonly jobsStore: JobsStore,
     private readonly ai: AiService,
+    private readonly audit: AuditService,
     @Optional() private readonly ops?: OpsService,
   ) {}
 
@@ -208,6 +211,65 @@ export class IngestionService {
     return this.toPublicRecord(record);
   }
 
+  /**
+   * Partner feed / webhook / sheet path: create a review batch from pre-mapped drafts.
+   */
+  async ingestDrafts(input: {
+    ownerUserId: string;
+    employerName?: string;
+    employerId?: string;
+    sourceType: SourceType;
+    filename: string;
+    drafts: ImportRecord['extraction'][];
+    warnings?: string[];
+  }) {
+    this.assertImportQuota();
+    const user = this.authStore.getUser(input.ownerUserId);
+    if (!user) {
+      throw new BadRequestException('Import owner user missing.');
+    }
+    const employer = this.requireEmployer(user);
+    const now = new Date().toISOString();
+    const batch: ImportBatch = {
+      id: this.store.newId('batch'),
+      employerId: input.employerId || employer.id,
+      ownerUserId: user.id,
+      employerName: input.employerName || employer.name || 'Import',
+      status: 'processing',
+      sourceType: input.sourceType,
+      filename: input.filename,
+      totalRecords: 0,
+      processedRecords: 0,
+      errorCount: 0,
+      warnings: input.warnings ?? [],
+      createdAt: now,
+      updatedAt: now,
+      records: [],
+    };
+    await this.store.create(batch);
+    this.ops?.recordImport(0);
+    await this.applyParseResult(
+      batch,
+      input.sourceType,
+      input.filename,
+      input.drafts,
+      [],
+      { skipEnrich: true },
+    );
+    return {
+      batch: this.toPublicBatch(batch),
+      recordIds: batch.records.map((r) => r.id),
+    };
+  }
+
+  /** Canonical CSV header row for recruiter bulk templates. */
+  importTemplateCsv(): string {
+    return [
+      'externalJobId,title,employer,location,jobType,salary,vacancies,description,language,phone,email,whatsapp,website',
+      'REQ-1001,Shop Assistant,Demo Mart,Palani,full-time,15000,2,Counter and packing duties,en,9876543210,hr@example.com,9876543210,https://example.com/apply',
+    ].join('\n');
+  }
+
   async uploadText(user: AuthUser, id: string, dto: TextUploadDto) {
     const batch = await this.requireOwnedBatch(user, id);
     batch.status = 'processing';
@@ -348,6 +410,15 @@ export class IngestionService {
     if (!file) {
       throw new BadRequestException('file is required');
     }
+    assertSafeUpload(file);
+    this.audit.record('import.upload', {
+      actorUserId: user.id,
+      meta: {
+        batchId: id,
+        bytes: file.size ?? file.buffer?.length ?? 0,
+        mime: file.mimetype ?? null,
+      },
+    });
     const batch = await this.requireOwnedBatch(user, id);
     batch.status = 'processing';
     await this.store.update(batch);
@@ -498,12 +569,25 @@ export class IngestionService {
       );
     }
 
+    const dedupeKey = (title: string, city?: string) =>
+      `${title.trim().toLowerCase()}|${(city || '').trim().toLowerCase()}`;
+    const seenInBatch = new Set(
+      batch.records
+        .filter((record) => record.reviewStatus !== 'rejected')
+        .map((record) =>
+          dedupeKey(
+            record.extraction.title || '',
+            record.extraction.locationCity,
+          ),
+        ),
+    );
+
     const records: ImportRecord[] = [];
     for (const draft of enrichedDrafts) {
-      const probeBatch = { ...batch, records: [...batch.records, ...records] };
       const title = draft.title || '';
       const city = draft.locationCity;
-      const duplicateInBatch = this.store.findDuplicate(probeBatch, title, city);
+      const key = dedupeKey(title, city);
+      const duplicateInBatch = seenInBatch.has(key);
       const duplicateJob = await this.jobsStore.findActiveDuplicate(
         title || 'Untitled role',
         city || 'Palani',
@@ -533,6 +617,7 @@ export class IngestionService {
             ? { error: 'Duplicate within batch' }
             : {}),
       });
+      seenInBatch.add(key);
     }
 
     batch.records = [...batch.records, ...records];
@@ -549,11 +634,37 @@ export class IngestionService {
     file: Express.Multer.File,
     hint?: string,
   ): SourceType {
-    if (hint && ['csv', 'text', 'image', 'pdf', 'docx', 'whatsapp', 'telegram'].includes(hint)) {
+    if (
+      hint &&
+      [
+        'csv',
+        'excel',
+        'text',
+        'image',
+        'pdf',
+        'docx',
+        'whatsapp',
+        'telegram',
+        'json',
+        'xml',
+        'sheet',
+        'webhook',
+        'partner',
+      ].includes(hint)
+    ) {
       return hint as SourceType;
     }
     const name = (file.originalname || '').toLowerCase();
     if (name.endsWith('.csv') || file.mimetype === 'text/csv') return 'csv';
+    if (
+      name.endsWith('.xlsx') ||
+      name.endsWith('.xls') ||
+      file.mimetype ===
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      file.mimetype === 'application/vnd.ms-excel'
+    ) {
+      return 'excel';
+    }
     if (name.endsWith('.txt') || file.mimetype === 'text/plain') return 'text';
     if (name.endsWith('.pdf') || file.mimetype === 'application/pdf') return 'pdf';
     if (file.mimetype?.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(name)) {

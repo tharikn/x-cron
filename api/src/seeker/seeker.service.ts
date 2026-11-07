@@ -4,10 +4,18 @@ import {
   Optional,
 } from '@nestjs/common';
 import { AdsService } from '../ads/ads.service';
+import { ApplyProfilesService } from '../apply-profiles/apply-profiles.service';
+import { isReadyForApply } from '../apply-profiles/apply-profiles.types';
 import { AuthUser } from '../auth/auth.types';
+import {
+  buildMatchReasons,
+  scoreJob,
+  type JobMatchContext,
+} from '../jobs/jobs-match.util';
 import { toPublicJob } from '../jobs/jobs.mapper';
 import { JobRecord } from '../jobs/job.types';
 import { JobsStore } from '../jobs/jobs.store';
+import { filterJobs } from '../jobs/jobs-search.util';
 import { PreferencesService } from '../preferences/preferences.service';
 import { SiteService } from '../site/site.service';
 import {
@@ -18,7 +26,12 @@ import {
   UpsertSeekerProfileDto,
 } from './dto/seeker.dto';
 import { SeekerStore } from './seeker.store';
-import { SavedSearchQuery } from './seeker.types';
+import {
+  buildProfileCompletion,
+  SavedSearchQuery,
+  SeekerProfile,
+  SeekerProfileResponse,
+} from './seeker.types';
 
 @Injectable()
 export class SeekerService {
@@ -27,6 +40,7 @@ export class SeekerService {
     private readonly jobs: JobsStore,
     private readonly preferences: PreferencesService,
     private readonly site: SiteService,
+    private readonly applyProfiles: ApplyProfilesService,
     @Optional() private readonly ads?: AdsService,
   ) {}
 
@@ -63,15 +77,19 @@ export class SeekerService {
     return { ok: true, jobId, saved: false };
   }
 
-  async getProfile(user: AuthUser) {
-    return this.store.getProfile(user.id);
+  async getProfile(user: AuthUser): Promise<SeekerProfileResponse> {
+    const profile = await this.store.getProfile(user.id);
+    return this.withCompletion(user.id, profile);
   }
 
-  async upsertProfile(user: AuthUser, dto: UpsertSeekerProfileDto) {
+  async upsertProfile(
+    user: AuthUser,
+    dto: UpsertSeekerProfileDto,
+  ): Promise<SeekerProfileResponse> {
     const experienceBand =
       dto.experienceBand ??
       this.deriveExperienceBand(dto.careerStage, dto.experienceYears);
-    return this.store.upsertProfile(user.id, {
+    const profile = await this.store.upsertProfile(user.id, {
       displayName: dto.displayName?.trim() || undefined,
       mobile: dto.mobile?.trim() || undefined,
       email: dto.email?.trim() || undefined,
@@ -99,6 +117,26 @@ export class SeekerService {
         .slice(0, 20),
       openToWork: dto.openToWork,
     });
+    return this.withCompletion(user.id, profile);
+  }
+
+  private async withCompletion(
+    userId: string,
+    profile: SeekerProfile,
+  ): Promise<SeekerProfileResponse> {
+    let applyReady = false;
+    try {
+      const { items } = await this.applyProfiles.list({ id: userId } as AuthUser);
+      const preferred =
+        items.find((item) => item.isDefault) ?? items[0] ?? null;
+      applyReady = preferred ? isReadyForApply(preferred) : false;
+    } catch {
+      applyReady = false;
+    }
+    return {
+      ...profile,
+      completion: buildProfileCompletion(profile, applyReady),
+    };
   }
 
   private deriveExperienceBand(
@@ -199,6 +237,26 @@ export class SeekerService {
     return { ok: true };
   }
 
+  /** Skills / locations / prefs used by public search ranking + hide exclude. */
+  async discoveryHints(user: AuthUser): Promise<{
+    hiddenJobIds: string[];
+    skills: string[];
+    preferredLocations: string[];
+    remotePreferred: boolean;
+  }> {
+    const prefs = this.preferences.getForUser(user);
+    const profile = await this.store.getProfile(user.id);
+    return {
+      hiddenJobIds: await this.store.listHiddenJobs(user.id),
+      skills: profile.skills ?? [],
+      preferredLocations: [
+        ...prefs.locations,
+        ...(profile.preferredCities ?? []),
+      ],
+      remotePreferred: !!prefs.remotePreferred,
+    };
+  }
+
   async feed(user: AuthUser) {
     const prefs = this.preferences.getForUser(user);
     const profile = await this.store.getProfile(user.id);
@@ -254,27 +312,27 @@ export class SeekerService {
       items = items.filter((job) => job.location.remote);
     }
 
-    const skillSet = new Set(
-      profile.skills.map((s) => s.trim().toLowerCase()).filter(Boolean),
-    );
-    items = items
-      .map((job) => {
-        let score =
-          new Date(job.publishedAt).getTime() / 1_000_000 +
-          (job.priority ?? 0) * 10;
-        if (skillSet.size) {
-          const jobSkills = (job.skills ?? []).map((s) => s.toLowerCase());
-          const hay = `${job.title} ${job.category} ${job.description.about}`.toLowerCase();
-          for (const skill of skillSet) {
-            if (jobSkills.some((s) => s.includes(skill)) || hay.includes(skill)) {
-              score += 25;
-            }
-          }
-        }
-        return { job, score };
-      })
-      .sort((a, b) => b.score - a.score)
-      .map((row) => row.job);
+    const matchCtx: JobMatchContext = {
+      skills: profile.skills,
+      preferredLocations: [
+        ...prefs.locations,
+        ...profile.preferredCities,
+      ],
+      remotePreferred: prefs.remotePreferred,
+    };
+
+    const ranked = items
+      .map((job) => ({
+        job,
+        score: scoreJob(job, matchCtx),
+        matchReasons: buildMatchReasons(job, matchCtx),
+      }))
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          b.job.publishedAt.localeCompare(a.job.publishedAt) ||
+          a.job.id.localeCompare(b.job.id),
+      );
 
     const saved = new Set(await this.store.listSaved(user.id));
     return {
@@ -292,56 +350,39 @@ export class SeekerService {
         preferredCities: profile.preferredCities,
         openToWork: profile.openToWork,
       },
-      items: items.slice(0, 30).map((job) => ({
+      items: ranked.slice(0, 30).map(({ job, matchReasons }) => ({
         ...toPublicJob(
           job,
           boosts.get(job.id) ?? null,
           this.site.getUnlockPricePaise(),
         ),
         saved: saved.has(job.id),
+        ...(matchReasons.length ? { matchReasons } : {}),
       })),
     };
   }
 
   /** Used by notifications fan-out for saved-search alerts. */
   jobMatchesSavedQuery(job: JobRecord, query: SavedSearchQuery): boolean {
-    const keyword = query.keyword?.trim().toLowerCase() ?? '';
-    if (keyword) {
-      const hay = [
-        job.title,
-        job.employerName,
-        job.category,
-        job.description.about,
-        ...(job.skills ?? []),
-      ]
-        .join(' ')
-        .toLowerCase();
-      if (!hay.includes(keyword)) return false;
-    }
-    if (query.location?.trim()) {
-      const loc = query.location.trim().toLowerCase();
-      const hay = [
-        job.location.city,
-        job.location.district,
-        job.location.state,
-        job.location.locality ?? '',
-      ]
-        .join(' ')
-        .toLowerCase();
-      if (!hay.includes(loc)) return false;
-    }
-    if (query.jobType && job.jobType !== query.jobType) return false;
-    if (query.category && job.category !== query.category) return false;
-    if (query.language && job.contentLanguage !== query.language) return false;
-    if (
-      query.salaryMin != null &&
-      (job.salary?.max ?? job.salary?.min ?? 0) < query.salaryMin
-    ) {
-      return false;
-    }
-    if (query.remote && !job.location.remote) return false;
-    if (query.walkInOnly && !job.walkInAt) return false;
-    return true;
+    const hits = filterJobs([job], {
+      keyword: query.keyword,
+      locationText: query.location,
+      jobType: (query.jobType as JobRecord['jobType'] | '') || '',
+      category: query.category,
+      language: query.language,
+      salaryMin: query.salaryMin ?? null,
+      remote: query.remote ?? null,
+      walkInOnly: query.walkInOnly ?? null,
+      postedWithin: query.postedWithin ?? null,
+      nearLat: query.nearLat ?? null,
+      nearLng: query.nearLng ?? null,
+      radiusKm: query.radiusKm ?? null,
+      skills: query.skills,
+      verifiedEmployer: query.verifiedEmployer ?? null,
+      fresher: query.fresher ?? null,
+      easyApply: query.easyApply ?? null,
+    });
+    return hits.length > 0;
   }
 
   async listAlertSavedSearches() {

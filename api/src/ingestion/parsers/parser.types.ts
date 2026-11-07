@@ -1,11 +1,17 @@
 export type SourceType =
   | 'csv'
+  | 'excel'
   | 'text'
   | 'whatsapp'
   | 'telegram'
   | 'image'
   | 'pdf'
   | 'docx'
+  | 'json'
+  | 'xml'
+  | 'sheet'
+  | 'webhook'
+  | 'partner'
   | 'unknown';
 
 export interface ExtractedJobDraft {
@@ -20,7 +26,10 @@ export interface ExtractedJobDraft {
   contentLanguage?: string;
   contactPhone?: string;
   contactEmail?: string;
+  contactWhatsapp?: string;
   contactWebsite?: string;
+  /** Partner / feed / ATS stable id for upsert + close-missing. */
+  externalJobId?: string;
   confidence: number;
   sourceLocator: string;
   notes?: string[];

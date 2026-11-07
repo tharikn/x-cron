@@ -49,6 +49,18 @@ Each event stores `fromStatus` / `toStatus`, `actorRole`, optional `note` / `met
 
 ---
 
+## Apply gates (freshness)
+
+Before creating an application, `ApplicationsService.apply` requires:
+
+1. Job `status === 'published'`
+2. Now within listing window (`effectiveFrom` or `publishedAt` → `expiresAt`)
+3. Optional `applyBy` not past
+
+Otherwise `400` — seekers cannot apply via deep link after the job falls out of Discover.
+
+---
+
 ## Write path (single command)
 
 Every mutation uses one path so timeline and notify cannot drift:
@@ -94,14 +106,22 @@ Inbox CTA should deep-link to application timeline when `data.applicationId` is 
 | GET | `/v1/me/job-applications` | seeker list |
 | GET | `/v1/me/job-applications/:id` | seeker detail + timeline |
 | POST | `/v1/me/job-applications/:id/withdraw` | seeker |
-| GET/POST | `/v1/me/job-applications/:id/messages` | participant |
+| GET/POST | `/v1/me/job-applications/:id/messages` | participant (`?limit=&before=` optional) |
+| POST | `/v1/me/job-applications/:id/messages/read` | participant read cursor |
+| GET | `/v1/conversations` | thin inbox (applicationId = conversation id) |
+| GET/POST | `/v1/conversations/:id/messages` | participant alias |
+| POST/PATCH | `/v1/conversations/:id/read` | participant read cursor |
 | GET | `/v1/employers/applications` | employer inbox |
 | GET | `/v1/employers/jobs/:jobId/applications` | per job |
 | GET | `/v1/employers/applications/:id` | employer detail (records first view) |
 | POST | `/v1/employers/applications/:id/transition` | employer |
 | POST | `/v1/employers/applications/:id/notes` | employer |
+| GET/POST | `/v1/employers/applications/:id/messages` | employer participant |
+| POST | `/v1/employers/applications/:id/messages/read` | employer read cursor |
 
-Storage: `APPLICATIONS_STORE=prisma|memory` (falls back to `JOBS_STORE`). Prisma models in migrations `20261104210000_job_applications_timeline` et al.
+Chat send is blocked for `withdrawn` / `hired` / `rejected`. Unread uses `seekerLastReadAt` / `employerLastReadAt`. Notification fan-out for ATS actions uses stable `eventId` dedupe keys.
+
+Storage: `APPLICATIONS_STORE=prisma|memory` (falls back to `JOBS_STORE`). Prisma models in migrations `20261104210000_job_applications_timeline` et al. + `20261107140000_notif_categories_conversation_read`.
 
 ---
 

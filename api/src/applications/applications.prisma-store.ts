@@ -75,6 +75,8 @@ function mapApp(row: {
   offerLetterText: string | null;
   viewedAt: Date | null;
   matchPercent: number | null;
+  seekerLastReadAt?: Date | null;
+  employerLastReadAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }): JobApplication {
@@ -99,6 +101,8 @@ function mapApp(row: {
     viewedAt: toIso(row.viewedAt),
     matchPercent:
       typeof row.matchPercent === 'number' ? row.matchPercent : undefined,
+    seekerLastReadAt: toIso(row.seekerLastReadAt ?? null),
+    employerLastReadAt: toIso(row.employerLastReadAt ?? null),
     createdAt: toIso(row.createdAt)!,
     updatedAt: toIso(row.updatedAt)!,
   };
@@ -285,6 +289,14 @@ export class ApplicationsPrismaStore extends ApplicationsStore {
     return rows.map(mapApp);
   }
 
+  async listForEmployer(employerId: string): Promise<JobApplication[]> {
+    const rows = await this.prisma.jobApplication.findMany({
+      where: { employerId },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return rows.map(mapApp);
+  }
+
   async updateApplication(
     id: string,
     patch: Partial<
@@ -297,6 +309,8 @@ export class ApplicationsPrismaStore extends ApplicationsStore {
         | 'seekerEmail'
         | 'offerLetterText'
         | 'viewedAt'
+        | 'seekerLastReadAt'
+        | 'employerLastReadAt'
       >
     >,
   ): Promise<JobApplication | undefined> {
@@ -311,6 +325,12 @@ export class ApplicationsPrismaStore extends ApplicationsStore {
           seekerEmail: patch.seekerEmail,
           offerLetterText: patch.offerLetterText,
           viewedAt: patch.viewedAt ? new Date(patch.viewedAt) : undefined,
+          seekerLastReadAt: patch.seekerLastReadAt
+            ? new Date(patch.seekerLastReadAt)
+            : undefined,
+          employerLastReadAt: patch.employerLastReadAt
+            ? new Date(patch.employerLastReadAt)
+            : undefined,
         },
       });
       return mapApp(row);
@@ -383,6 +403,24 @@ export class ApplicationsPrismaStore extends ApplicationsStore {
       orderBy: { createdAt: 'asc' },
     });
     return rows.map(mapMessage);
+  }
+
+  async listMessagesPage(
+    applicationId: string,
+    opts?: { limit?: number; before?: string },
+  ): Promise<ApplicationMessage[]> {
+    const limit = Math.min(Math.max(opts?.limit ?? 50, 1), 100);
+    const rows = await this.prisma.applicationMessage.findMany({
+      where: {
+        applicationId,
+        ...(opts?.before
+          ? { createdAt: { lt: new Date(opts.before) } }
+          : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return rows.map(mapMessage).reverse();
   }
 
   async clearForUser(userId: string): Promise<void> {

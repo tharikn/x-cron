@@ -11,6 +11,21 @@
   z-index: 1;
 }
 
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin-inline: calc(-1 * var(--xcron-pad-x));
+  padding: 0.55rem var(--xcron-pad-x);
+  font-family: var(--xcron-font-body);
+  font-size: var(--xcron-text-meta);
+  font-weight: var(--xcron-weight-medium, 500);
+  text-align: center;
+  color: var(--xcron-ink);
+  background: color-mix(in srgb, var(--xcron-accent) 22%, var(--xcron-bg-elevated));
+  border-bottom: 1px solid var(--xcron-line);
+}
+
 .top {
   display: flex;
   justify-content: space-between;

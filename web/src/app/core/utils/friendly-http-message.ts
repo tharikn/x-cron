@@ -4,19 +4,47 @@ import type { FieldErrors } from './job-form.validation';
 export function friendlyHttpMessage(err: unknown, fallback: string): string {
   const fields = fieldErrorsFromHttp(err);
   const firstField = Object.values(fields)[0];
-  if (firstField) return firstField;
+  if (firstField) return withCorrelation(firstField, err);
 
   const raw = extractRawMessage(err);
   if (raw && looksLikeNetworkNoise(raw)) {
-    return "We couldn't reach X Cron. Check your connection and try again.";
+    return withCorrelation(
+      "We couldn't reach X Cron. Check your connection and try again.",
+      err,
+    );
   }
   if (raw && !looksLikeDeveloperNoise(raw) && raw !== 'Validation failed') {
-    return raw;
+    return withCorrelation(raw, err);
   }
   if (isNetworkFailure(err)) {
-    return "We couldn't reach X Cron. Check your connection and try again.";
+    return withCorrelation(
+      "We couldn't reach X Cron. Check your connection and try again.",
+      err,
+    );
   }
-  return fallback;
+  return withCorrelation(fallback, err);
+}
+
+/** Support ref from X-Request-Id / API correlationId (Doc 10 §5). */
+export function correlationIdFromHttp(err: unknown): string | null {
+  const stamped = (err as { correlationId?: unknown })?.correlationId;
+  if (typeof stamped === 'string' && stamped.trim()) return stamped.trim();
+  const headers = (err as { headers?: { get?: (k: string) => string | null } })
+    ?.headers;
+  const fromHeader = headers?.get?.('X-Request-Id');
+  if (fromHeader?.trim()) return fromHeader.trim();
+  const body = (err as { error?: unknown })?.error;
+  if (body && typeof body === 'object') {
+    const id = (body as { correlationId?: unknown }).correlationId;
+    if (typeof id === 'string' && id.trim()) return id.trim();
+  }
+  return null;
+}
+
+function withCorrelation(message: string, err: unknown): string {
+  const id = correlationIdFromHttp(err);
+  if (!id || message.includes(id)) return message;
+  return `${message} (ref: ${id.slice(0, 8)})`;
 }
 
 /** Extract Nest `errors: { field: message }` map from HttpErrorResponse-like errors. */

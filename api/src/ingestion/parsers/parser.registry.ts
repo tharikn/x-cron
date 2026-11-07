@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CsvParser } from './csv.parser';
+import { ExcelParser } from './excel.parser';
 import { ImageOcrParser } from './image-ocr.parser';
 import { DocumentParser, ParseInput, ParseResult } from './parser.types';
 import { TextParser } from './text.parser';
@@ -7,6 +8,7 @@ import { TextParser } from './text.parser';
 @Injectable()
 export class ParserRegistry {
   private readonly parsers: DocumentParser[] = [
+    new ExcelParser(),
     new CsvParser(),
     new TextParser(),
     new ImageOcrParser(),

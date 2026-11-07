@@ -28,6 +28,7 @@ export class JobDetailPage {
   }
 
   async easyApplyClick(): Promise<void> {
-    await this.easyApply().click();
+    // Ionic ion-button animates; force avoids "element is not stable" on mobile.
+    await this.easyApply().click({ force: true, timeout: 20_000 });
   }
 }

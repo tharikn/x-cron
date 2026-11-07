@@ -1,7 +1,17 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  DefaultValuePipe,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { CurrentUser, Roles } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
-import { ApplyThrottle } from '../security/decorators';
+import { ApplyThrottle, AuthThrottle } from '../security/decorators';
 import { ApplicationsService } from './applications.service';
 import {
   AddApplicationNoteDto,
@@ -14,6 +24,48 @@ import {
 @Controller('v1')
 export class ApplicationsController {
   constructor(private readonly applications: ApplicationsService) {}
+
+  /** Doc-shaped conversations inbox (applicationId = conversation id). */
+  @Get('conversations')
+  listConversations(@CurrentUser() user: AuthUser) {
+    return this.applications.listConversations(user);
+  }
+
+  @Get('conversations/:id/messages')
+  listConversationMessages(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+    @Query('before') before?: string,
+  ) {
+    return this.applications.listMessages(user, id, { limit, before });
+  }
+
+  @AuthThrottle()
+  @Post('conversations/:id/messages')
+  sendConversationMessage(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: SendApplicationMessageDto,
+  ) {
+    return this.applications.sendMessage(user, id, dto);
+  }
+
+  @Post('conversations/:id/read')
+  markConversationReadPost(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+  ) {
+    return this.applications.markConversationRead(user, id);
+  }
+
+  @Patch('conversations/:id/read')
+  markConversationReadPatch(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+  ) {
+    return this.applications.markConversationRead(user, id);
+  }
 
   /** Seeker: apply to a published job with an apply-profile version (no CV). */
   @ApplyThrottle()
@@ -50,11 +102,21 @@ export class ApplicationsController {
 
   /** Participant: list chat messages. */
   @Get('me/job-applications/:id/messages')
-  listMyMessages(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.applications.listMessages(user, id);
+  listMyMessages(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+    @Query('before') before?: string,
+  ) {
+    const parsed = limit ? Number(limit) : undefined;
+    return this.applications.listMessages(user, id, {
+      limit: Number.isFinite(parsed) ? parsed : undefined,
+      before,
+    });
   }
 
   /** Participant: send chat message. */
+  @AuthThrottle()
   @Post('me/job-applications/:id/messages')
   sendMyMessage(
     @CurrentUser() user: AuthUser,
@@ -62,6 +124,11 @@ export class ApplicationsController {
     @Body() dto: SendApplicationMessageDto,
   ) {
     return this.applications.sendMessage(user, id, dto);
+  }
+
+  @Post('me/job-applications/:id/messages/read')
+  markMyMessagesRead(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.applications.markConversationRead(user, id);
   }
 
   /** Employer: all applications across owned jobs. */
@@ -113,12 +180,19 @@ export class ApplicationsController {
   listEmployerMessages(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
+    @Query('limit') limit?: string,
+    @Query('before') before?: string,
   ) {
-    return this.applications.listMessages(user, id);
+    const parsed = limit ? Number(limit) : undefined;
+    return this.applications.listMessages(user, id, {
+      limit: Number.isFinite(parsed) ? parsed : undefined,
+      before,
+    });
   }
 
   /** Employer participant: send chat. */
   @Roles('employer', 'admin')
+  @AuthThrottle()
   @Post('employers/applications/:id/messages')
   sendEmployerMessage(
     @CurrentUser() user: AuthUser,
@@ -126,5 +200,14 @@ export class ApplicationsController {
     @Body() dto: SendApplicationMessageDto,
   ) {
     return this.applications.sendMessage(user, id, dto);
+  }
+
+  @Roles('employer', 'admin')
+  @Post('employers/applications/:id/messages/read')
+  markEmployerMessagesRead(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+  ) {
+    return this.applications.markConversationRead(user, id);
   }
 }

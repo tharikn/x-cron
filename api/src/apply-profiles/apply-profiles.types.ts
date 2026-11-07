@@ -70,3 +70,14 @@ export function toSnapshot(profile: ApplyProfile): ApplyProfileSnapshot {
     })),
   };
 }
+
+/** Submit-ready when skills, headline, summary, or a titled project is present. */
+export function isReadyForApply(
+  profile: Pick<ApplyProfile, 'skills' | 'headline' | 'summary' | 'projects'>,
+): boolean {
+  const hasSkills = profile.skills.length > 0;
+  const hasHeadline = Boolean(profile.headline?.trim());
+  const hasSummary = Boolean(profile.summary?.trim());
+  const hasProjects = profile.projects.some((p) => p.title?.trim());
+  return hasSkills || hasHeadline || hasSummary || hasProjects;
+}

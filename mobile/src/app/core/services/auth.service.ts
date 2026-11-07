@@ -6,12 +6,13 @@ import { environment } from '../../../environments/environment';
 import { useApiCredentials } from '../utils/api-credentials';
 import { csrfHeaders } from '../utils/csrf';
 import { TabSessionService } from './tab-session.service';
+import { TokenVaultService } from './token-vault.service';
 
 export interface AuthUser {
   id: string;
   status: string;
   preferredLocale: string;
-  roles: Array<'seeker' | 'employer' | 'admin'>;
+  roles: Array<'seeker' | 'employer' | 'admin' | 'moderator'>;
   username?: string;
   phone?: string;
   email?: string;
@@ -41,9 +42,16 @@ interface TokenPairResponse {
   expiresAt?: string;
 }
 
+export interface AuthDeviceSession {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  refreshExpiresAt: string;
+  current: boolean;
+}
+
 const USER_KEY = 'xcron.authUser';
 const EMPLOYER_KEY = 'xcron.employer';
-const SESSION_REFRESH_KEY = 'xcron.sessionRefresh';
 const LEGACY_TOKEN_KEY = 'xcron.authToken';
 const LEGACY_REFRESH_KEY = 'xcron.refreshToken';
 
@@ -51,6 +59,7 @@ const LEGACY_REFRESH_KEY = 'xcron.refreshToken';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly tabs = inject(TabSessionService);
+  private readonly vault = inject(TokenVaultService);
   private readonly injector = inject(Injector);
   private ensurePromise: Promise<void> | null = null;
   private refreshPromise: Promise<boolean> | null = null;
@@ -75,6 +84,12 @@ export class AuthService {
   readonly isAdmin = computed(
     () =>
       this.sessionValidated() && !!this.user()?.roles.includes('admin'),
+  );
+  readonly isModerator = computed(
+    () =>
+      this.sessionValidated() &&
+      (!!this.user()?.roles.includes('moderator') ||
+        !!this.user()?.roles.includes('admin')),
   );
 
   hasCookieSession(): boolean {
@@ -268,16 +283,52 @@ export class AuthService {
     }
   }
 
+  /** Revoke every refresh/access pair for this account. */
+  async logoutAll(): Promise<void> {
+    await this.unlinkPushDevice();
+    try {
+      await firstValueFrom(
+        this.http.post(
+          `${environment.apiUrl}/auth/logout-all`,
+          {},
+          { ...this.credOpts(), headers: this.authHeaders() },
+        ),
+      );
+    } finally {
+      this.clearSession({ unlinkPush: false });
+    }
+  }
+
+  async listSessions(): Promise<AuthDeviceSession[]> {
+    const response = await firstValueFrom(
+      this.http.get<{ sessions: AuthDeviceSession[] }>(
+        `${environment.apiUrl}/auth/sessions`,
+        { ...this.credOpts(), headers: this.authHeaders() },
+      ),
+    );
+    return response.sessions ?? [];
+  }
+
+  async revokeSession(sessionId: string): Promise<void> {
+    const target = sessionId.trim();
+    if (!target) return;
+    await firstValueFrom(
+      this.http.delete(`${environment.apiUrl}/auth/sessions/${encodeURIComponent(target)}`, {
+        ...this.credOpts(),
+        headers: this.authHeaders(),
+      }),
+    );
+  }
+
   clearSession(options?: { unlinkPush?: boolean }): void {
     if (options?.unlinkPush !== false) {
       void this.unlinkPushDevice();
     }
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(EMPLOYER_KEY);
-    sessionStorage.removeItem(SESSION_REFRESH_KEY);
-    localStorage.removeItem(SESSION_REFRESH_KEY);
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     localStorage.removeItem(LEGACY_REFRESH_KEY);
+    void this.vault.clearRefresh();
     this.token.set(null);
     this.refreshToken.set(null);
     this.user.set(null);
@@ -307,9 +358,7 @@ export class AuthService {
   private async runEnsureSession(): Promise<void> {
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     localStorage.removeItem(LEGACY_REFRESH_KEY);
-    const sessionRefresh =
-      sessionStorage.getItem(SESSION_REFRESH_KEY) ||
-      localStorage.getItem(SESSION_REFRESH_KEY);
+    const sessionRefresh = await this.vault.readRefresh();
     if (sessionRefresh) this.refreshToken.set(sessionRefresh);
 
     if (!this.tabs.claim()) {
@@ -355,7 +404,7 @@ export class AuthService {
       );
       this.token.set(response.token);
       this.refreshToken.set(response.refreshToken);
-      this.storeRefresh(response.refreshToken);
+      void this.vault.writeRefresh(response.refreshToken);
       return true;
     } catch {
       return false;
@@ -371,19 +420,13 @@ export class AuthService {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     if (employer) localStorage.setItem(EMPLOYER_KEY, JSON.stringify(employer));
     else localStorage.removeItem(EMPLOYER_KEY);
-    this.storeRefresh(refreshToken);
+    void this.vault.writeRefresh(refreshToken);
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     localStorage.removeItem(LEGACY_REFRESH_KEY);
     this.token.set(token);
     this.refreshToken.set(refreshToken);
     this.user.set(user);
     this.employer.set(employer);
-  }
-
-  /** sessionStorage for tab scope + localStorage so Capacitor survives process death. */
-  private storeRefresh(refreshToken: string): void {
-    sessionStorage.setItem(SESSION_REFRESH_KEY, refreshToken);
-    localStorage.setItem(SESSION_REFRESH_KEY, refreshToken);
   }
 
   private readJson<T>(key: string): T | null {
