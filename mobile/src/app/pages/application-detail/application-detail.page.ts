@@ -21,6 +21,7 @@ import {
   type JobApplication,
 } from '../../core/services/applications.service';
 import { AuthService } from '../../core/services/auth.service';
+import { JobDetailSkeletonComponent } from '../../shared/skeleton/job-detail-skeleton.component';
 
 type DetailTab = 'overview' | 'chat' | 'timeline';
 
@@ -42,6 +43,7 @@ type DetailTab = 'overview' | 'chat' | 'timeline';
     IonSegment,
     IonSegmentButton,
     IonLabel,
+    JobDetailSkeletonComponent,
   ],
 })
 export class ApplicationDetailPage implements OnInit {

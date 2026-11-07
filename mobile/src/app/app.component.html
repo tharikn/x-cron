@@ -6,13 +6,13 @@
     aria-busy="true"
     aria-label="Loading"
   >
-    <div class="api-loading__brand">
-      <p class="api-loading__name">X Cron</p>
-      <p class="api-loading__jobs">Jobs</p>
-    </div>
+    <app-api-loading-skeleton />
   </div>
 }
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
   <app-help-chat />
+  @if (themePromptOpen()) {
+    <app-theme-prompt (closed)="onThemePromptClosed()" />
+  }
 </ion-app>

@@ -11,12 +11,13 @@ import { AuthService } from '../../core/services/auth.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
 import { jobPath } from '../../core/utils/format';
+import { JobDetailSkeletonComponent } from '../../shared/skeleton/job-detail-skeleton.component';
 
 type DetailTab = 'overview' | 'chat' | 'timeline';
 
 @Component({
   selector: 'app-application-detail',
-  imports: [DatePipe, FormsModule, RouterLink],
+  imports: [DatePipe, FormsModule, RouterLink, JobDetailSkeletonComponent],
   templateUrl: './application-detail.page.html',
   styleUrl: './application-detail.page.scss',
 })

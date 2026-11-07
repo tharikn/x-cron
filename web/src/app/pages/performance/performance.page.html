@@ -103,7 +103,9 @@
           <p class="empty">No score events yet — apply or reply in chat to start building.</p>
         }
       </article>
-    } @else if (!busy()) {
+    } @else if (busy()) {
+      <app-score-skeleton label="Loading score" />
+    } @else {
       <p class="empty">No score yet.</p>
     }
   }

@@ -1,0 +1,47 @@
+:host {
+  display: block;
+  width: min(720px, 100%);
+}
+
+.sk-detail {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.25rem 0 2rem;
+}
+
+.sk-detail__crumb {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0 0 0.35rem;
+}
+
+.sk-detail__meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sk-detail__h1 {
+  width: 86%;
+  height: 1.85rem;
+  margin: 0.25rem 0 0.15rem;
+  border-radius: 8px;
+}
+
+.sk-detail__panel {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+}
+
+.sk-detail__contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}

@@ -18,6 +18,13 @@ function settingsRedirect(
 
 export const routes: Routes = [
   {
+    path: 'onboarding/profile',
+    loadComponent: () =>
+      import('./pages/profile-setup/profile-setup.page').then(
+        (m) => m.ProfileSetupPage,
+      ),
+  },
+  {
     path: 'tabs',
     component: TabsPage,
     children: [

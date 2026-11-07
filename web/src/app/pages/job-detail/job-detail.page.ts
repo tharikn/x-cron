@@ -23,12 +23,19 @@ import {
   GoogleSignInSheetComponent,
   type GoogleSignInReason,
 } from '../../shared/google-sign-in-sheet/google-sign-in-sheet.component';
+import { JobDetailSkeletonComponent } from '../../shared/skeleton/job-detail-skeleton.component';
 
 type PendingAction = 'save' | 'share' | 'apply';
 
 @Component({
   selector: 'app-job-detail',
-  imports: [FormsModule, RouterLink, TranslatePipe, GoogleSignInSheetComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    TranslatePipe,
+    GoogleSignInSheetComponent,
+    JobDetailSkeletonComponent,
+  ],
   templateUrl: './job-detail.page.html',
   styleUrl: './job-detail.page.scss',
 })
@@ -91,7 +98,19 @@ export class JobDetailPage implements OnInit {
 
   async loadApplyProfiles(): Promise<void> {
     try {
-      const list = await this.applyProfiles.list();
+      let list = await this.applyProfiles.list();
+      if (!list.length && !this.auth.isEmployer()) {
+        try {
+          const profile = await this.seeker.loadProfile();
+          const seeded = await this.applyProfiles.ensureDefaultFromSkills({
+            skills: profile.skills ?? [],
+            experienceBand: profile.experienceBand,
+          });
+          if (seeded) list = this.applyProfiles.items();
+        } catch {
+          // leave empty — Easy apply will prompt
+        }
+      }
       this.selectedProfileId =
         list.find((p) => p.id === this.selectedProfileId)?.id ??
         list.find((p) => p.isDefault)?.id ??

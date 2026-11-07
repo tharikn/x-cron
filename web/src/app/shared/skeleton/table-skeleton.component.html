@@ -1,0 +1,41 @@
+<div
+  class="table-wrap sk-table-wrap"
+  role="status"
+  aria-busy="true"
+  aria-live="polite"
+  [attr.aria-label]="label()"
+>
+  <table class="history-table sk-table">
+    <thead>
+      <tr>
+        @for (head of headerLabels(); track $index) {
+          <th>
+            @if (head) {
+              {{ head }}
+            } @else {
+              <span class="sk sk--meta" style="width: 4.5rem"></span>
+            }
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (_ of rowIndexes(); track $index) {
+        <tr aria-hidden="true">
+          @for (col of colIndexes(); track col) {
+            <td>
+              @if (col === 0) {
+                <span class="sk sk--title" style="width: 70%; margin-bottom: 0.35rem"></span>
+                <span class="sk sk--meta" style="width: 48%"></span>
+              } @else if (col === colIndexes().length - 1) {
+                <span class="sk sk--chip" style="width: 4.8rem; height: 2rem; border-radius: 10px"></span>
+              } @else {
+                <span class="sk sk--meta" [style.width]="col < 3 ? '3rem' : '5.5rem'"></span>
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

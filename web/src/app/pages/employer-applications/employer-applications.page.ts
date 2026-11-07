@@ -8,10 +8,11 @@ import {
 } from '../../core/services/applications.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SeoService } from '../../core/services/seo.service';
+import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.component';
 
 @Component({
   selector: 'app-employer-applications',
-  imports: [DatePipe, FormsModule, RouterLink],
+  imports: [DatePipe, FormsModule, RouterLink, ListSkeletonComponent],
   templateUrl: './employer-applications.page.html',
   styleUrl: './employer-applications.page.scss',
 })

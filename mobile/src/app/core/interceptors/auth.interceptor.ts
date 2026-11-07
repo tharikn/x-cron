@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { from, switchMap, catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { TabSessionService } from '../services/tab-session.service';
+import { useApiCredentials } from '../utils/api-credentials';
 import { csrfHeaders } from '../utils/csrf';
 
 const AUTH_ENTRY_MARKERS = [
@@ -21,13 +22,14 @@ function isAuthEntry(url: string): boolean {
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const tabs = inject(TabSessionService);
+  const withCredentials = useApiCredentials();
 
   const token = auth.token();
   const secured = req.clone({
-    withCredentials: true,
+    withCredentials,
     setHeaders: {
       ...tabs.headers(),
-      ...csrfHeaders(),
+      ...(withCredentials ? csrfHeaders() : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
@@ -57,10 +59,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           const nextToken = auth.token();
           return next(
             req.clone({
-              withCredentials: true,
+              withCredentials,
               setHeaders: {
                 ...tabs.headers(),
-                ...csrfHeaders(),
+                ...(withCredentials ? csrfHeaders() : {}),
                 ...(nextToken ? { Authorization: `Bearer ${nextToken}` } : {}),
                 'X-Retry-After-Refresh': '1',
               },

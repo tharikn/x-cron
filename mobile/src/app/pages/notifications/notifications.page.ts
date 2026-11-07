@@ -14,6 +14,7 @@ import {
 import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationsService } from '../../core/services/notifications.service';
+import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.component';
 
 @Component({
   selector: 'app-notifications',
@@ -29,6 +30,7 @@ import { NotificationsService } from '../../core/services/notifications.service'
     IonContent,
     IonNote,
     IonButton,
+    ListSkeletonComponent,
   ],
 })
 export class NotificationsPage implements OnInit, ViewWillEnter {
@@ -77,7 +79,7 @@ export class NotificationsPage implements OnInit, ViewWillEnter {
     data?: Record<string, string> | null;
   }): string | null {
     const action = item.data?.['action']?.trim();
-    if (action === 'complete_profile') return '/tabs/account';
+    if (action === 'complete_profile') return '/onboarding/profile';
     if (action === 'browse_jobs') return '/tabs/discover';
     if (action === 'open_feedback') {
       return item.data?.['eventType'] === 'user_message'

@@ -52,7 +52,9 @@
           </div>
         </a>
       } @empty {
-        @if (!busy()) {
+        @if (busy()) {
+          <app-list-skeleton variant="applied" [count]="5" label="Loading applications" />
+        } @else {
           <p class="empty">
             No applications yet. Use <strong>Easy apply</strong> on a job page — status updates
             appear here with full date and time.

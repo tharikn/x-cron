@@ -1,0 +1,31 @@
+<div
+  class="sk-analytics"
+  role="status"
+  aria-busy="true"
+  aria-live="polite"
+  [attr.aria-label]="label()"
+>
+  <div class="sk-analytics__kpis" aria-hidden="true">
+    @for (_ of [1, 2, 3, 4]; track $index) {
+      <article class="sk-analytics__kpi">
+        <span class="sk sk--meta" style="width: 4.5rem"></span>
+        <span class="sk sk-analytics__value"></span>
+        <span class="sk sk--meta" style="width: 70%"></span>
+      </article>
+    }
+  </div>
+  <section class="sk-analytics__chart" aria-hidden="true">
+    <div class="sk-analytics__chart-head">
+      <span class="sk sk--title" style="width: 8rem"></span>
+      <span class="sk sk--meta" style="width: 10rem"></span>
+    </div>
+    <div class="sk-analytics__bars">
+      @for (_ of [1, 2, 3, 4, 5, 6, 7, 8]; track $index) {
+        <div class="sk-analytics__col">
+          <span class="sk sk-analytics__bar" [style.height.%]="35 + ($index % 5) * 12"></span>
+          <span class="sk sk--meta" style="width: 100%; height: 0.55rem"></span>
+        </div>
+      }
+    </div>
+  </section>
+</div>

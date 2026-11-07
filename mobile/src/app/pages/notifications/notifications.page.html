@@ -79,7 +79,11 @@
             </div>
           </div>
         } @empty {
-          <p class="empty">{{ 'notif.empty' | t }}</p>
+          @if (busy()) {
+            <app-list-skeleton variant="inbox" [count]="4" label="Loading notifications" />
+          } @else {
+            <p class="empty">{{ 'notif.empty' | t }}</p>
+          }
         }
       </section>
 

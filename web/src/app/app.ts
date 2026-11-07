@@ -24,10 +24,14 @@ import { ApiLoadingService } from './core/services/api-loading.service';
 import { AuthService } from './core/services/auth.service';
 import { LocaleService } from './core/services/locale.service';
 import { NotificationsService } from './core/services/notifications.service';
+import { OnboardingService } from './core/services/onboarding.service';
+import { SeekerService } from './core/services/seeker.service';
 import { SiteService } from './core/services/site.service';
 import { ToastService } from './core/services/toast.service';
 import { GetAppCtaComponent } from './shared/get-app-cta/get-app-cta.component';
 import { HelpChatComponent } from './shared/help-chat/help-chat.component';
+import { ApiLoadingSkeletonComponent } from './shared/skeleton/api-loading-skeleton.component';
+import { ThemePromptComponent } from './shared/theme-prompt/theme-prompt.component';
 
 const FOOTER_ITEM_KEYS: Record<string, string> = {
   ql_home: 'footer.quick.home',
@@ -50,6 +54,8 @@ const FOOTER_ITEM_KEYS: Record<string, string> = {
     TranslatePipe,
     GetAppCtaComponent,
     HelpChatComponent,
+    ApiLoadingSkeletonComponent,
+    ThemePromptComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -63,6 +69,8 @@ export class App implements OnInit, OnDestroy {
   private readonly apiLoading = inject(ApiLoadingService);
   private readonly toastService = inject(ToastService);
   private readonly notifications = inject(NotificationsService);
+  private readonly onboarding = inject(OnboardingService);
+  private readonly seeker = inject(SeekerService);
   private navSub?: Subscription;
   private notifPollId: ReturnType<typeof setInterval> | null = null;
   private readonly onVisChange = () => {
@@ -75,6 +83,7 @@ export class App implements OnInit, OnDestroy {
   readonly navigating = signal(false);
   readonly apiBusy = this.apiLoading.visible;
   readonly toasts = this.toastService.messages;
+  readonly themePromptOpen = this.onboarding.themePromptOpen;
   readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
   readonly isEmployer = this.auth.isEmployer;
@@ -107,6 +116,12 @@ export class App implements OnInit, OnDestroy {
     void this.locale.hydrate();
     void this.site.hydrateFooter();
     void this.hydrateNotifications();
+    if (isPlatformBrowser(this.platformId)) {
+      this.onboarding.openThemePromptIfNeeded();
+      if (!this.onboarding.themePromptOpen()) {
+        void this.maybeForceProfileSetup();
+      }
+    }
     this.navSub = this.router.events
       .pipe(
         filter(
@@ -125,6 +140,28 @@ export class App implements OnInit, OnDestroy {
         this.navigating.set(false);
         this.closeMenu();
       });
+  }
+
+  onThemePromptClosed(): void {
+    void this.maybeForceProfileSetup();
+  }
+
+  private async maybeForceProfileSetup(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (!this.auth.isSignedIn()) return;
+    if (this.auth.isEmployer() || this.auth.isAdmin()) return;
+    const path = this.router.url.split('?')[0] ?? '';
+    if (path.startsWith('/onboarding/profile') || path.startsWith('/sign-in')) {
+      return;
+    }
+    try {
+      const profile = await this.seeker.loadProfile();
+      if (this.onboarding.shouldForceProfileSetup(profile)) {
+        await this.router.navigateByUrl('/onboarding/profile');
+      }
+    } catch {
+      // profile optional until API ready
+    }
   }
 
   ngOnDestroy(): void {

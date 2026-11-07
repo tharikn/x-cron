@@ -8,12 +8,13 @@ import {
   ReputationService,
 } from '../../core/services/reputation.service';
 import { SeoService } from '../../core/services/seo.service';
+import { ScoreSkeletonComponent } from '../../shared/skeleton/score-skeleton.component';
 
 @Component({
   selector: 'app-performance',
   templateUrl: './performance.page.html',
   styleUrls: ['./performance.page.scss'],
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, ScoreSkeletonComponent],
 })
 export class PerformancePage implements OnInit {
   private readonly auth = inject(AuthService);

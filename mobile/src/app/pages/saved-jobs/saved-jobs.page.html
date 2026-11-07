@@ -53,10 +53,14 @@
           </div>
         </div>
       } @empty {
-        <p class="empty">{{ 'saved.empty' | t }}</p>
-        <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/discover">
-          {{ 'nav.discover' | t }}
-        </ion-button>
+        @if (busy()) {
+          <app-list-skeleton variant="rows" [count]="4" label="Loading saved jobs" />
+        } @else {
+          <p class="empty">{{ 'saved.empty' | t }}</p>
+          <ion-button expand="block" fill="outline" color="dark" routerLink="/tabs/discover">
+            {{ 'nav.discover' | t }}
+          </ion-button>
+        }
       }
     </section>
   }

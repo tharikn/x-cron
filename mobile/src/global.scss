@@ -132,6 +132,112 @@ ion-textarea.sc-ion-textarea-md-h,
 ion-textarea.sc-ion-textarea-ios-h {
   --placeholder-color: var(--xcron-muted);
   --placeholder-opacity: 1;
+  --padding-start: 0.8rem;
+  --padding-end: 0.8rem;
+  --background: var(--xcron-wash);
+  --color: var(--xcron-ink);
+  --border-radius: var(--xcron-radius);
+  --border-width: 1px;
+  --border-style: solid;
+  --border-color: var(--xcron-line);
+  --highlight-color-focused: var(--xcron-primary);
+  min-height: var(--xcron-btn-height);
+  border-radius: var(--xcron-radius);
+  overflow: hidden;
+}
+
+/* Native HTML text controls (profile-setup, account PII wrappers, etc.) */
+input:not([type]),
+input[type='text'],
+input[type='search'],
+input[type='email'],
+input[type='tel'],
+input[type='url'],
+input[type='password'],
+input[type='number'],
+textarea,
+select {
+  box-sizing: border-box;
+  min-height: var(--xcron-btn-height);
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--xcron-radius);
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  font-family: var(--xcron-sans);
+  font-size: var(--xcron-text-body);
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    border-color 160ms var(--xcron-ease),
+    background 160ms var(--xcron-ease),
+    box-shadow 160ms var(--xcron-ease);
+}
+
+textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+}
+
+input:not([type]):focus,
+input[type='text']:focus,
+input[type='search']:focus,
+input[type='email']:focus,
+input[type='tel']:focus,
+input[type='url']:focus,
+input[type='password']:focus,
+input[type='number']:focus,
+textarea:focus,
+select:focus {
+  border-color: rgba(124, 92, 255, 0.65);
+  background: var(--xcron-bg-elevated);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.2);
+}
+
+input:not([type]):-webkit-autofill,
+input[type='text']:-webkit-autofill,
+input[type='search']:-webkit-autofill,
+input[type='email']:-webkit-autofill,
+input[type='tel']:-webkit-autofill,
+input[type='url']:-webkit-autofill,
+input[type='password']:-webkit-autofill,
+input[type='number']:-webkit-autofill,
+input:not([type]):-webkit-autofill:focus,
+input[type='text']:-webkit-autofill:focus,
+input[type='search']:-webkit-autofill:focus,
+input[type='email']:-webkit-autofill:focus,
+input[type='tel']:-webkit-autofill:focus,
+input[type='url']:-webkit-autofill:focus,
+input[type='password']:-webkit-autofill:focus,
+input[type='number']:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--xcron-ink);
+  caret-color: var(--xcron-ink);
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius);
+  box-shadow: 0 0 0 1000px var(--xcron-wash) inset;
+  transition: background-color 99999s ease-out;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--xcron-muted);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input:not([type]),
+  input[type='text'],
+  input[type='search'],
+  input[type='email'],
+  input[type='tel'],
+  input[type='url'],
+  input[type='password'],
+  input[type='number'],
+  textarea,
+  select {
+    transition: none;
+  }
 }
 
 ion-badge {
@@ -242,6 +348,92 @@ ion-tab-button {
 
 ion-spinner {
   --color: var(--xcron-primary);
+}
+
+/* Skeleton loaders (content placeholders — prefer over spinners) */
+.sk {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--xcron-wash) 88%, var(--xcron-line));
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.sk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    color-mix(in srgb, var(--xcron-ink) 7%, transparent) 42%,
+    color-mix(in srgb, var(--xcron-accent) 10%, transparent) 50%,
+    color-mix(in srgb, var(--xcron-ink) 7%, transparent) 58%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  animation: xcron-skeleton 1.35s var(--xcron-ease) infinite;
+}
+
+.sk--title {
+  height: 1.1rem;
+  width: 72%;
+  border-radius: 7px;
+}
+
+.sk--text {
+  height: 0.82rem;
+  width: 100%;
+  border-radius: 6px;
+}
+
+.sk--meta {
+  height: 0.72rem;
+  width: 42%;
+  border-radius: 6px;
+}
+
+.sk--chip {
+  height: 1.2rem;
+  width: 3.6rem;
+  border-radius: 999px;
+}
+
+.sk--btn-bar {
+  display: inline-block;
+  width: 2.4rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.sk--cta {
+  height: 0.7rem;
+  width: 4.5rem;
+  border-radius: 6px;
+}
+
+.sk--block {
+  height: 5.5rem;
+  width: 100%;
+  border-radius: var(--xcron-radius-sm);
+}
+
+@keyframes xcron-skeleton {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk::after {
+    animation: none;
+    opacity: 0.35;
+  }
 }
 
 @keyframes xcron-rise {

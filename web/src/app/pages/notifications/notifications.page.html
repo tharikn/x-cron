@@ -64,7 +64,11 @@
           </div>
         </article>
       } @empty {
-        <p class="empty">No in-app notifications yet. New matching jobs will appear here.</p>
+        @if (busy()) {
+          <app-list-skeleton variant="inbox" [count]="4" label="Loading notifications" />
+        } @else {
+          <p class="empty">No in-app notifications yet. New matching jobs will appear here.</p>
+        }
       }
     </section>
   }

@@ -27,6 +27,7 @@ import {
   SeekerService,
 } from '../../core/services/seeker.service';
 import { NotificationsService } from '../../core/services/notifications.service';
+import { OnboardingService } from '../../core/services/onboarding.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
@@ -60,6 +61,7 @@ export class SignInPage implements OnInit, AfterViewInit {
   private readonly google = inject(GoogleIdentityService);
   private readonly toast = inject(ToastService);
   private readonly notifications = inject(NotificationsService);
+  private readonly onboarding = inject(OnboardingService);
   private readonly seeker = inject(SeekerService);
   private readonly jobApplications = inject(ApplicationsService);
   private readonly applyProfilesApi = inject(ApplyProfilesService);
@@ -788,6 +790,24 @@ export class SignInPage implements OnInit, AfterViewInit {
         this.toast.error('Employer sign-in is required to post jobs.');
         return;
       }
+      if (
+        !returnUrl.startsWith('/onboarding/profile') &&
+        !this.isAdmin() &&
+        !this.auth.isEmployer()
+      ) {
+        try {
+          const profile = await this.seeker.loadProfile();
+          if (this.onboarding.shouldForceProfileSetup(profile)) {
+            await this.router.navigate(['/onboarding/profile'], {
+              queryParams: { returnUrl },
+              replaceUrl: true,
+            });
+            return;
+          }
+        } catch {
+          // fall through to returnUrl
+        }
+      }
       await this.router.navigateByUrl(returnUrl);
       return;
     }
@@ -799,7 +819,16 @@ export class SignInPage implements OnInit, AfterViewInit {
       await this.router.navigateByUrl('/post');
       return;
     }
-    // Seeker: stay on account hub (Profile / Apply / …) like mobile.
+    // Seeker: mandatory profile wizard when incomplete (Remind later snoozes).
+    try {
+      const profile = await this.seeker.loadProfile();
+      if (this.onboarding.shouldForceProfileSetup(profile)) {
+        await this.router.navigateByUrl('/onboarding/profile');
+        return;
+      }
+    } catch {
+      // stay on account hub
+    }
     await this.loadAccountHub();
     this.seo.setPage({
       title: this.profileName() || 'Account',

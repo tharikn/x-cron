@@ -102,17 +102,17 @@
         <p>{{ 'home.maintenanceLead' | t }}</p>
       </div>
     } @else if (loading() && jobs().length === 0) {
-      <div class="status status--loading" role="status" aria-live="polite">
-        <span class="spinner spinner--lg" aria-hidden="true"></span>
-        <p>{{ 'home.loading' | t }}</p>
+      <div class="results-head">
+        <h2>{{ 'home.openRoles' | t }}</h2>
+        <div class="results-head__right">
+          <span class="sk sk--chip" style="width: 2.4rem" aria-hidden="true"></span>
+        </div>
       </div>
+      <app-job-list-skeleton [count]="5" [label]="'home.loading' | t" />
     } @else {
       <div class="results-head">
         <h2>{{ 'home.openRoles' | t }}</h2>
         <div class="results-head__right">
-          @if (loading() || loadingMore()) {
-            <span class="spinner spinner--inline" aria-hidden="true"></span>
-          }
           <span class="count">{{ total() }}</span>
         </div>
       </div>
@@ -162,7 +162,7 @@
         aria-hidden="true"
       >
         @if (loadingMore()) {
-          <span class="spinner spinner--inline"></span>
+          <app-job-list-skeleton [count]="2" [label]="'home.loading' | t" />
         }
       </div>
     }

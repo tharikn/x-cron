@@ -26,6 +26,7 @@ import {
   jobPath,
 } from '../../core/utils/format';
 import { GetAppCtaComponent } from '../../shared/get-app-cta/get-app-cta.component';
+import { JobListSkeletonComponent } from '../../shared/skeleton/job-list-skeleton.component';
 
 const PAGE_SIZE = 8;
 
@@ -45,6 +46,7 @@ const SORT_OPTIONS = [
     TranslatePipe,
     LocationTypeaheadComponent,
     GetAppCtaComponent,
+    JobListSkeletonComponent,
   ],
   templateUrl: './home.page.html',
   styleUrl: './home.page.scss',

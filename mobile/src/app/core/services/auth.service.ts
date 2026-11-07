@@ -1,7 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, Injector, computed, inject, signal } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { useApiCredentials } from '../utils/api-credentials';
 import { csrfHeaders } from '../utils/csrf';
 import { TabSessionService } from './tab-session.service';
 
@@ -76,6 +78,8 @@ export class AuthService {
   );
 
   hasCookieSession(): boolean {
+    // Native never uses cookie dual-auth (cross-origin CSRF trap).
+    if (Capacitor.isNativePlatform()) return false;
     return document.cookie.split(';').some((part) => part.trim().startsWith('xcron_csrf='));
   }
 
@@ -83,9 +87,13 @@ export class AuthService {
     const token = this.token();
     return {
       ...this.tabs.headers(),
-      ...csrfHeaders(),
+      ...(useApiCredentials() ? csrfHeaders() : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
+  }
+
+  private credOpts(): { withCredentials: boolean } {
+    return { withCredentials: useApiCredentials() };
   }
 
   ensureSession(): Promise<void> {
@@ -107,7 +115,7 @@ export class AuthService {
       this.http.post<AuthSessionResponse>(
         `${environment.apiUrl}/auth/register`,
         input,
-        { withCredentials: true, headers: this.authHeaders() },
+        { ...this.credOpts(), headers: this.authHeaders() },
       ),
     );
     this.persist(
@@ -130,7 +138,7 @@ export class AuthService {
       this.http.post<AuthSessionResponse>(
         `${environment.apiUrl}/auth/login`,
         input,
-        { withCredentials: true, headers: this.authHeaders() },
+        { ...this.credOpts(), headers: this.authHeaders() },
       ),
     );
     this.persist(
@@ -154,7 +162,7 @@ export class AuthService {
       this.http.post<AuthSessionResponse>(
         `${environment.apiUrl}/auth/google`,
         input,
-        { withCredentials: true, headers: this.authHeaders() },
+        { ...this.credOpts(), headers: this.authHeaders() },
       ),
     );
     this.persist(
@@ -173,7 +181,7 @@ export class AuthService {
       this.http.post<AuthSessionResponse>(
         `${environment.apiUrl}/auth/admin/login`,
         input,
-        { withCredentials: true, headers: this.authHeaders() },
+        { ...this.credOpts(), headers: this.authHeaders() },
       ),
     );
     this.persist(
@@ -228,7 +236,7 @@ export class AuthService {
       this.http.post<{ employer: EmployerProfile; user: AuthUser }>(
         `${environment.apiUrl}/employers`,
         { name },
-        { withCredentials: true, headers: this.authHeaders() },
+        { ...this.credOpts(), headers: this.authHeaders() },
       ),
     );
     const refresh = this.refreshToken();
@@ -252,7 +260,7 @@ export class AuthService {
         this.http.post(
           `${environment.apiUrl}/auth/logout`,
           {},
-          { withCredentials: true, headers: this.authHeaders() },
+          { ...this.credOpts(), headers: this.authHeaders() },
         ),
       );
     } finally {
@@ -267,6 +275,7 @@ export class AuthService {
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(EMPLOYER_KEY);
     sessionStorage.removeItem(SESSION_REFRESH_KEY);
+    localStorage.removeItem(SESSION_REFRESH_KEY);
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     localStorage.removeItem(LEGACY_REFRESH_KEY);
     this.token.set(null);
@@ -298,7 +307,9 @@ export class AuthService {
   private async runEnsureSession(): Promise<void> {
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     localStorage.removeItem(LEGACY_REFRESH_KEY);
-    const sessionRefresh = sessionStorage.getItem(SESSION_REFRESH_KEY);
+    const sessionRefresh =
+      sessionStorage.getItem(SESSION_REFRESH_KEY) ||
+      localStorage.getItem(SESSION_REFRESH_KEY);
     if (sessionRefresh) this.refreshToken.set(sessionRefresh);
 
     if (!this.tabs.claim()) {
@@ -319,7 +330,7 @@ export class AuthService {
     const response = await firstValueFrom(
       this.http.get<{ user: AuthUser; employer: EmployerProfile | null }>(
         `${environment.apiUrl}/auth/me`,
-        { withCredentials: true, headers: this.authHeaders() },
+        { ...this.credOpts(), headers: this.authHeaders() },
       ),
     );
     this.user.set(response.user);
@@ -339,12 +350,12 @@ export class AuthService {
         this.http.post<TokenPairResponse>(
           `${environment.apiUrl}/auth/refresh`,
           refreshToken ? { refreshToken } : {},
-          { withCredentials: true, headers: this.authHeaders() },
+          { ...this.credOpts(), headers: this.authHeaders() },
         ),
       );
       this.token.set(response.token);
       this.refreshToken.set(response.refreshToken);
-      sessionStorage.setItem(SESSION_REFRESH_KEY, response.refreshToken);
+      this.storeRefresh(response.refreshToken);
       return true;
     } catch {
       return false;
@@ -360,13 +371,19 @@ export class AuthService {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     if (employer) localStorage.setItem(EMPLOYER_KEY, JSON.stringify(employer));
     else localStorage.removeItem(EMPLOYER_KEY);
-    sessionStorage.setItem(SESSION_REFRESH_KEY, refreshToken);
+    this.storeRefresh(refreshToken);
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     localStorage.removeItem(LEGACY_REFRESH_KEY);
     this.token.set(token);
     this.refreshToken.set(refreshToken);
     this.user.set(user);
     this.employer.set(employer);
+  }
+
+  /** sessionStorage for tab scope + localStorage so Capacitor survives process death. */
+  private storeRefresh(refreshToken: string): void {
+    sessionStorage.setItem(SESSION_REFRESH_KEY, refreshToken);
+    localStorage.setItem(SESSION_REFRESH_KEY, refreshToken);
   }
 
   private readJson<T>(key: string): T | null {

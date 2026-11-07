@@ -145,7 +145,9 @@
           </li>
         </ul>
       </section>
-    } @else if (!busy()) {
+    } @else if (busy()) {
+      <app-analytics-skeleton label="Loading analytics" />
+    } @else {
       <p class="empty">No analytics yet for this job.</p>
     }
   }

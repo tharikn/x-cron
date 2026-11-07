@@ -65,10 +65,7 @@
       aria-busy="true"
       [attr.aria-label]="'common.loading' | t"
     >
-      <div class="api-loading__brand">
-        <p class="api-loading__name">X Cron</p>
-        <p class="api-loading__jobs">Jobs</p>
-      </div>
+      <app-api-loading-skeleton />
     </div>
   }
 
@@ -318,3 +315,7 @@
 }
 
 <app-help-chat />
+
+@if (themePromptOpen()) {
+  <app-theme-prompt (closed)="onThemePromptClosed()" />
+}

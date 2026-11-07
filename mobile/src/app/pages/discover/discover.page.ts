@@ -14,7 +14,6 @@ import {
   IonSearchbar,
   IonSelect,
   IonSelectOption,
-  IonSpinner,
   IonText,
   IonTitle,
   IonToggle,
@@ -34,6 +33,7 @@ import { SeekerService } from '../../core/services/seeker.service';
 import { ViewedJobsService } from '../../core/services/viewed-jobs.service';
 import { JobCardComponent } from '../../shared/job-card/job-card.component';
 import { LocationTypeaheadComponent } from '../../shared/location-typeahead/location-typeahead.component';
+import { JobListSkeletonComponent } from '../../shared/skeleton/job-list-skeleton.component';
 
 const PAGE_SIZE = 8;
 
@@ -57,13 +57,13 @@ const PAGE_SIZE = 8;
     IonSelect,
     IonSelectOption,
     IonToggle,
-    IonSpinner,
     IonText,
     IonInfiniteScroll,
     IonInfiniteScrollContent,
     JobCardComponent,
     LocationTypeaheadComponent,
     TranslatePipe,
+    JobListSkeletonComponent,
   ],
 })
 export class DiscoverPage implements OnInit {

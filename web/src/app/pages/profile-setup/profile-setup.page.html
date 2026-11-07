@@ -1,0 +1,300 @@
+<section class="setup" [class.setup--celebrate]="celebrating()">
+  @if (!celebrating()) {
+    <header class="setup__top">
+      <div class="setup__brand">
+        <span class="setup__brand-x">X Cron</span>
+        <span class="setup__brand-jobs">Jobs</span>
+      </div>
+      <button type="button" class="setup__remind" (click)="remindLater()">
+        {{ 'onboarding.remindLater' | t }}
+      </button>
+    </header>
+
+    <div class="setup__progress" role="progressbar" [attr.aria-valuenow]="progress()" aria-valuemin="0" aria-valuemax="100">
+      <div class="setup__progress-track">
+        <div class="setup__progress-fill" [style.width.%]="progress()"></div>
+      </div>
+      <p class="setup__progress-meta">
+        {{ 'onboarding.progress' | t }} · {{ progress() }}%
+      </p>
+    </div>
+
+    <h1>{{ 'onboarding.title' | t }}</h1>
+    <p class="setup__lead">{{ stepTitleKey() | t }}</p>
+
+    <div class="setup__body form">
+      @if (step() === 'personal') {
+        <label [class.is-invalid]="!!fieldErrors['displayName']">
+          <span>{{ 'onboarding.fields.name' | t }}</span>
+          <input
+            [(ngModel)]="displayName"
+            name="displayName"
+            autocomplete="name"
+            placeholder="Your full name"
+            (ngModelChange)="clearError('displayName')"
+          />
+          @if (fieldErrors['displayName']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+        </label>
+        <label [class.is-invalid]="!!fieldErrors['mobile']">
+          <span>{{ 'onboarding.fields.mobile' | t }}</span>
+          <app-pii-field
+            [(ngModel)]="mobile"
+            name="mobile"
+            autocomplete="tel"
+            revealType="tel"
+            inputmode="tel"
+            placeholder="10-digit mobile"
+            (ngModelChange)="clearError('mobile')"
+          />
+          @if (fieldErrors['mobile']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+        </label>
+        <label [class.is-invalid]="!!fieldErrors['email']">
+          <span>{{ 'onboarding.fields.email' | t }}</span>
+          <app-pii-field
+            [(ngModel)]="email"
+            name="email"
+            autocomplete="email"
+            revealType="email"
+            placeholder="you@example.com"
+            (ngModelChange)="clearError('email')"
+          />
+          @if (fieldErrors['email']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+        </label>
+        <label class="toggle-row">
+          <span>{{ 'onboarding.fields.showContact' | t }}</span>
+          <input type="checkbox" [(ngModel)]="showContact" name="showContact" />
+        </label>
+      }
+
+      @if (step() === 'location') {
+        <label [class.is-invalid]="!!fieldErrors['address']">
+          <span>{{ 'onboarding.fields.address' | t }}</span>
+          <app-pii-field
+            [(ngModel)]="address"
+            name="address"
+            autocomplete="street-address"
+            placeholder="Area, city"
+            (ngModelChange)="clearError('address')"
+          />
+          @if (fieldErrors['address']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+        </label>
+        <label [class.is-invalid]="!!fieldErrors['pincode']">
+          <span>{{ 'onboarding.fields.pincode' | t }}</span>
+          <app-pii-field
+            [(ngModel)]="pincode"
+            name="pincode"
+            inputmode="numeric"
+            [maxlength]="6"
+            placeholder="6-digit pincode"
+            (ngModelChange)="clearError('pincode')"
+          />
+          @if (fieldErrors['pincode']; as err) {
+            <p class="field-error">{{ err }}</p>
+          }
+        </label>
+      }
+
+      @if (step() === 'career') {
+        <fieldset class="role-choice">
+          <legend>{{ 'onboarding.fields.experience' | t }}</legend>
+          <div class="role-choice__options">
+            <label class="role-choice__option">
+              <input
+                type="radio"
+                name="careerStage"
+                [checked]="careerStage === 'fresher'"
+                (change)="setCareerStage('fresher')"
+              />
+              Fresher
+            </label>
+            <label class="role-choice__option">
+              <input
+                type="radio"
+                name="careerStage"
+                [checked]="careerStage === 'experienced'"
+                (change)="setCareerStage('experienced')"
+              />
+              Experienced
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="role-choice">
+          <legend>{{ 'onboarding.fields.education' | t }}</legend>
+          <div class="role-choice__options">
+            <label class="role-choice__option">
+              <input
+                type="radio"
+                name="educationStatus"
+                [checked]="educationStatus === 'pursuing'"
+                (change)="setEducationStatus('pursuing')"
+              />
+              Currently studying
+            </label>
+            <label class="role-choice__option">
+              <input
+                type="radio"
+                name="educationStatus"
+                [checked]="educationStatus === 'completed'"
+                (change)="setEducationStatus('completed')"
+              />
+              Degree completed
+            </label>
+          </div>
+        </fieldset>
+
+        @if (careerStage === 'fresher') {
+          <label class="toggle-row">
+            <span>Open to internships</span>
+            <input type="checkbox" [(ngModel)]="openToInternship" name="openToInternship" />
+          </label>
+          <label>
+            <span>Course</span>
+            <input [(ngModel)]="courseDetails" name="courseDetails" placeholder="e.g. B.E. / B.Tech" />
+          </label>
+          <label>
+            <span>Branch</span>
+            <input [(ngModel)]="branchStudied" name="branchStudied" placeholder="e.g. Computer Science" />
+          </label>
+        }
+
+        @if (careerStage === 'experienced') {
+          <label>
+            <span>Years</span>
+            <input
+              type="number"
+              min="0"
+              max="40"
+              [(ngModel)]="experienceYears"
+              name="experienceYears"
+            />
+          </label>
+          <label>
+            <span>Company</span>
+            <input [(ngModel)]="companyName" name="companyName" placeholder="Current or last company" />
+          </label>
+          <div class="notice-row" role="group" aria-label="Notice period">
+            @for (opt of noticeOptions; track opt.value) {
+              <button
+                type="button"
+                class="notice-chip"
+                [class.notice-chip--on]="noticePeriod === opt.value"
+                (click)="setNoticePeriod(opt.value)"
+              >
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        }
+      }
+
+      @if (step() === 'skills') {
+        <div class="skill-field">
+          <p class="skill-field__label">
+            {{ 'onboarding.fields.skills' | t }}
+            ({{ skillMin }}–{{ skillMax }})
+          </p>
+          <p class="skill-field__hint">{{ 'onboarding.fields.skillsHint' | t }}</p>
+          <div class="skill-badges" aria-label="Skills">
+            @for (skill of skills; track skill) {
+              <button
+                type="button"
+                class="skill-badge"
+                (click)="removeSkill(skill)"
+                [attr.aria-label]="'Remove ' + skill"
+              >
+                {{ skill }} ×
+              </button>
+            }
+          </div>
+          <div class="skill-add">
+            <input
+              [(ngModel)]="skillDraft"
+              name="skillDraft"
+              placeholder="Add a skill"
+              (keydown.enter)="$event.preventDefault(); addSkill()"
+            />
+            <button
+              type="button"
+              class="btn-secondary"
+              [disabled]="skills.length >= skillMax"
+              (click)="addSkill()"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        <div class="skill-field">
+          <p class="skill-field__label">{{ 'onboarding.fields.cities' | t }}</p>
+          <div class="skill-badges" aria-label="Preferred cities">
+            @for (city of cities; track city) {
+              <button
+                type="button"
+                class="skill-badge"
+                (click)="removeCity(city)"
+                [attr.aria-label]="'Remove ' + city"
+              >
+                {{ city }} ×
+              </button>
+            }
+          </div>
+          <div class="skill-add">
+            <input
+              [(ngModel)]="cityDraft"
+              name="cityDraft"
+              placeholder="Add a city"
+              (keydown.enter)="$event.preventDefault(); addCity()"
+            />
+            <button type="button" class="btn-secondary" (click)="addCity()">Add</button>
+          </div>
+        </div>
+
+        <label class="toggle-row">
+          <span>{{ 'onboarding.fields.openToWork' | t }}</span>
+          <input type="checkbox" [(ngModel)]="openToWork" name="openToWork" />
+        </label>
+      }
+    </div>
+
+    <footer class="setup__actions">
+      @if (step() !== 'personal') {
+        <button type="button" class="btn-secondary" [disabled]="busy()" (click)="back()">
+          {{ 'onboarding.back' | t }}
+        </button>
+      }
+      <button
+        type="button"
+        class="btn-primary"
+        [disabled]="busy()"
+        [class.sk--btn]="busy()"
+        (click)="next()"
+      >
+        {{ step() === 'skills' ? ('onboarding.finish' | t) : ('onboarding.next' | t) }}
+      </button>
+    </footer>
+  } @else {
+    <div class="celebrate" role="status" aria-live="polite">
+      <div class="celebrate__ring" aria-hidden="true">
+        <div class="celebrate__check"></div>
+      </div>
+      <p class="celebrate__brand">
+        <span class="setup__brand-x">X Cron</span>
+        <span class="setup__brand-jobs">Jobs</span>
+      </p>
+      <h2>{{ 'onboarding.congrats.title' | t }}</h2>
+      <p class="celebrate__lead">{{ 'onboarding.congrats.lead' | t }}</p>
+      <button type="button" class="btn-primary" (click)="finish()">
+        {{ 'onboarding.congrats.cta' | t }}
+      </button>
+    </div>
+  }
+</section>

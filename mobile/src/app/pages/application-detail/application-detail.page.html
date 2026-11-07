@@ -278,7 +278,9 @@
           </div>
         }
       }
-    } @else if (!busy()) {
+    } @else if (busy()) {
+      <app-job-detail-skeleton label="Loading application" />
+    } @else {
       <p class="empty">Application not found.</p>
     }
   </div>

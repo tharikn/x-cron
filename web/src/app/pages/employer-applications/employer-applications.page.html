@@ -44,7 +44,11 @@
             <time>{{ row.updatedAt | date: 'dd MMM yyyy, HH:mm' }}</time>
           </button>
         } @empty {
-          <p class="empty">No applications yet.</p>
+          @if (busy()) {
+            <app-list-skeleton variant="split" [count]="6" label="Loading applications" />
+          } @else {
+            <p class="empty">No applications yet.</p>
+          }
         }
       </div>
 

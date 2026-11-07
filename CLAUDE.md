@@ -44,7 +44,7 @@ Keep **web (`:4201`)** and **mobile (`:4200`)** visually aligned. Prefer modern 
 - Soft elevation (`--xcron-shadow` / hover) with deep night-sky shadows instead of hairline-only boxes.
 - Primary actions: violet→amber gradient (`--xcron-cta-gradient`), white label. Secondary: outline / translucent fill with light text.
 - Badges/chips: compact uppercase, pill radius OK for meta only — do not overuse pill clusters.
-- Inputs sit on purple wash backgrounds with blue focus ring.
+- Inputs sit on purple wash backgrounds with violet focus ring (`--xcron-wash` + 3px primary glow). Shared baseline lives in web `styles.scss` / mobile `global.scss`; `app-pii-field` styles its own input (Angular encapsulation).
 
 ### Layout & content UX
 
@@ -57,6 +57,7 @@ Keep **web (`:4201`)** and **mobile (`:4200`)** visually aligned. Prefer modern 
 - **Role chrome (seeker vs recruiter):** `isEmployer()` gates Post / Feeds / Recruiter desk. Seekers only: Account **Apply**, Easy apply, Applied/Saved nav, Career accordion. Recruiters’ Account **Activity** shows incoming applications + posted jobs — never seeker saved/applied lists. Same skill.
 - House ad slots / Ads admin UI are removed from clients; promoted jobs may still use an explicit badge when the API returns one.
 - Respect `prefers-reduced-motion`; keep motion intentional (enter rise, hover lift, drawer/tab transitions) — 2–3 motions, not noise.
+- **Loading UX:** prefer **layout-matched** shimmer skeletons (job cards, tables, list rows, detail panels) over spinners or centered icon stacks. Shared: `web|mobile/src/app/shared/skeleton/` + `.sk*` tokens. Global API busy = thin top bar only. Button busy = `.sk--btn-bar`, never a circular spinner icon.
 
 ### Tokens & files of record
 

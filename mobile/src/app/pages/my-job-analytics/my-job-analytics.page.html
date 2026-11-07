@@ -46,7 +46,9 @@
         <p class="error">{{ error() }}</p>
       }
 
-      @if (dash(); as d) {
+      @if (busy() && !dash()) {
+        <app-analytics-skeleton label="Loading analytics" />
+      } @else if (dash(); as d) {
         <div class="kpis">
           <article class="kpi">
             <span class="kpi__label">Views</span>

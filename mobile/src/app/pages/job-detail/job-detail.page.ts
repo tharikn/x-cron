@@ -35,6 +35,7 @@ import {
   GoogleSignInSheetComponent,
   type GoogleSignInReason,
 } from '../../shared/google-sign-in-sheet/google-sign-in-sheet.component';
+import { JobDetailSkeletonComponent } from '../../shared/skeleton/job-detail-skeleton.component';
 import {
   IonSelect,
   IonSelectOption,
@@ -65,6 +66,7 @@ type PendingAction = 'save' | 'share' | 'apply';
     IonSelectOption,
     JobCardComponent,
     GoogleSignInSheetComponent,
+    JobDetailSkeletonComponent,
   ],
 })
 export class JobDetailPage implements OnInit {
@@ -79,6 +81,7 @@ export class JobDetailPage implements OnInit {
   private readonly viewed = inject(ViewedJobsService);
 
   readonly job = signal<Job | undefined>(undefined);
+  readonly loading = signal(true);
   readonly related = signal<Job[]>([]);
   readonly saved = signal(false);
   readonly appliedId = signal<string | null>(null);
@@ -97,35 +100,52 @@ export class JobDetailPage implements OnInit {
   readonly languageLabel = (code: string) => this.locale.label(code);
 
   async ngOnInit(): Promise<void> {
-    const id = this.route.snapshot.paramMap.get('id') ?? '';
-    const job = await this.jobsService.getById(id);
-    this.job.set(job);
-    if (job) {
-      this.viewed.track(job);
-      this.jobsService.recordJobView(job.id);
-      this.related.set(await this.jobsService.related(job.id));
-      if (this.auth.isSignedIn()) {
-        try {
-          const saved = await this.seeker.loadSaved();
-          this.saved.set(saved.some((item) => item.id === job.id));
-        } catch {
-          this.saved.set(false);
+    this.loading.set(true);
+    try {
+      const id = this.route.snapshot.paramMap.get('id') ?? '';
+      const job = await this.jobsService.getById(id);
+      this.job.set(job);
+      if (job) {
+        this.viewed.track(job);
+        this.jobsService.recordJobView(job.id);
+        this.related.set(await this.jobsService.related(job.id));
+        if (this.auth.isSignedIn()) {
+          try {
+            const saved = await this.seeker.loadSaved();
+            this.saved.set(saved.some((item) => item.id === job.id));
+          } catch {
+            this.saved.set(false);
+          }
+          try {
+            const apps = await this.applications.listMine();
+            const mine = apps.find((a) => a.jobId === job.id && a.status !== 'withdrawn');
+            this.appliedId.set(mine?.id ?? null);
+          } catch {
+            this.appliedId.set(null);
+          }
+          await this.loadApplyProfiles();
         }
-        try {
-          const apps = await this.applications.listMine();
-          const mine = apps.find((a) => a.jobId === job.id && a.status !== 'withdrawn');
-          this.appliedId.set(mine?.id ?? null);
-        } catch {
-          this.appliedId.set(null);
-        }
-        await this.loadApplyProfiles();
       }
+    } finally {
+      this.loading.set(false);
     }
   }
 
   private async loadApplyProfiles(): Promise<void> {
     try {
-      const list = await this.applyProfiles.list();
+      let list = await this.applyProfiles.list();
+      if (!list.length && !this.auth.isEmployer()) {
+        try {
+          const profile = await this.seeker.loadProfile();
+          const seeded = await this.applyProfiles.ensureDefaultFromSkills({
+            skills: profile.skills ?? [],
+            experienceBand: profile.experienceBand,
+          });
+          if (seeded) list = this.applyProfiles.items();
+        } catch {
+          // leave empty — Easy apply will prompt
+        }
+      }
       const preferred =
         list.find((p) => p.id === this.selectedProfileId) ??
         list.find((p) => p.isDefault) ??

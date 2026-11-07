@@ -6,7 +6,7 @@ Cross-cutting API security for the job portal: **rate limits**, **HttpOnly cooki
 
 1. **`InputProtectorMiddleware`** (`SecurityModule.configure`) — rejects XSS / SQLi *payload* patterns, null bytes, prototype-pollution keys on JSON body + query (not English SQL keyword blacklists; Prisma stays parameterized — never interpolate UI into SQL)
 2. **`SecurityThrottlerGuard`** — named throttlers (`default` / `auth` / `sensitive`)
-3. **`CsrfGuard`** — double-submit when access cookie is present; **skipped** when `Authorization: Bearer` is present (Capacitor / cross-origin cannot read `xcron_csrf` via `document.cookie`)
+3. **`CsrfGuard`** — double-submit when access cookie is present; **skipped** when `Authorization: Bearer` is present, or on auth bootstrap (`/auth/login|register|refresh|google|admin/login`) so a stale cookie cannot block re-login
 4. **`AuthGuard`** — Bearer (preferred) or cookie access → `request.user` + tab binding; public routes do not hard-fail on `session_tab_mismatch` (stale cookie + new tab id)
 5. **`RolesGuard`** — `@Roles(...)` RBAC
 

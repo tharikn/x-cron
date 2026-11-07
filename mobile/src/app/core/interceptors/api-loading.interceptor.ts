@@ -3,7 +3,7 @@ import { inject } from '@angular/core';
 import { finalize } from 'rxjs';
 import { ApiLoadingService } from '../services/api-loading.service';
 
-/** Background / fire-and-forget calls — do not drive the global spinner. */
+/** Background / fire-and-forget calls — do not drive the global skeleton overlay. */
 const SILENT_PATH_MARKERS = [
   '/ads/',
   '/auth/me',

@@ -41,7 +41,9 @@
         <p class="error">{{ error() }}</p>
       }
 
-      @if (!jobs().length && !busy()) {
+      @if (!jobs().length && busy()) {
+        <app-list-skeleton variant="rows" [count]="5" label="Loading posted jobs" />
+      } @else if (!jobs().length) {
         <p class="empty">No posted jobs yet. Publish from the Recruiter desk.</p>
       }
 

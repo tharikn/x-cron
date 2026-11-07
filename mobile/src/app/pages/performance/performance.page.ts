@@ -17,6 +17,7 @@ import {
   ReputationRole,
   ReputationService,
 } from '../../core/services/reputation.service';
+import { ScoreSkeletonComponent } from '../../shared/skeleton/score-skeleton.component';
 
 @Component({
   selector: 'app-performance',
@@ -31,6 +32,7 @@ import {
     IonBackButton,
     IonButton,
     IonContent,
+    ScoreSkeletonComponent,
   ],
 })
 export class PerformancePage implements OnInit, ViewWillEnter {

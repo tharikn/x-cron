@@ -365,8 +365,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Path | Purpose |
 | --- | --- |
 | `main.ts` | Angular bootstrap |
-| `index.html` | Shell HTML |
-| `global.scss` | Global styles |
+| `index.html` | Shell HTML + `#boot-splash` logo until Angular ready |
+| `global.scss` | Global styles + shared text-control / ion-input chrome |
 | `theme/variables.scss` | Ionic / brand CSS variables + light/warm `data-theme` variants |
 | `test-setup.ts` | Test bootstrap |
 | `environments/environment.ts` | Dev API URL |
@@ -378,7 +378,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 
 | Path | Purpose |
 | --- | --- |
-| `app.component.ts/html/scss` | Root shell; hydrates prefs + device on init |
+| `app.component.ts/html/scss` | Root shell; hydrates prefs + device on init; dismisses boot + Capacitor splash |
 | `app.component.spec.ts` | Unit test |
 | `app.routes.ts` | Tab + page routes |
 
@@ -403,6 +403,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `services/ai.service.ts` | Job enrich + in-app help client (`/v1/ai/*`, `/v1/ai/help/*`) |
 | `services/preferences.service.ts` | Local + API prefs sync/claim (incl. `theme`) |
 | `services/theme.service.ts` | Appearance preference → `html[data-theme]` |
+| `services/onboarding.service.ts` | First-open theme prompt + seeker profile wizard gates / Remind later |
 | `services/ingestion.service.ts` | Bulk import API client |
 | `services/channels.service.ts` | Job Fare channel pull API client |
 | `services/payments.service.ts` | Unlock + subscription client |
@@ -422,6 +423,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `job-fare/*` | Admin Job Fare channel pull workflow (pipeline + schedule) |
 | `preferences/*` | Job prefs + notification toggles |
 | `theme/*` | Settings Theme tab (system / light / dark / warm) |
+| `profile-setup/*` | Seeker multi-step complete-profile wizard + congrats (`/onboarding/profile`) |
 | `settings/*` | Settings hub segments (Language · Theme · Prefs · Saved) |
 | `language/*` | Interface language picker |
 | `saved-jobs/*` | Saved jobs list (Settings segment) |
@@ -442,8 +444,10 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Path | Purpose |
 | --- | --- |
 | `job-card/*` | Job list card (Featured + hiring-activity badges) |
-| `pii-field/*` | Masked profile PII input + View/Hide toggle |
+| `pii-field/*` | Masked profile PII input + View/Hide; wash/radius/focus styled to match form controls |
+| `theme-prompt/*` | First-open theme chooser overlay |
 | `help-chat/*` | Signed-in floating help FAB (above tab bar) |
+| `skeleton/*` | Layout-matched skeletons aligned with web (job-list, table, list variants, detail, score, analytics, top-bar api-loading) |
 
 #### `mobile/src/app/home/`
 
@@ -457,7 +461,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | --- | --- |
 | `android/app/src/main/AndroidManifest.xml` | Permissions (incl. camera) |
 | `android/app/src/main/java/com/xcron/jobs/MainActivity.java` | Main activity |
-| `android/app/src/main/res/**` | Icons, splash drawables, styles, strings |
+| `android/app/src/main/res/**` | Icons, branded splash (`splash.xml` + `splash_logo`), styles, strings |
+| `capacitor.config.ts` | Capacitor app id + SplashScreen / LocalNotifications / Push plugins |
 | `android/app/src/main/assets/**` | Capacitor config + **synced web build** assets |
 | `android/app/build.gradle` | App Gradle |
 | `android/build.gradle` / `settings.gradle` / `variables.gradle` | Project Gradle |
@@ -505,7 +510,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `main.server.ts` | Server bootstrap |
 | `server.ts` | Express SSR + `/sitemap.xml` + robots |
 | `index.html` | Shell |
-| `styles.scss` | Global styles + dark/light/warm `data-theme` tokens |
+| `styles.scss` | Global styles + dark/light/warm `data-theme` tokens + shared text-control chrome |
 | `environments/environment.ts` | Dev API / site URL |
 | `environments/environment.prod.ts` | Prod env |
 
@@ -532,7 +537,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `pages/my-jobs/*` | Posted jobs table with views/applied/contacted + manage actions |
 | `pages/my-job-analytics/*` | Per-job analytics board (`/my-jobs/:id`) — KPI + daily funnel chart |
 | `pages/sign-in/*` | Guest auth + signed-in Account hub (Profile / Apply / Activity / Rating / Account); profile regex + PII eye-mask fields |
-| `shared/pii-field/*` | Masked input + View/Hide toggle for seeker profile PII |
+| `shared/pii-field/*` | Masked input + View/Hide for seeker profile PII (styled with global form tokens) |
 | `core/utils/form-validation.ts` | Shared seeker profile client validators (aligned with API) |
 | `core/utils/friendly-http-message.ts` | Toasts + `fieldErrorsFromHttp` for Nest `{ errors }` maps |
 | `pages/seeker/*` | `/me` tabbed Saved hub (Apply · Saved · Applied · For you) |
@@ -541,6 +546,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `shared/get-app-cta/*` | Android APK download CTA (home panel / footer band / drawer foot link with version + published datetime) |
 | `shared/help-chat/*` | Signed-in floating help FAB (bottom-right shell) |
 | `shared/datetime-picker/*` | Branded night-sky date/datetime popover (`app-xcron-datetime-picker`) for Post / My Jobs / Admin filters |
+| `shared/skeleton/*` | Layout-matched skeletons: job-list, table, list (applied/inbox/split), job-detail, score, analytics + top-bar api-loading |
 | `core/services/apk-releases.service.ts` | GitHub Releases API client for APK versions / notes |
 | `core/services/seeker.service.ts` | Saved jobs, feed, profile, contacted apps, saved searches, account delete |
 | `core/services/apply-profiles.service.ts` | Multi-version apply profiles client |
@@ -553,9 +559,12 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `core/services/feedback.service.ts` | FAQ + threads + admin messenger client |
 | `pages/settings-hub/*` | Settings shell (Language · Theme · Preferences · Site) |
 | `pages/theme/*` | Appearance Theme tab (system / light / dark / warm) |
+| `pages/profile-setup/*` | Seeker multi-step complete-profile wizard + congrats (`/onboarding/profile`) |
 | `pages/language/*` | Interface language picker |
 | `pages/preferences/*` | Job prefs + alert channel toggles |
+| `shared/theme-prompt/*` | First-open theme chooser overlay |
 | `core/services/theme.service.ts` | Appearance preference → `html[data-theme]` |
+| `core/services/onboarding.service.ts` | Theme prompt + seeker wizard gates / Remind later |
 | `core/services/preferences.service.ts` | Local + API prefs sync (incl. `theme`) |
 
 ---

@@ -81,7 +81,7 @@
         </label>
         <button type="submit" [disabled]="busy()">
           @if (busy()) {
-            <span class="spinner spinner--inline" aria-hidden="true"></span>
+            <span class="sk sk--btn-bar" aria-hidden="true"></span>
             Signing in…
           } @else {
             Switch to admin
@@ -749,7 +749,7 @@
         </label>
         <button type="submit" [disabled]="busy()">
           @if (busy()) {
-            <span class="spinner spinner--inline" aria-hidden="true"></span>
+            <span class="sk sk--btn-bar" aria-hidden="true"></span>
             Signing in…
           } @else {
             Sign in as admin
@@ -791,7 +791,7 @@
           </label>
           <button type="submit" [disabled]="busy()">
             @if (busy()) {
-              <span class="spinner spinner--inline" aria-hidden="true"></span>
+              <span class="sk sk--btn-bar" aria-hidden="true"></span>
               Signing in…
             } @else if (needsEmployerSignIn()) {
               Employer sign in
@@ -871,7 +871,7 @@
           </fieldset>
           <button type="submit" [disabled]="busy()">
             @if (busy()) {
-              <span class="spinner spinner--inline" aria-hidden="true"></span>
+              <span class="sk sk--btn-bar" aria-hidden="true"></span>
               Creating…
             } @else if (intendedRoleChoice === 'employer') {
               Create recruiter account

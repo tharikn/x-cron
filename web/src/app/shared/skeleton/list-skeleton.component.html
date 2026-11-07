@@ -1,0 +1,57 @@
+<div
+  class="sk-list"
+  [class.sk-list--applied]="variant() === 'applied'"
+  [class.sk-list--inbox]="variant() === 'inbox'"
+  [class.sk-list--split]="variant() === 'split'"
+  role="status"
+  aria-busy="true"
+  aria-live="polite"
+  [attr.aria-label]="label()"
+>
+  @for (_ of items(); track $index) {
+    @switch (variant()) {
+      @case ('applied') {
+        <div class="sk-applied-row" aria-hidden="true">
+          <div class="sk-applied-row__main">
+            <span class="sk sk--title" style="width: 62%"></span>
+            <span class="sk sk--text" style="width: 48%"></span>
+            <span class="sk sk--chip" style="width: 5.5rem"></span>
+          </div>
+          <div class="sk-applied-row__side">
+            <span class="sk sk--meta" style="width: 8rem"></span>
+            <span class="sk sk--cta"></span>
+          </div>
+        </div>
+      }
+      @case ('inbox') {
+        <article class="sk-inbox-card" aria-hidden="true">
+          <div class="sk-inbox-card__body">
+            <span class="sk sk--title" style="width: 55%"></span>
+            <span class="sk sk--text" style="width: 92%"></span>
+            <span class="sk sk--text" style="width: 70%"></span>
+            <span class="sk sk--meta" style="width: 36%"></span>
+          </div>
+          <div class="sk-inbox-card__actions">
+            <span class="sk sk--chip" style="width: 5.5rem; height: 2rem; border-radius: 10px"></span>
+            <span class="sk sk--chip" style="width: 5rem; height: 2rem; border-radius: 10px"></span>
+          </div>
+        </article>
+      }
+      @case ('split') {
+        <div class="sk-split-row" aria-hidden="true">
+          <span class="sk sk--title" style="width: 58%"></span>
+          <span class="sk sk--text" style="width: 72%"></span>
+          <span class="sk sk--chip" style="width: 4.8rem"></span>
+          <span class="sk sk--meta" style="width: 40%"></span>
+        </div>
+      }
+      @default {
+        <div class="sk-row" aria-hidden="true">
+          <span class="sk sk--title" style="width: 58%"></span>
+          <span class="sk sk--text" style="width: 72%"></span>
+          <span class="sk sk--meta" style="width: 34%"></span>
+        </div>
+      }
+    }
+  }
+</div>

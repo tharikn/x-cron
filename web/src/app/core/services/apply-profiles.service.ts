@@ -66,7 +66,40 @@ export class ApplyProfilesService {
         input,
         { headers: this.auth.authHeaders() },
       ),
-    );
+    ).then(async (created) => {
+      await this.list();
+      return created;
+    });
+  }
+
+  /**
+   * If the seeker has no apply versions yet, create Default from onboard /
+   * profile skills (2–7) so Easy apply works without a manual Account step.
+   */
+  async ensureDefaultFromSkills(input: {
+    skills: string[];
+    experienceBand?: ApplyProfile['experienceBand'];
+    name?: string;
+  }): Promise<ApplyProfile | null> {
+    const existing = await this.list();
+    if (existing.length > 0) {
+      return existing.find((p) => p.isDefault) ?? existing[0] ?? null;
+    }
+    const skills = [
+      ...new Map(
+        input.skills
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((s) => [s.toLowerCase(), s.slice(0, 60)] as const),
+      ).values(),
+    ].slice(0, 7);
+    if (skills.length < 2) return null;
+    return this.create({
+      name: input.name?.trim() || 'Default',
+      experienceBand: input.experienceBand || undefined,
+      skills,
+      isDefault: true,
+    });
   }
 
   update(id: string, input: Partial<ApplyProfileInput>): Promise<ApplyProfile> {

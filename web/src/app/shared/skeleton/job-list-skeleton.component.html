@@ -1,0 +1,21 @@
+<div
+  class="job-list sk-job-list"
+  role="status"
+  aria-busy="true"
+  aria-live="polite"
+  [attr.aria-label]="label()"
+>
+  @for (_ of cards(); track $index) {
+    <div class="job-card sk-job-card" aria-hidden="true">
+      <div class="job-card__meta">
+        <span class="sk sk--chip" style="width: 3.2rem"></span>
+        <span class="sk sk--chip" style="width: 5rem"></span>
+        <span class="sk sk--meta sk-job-card__time"></span>
+      </div>
+      <span class="sk sk--title sk-job-card__title"></span>
+      <span class="sk sk--text sk-job-card__employer"></span>
+      <span class="sk sk--text sk-job-card__facts"></span>
+      <span class="sk sk--cta"></span>
+    </div>
+  }
+</div>

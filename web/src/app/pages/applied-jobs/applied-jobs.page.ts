@@ -5,10 +5,11 @@ import { ApplicationsService } from '../../core/services/applications.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SeoService } from '../../core/services/seo.service';
 import { jobPath } from '../../core/utils/format';
+import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.component';
 
 @Component({
   selector: 'app-applied-jobs',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, ListSkeletonComponent],
   templateUrl: './applied-jobs.page.html',
   styleUrl: './applied-jobs.page.scss',
 })

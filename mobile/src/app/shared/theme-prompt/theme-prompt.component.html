@@ -1,0 +1,42 @@
+<div
+  class="theme-prompt"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="theme-prompt-title"
+>
+  <div class="theme-prompt__panel xcron-rise">
+    <p class="theme-prompt__brand">
+      <span class="theme-prompt__brand-x">X Cron</span>
+      <span class="theme-prompt__brand-jobs">Jobs</span>
+    </p>
+    <h2 id="theme-prompt-title">{{ 'onboarding.theme.title' | t }}</h2>
+    <p class="theme-prompt__lead">{{ 'onboarding.theme.lead' | t }}</p>
+
+    <div class="theme-prompt__choices" role="listbox" aria-label="Theme">
+      @for (opt of options; track opt) {
+        <button
+          type="button"
+          class="theme-prompt__choice"
+          role="option"
+          [attr.aria-selected]="preference() === opt"
+          [class.theme-prompt__choice--active]="preference() === opt"
+          (click)="select(opt)"
+        >
+          <span
+            class="theme-prompt__swatch"
+            [attr.data-preview]="opt"
+            aria-hidden="true"
+          ></span>
+          <span class="theme-prompt__copy">
+            <span class="theme-prompt__label">{{ labelKey(opt) | t }}</span>
+            <span class="theme-prompt__hint">{{ hintKey(opt) | t }}</span>
+          </span>
+        </button>
+      }
+    </div>
+
+    <button type="button" class="theme-prompt__cta" (click)="continue()">
+      {{ 'onboarding.theme.continue' | t }}
+    </button>
+  </div>
+</div>

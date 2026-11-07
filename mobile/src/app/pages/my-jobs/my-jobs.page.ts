@@ -13,6 +13,7 @@ import {
 import type { Job } from '../../core/models/job.model';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
+import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.component';
 
 @Component({
   selector: 'app-my-jobs',
@@ -28,6 +29,7 @@ import { JobsService } from '../../core/services/jobs.service';
     IonTitle,
     IonContent,
     IonButton,
+    ListSkeletonComponent,
   ],
 })
 export class MyJobsPage implements OnInit {

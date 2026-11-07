@@ -203,10 +203,7 @@
     <a routerLink="/" class="back">Back to jobs</a>
   </section>
 } @else {
-  <div class="status status--loading" role="status">
-    <span class="spinner spinner--lg" aria-hidden="true"></span>
-    <p>Loading…</p>
-  </div>
+  <app-job-detail-skeleton label="Loading job" />
 }
 
 <app-google-sign-in-sheet

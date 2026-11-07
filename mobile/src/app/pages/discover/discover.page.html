@@ -228,18 +228,12 @@
     <div class="results-head">
       <h2>Open roles</h2>
       <div class="results-head__right">
-        @if (loading() || loadingMore()) {
-          <ion-spinner name="crescent"></ion-spinner>
-        }
         <span class="count">{{ total() }}</span>
       </div>
     </div>
 
     @if (loading() && results().length === 0) {
-      <div class="status status--loading" role="status" aria-live="polite">
-        <ion-spinner name="crescent"></ion-spinner>
-        <p>Loading jobs…</p>
-      </div>
+      <app-job-list-skeleton [count]="5" label="Loading jobs" />
     } @else {
       <div class="job-list">
         @for (job of results(); track job.id; let i = $index) {
@@ -248,14 +242,17 @@
           <p class="empty">No jobs match these filters. Try another location or clear filters.</p>
         }
       </div>
+      @if (loadingMore()) {
+        <app-job-list-skeleton [count]="2" label="Loading more jobs" />
+      }
     }
   </div>
 
   <ion-infinite-scroll
     threshold="160px"
     (ionInfinite)="loadMore($event)"
-    [disabled]="!nextCursor() || loading()"
+    [disabled]="!nextCursor() || loading() || loadingMore()"
   >
-    <ion-infinite-scroll-content loadingSpinner="crescent"></ion-infinite-scroll-content>
+    <ion-infinite-scroll-content loadingText=""></ion-infinite-scroll-content>
   </ion-infinite-scroll>
 </ion-content>

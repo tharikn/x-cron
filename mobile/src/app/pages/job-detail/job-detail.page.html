@@ -260,6 +260,8 @@
         </section>
       }
     </div>
+  } @else if (loading()) {
+    <app-job-detail-skeleton label="Loading job" />
   } @else {
     <div class="page">
       <p>Job not found.</p>

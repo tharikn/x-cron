@@ -6,10 +6,11 @@ import { LocaleService } from '../../core/services/locale.service';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
+import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.component';
 
 @Component({
   selector: 'app-notifications',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, ListSkeletonComponent],
   templateUrl: './notifications.page.html',
   styleUrl: './notifications.page.scss',
 })
@@ -85,7 +86,7 @@ export class NotificationsPage implements OnInit {
     data?: Record<string, string> | null;
   }): string | null {
     const action = item.data?.['action']?.trim();
-    if (action === 'complete_profile') return '/settings/account';
+    if (action === 'complete_profile') return '/onboarding/profile';
     if (action === 'browse_jobs') return '/';
     if (action === 'open_feedback') {
       return this.isAdmin() && item.data?.['eventType'] === 'user_message'

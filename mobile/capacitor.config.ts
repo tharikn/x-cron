@@ -8,6 +8,15 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
   },
   plugins: {
+    SplashScreen: {
+      // Keep native splash until AppComponent dismisses after boot.
+      launchAutoHide: false,
+      launchFadeOutDuration: 280,
+      backgroundColor: '#070412',
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER',
+      showSpinner: false,
+    },
     LocalNotifications: {
       // Android status-bar glyph (white silhouette drawable) + brand accent.
       smallIcon: 'ic_stat_xcron',

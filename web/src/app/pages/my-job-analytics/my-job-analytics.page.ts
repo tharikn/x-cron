@@ -9,10 +9,11 @@ import type {
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { SeoService } from '../../core/services/seo.service';
+import { AnalyticsSkeletonComponent } from '../../shared/skeleton/analytics-skeleton.component';
 
 @Component({
   selector: 'app-my-job-analytics',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, AnalyticsSkeletonComponent],
   templateUrl: './my-job-analytics.page.html',
   styleUrl: './my-job-analytics.page.scss',
 })

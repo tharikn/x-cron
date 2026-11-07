@@ -1,0 +1,80 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.sk-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.sk-list--inbox {
+  gap: 0.75rem;
+}
+
+.sk-applied-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 1rem 1.05rem;
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+}
+
+.sk-applied-row__main {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.sk-applied-row__side {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  justify-items: end;
+}
+
+.sk-inbox-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.05rem;
+  border-radius: var(--xcron-radius);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  position: relative;
+  overflow: hidden;
+}
+
+.sk-inbox-card__body {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.sk-inbox-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sk-split-row {
+  display: grid;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: var(--xcron-radius-sm);
+  background: var(--xcron-bg-elevated);
+  border: 1px solid var(--xcron-line);
+  text-align: left;
+}
+
+.sk-row {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  background: var(--xcron-bg-elevated);
+}

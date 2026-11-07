@@ -104,7 +104,7 @@ Do **not** reuse seeker Saved/Applied/Contacted/Searches blocks for employers.
 4. **Seeker vs recruiter is orthogonal to guest.** First `isSignedIn()`, then `isEmployer()` / `!isEmployer()`. Never show Apply / Easy apply / Applied / Saved hubs to recruiters.
 5. **Do not tease locked nav.** Prefer omit over greyed-out “locked” rows for MVP.
 6. **Clamp deep links.** `?tab=apply` for employers → Profile (or Activity). Seeker `/me` and `/me/applied` → recruiter Activity / applicant review.
-7. **After login**, reveal the correct role chrome immediately from signals — no full reload required.
+7. **After login**, reveal the correct role chrome immediately from signals — no full reload required. Seekers with incomplete profiles go to `/onboarding/profile` (Remind later snoozes 24h); recruiters skip.
 8. **On logout / 401**, clear session and those items disappear with the same signals.
 9. **API still enforces RBAC.** Client hide is UX only (`@Public` / `@Roles` on Nest).
 

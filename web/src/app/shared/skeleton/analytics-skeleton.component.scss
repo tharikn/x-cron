@@ -1,0 +1,70 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.sk-analytics {
+  display: grid;
+  gap: 1rem;
+}
+
+.sk-analytics__kpis {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.sk-analytics__kpi {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+  border-radius: var(--xcron-radius);
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+}
+
+.sk-analytics__value {
+  width: 3.5rem;
+  height: 1.8rem;
+  border-radius: 8px;
+}
+
+.sk-analytics__chart {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1.1rem 1.2rem;
+  border-radius: var(--xcron-radius);
+  border: 1px solid var(--xcron-line);
+  background: var(--xcron-bg-elevated);
+}
+
+.sk-analytics__chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.sk-analytics__bars {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.55rem;
+  align-items: end;
+  min-height: 140px;
+}
+
+.sk-analytics__col {
+  display: grid;
+  gap: 0.4rem;
+  align-content: end;
+  justify-items: stretch;
+  height: 140px;
+}
+
+.sk-analytics__bar {
+  width: 100%;
+  min-height: 1.5rem;
+  border-radius: 6px 6px 2px 2px;
+  align-self: end;
+}

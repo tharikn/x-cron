@@ -9,10 +9,18 @@ import { JobsService } from '../../core/services/jobs.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { SeoService } from '../../core/services/seo.service';
 import { DatetimePickerComponent } from '../../shared/datetime-picker/datetime-picker.component';
+import { TableSkeletonComponent } from '../../shared/skeleton/table-skeleton.component';
 
 @Component({
   selector: 'app-my-jobs',
-  imports: [FormsModule, RouterLink, DatePipe, LocationTypeaheadComponent, DatetimePickerComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    DatePipe,
+    LocationTypeaheadComponent,
+    DatetimePickerComponent,
+    TableSkeletonComponent,
+  ],
   templateUrl: './my-jobs.page.html',
   styleUrl: './my-jobs.page.scss',
 })

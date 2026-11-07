@@ -5,12 +5,13 @@ import type { Job } from '../../core/models/job.model';
 import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AuthService } from '../../core/services/auth.service';
 import { SeekerService } from '../../core/services/seeker.service';
+import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.component';
 
 @Component({
   selector: 'app-saved-jobs',
   templateUrl: './saved-jobs.page.html',
   styleUrls: ['./saved-jobs.page.scss'],
-  imports: [RouterLink, TranslatePipe, IonButton],
+  imports: [RouterLink, TranslatePipe, IonButton, ListSkeletonComponent],
 })
 export class SavedJobsPage implements OnInit {
   private readonly auth = inject(AuthService);

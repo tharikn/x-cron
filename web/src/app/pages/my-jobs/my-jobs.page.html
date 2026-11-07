@@ -54,7 +54,14 @@
         </label>
       </div>
 
-      @if (!jobs().length && !busy()) {
+      @if (!jobs().length && busy()) {
+        <app-table-skeleton
+          [rows]="6"
+          [columns]="7"
+          [labels]="['Title', 'Status', 'Views', 'Applied', 'Contacted', 'Available', 'Options']"
+          label="Loading posted jobs"
+        />
+      } @else if (!jobs().length) {
         <p class="empty">No posted jobs yet for this account.</p>
       } @else {
         <div class="table-wrap">

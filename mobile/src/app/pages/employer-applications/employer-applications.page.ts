@@ -15,6 +15,7 @@ import {
   type JobApplication,
 } from '../../core/services/applications.service';
 import type { Job } from '../../core/models/job.model';
+import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.component';
 
 @Component({
   selector: 'app-employer-applications',
@@ -30,6 +31,7 @@ import type { Job } from '../../core/models/job.model';
     IonTitle,
     IonContent,
     IonButton,
+    ListSkeletonComponent,
   ],
 })
 export class EmployerApplicationsPage implements OnInit {

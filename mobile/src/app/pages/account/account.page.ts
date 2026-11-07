@@ -29,6 +29,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { GoogleIdentityService } from '../../core/services/google-identity.service';
 import { JobsService } from '../../core/services/jobs.service';
 import { NotificationsService } from '../../core/services/notifications.service';
+import { OnboardingService } from '../../core/services/onboarding.service';
 import { PreferencesService } from '../../core/services/preferences.service';
 import {
   ApplicationsService,
@@ -89,6 +90,7 @@ export class AccountPage implements OnInit {
   private readonly jobsService = inject(JobsService);
   private readonly preferences = inject(PreferencesService);
   private readonly notifications = inject(NotificationsService);
+  private readonly onboarding = inject(OnboardingService);
   private readonly seeker = inject(SeekerService);
   private readonly jobApplications = inject(ApplicationsService);
   private readonly applyProfilesApi = inject(ApplyProfilesService);
@@ -860,6 +862,20 @@ export class AccountPage implements OnInit {
 
   private async redirectIfNeeded(): Promise<void> {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    if (
+      !this.isAdmin() &&
+      !this.isEmployer() &&
+      this.onboarding.shouldForceProfileSetup(this.seeker.profile())
+    ) {
+      await this.router.navigate(['/onboarding/profile'], {
+        queryParams:
+          returnUrl?.startsWith('/') && !returnUrl.startsWith('//')
+            ? { returnUrl }
+            : undefined,
+        replaceUrl: true,
+      });
+      return;
+    }
     if (!returnUrl?.startsWith('/') || returnUrl.startsWith('//')) return;
     if (!this.isAdmin() && !this.isEmployer()) return;
     await this.router.navigateByUrl(returnUrl);

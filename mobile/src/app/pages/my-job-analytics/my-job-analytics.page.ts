@@ -19,6 +19,7 @@ import type {
 } from '../../core/models/job.model';
 import { AuthService } from '../../core/services/auth.service';
 import { JobsService } from '../../core/services/jobs.service';
+import { AnalyticsSkeletonComponent } from '../../shared/skeleton/analytics-skeleton.component';
 
 @Component({
   selector: 'app-my-job-analytics',
@@ -36,6 +37,7 @@ import { JobsService } from '../../core/services/jobs.service';
     IonButton,
     IonSelect,
     IonSelectOption,
+    AnalyticsSkeletonComponent,
   ],
 })
 export class MyJobAnalyticsPage implements OnInit {

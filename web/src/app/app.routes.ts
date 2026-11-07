@@ -72,6 +72,13 @@ export const routes: Routes = [
       import('./pages/sign-in/sign-in.page').then((m) => m.SignInPage),
   },
   {
+    path: 'onboarding/profile',
+    loadComponent: () =>
+      import('./pages/profile-setup/profile-setup.page').then(
+        (m) => m.ProfileSetupPage,
+      ),
+  },
+  {
     path: 'notifications',
     loadComponent: () =>
       import('./pages/notifications/notifications.page').then(

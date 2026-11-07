@@ -71,7 +71,7 @@
         </label>
         <button type="submit" [disabled]="busy()">
           @if (busy()) {
-            <span class="spinner spinner--inline" aria-hidden="true"></span>
+            <span class="sk sk--btn-bar" aria-hidden="true"></span>
             Extracting…
           } @else {
             Extract from pasted text
@@ -192,7 +192,7 @@
                           (click)="improveWithAi(record)"
                         >
                           @if (enrichingId() === record.id) {
-                            <span class="spinner spinner--inline" aria-hidden="true"></span>
+                            <span class="sk sk--btn-bar" aria-hidden="true"></span>
                             AI…
                           } @else {
                             Improve with AI

@@ -62,7 +62,9 @@
         </ion-button>
       </article>
     } @empty {
-      @if (!busy()) {
+      @if (busy()) {
+        <app-list-skeleton variant="split" [count]="6" label="Loading applications" />
+      } @else {
         <p class="empty">No applications yet.</p>
       }
     }
