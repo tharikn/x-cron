@@ -3,6 +3,7 @@ package com.xcron.jobs;
 import android.os.Bundle;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
+import com.xcron.jobs.BuildConfig;
 
 public class MainActivity extends BridgeActivity {
   @Override

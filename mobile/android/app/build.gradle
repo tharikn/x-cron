@@ -3,6 +3,10 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.xcron.jobs"
     compileSdk = rootProject.ext.compileSdkVersion
+    // AGP 8+ disables BuildConfig by default; MainActivity needs BuildConfig.DEBUG.
+    buildFeatures {
+        buildConfig = true
+    }
     defaultConfig {
         applicationId "com.xcron.jobs"
         minSdkVersion rootProject.ext.minSdkVersion
