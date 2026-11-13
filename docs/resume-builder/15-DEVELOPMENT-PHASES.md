@@ -1,5 +1,7 @@
 # 15 — Development Phases and Acceptance Criteria
 
+> Delivery must follow the independent-platform boundary: build the Resume frontend and API in `tharikn/x-cron-resume`, not inside the X Cron runtime. See [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md) for the authoritative repository, microfrontend, identity, backend, data and deployment design.
+
 ## Phase 0 — Independent platform foundation
 
 - Create the separate repository `tharikn/x-cron-resume`; do not implement the Resume product inside the X Cron runtime repository.
