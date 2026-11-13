@@ -53,7 +53,44 @@ Import requires authentication, bounded size, MIME/signature validation and malw
 | GET | /ats/reports/:id | Get report |
 | POST | /resumes/:id/optimize | Generate reviewable suggestions |
 
-## 6. Export
+## 6. Resume Parsing Test
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | /resumes/:id/parsing-tests | Test a generated resume version/export |
+| POST | /parsing-tests/upload | Test a user-selected local PDF/DOCX transiently |
+| GET | /parsing-tests/:testId | Get authorized parsing report |
+| GET | /resumes/:id/parsing-tests | List report metadata |
+| DELETE | /parsing-tests/:testId | Delete report history |
+
+Parsing test upload must use bounded transient processing and immediate cleanup. Prefer client-side parsing where practical. Do not persist document bytes or local file paths. Only calculate an accuracy score when a known structured source is available for comparison.
+
+## 7. Recruiter View
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | /resumes/:id/recruiter-view | Build read-only recruiter projection |
+| POST | /resumes/:id/recruiter-view/preview | Return projection with optional target-role context |
+| GET | /resumes/:id/recruiter-view/annotations | Retrieve linked review annotations |
+
+Recruiter View is private and read-only. Require resume ownership and version checks. Do not expose public sharing endpoints in the initial release.
+
+## 8. Resume Match Score
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | /job-descriptions | Create JD from pasted text and metadata |
+| POST | /job-descriptions/import-url | Attempt permitted public URL retrieval |
+| GET | /job-descriptions/:jobDescriptionId | Get authorized normalized JD |
+| PATCH | /job-descriptions/:jobDescriptionId | Correct extracted requirements |
+| POST | /resumes/:resumeId/match-reports | Calculate match against JD and resume version |
+| GET | /resume-match-reports/:reportId | Get score and evidence report |
+| GET | /resumes/:resumeId/match-reports | List authorized match history |
+| POST | /resume-match-reports/:reportId/recalculate | Recalculate after resume/JD changes |
+| DELETE | /resume-match-reports/:reportId | Delete report/history |
+
+URL import must use safe HTTP(S) retrieval only when permitted and accessible. Block SSRF, private/internal addresses, unsafe redirects, oversized responses and unsupported content. Never bypass login, CAPTCHA, paywalls or anti-bot controls. Return explicit statuses such as imported, manual_paste_required, unsupported_source or retrieval_failed. Pasted JD must always remain available as a fallback.
+
+Match reports are tied to an exact resume version and JD version. Every dimension must expose score, weight, matched requirements, missing/partial evidence and scoring version. Do not label the result as selection probability or an actual third-party ATS score.
+
+## 9. Export
 | Method | Endpoint | Purpose |
 |---|---|---|
 | POST | /resumes/:id/export/pdf | Generate/stream PDF bytes |
@@ -64,7 +101,7 @@ Import requires authentication, bounded size, MIME/signature validation and malw
 
 Export responses stream bytes or use a short-lived one-time retrieval token. Never persist output in permanent server storage, object storage or database blobs. Client saves returned bytes into the local folder.
 
-## 7. Templates and preview
+## 10. Templates and preview
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | /templates | List published templates with filters/categories |
@@ -75,7 +112,7 @@ Export responses stream bytes or use a short-lived one-time retrieval token. Nev
 
 Preview is a separate feature/route, not a dashboard subview. Do not expose executable template code.
 
-## 8. Resume quality and recruiter review
+## 11. Resume quality and recruiter review
 | Method | Endpoint | Purpose |
 |---|---|---|
 | POST | /resumes/:id/reviews | Start general or job-specific review |
@@ -88,7 +125,7 @@ Preview is a separate feature/route, not a dashboard subview. Do not expose exec
 
 Review endpoints require authenticated ownership checks for the resume, report, finding, suggestion and optional job analysis. A job-specific review must reuse authorized Job Analyzer/ATS output. Suggestion application creates a structured resume version/change; it must never modify a local document file on the server. Persist report metadata and evidence references according to the disclosed retention policy, not document binaries or raw resume text in logs.
 
-## 9. Dashboard and analytics
+## 12. Dashboard and analytics
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | /dashboard/me | User's own resume summary and recent activity |
@@ -101,8 +138,8 @@ Review endpoints require authenticated ownership checks for the resume, report, 
 
 All dashboard routes require authentication; admin analytics require explicit permission. Events must not contain resume text, contact details, job descriptions or file bytes.
 
-## 10. Host job portal integration
+## 13. Host job portal integration
 Pass normalized job title, description, optional external job ID, location/work mode and source/tenant context. An externalJobId alone must never grant access to portal data.
 
-## 11. Idempotency and limits
-Use idempotency keys for expensive generation/export/review operations. Rate-limit AI and file endpoints. Limit text lengths, upload size, page count and processing time. Return 429 with retry guidance. Delete temporary uploaded bytes on success, error, timeout and cancellation.
+## 14. Idempotency and limits
+Use idempotency keys for expensive generation/export/review/match operations. Rate-limit AI, URL import and file endpoints. Limit text lengths, upload size, page count, response size and processing time. Return 429 with retry guidance. Delete temporary uploaded bytes on success, error, timeout and cancellation.
