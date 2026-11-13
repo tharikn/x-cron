@@ -34,6 +34,8 @@ Dashboard, preview, local storage and advanced template catalogue are separate d
 8. ATS scoring is deterministic and explainable; AI only assists with extraction and recommendations.
 9. AI must never invent employment history, dates, skills, education or achievements.
 10. Manual editing/export must work when AI is unavailable.
+11. Resume quality review uses a separate explainable quality score; it must not be presented as an actual ATS vendor score or hiring guarantee.
+12. Deterministic review rules are the core; AI provides optional, evidence-grounded suggestions that require user approval.
 
 ## Documents
 
@@ -58,5 +60,6 @@ Dashboard, preview, local storage and advanced template catalogue are separate d
 | [17-PREVIEW-DESIGN.md](./17-PREVIEW-DESIGN.md) | Separate preview experience |
 | [18-LOCAL-STORAGE-DESIGN.md](./18-LOCAL-STORAGE-DESIGN.md) | Local folder and file lifecycle |
 | [19-PREDEFINED-TEMPLATE-CATALOG.md](./19-PREDEFINED-TEMPLATE-CATALOG.md) | 50+ advanced predefined templates |
+| [20-RESUME-QUALITY-RECRUITER-REVIEW.md](./20-RESUME-QUALITY-RECRUITER-REVIEW.md) | Resume quality, recruiter-readiness review and explainable findings |
 
 Treat each document as an independent implementation prompt. Do not merge preview or local file management into the dashboard.
