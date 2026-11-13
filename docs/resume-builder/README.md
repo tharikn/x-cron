@@ -54,7 +54,7 @@ Dashboard, preview, local storage and advanced template catalogue are separate d
 | [13-COST-OPTIMIZATION.md](./13-COST-OPTIMIZATION.md) | Cost optimization |
 | [14-PERFORMANCE-SCALABILITY.md](./14-PERFORMANCE-SCALABILITY.md) | Performance |
 | [15-DEVELOPMENT-PHASES.md](./15-DEVELOPMENT-PHASES.md) | Delivery phases |
-| [16-DASHBOARD-DESIGN.md](./16-DASHBOARD-DESIGN.md) | User/admin dashboards and analytics |
+| [16-DASHBOARD-TEMPLATE-DESIGNER-AUTH.md](./16-DASHBOARD-TEMPLATE-DESIGNER-AUTH.md) | User/admin dashboards and analytics |
 | [17-PREVIEW-DESIGN.md](./17-PREVIEW-DESIGN.md) | Separate preview experience |
 | [18-LOCAL-STORAGE-DESIGN.md](./18-LOCAL-STORAGE-DESIGN.md) | Local folder and file lifecycle |
 | [19-PREDEFINED-TEMPLATE-CATALOG.md](./19-PREDEFINED-TEMPLATE-CATALOG.md) | 50+ advanced predefined templates |
