@@ -38,6 +38,8 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 12. Parsing Test Score, Resume Quality Score and Resume Match Score are distinct metrics with different purposes.
 13. JD URL retrieval must respect source terms and access controls; paste-in JD is the reliable fallback.
 14. All analyser experiences follow the shared accessible, responsive UI architecture; feature routes, reports and scores remain independent.
+15. Web, mobile web and Android share design tokens and domain behavior but use platform-appropriate layouts, navigation and native integrations.
+16. Android safe areas, system bars, keyboard, back navigation, text scaling and native file handling are mandatory design and QA concerns.
 
 ## Documents
 
@@ -53,8 +55,8 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 | [08-EXPORT-ENGINE.md](./08-EXPORT-ENGINE.md) | Export formats and Google Docs |
 | [09-LOCAL-STORAGE.md](./09-LOCAL-STORAGE.md) | Local document storage policy |
 | [10-SECURITY-PRIVACY.md](./10-SECURITY-PRIVACY.md) | Security and privacy |
-| [11-MOBILE-ARCHITECTURE.md](./11-MOBILE-ARCHITECTURE.md) | Ionic + Capacitor |
-| [12-WEB-ARCHITECTURE.md](./12-WEB-ARCHITECTURE.md) | Angular web |
+| [11-MOBILE-ARCHITECTURE.md](./11-MOBILE-ARCHITECTURE.md) | Ionic + Capacitor mobile architecture |
+| [12-WEB-ARCHITECTURE.md](./12-WEB-ARCHITECTURE.md) | Angular web architecture |
 | [13-COST-OPTIMIZATION.md](./13-COST-OPTIMIZATION.md) | Cost optimization |
 | [14-PERFORMANCE-SCALABILITY.md](./14-PERFORMANCE-SCALABILITY.md) | Performance |
 | [15-DEVELOPMENT-PHASES.md](./15-DEVELOPMENT-PHASES.md) | Delivery phases |
@@ -67,5 +69,6 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 | [22-RECRUITER-VIEW.md](./22-RECRUITER-VIEW.md) | Separate read-only recruiter-oriented resume presentation |
 | [23-RESUME-MATCH-SCORE.md](./23-RESUME-MATCH-SCORE.md) | Job-description-to-resume match score and evidence report |
 | [24-RESUME-INTELLIGENCE-UI-UX-ARCHITECTURE.md](./24-RESUME-INTELLIGENCE-UI-UX-ARCHITECTURE.md) | Advanced responsive UI/UX, design system and interaction architecture |
+| [25-CROSS-PLATFORM-WEB-MOBILE-ANDROID-LAYOUT-ARCHITECTURE.md](./25-CROSS-PLATFORM-WEB-MOBILE-ANDROID-LAYOUT-ARCHITECTURE.md) | Cross-platform alignment, responsive layouts, Android system integration and device QA |
 
 Treat each document as an independent implementation prompt. Do not merge these features into the dashboard or each other.
