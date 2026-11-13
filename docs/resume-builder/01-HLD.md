@@ -1,147 +1,60 @@
 # 01 — High-Level Design (HLD)
 
 ## 1. Purpose
-
-Build a reusable **Resume & Career Intelligence Service**. It is an independent microservice that can be integrated with X Cron Jobs or another job portal, recruitment platform, career application or HR product.
-
-The service allows a user to maintain a structured career profile, create multiple resumes, tailor a resume to a target job, receive ATS compatibility feedback and export a document.
+Build a reusable Resume & Career Intelligence Service as an independent microservice for X Cron Jobs and other authorized job/career platforms. Users authenticate before entering the builder, maintain structured career information, create role-specific resumes, analyze job fit and save generated documents into a local folder on their device.
 
 ## 2. Goals
+- Require login before any Resume Builder access.
+- Maintain one reusable structured career profile.
+- Build multiple role-specific resumes from that profile.
+- Launch with at least 50 advanced predefined templates.
+- Keep dashboard, preview and local storage as separate experiences/designs.
+- Analyze job descriptions and provide explainable ATS compatibility feedback.
+- Export PDF, HTML, XLSX and DOCX into a user-selected/created local folder.
+- Keep individual resume document files exclusively on the user's device.
+- Expose stable APIs for authorized clients.
 
-- Create and maintain one reusable career profile.
-- Build multiple resumes for different roles or industries from the same profile.
-- Create resume content from manually entered details, imported resumes, or user-provided role/responsibility text.
-- Analyze job descriptions and compare them with a user's career profile/resume.
-- Provide an explainable ATS compatibility score and actionable improvement suggestions.
-- Export PDF, HTML, XLSX and DOCX.
-- Support optional Google Docs creation through an authorized integration.
-- Keep generated documents on the user's device by default to reduce storage cost and improve privacy.
-- Expose stable APIs so any authorized client can consume the service.
-
-## 3. Non-goals for the first release
-
-- Building a full recruitment/ATS product for employers.
-- Guaranteeing that a resume will pass every third-party ATS.
+## 3. Non-goals
+- Guest or anonymous Resume Builder access.
+- Guaranteeing a resume passes every third-party ATS.
 - Automatically applying to jobs.
-- Inventing experience, achievements or qualifications to improve a score.
-- Persistently storing every generated export in cloud storage.
+- Inventing experience or qualifications.
+- Permanently storing generated exports or uploaded source documents on the server.
 - Requiring Google sign-in or Google Drive access.
-- Depending on a single AI vendor.
+- Depending on one AI vendor.
 
-## 4. Users and main journeys
+## 4. Main user journey
+1. User signs in through X Cron identity.
+2. User opens Resume Builder.
+3. User creates or imports a structured career profile.
+4. User chooses one of 50+ predefined templates.
+5. User edits content and design.
+6. User opens the dedicated Preview experience.
+7. User reviews page layout and export fidelity.
+8. User exports and saves the file into a local device folder.
+9. User may optionally create a Google Doc after granting Google authorization.
 
-### Job seeker
+## 5. Core modules
+Authentication/authorization; Career Profile; Resume Builder/versioning; Resume Import/Parser; Role Generator; Advanced Template Catalog; Designer/Layout; Dedicated Preview Renderer; Job Analyzer; Matching; ATS; Optimizer; Export; Local Folder Storage; User/Admin Dashboards; AI abstraction; Integration API.
 
-1. Create or import a career profile.
-2. Review and correct extracted information.
-3. Choose a template and create a resume.
-4. Enter a target job description or select a job from the portal.
-5. View match/ATS analysis and recommendations.
-6. Accept or reject suggested edits.
-7. Preview and export the resume to the device.
-8. Optionally create a Google Doc after granting Google access.
+## 6. Data ownership and storage
+Backend may store user/tenant access metadata, approved structured career profile facts, structured resume data/version snapshots, template/layout references, job analysis and ATS metadata, template definitions and privacy-safe analytics.
 
-### Job-aware journey
+Backend must not store generated PDF/HTML/XLSX/DOCX binaries, permanent copies of uploaded source resume files, individual resume document files as server files/object-storage objects, local folder contents or arbitrary local device paths.
 
-`Job Search → Job Details → Analyze My Profile/Resume → Match Report → Tailor Resume → Preview → Export → Apply`
+User device stores individual resume documents, generated exports and user-selected source files. Temporary server processing of source files must be short-lived and deleted immediately after parsing. Structured profile persistence is distinct from document-file storage and must be transparent to the user.
 
-### Role/responsibility text journey
+## 7. Technology baseline
+Client: Ionic + Angular + Capacitor and Angular web. Backend: NestJS. Database: PostgreSQL + Prisma. Authentication: X Cron signed identity tokens. AI: provider-neutral adapters. Local files: Capacitor Filesystem / Android Storage Access Framework / iOS document picker and browser File System Access API with download fallback. Export adapters may stream bytes but cannot retain generated files.
 
-1. User pastes role/responsibility notes.
-2. Service extracts possible title, responsibilities, skills, technologies and achievements.
-3. Service returns structured suggestions with confidence and source references.
-4. User edits and confirms each suggestion.
-5. Confirmed data is added to the career profile or selected resume only after user approval.
+## 8. Design principles
+Structured data first; mandatory authentication; local-first document privacy; explicit user approval for AI suggestions; explainable scoring; graceful degradation without AI; provider independence; separate dashboard, preview, storage and template catalogue designs; accessible ATS-conscious output.
 
-## 5. Core product modules
-
-- Career Profile
-- Resume Builder and Versioning
-- Resume Import / Parser
-- Role & Responsibility Generator
-- Template and Preview Engine
-- Job Description Analyzer
-- Resume-to-Job Matching
-- ATS Scoring Engine
-- Resume Optimizer
-- Export Engine
-- Local Document Storage
-- AI Provider Abstraction
-- Integration/API layer
-
-See [03-FUNCTIONAL-MODULES.md](./03-FUNCTIONAL-MODULES.md).
-
-## 6. High-level architecture
-
-```text
- Ionic / Angular Mobile App       Angular Web App       Other Client
-          |                             |                    |
-          +-----------------------------+--------------------+
-                                        |
-                                API Gateway / Auth
-                                        |
-                         Resume & Career Intelligence API
-                                        |
-       +----------------+---------------+----------------+----------------+
-       |                |               |                |                |
- Career Profile   Resume Builder   Job Analyzer      ATS Engine       Export
-       |                |               |                |                |
-       +----------------+---------------+----------------+----------------+
-                                        |
-                                 AI Abstraction
-                                  /          \
-                              LLM          Embeddings
-                                        |
-                                  PostgreSQL
-                         (structured data and metadata)
-
- Generated files: rendered on demand → saved to user's device
- Optional: Google Drive/Docs integration after user authorization
-```
-
-## 7. Data ownership and storage
-
-**Backend stores**
-- User/tenant ownership and access metadata.
-- Structured career profile data.
-- Resume definitions, selected sections, template and layout configuration.
-- Version metadata and the minimal structured snapshot required to reproduce a resume.
-- Job analysis cache and ATS report metadata, subject to retention settings.
-- Template definitions and system configuration.
-
-**Backend does not store by default**
-- Every generated PDF, HTML, XLSX or DOCX.
-- Temporary export files after delivery.
-- Copies of documents that the user has saved locally.
-
-The user device is the default owner of exported documents. A future opt-in cloud backup feature must be separate, transparent and consent-based.
-
-## 8. Technology baseline
-
-- Client: Ionic + Angular + Capacitor; Angular web.
-- Backend: NestJS with modular boundaries.
-- Database: PostgreSQL.
-- ORM: Prisma.
-- Authentication: integrate with the host application's identity mechanism using signed tokens or a documented identity federation contract.
-- AI: provider-neutral adapters for text generation and embeddings.
-- Export: format-specific adapters with deterministic templates.
-
-## 9. Design principles
-
-1. **Structured data first:** never treat a PDF as the canonical career profile.
-2. **User approval:** AI suggestions are drafts until accepted.
-3. **Explainability:** show why a match/ATS score was assigned.
-4. **Privacy by default:** do not retain exported files unnecessarily.
-5. **Graceful degradation:** manual editing works without AI.
-6. **Provider independence:** AI, storage and identity integrations are replaceable.
-7. **Modular boundaries:** job portal integration must not leak into core resume domain logic.
-8. **Accessible output:** templates should be readable, selectable and ATS-friendly.
-
-## 10. Success criteria
-
-- A user can build and export a resume without AI.
-- A user can create multiple role-specific resumes from one profile.
-- A job description can produce a reproducible, explainable match report.
-- AI-generated content never enters confirmed profile data without user approval.
-- Exported documents are saved locally by default and are not retained by the service.
-- Core functionality is testable without calling a paid AI provider.
+## 9. Success criteria
+- Unauthenticated users cannot open Resume Builder routes or APIs.
+- A signed-in user can build/export without AI.
+- At least 50 advanced predefined templates are published and validated.
+- Preview is a dedicated screen, not part of dashboard design.
+- Files are saved to a local device folder and are not permanently retained by the service.
+- Uploaded source documents are transient and deleted.
+- AI-generated facts are never confirmed without user approval.
