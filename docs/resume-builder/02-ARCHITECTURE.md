@@ -29,6 +29,7 @@ Implement Resume & Career Intelligence as an independently deployable NestJS app
 | Local Storage Adapter | Create/select folder; save/list/rename/share/delete files |
 | Job Analyzer / Matcher | Normalize and compare job requirements |
 | ATS Engine | Deterministic score and evidence |
+| Resume Review Engine | Quality rules, evidence-linked findings, reviewer observations and suggestions |
 | AI Adapter | Provider abstraction |
 | Analytics | Privacy-safe events and aggregate dashboards |
 | Integration Adapter | Job portal and optional Google APIs |
@@ -49,6 +50,15 @@ src/
   job-analysis/
   job-matching/
   ats/
+  resume-review/
+    orchestrator/
+    rules/{content,grammar,consistency,structure,readability,links,layout}/
+    evidence/
+    scoring/
+    ai-review/
+    recruiter-lens/
+    findings/
+    suggestions/
   optimizer/
   export/{pdf,html,xlsx,docx}/
   local-storage/
@@ -83,25 +93,41 @@ Authenticated client → User selects local source file
  → Persist only approved structured data
 ~~~
 
+### Resume quality review
+~~~text
+Authenticated resume/version + optional job analysis
+ → Review Orchestrator
+ → Deterministic rules + structure/consistency checks + render validation
+ → Optional bounded-context AI review
+ → Reuse existing Job Analyzer/ATS evidence when job-specific
+ → Aggregate evidence-linked findings and separate quality score
+ → User accepts/edits/dismisses suggestions
+ → Approved changes create a structured resume version
+~~~
+
 ## 6. Persistence boundary
-PostgreSQL stores approved structured career data, resume definitions/snapshots, template versions, layout overrides, ATS/analysis metadata and privacy-safe analytics. It must not store generated PDF/DOCX/HTML/XLSX bytes, permanent uploaded source files, local folder contents, arbitrary local paths or file content in logs/analytics.
+PostgreSQL stores approved structured career data, resume definitions/snapshots, template versions, layout overrides, ATS/analysis metadata, review report metadata/findings and privacy-safe analytics. It must not store generated PDF/DOCX/HTML/XLSX bytes, permanent uploaded source files, local folder contents, arbitrary local paths or file content in logs/analytics.
+
+Review history must follow a disclosed retention policy and support user deletion. Store structured evidence references rather than copying full resume text into logs or telemetry.
 
 ## 7. Failure isolation
-- AI failure must not block manual editing/export.
+- AI failure must not block manual editing/export or deterministic review.
 - Export failure must not lose editor state.
 - Filesystem permission failure must show recovery steps and never claim save success.
 - Parser failure allows manual entry; temporary bytes are still deleted.
 - Google failure must not block DOCX/local export.
 - Analytics failure must not block core workflows.
 - Expired login preserves unsaved editor state and returns through authentication safely.
+- Review timeout/cancellation returns a clear partial/failed state and cleans up temporary input bytes.
 
 ## 8. Constraints
-Mandatory authentication; no guest access. No permanent server-side individual document storage. No permanent source uploads. No AI-generated facts persisted without approval. No arbitrary executable template code. No cross-tenant access. No sensitive resume content in analytics. Preview and export use the same normalized render model. Dashboard, preview, storage and templates remain separate feature boundaries.
+Mandatory authentication; no guest access. No permanent server-side individual document storage. No permanent source uploads. No AI-generated facts persisted without approval. No arbitrary executable template code. No cross-tenant access. No sensitive resume content in analytics. Preview and export use the same normalized render model. Dashboard, preview, storage, templates and review remain distinct feature boundaries. Resume Quality Score is not an ATS vendor score or a hiring prediction.
 
 ## 9. Detailed references
 - [16-DASHBOARD-TEMPLATE-DESIGNER-AUTH.md](./16-DASHBOARD-TEMPLATE-DESIGNER-AUTH.md)
 - [17-PREVIEW-DESIGN.md](./17-PREVIEW-DESIGN.md)
 - [18-LOCAL-STORAGE-DESIGN.md](./18-LOCAL-STORAGE-DESIGN.md)
 - [19-PREDEFINED-TEMPLATE-CATALOG.md](./19-PREDEFINED-TEMPLATE-CATALOG.md)
+- [20-RESUME-QUALITY-RECRUITER-REVIEW.md](./20-RESUME-QUALITY-RECRUITER-REVIEW.md)
 - [04-RESUME-DATA-MODEL.md](./04-RESUME-DATA-MODEL.md)
 - [05-API-DESIGN.md](./05-API-DESIGN.md)
