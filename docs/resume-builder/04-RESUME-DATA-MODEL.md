@@ -160,3 +160,10 @@ Snapshot contains structured resume content and render configuration, not export
 ## 7. Privacy and integrity
 
 Treat career data as sensitive personal information. Encrypt transport, restrict database access, avoid PII in logs, and implement account-level export/deletion. Never use a user's career data for model training unless a separate explicit and valid consent process exists.
+
+
+## 8. Competitor-Informed Extension Entities
+
+The additive entities for cover letters, portfolios, imports, career paths, clipped jobs, contacts, analytics, credential references, expert reviews and career documents are specified in [40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md — Section 6](./40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md#6-domain-model-additions).
+
+Do not add all extension tables before their release is approved. Implement each group with its feature, migration, retention policy and authorization tests. Preserve the core rules above: tenant/user ownership, immutable snapshots, no permanent document binaries, minimized public projections and auditable sharing.
