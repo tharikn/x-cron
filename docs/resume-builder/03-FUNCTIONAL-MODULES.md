@@ -137,7 +137,7 @@ Implement the independent parser validation experience in [21-RESUME-PARSING-TES
 
 Implement the independent read-only presentation experience in [22-RECRUITER-VIEW.md](./22-RECRUITER-VIEW.md).
 
-- Present identity, summary, recent relevant experience, achievements, skills, projects and education in recruiter-friendly order.
+- Present identity, summary, recent experience, achievements, skills, projects and education in recruiter-friendly order.
 - Provide quick-scan and full-content modes.
 - Allow toggling to the original formatted preview.
 - Optionally display linked quality-review annotations without duplicating the review engine.
@@ -181,3 +181,17 @@ Google Docs:
 ## 16. Module dependencies
 
 Career Profile is the source for Resume Builder. Job Analyzer feeds Match/ATS and job-specific Review. Resume Match consumes the same normalized JD and evidence services as ATS; it owns the user-facing job-specific report, not duplicate keyword/scoring logic. Parsing Test validates document extraction and is separate from the import parser. Recruiter View is a read-only projection of a resume version. Resume Review consumes structured resume data, render validation and existing ATS evidence. Optimizer consumes analysis and returns suggestions. Export consumes a confirmed resume representation. AI is optional and not a dependency of core deterministic workflows.
+
+## 17. Resume Intelligence UI/UX Architecture
+
+Implement the shared presentation system and feature-specific interaction patterns in [24-RESUME-INTELLIGENCE-UI-UX-ARCHITECTURE.md](./24-RESUME-INTELLIGENCE-UI-UX-ARCHITECTURE.md).
+
+- Keep Resume Analyser, Parsing Test, Recruiter View and Job Match Score as separate routes and reports.
+- Use the X Cron black-and-white visual identity with restrained semantic status colors.
+- Build reusable accessible Angular components and typed view models; keep scoring/business logic in NestJS.
+- Use evidence-linked findings, progressive disclosure, before/after diffs and explicit accept/edit/dismiss/undo actions.
+- Show explainable score breakdowns; never present an unexplained score as a hiring prediction.
+- Use desktop comparison panels and mobile single-column/tabbed flows.
+- Include truthful processing, empty, partial, failure and recovery states.
+- Target WCAG 2.2 AA and respect reduced-motion preferences.
+- Never send resume/JD content or personal data to analytics.
