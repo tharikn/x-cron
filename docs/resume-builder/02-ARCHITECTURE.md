@@ -1,6 +1,8 @@
 # 02 — Technical Architecture
 
 ## 1. Deployment boundary
+
+The target is an independent platform in a separate repository with an Angular microfrontend and independently deployed NestJS API. Use a modular monolith internally at first; microservice extraction is conditional, not a requirement for each feature. The complete deployment, identity, repository, data ownership and integration architecture is documented in [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md).
 Implement Resume & Career Intelligence as an independently deployable NestJS application with its own modules, API contract and database boundary. Do not depend directly on X Cron job-search tables; accept normalized job payloads or authorized integration calls.
 
 ## 2. Mandatory access and document boundary
