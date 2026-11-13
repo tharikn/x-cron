@@ -31,6 +31,9 @@ The service manages structured career information, builds tailored resumes, anal
 6. AI must never invent employment history, dates, skills, education, certifications, projects or quantified achievements.
 7. Manual resume editing and export must remain usable when AI services are unavailable.
 8. Keep the service provider-independent, tenant-aware, secure and cost-conscious.
+9. Guest-first access: users can build, edit, preview and locally export before login; authentication is requested for account-backed features.
+10. Templates are versioned declarative design packages. A shared render model keeps editor, preview and export aligned.
+11. Analytics distinguish export generation from download/save activity and exclude resume content/PII.
 
 ## Documents / tabs
 
@@ -51,7 +54,8 @@ The service manages structured career information, builds tailored resumes, anal
 | [13-COST-OPTIMIZATION.md](./13-COST-OPTIMIZATION.md) | Low-budget operating model |
 | [14-PERFORMANCE-SCALABILITY.md](./14-PERFORMANCE-SCALABILITY.md) | Performance and scaling |
 | [15-DEVELOPMENT-PHASES.md](./15-DEVELOPMENT-PHASES.md) | Delivery plan and acceptance criteria |
+| [16-DASHBOARD-TEMPLATE-DESIGNER-AUTH.md](./16-DASHBOARD-TEMPLATE-DESIGNER-AUTH.md) | Dashboards, guest-first login, templates, alignment, preview and Google Docs |
 
 ## How to use these documents
 
-Treat each file as an independent implementation prompt/tab. Read the HLD and architecture first, then implement in phase order. Update the relevant document when a design decision changes. Do not implement every future feature in the MVP.
+Treat each file as an independent implementation prompt/tab. Read the HLD and architecture first, then implement in phase order. Read document 16 before implementing guest access, template designer, usage dashboards or Google Docs integration. Update the relevant document when a design decision changes. Do not implement every future feature in the MVP.
