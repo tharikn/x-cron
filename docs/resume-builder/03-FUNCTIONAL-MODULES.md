@@ -198,162 +198,21 @@ Implement the shared presentation system and feature-specific interaction patter
 
 ## 18. Extended Career Intelligence Capabilities
 
-This section defines the product capabilities that differentiate X Cron Resume Builder from a template-and-AI-only resume editor. Each capability is an independently scoped module/use case within the same product and codebase. They are not separate Markdown specifications or independently deployed microservices by default.
+The following capabilities are maintained as separate implementation specifications. Each is independently scoped while following the shared architecture and delivery rules in Sections 19 and 20.
 
-### 18.1 Career Intelligence Profile and Achievement Bank
-
-**Goal:** Let candidates enter career information once and reuse approved facts across multiple resumes, job matches and interview preparation.
-
-- Maintain structured work experience, projects, skills, education, certifications, achievements and career preferences.
-- Store achievements as context, personal action, skills used, scope and outcome; metrics remain optional and require candidate confirmation.
-- Link each fact to its source, creation method, confirmation state and revision history.
-- Support partial dates, concurrent roles, career breaks and nontraditional paths without treating gaps as negative.
-- Keep a canonical career profile separate from resume-specific content.
-- APIs: `/v1/career-profile`, `/v1/career-facts`, `/v1/achievement-drafts`, `/v1/skill-taxonomy`.
-- Acceptance: facts are reusable; edits to a resume do not silently change the master profile; user can export, correct and delete profile data.
-
-### 18.2 Resume Truth Verification and Evidence Provenance
-
-**Goal:** Ensure every factual resume claim can be traced to user-provided or user-confirmed evidence.
-
-- Classify claims as user-entered, imported, AI-rewritten or externally verified.
-- Track support as direct, partial, ambiguous, absent or contradictory.
-- Link bullets, skills, titles, dates, credentials and metrics to source fact IDs.
-- Show before/after diffs, evidence and rationale for every AI rewrite.
-- Require explicit user approval before factual suggestions are saved.
-- Never invent numbers, leadership, skills, dates, credentials, employers or outcomes.
-- Acceptance: unsupported factual expansions cannot be silently saved; externally verified is used only with a trusted verification provider and consent.
-
-### 18.3 Multi-Resume and Immutable Version Management
-
-**Goal:** Build multiple role-specific resumes from one profile and preserve exactly what was submitted.
-
-- Support master, role-specific and company/job-specific resume variants.
-- Store immutable resume snapshots with content, template version, layout configuration and source profile version.
-- Compare versions at section, bullet, skill, evidence, date and design levels.
-- Restore a historical version by creating a new version; never mutate history.
-- Bind each job application to the exact resume and cover-letter version submitted.
-- Use optimistic concurrency for editing and autosave drafts.
-- Acceptance: historical versions remain reproducible and a later edit never changes an already submitted resume.
-
-### 18.4 Job Description Intelligence and Evidence-Based Matching
-
-**Goal:** Explain how a selected resume aligns with a specific job, rather than showing an opaque AI score.
-
-- Normalize a job description into required/preferred skills, responsibilities, experience, qualifications and location/work mode.
-- Let users confirm extracted requirements.
-- Map each requirement to evidence in the exact selected resume version.
-- Distinguish strong evidence, partial evidence, related skill and no recorded evidence.
-- Keep exact keyword matching, taxonomy synonyms and semantic similarity as separate explainable signals.
-- Version scoring rules and show dimension weights, coverage and limitations.
-- Acceptance: every match result is reproducible and evidence-linked; no score is represented as a hiring probability or guaranteed ATS result.
-
-### 18.5 Multi-Parser Compatibility Laboratory
-
-**Goal:** Validate whether PDF and DOCX exports preserve readable content and structure across independent parser implementations.
-
-- Build a parser-adapter interface with parser name, version, capabilities and normalized output.
-- Test text extraction, reading order, section detection, dates, contact fields, skills, hyperlinks, Unicode and page boundaries.
-- Compare parsed fields against structured source data when available.
-- Report parser-specific warnings and disagreements; do not claim to emulate proprietary ATS ranking systems.
-- Show diagnostics and coverage instead of fabricating an accuracy percentage when no ground truth exists.
-- Process files locally where practical; otherwise use isolated, ephemeral workers with strict limits and guaranteed cleanup.
-- Acceptance: each result identifies parser/version and test suite; no raw file is permanently stored.
-
-### 18.6 Resume Quality, Export Readiness and Regression Testing
-
-**Goal:** Prevent a resume improvement from accidentally damaging factual accuracy, readability or parsing compatibility.
-
-- Keep Resume Quality, Job Match and Parsing Compatibility as distinct reports.
-- Check grammar, clarity, repetition, evidence strength, chronology, consistency, section completeness and recruiter scanability.
-- Validate PDF/DOCX text extraction, reading order, hyperlinks, clipping, overflow and page layout.
-- Run regression checks when content, template, renderer or scoring rules change.
-- Compare against the previous version and explain material gains, regressions and engine-version changes.
-- Maintain synthetic fixtures across templates, page lengths, languages and role families.
-- Acceptance: critical factual/export failures are surfaced before export; warnings remain explainable and do not become arbitrary blocking scores.
-
-### 18.7 Job Portal and Application Intelligence Integration
-
-**Goal:** Connect job discovery to tailored resumes while keeping this resume capability reusable outside X Cron.
-
-- Integrate through versioned APIs and normalized job-context contracts, not direct access to job portal database tables.
-- Flow: open job -> analyze requirements -> select resume -> map evidence -> propose tailoring -> review diff -> create version -> export/apply.
-- Keep job/application lifecycle owned by the host job portal.
-- Record the exact resume version used for each application.
-- Support paste-in job descriptions as the reliable fallback; URL ingestion is best-effort and must respect source access controls.
-- Do not automate applications or bypass CAPTCHA, authentication or platform terms in the initial scope.
-- Acceptance: Resume Builder works without X Cron-specific schema dependencies and all candidate data access requires user authorization.
-
-### 18.8 Application Resume Vault
-
-**Goal:** Give candidates a reliable history of what they sent to each employer and when.
-
-- Maintain a private application-to-resume mapping with external job ID, employer label, application date, resumeVersionId and optional coverLetterVersionId.
-- Store a snapshot reference, not a mutable link to the current resume.
-- Allow candidate notes, interview stages and follow-up reminders where the host portal owns the application workflow.
-- Show which resume version was shared or submitted.
-- Acceptance: changing a resume later cannot alter the historical application record; the portal remains the source of truth for application status.
-
-### 18.9 Career Readiness and Skill Gap Guidance
-
-**Goal:** Help users plan career development from evidence, not label people as employable or unemployable.
-
-- Compare a chosen target role with confirmed career profile evidence.
-- Distinguish demonstrated experience, project evidence, self-reported skill, certification and no recorded evidence.
-- Phrase gaps as missing recorded evidence, not proof that the candidate lacks a skill.
-- Identify transferable skills with links to the source experience.
-- Suggest learning goals and practice milestones that users can edit or dismiss.
-- Avoid a single opaque employability score and never predict hiring outcomes.
-- Acceptance: every strength maps to evidence and every learning suggestion is clearly labelled as a recommendation.
-
-### 18.10 Resume-Grounded Interview Preparation
-
-**Goal:** Prepare candidates for interviews using the exact resume version and job context they choose.
-
-- Generate resume walkthrough, job-specific, technical and behavioral practice questions.
-- Support STAR answer practice, turn-based mock interviews and answer feedback.
-- Ground resume-specific questions in confirmed claims and evidence IDs.
-- Separate general knowledge questions from questions about the candidate's claimed experience.
-- Assess relevance, structure, clarity, specificity and evidence alignment; avoid accent, appearance, personality or protected-trait judgments.
-- Keep sessions private, deletable and text-first; audio/video requires separate consent.
-- Acceptance: AI cannot imply the candidate performed undocumented work; provider failure does not block basic practice.
-
-### 18.11 Consent-Based Recruiter Feedback and Sharing
-
-**Goal:** Let candidates share a specific resume version and receive useful feedback without giving recruiters control of their profile.
-
-- Sharing is private by default and requires an explicit candidate action.
-- Scope each share to one resume version, recipient, permission set and expiry.
-- Allow contact-field visibility controls and immediate revocation.
-- Recruiter view is read-only; feedback is structured around clarity, relevance, evidence and presentation.
-- Candidate decides whether to accept feedback and create a new resume version.
-- Use high-entropy, hashed share tokens, access logs, rate limits and anti-enumeration protections.
-- Acceptance: recruiters cannot mutate candidate facts or access other resume versions.
-
-### 18.12 Integration SDK, API and Webhook Platform
-
-**Goal:** Make Resume & Career Intelligence a reusable service for X Cron and future authorized platforms.
-
-- Publish versioned OpenAPI contracts and generate a TypeScript SDK first.
-- Support user-scoped clients and trusted backend integrations with delegated user consent.
-- Separate application identity from end-user identity; service credentials alone never grant access to personal resumes.
-- Publish minimal, versioned events through a transactional outbox.
-- Sign webhooks, rotate secrets, reject replayed deliveries, retry safely and support idempotent consumers.
-- Enforce tenant isolation, object-level authorization, quotas, audit and deprecation policies.
-- Acceptance: a new platform can integrate without direct database access and without weakening user consent.
-
-### 18.13 AI Governance, Evaluation and Cost Control
-
-**Goal:** Use AI only where it adds measurable value, with deterministic fallbacks and verifiable quality.
-
-- Keep CRUD, validation, rendering, export, score arithmetic and exact matching deterministic.
-- Use AI selectively for parsing assistance, job-description extraction, semantic mapping, rewriting and interview coaching.
-- Route AI through typed provider interfaces and a policy gateway for consent, redaction, quotas, timeouts and provider selection.
-- Validate every response against strict schemas and evidence rules; model output is untrusted.
-- Maintain synthetic evaluation fixtures for factuality, unsupported metrics, prompt injection, multilingual content and bias.
-- Track schema validity, unsupported-claim rate, user correction rate, latency, failure rate and cost per successful task.
-- Use caching, debouncing, token/page limits and smaller models where evaluations support them.
-- Acceptance: AI can be disabled without breaking resume creation/export; critical factuality tests gate releases; prompts and resume content are not written to ordinary logs.
+1. [Career Intelligence Profile and Achievement Bank](./26-CAREER-INTELLIGENCE-PROFILE-AND-ACHIEVEMENT-BANK.md)
+2. [Resume Truth Verification and Evidence Provenance](./27-RESUME-TRUTH-VERIFICATION-AND-EVIDENCE-PROVENANCE.md)
+3. [Multi-Resume and Immutable Version Management](./28-MULTI-RESUME-AND-IMMUTABLE-VERSION-MANAGEMENT.md)
+4. [Job Description Intelligence and Evidence-Based Matching](./29-JOB-DESCRIPTION-INTELLIGENCE-AND-EVIDENCE-BASED-MATCHING.md)
+5. [Multi-Parser Compatibility Laboratory](./30-MULTI-PARSER-COMPATIBILITY-LABORATORY.md)
+6. [Resume Quality, Export Readiness and Regression Testing](./31-RESUME-QUALITY-EXPORT-READINESS-AND-REGRESSION-TESTING.md)
+7. [Job Portal and Application Intelligence Integration](./32-JOB-PORTAL-AND-APPLICATION-INTELLIGENCE-INTEGRATION.md)
+8. [Application Resume Vault](./33-APPLICATION-RESUME-VAULT.md)
+9. [Career Readiness and Skill Gap Guidance](./34-CAREER-READINESS-AND-SKILL-GAP-GUIDANCE.md)
+10. [Resume-Grounded Interview Preparation](./35-RESUME-GROUNDED-INTERVIEW-PREPARATION.md)
+11. [Consent-Based Recruiter Feedback and Sharing](./36-CONSENT-BASED-RECRUITER-FEEDBACK-AND-SHARING.md)
+12. [Integration SDK, API and Webhook Platform](./37-INTEGRATION-SDK-API-AND-WEBHOOK-PLATFORM.md)
+13. [AI Governance, Evaluation and Cost Control](./38-AI-GOVERNANCE-EVALUATION-AND-COST-CONTROL.md)
 
 ## 19. Cross-Capability Architecture Rules
 
