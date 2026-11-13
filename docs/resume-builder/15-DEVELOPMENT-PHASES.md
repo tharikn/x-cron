@@ -26,34 +26,41 @@ Exit: signed-in user can create/edit a resume, select a template, preview it and
 - Review-and-confirm import workflow.
 - XLSX structured-data export and DOCX export.
 - Import/export security tests.
+- Initial Resume Parsing Test for local PDF/DOCX extraction, section recognition and export diagnostics.
 
-Exit: source files are not retained; extracted fields are not silently confirmed; DOCX opens in common word processors; XLSX formula injection is prevented.
+Exit: source files are not retained; extracted fields are not silently confirmed; DOCX opens in common word processors; XLSX formula injection is prevented; Parsing Test reports parser limitations and never claims universal ATS compatibility.
 
-## Phase 3 — Job-aware analysis
-- Job description normalization.
-- Skill/keyword taxonomy baseline.
-- Deterministic matching and explainable ATS score.
-- Job portal integration contract.
+## Phase 3 — Job-specific Resume Match Score
+- Job description paste-in input and metadata.
+- JD extraction, requirement normalization and user confirmation.
+- Resume evidence mapping for required/preferred skills, responsibilities, role and experience.
+- Deterministic weighted Resume Match Score and evidence report.
+- Match history tied to exact resume/JD versions.
+- Safe public URL retrieval for LinkedIn, Naukri and Indeed only where permitted and accessible; paste-in fallback.
+- Reuse ATS matching primitives and skill taxonomy.
 
-Exit: every score component has evidence; scoring is versioned and reproducible; no unsupported ATS guarantee.
+Exit: user can paste a JD and compare it with a selected resume version; each score dimension has evidence; blocked/login-protected URL import falls back to paste; no hiring or ATS vendor guarantee is made.
 
-## Phase 4 — AI assistance
+## Phase 4 — Recruiter View and quality review
+- Separate read-only Recruiter View with quick-scan and full-content modes.
+- Contact anonymization and optional linked quality annotations.
+- Resume Quality & Recruiter Review deterministic rules, findings and score.
+- Separate score definitions for quality, parsing and job match.
+
+Exit: Recruiter View cannot mutate source resume; all review findings are evidence-linked; all three scores remain separate and explainable.
+
+## Phase 5 — AI assistance and advanced matching
 - Role/responsibility text generator.
 - Resume parsing assistance and summary suggestions.
 - Achievement/bullet rewriting and resume optimizer.
+- Optional semantic matching signal and score calibration.
 - Provider abstraction, quotas and evaluation tests.
 
-Exit: AI suggestions require user approval; no unsupported facts are added; manual editing remains available when AI fails.
-
-## Phase 5 — Advanced matching
-- Embedding-based semantic matching.
-- Skill-gap analysis and score calibration.
-- Optional career recommendations.
-
-Exit: semantic score is explainable and does not override deterministic evidence without clear weighting.
+Exit: AI suggestions require user approval; no unsupported facts are added; manual editing and deterministic matching remain available when AI fails.
 
 ## Phase 6 — Optional integrations and maturity
 - Google Docs creation with explicit OAuth consent.
+- Authorized job-board integrations only when official APIs/partner terms permit.
 - Usage analytics with privacy-safe aggregation.
 - Template management/localization improvements.
 - Operational dashboards and cost controls.
@@ -67,9 +74,12 @@ Cloud document backup/sync is excluded from this design. Do not add it without a
 4. Editor and dedicated preview renderer.
 5. Local folder manager and PDF/HTML export.
 6. Import and DOCX/XLSX.
-7. Deterministic job analysis and ATS.
-8. AI capabilities.
-9. Analytics and optional Google Docs integration.
+7. Resume Parsing Test.
+8. JD paste-in, normalization and deterministic Resume Match Score.
+9. Recruiter View and Resume Quality Review.
+10. Optional safe public URL import and approved platform integrations.
+11. AI capabilities and semantic matching.
+12. Analytics and optional Google Docs integration.
 
 ## Definition of done
 - DTO/domain validation and authorization tests.
@@ -78,4 +88,6 @@ Cloud document backup/sync is excluded from this design. Do not add it without a
 - Local save verified on Android, iOS and web.
 - Temporary source files deleted on all paths.
 - Retention and cleanup behavior verified.
+- Parsing, quality and match scores are separate and versioned.
+- JD URL retrieval respects source access controls and includes paste-in fallback.
 - Documentation and migrations updated.
