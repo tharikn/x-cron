@@ -41,6 +41,28 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 15. Web, mobile web and Android share design tokens and domain behavior but use platform-appropriate layouts, navigation and native integrations.
 16. Android safe areas, system bars, keyboard, back navigation, text scaling and native file handling are mandatory design and QA concerns.
 
+## Extended Career Intelligence Capabilities
+
+The new product capabilities are consolidated inside the existing functional-modules document. They are not separate files, so the folder intentionally remains at 25 numbered documents.
+
+See [03-FUNCTIONAL-MODULES.md — Section 18: Extended Career Intelligence Capabilities](./03-FUNCTIONAL-MODULES.md#18-extended-career-intelligence-capabilities) for these 13 capabilities:
+
+1. Career Intelligence Profile and Achievement Bank
+2. Resume Truth Verification and Evidence Provenance
+3. Multi-Resume and Immutable Version Management
+4. Job Description Intelligence and Evidence-Based Matching
+5. Multi-Parser Compatibility Laboratory
+6. Resume Quality, Export Readiness and Regression Testing
+7. Job Portal and Application Intelligence Integration
+8. Application Resume Vault
+9. Career Readiness and Skill Gap Guidance
+10. Resume-Grounded Interview Preparation
+11. Consent-Based Recruiter Feedback and Sharing
+12. Integration SDK, API and Webhook Platform
+13. AI Governance, Evaluation and Cost Control
+
+The same document also contains Section 19 (Cross-Capability Architecture Rules) and Section 20 (Recommended Delivery Order).
+
 ## Documents
 
 | File | Subject |
