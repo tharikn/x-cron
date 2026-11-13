@@ -1,6 +1,8 @@
 # 01 — High-Level Design (HLD)
 
 ## 1. Purpose
+
+The implementation target is an independent Resume platform in a separate repository, not a module deployed inside the X Cron monorepo. The frontend is an independently deployed Angular microfrontend/standalone app and the backend is an independently deployed NestJS platform. See [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md) for the complete architecture decision.
 Build a reusable Resume & Career Intelligence Service as an independent microservice for X Cron Jobs and other authorized job/career platforms. Users authenticate before entering the builder, maintain structured career information, create role-specific resumes, analyze job fit and save generated documents into a local folder on their device.
 
 ## 2. Goals
@@ -50,7 +52,17 @@ Client: Ionic + Angular + Capacitor and Angular web. Backend: NestJS. Database: 
 ## 8. Design principles
 Structured data first; mandatory authentication; local-first document privacy; explicit user approval for AI suggestions; explainable scoring; graceful degradation without AI; provider independence; separate dashboard, preview, storage and template catalogue designs; accessible ATS-conscious output.
 
-## 9. Success criteria
+## 9. Deployment and integration boundary
+
+- Resume Builder source code, CI/CD and release lifecycle are separate from X Cron.
+- X Cron launches Resume through a secure identity handoff; no bearer token is placed in a URL.
+- Resume owns its database and APIs; X Cron never reads or writes Resume tables directly.
+- Resume API and frontend can be deployed independently.
+- Other authorized job portals can integrate through versioned APIs and the typed SDK.
+- Begin with a modular NestJS monolith and extract worker/services only when measured requirements justify it.
+- The detailed architecture, repository layout, service boundaries and deployment plan are defined in [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md).
+
+## 10. Success criteria
 - Unauthenticated users cannot open Resume Builder routes or APIs.
 - A signed-in user can build/export without AI.
 - At least 50 advanced predefined templates are published and validated.
