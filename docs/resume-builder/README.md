@@ -8,7 +8,7 @@ Build a job-aware, independently deployable NestJS service. **Authentication is 
 
 **Individual resume documents stay on the user's device.** Generated PDF, DOCX, HTML and XLSX files and uploaded source document files must not be permanently stored on the application server, cloud object storage or database blobs. PostgreSQL may store approved structured career data, resume metadata/configuration, template references, analysis metadata and privacy-safe analytics, but not individual document files.
 
-Dashboard, preview, local storage, template catalogue, parsing test, recruiter view and match score are separate features and routes.
+Dashboard, preview, local storage, template catalogue, parsing test, recruiter view, match score and resume quality analysis are separate features and routes.
 
 ## Technology baseline
 
@@ -28,7 +28,7 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 2. Individual document files are stored in a user-selected/created local device folder only.
 3. Backend persistence is limited to approved structured career/resume data and required metadata; never store document binaries or permanent uploaded source files.
 4. Local storage has its own folder/file lifecycle design.
-5. Dashboard, preview, storage, template catalogue, parsing test, recruiter view and match score have independent designs and routes.
+5. Dashboard, preview, storage, template catalogue, parsing test, recruiter view, match score and quality review have independent designs and routes.
 6. Launch catalogue must contain at least 50 advanced, production-ready predefined templates.
 7. Templates are immutable, versioned declarative design packages.
 8. ATS and Resume Match scoring are deterministic and explainable; AI only assists with extraction and recommendations.
@@ -37,6 +37,7 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 11. Resume quality review uses a separate explainable quality score; it must not be presented as an actual ATS vendor score or hiring guarantee.
 12. Parsing Test Score, Resume Quality Score and Resume Match Score are distinct metrics with different purposes.
 13. JD URL retrieval must respect source terms and access controls; paste-in JD is the reliable fallback.
+14. All analyser experiences follow the shared accessible, responsive UI architecture; feature routes, reports and scores remain independent.
 
 ## Documents
 
@@ -65,5 +66,6 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 | [21-RESUME-PARSING-TEST.md](./21-RESUME-PARSING-TEST.md) | Independent PDF/DOCX parsing and extraction validation |
 | [22-RECRUITER-VIEW.md](./22-RECRUITER-VIEW.md) | Separate read-only recruiter-oriented resume presentation |
 | [23-RESUME-MATCH-SCORE.md](./23-RESUME-MATCH-SCORE.md) | Job-description-to-resume match score and evidence report |
+| [24-RESUME-INTELLIGENCE-UI-UX-ARCHITECTURE.md](./24-RESUME-INTELLIGENCE-UI-UX-ARCHITECTURE.md) | Advanced responsive UI/UX, design system and interaction architecture |
 
 Treat each document as an independent implementation prompt. Do not merge these features into the dashboard or each other.
