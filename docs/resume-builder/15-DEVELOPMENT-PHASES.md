@@ -1,95 +1,81 @@
 # 15 — Development Phases and Acceptance Criteria
 
 ## Phase 0 — Foundation
-
-- Confirm identity/tenant integration contract.
+- Confirm X Cron identity/tenant integration contract.
 - Create NestJS service/module skeleton.
 - Configure PostgreSQL and Prisma migrations.
 - Establish API versioning, validation, logging and CI.
-- Define privacy, retention and export-file policy.
+- Define strict local-only document policy and transient upload cleanup.
 
-**Exit criteria:** authenticated user context is enforced; migrations and health checks work; no cross-user access.
+Exit: authenticated identity is enforced on every builder route/API; no guest routes; no cross-user access; no permanent document file storage.
 
-## Phase 1 — Manual Resume Builder MVP
-
-- Career profile CRUD.
+## Phase 1 — Authenticated Resume Builder MVP
+- Career profile CRUD and structured resume management.
 - Experience, skills, education, projects and certifications.
 - Resume definitions and section ordering.
-- Initial ATS-friendly templates.
-- Preview.
+- Publish at least 50 finished predefined templates (target 60).
+- Separate dashboard, editor and dedicated preview routes.
 - PDF and HTML export.
+- Local folder creation/selection and device-local save.
 - Mobile/web client integration.
-- Device-local export save.
 
-**Exit criteria:** a user can create a profile, create a resume without AI, preview it and save PDF/HTML locally. Backend does not retain generated exports.
+Exit: signed-in user can create/edit a resume, select a template, preview it and save PDF/HTML into a local folder. Dashboard does not contain the preview or file browser. Backend does not retain generated files.
 
 ## Phase 2 — Import and editable formats
-
-- PDF/DOCX text extraction.
+- Transient PDF/DOCX parsing with immediate file-byte deletion.
 - Review-and-confirm import workflow.
-- XLSX structured-data export.
-- DOCX export.
+- XLSX structured-data export and DOCX export.
 - Import/export security tests.
 
-**Exit criteria:** imported fields are not silently persisted as confirmed; DOCX opens in common word processors; XLSX formula injection is prevented.
+Exit: source files are not retained; extracted fields are not silently confirmed; DOCX opens in common word processors; XLSX formula injection is prevented.
 
 ## Phase 3 — Job-aware analysis
-
 - Job description normalization.
 - Skill/keyword taxonomy baseline.
-- Deterministic exact/synonym matching.
-- Initial explainable ATS score and breakdown.
+- Deterministic matching and explainable ATS score.
 - Job portal integration contract.
 
-**Exit criteria:** each score component has evidence; scoring is versioned and reproducible; no unsupported ATS guarantee is shown.
+Exit: every score component has evidence; scoring is versioned and reproducible; no unsupported ATS guarantee.
 
 ## Phase 4 — AI assistance
-
 - Role/responsibility text generator.
 - Resume parsing assistance and summary suggestions.
-- Achievement/bullet rewriting.
-- Resume optimizer.
+- Achievement/bullet rewriting and resume optimizer.
 - Provider abstraction, quotas and evaluation tests.
 
-**Exit criteria:** AI suggestions require user approval; no unsupported facts are added; manual editing remains available when AI fails.
+Exit: AI suggestions require user approval; no unsupported facts are added; manual editing remains available when AI fails.
 
 ## Phase 5 — Advanced matching
-
 - Embedding-based semantic matching.
-- Skill-gap analysis.
-- Improved score calibration using reviewed test data.
+- Skill-gap analysis and score calibration.
 - Optional career recommendations.
 
-**Exit criteria:** semantic score is explainable enough for product use and does not override deterministic evidence without clear weighting.
+Exit: semantic score is explainable and does not override deterministic evidence without clear weighting.
 
 ## Phase 6 — Optional integrations and maturity
-
 - Google Docs creation with explicit OAuth consent.
-- Optional cloud backup only with opt-in.
 - Usage analytics with privacy-safe aggregation.
-- Template management and localization improvements.
+- Template management/localization improvements.
 - Operational dashboards and cost controls.
 
-**Exit criteria:** integrations can be disconnected/revoked; local export remains available without Google; retention/deletion controls are tested.
+Cloud document backup/sync is excluded from this design. Do not add it without a separate explicit product requirement and approval.
 
 ## Recommended implementation order
+1. Identity foundation and API authorization.
+2. Structured profile/resume model.
+3. 50+ predefined templates and template gallery.
+4. Editor and dedicated preview renderer.
+5. Local folder manager and PDF/HTML export.
+6. Import and DOCX/XLSX.
+7. Deterministic job analysis and ATS.
+8. AI capabilities.
+9. Analytics and optional Google Docs integration.
 
-1. Read HLD, architecture, data model and API design.
-2. Implement Phase 0 and Phase 1 completely.
-3. Validate local file behavior on Android, iOS and web.
-4. Add import and DOCX/XLSX.
-5. Add deterministic job analysis and ATS.
-6. Add AI capabilities only after data structures and review UX are stable.
-7. Add semantic matching and optional cloud integrations last.
-
-## Definition of done for every module
-
-- DTO and domain validation
-- Authorization/tenant tests
-- Unit and integration tests
-- Error and empty states
-- Logging without PII
-- API documentation
-- Mobile/web behavior verified where applicable
-- Retention and cleanup behavior verified
-- Updated documentation and migration notes
+## Definition of done
+- DTO/domain validation and authorization tests.
+- Unit/integration tests and error/empty states.
+- Logs contain no PII or document content.
+- Local save verified on Android, iOS and web.
+- Temporary source files deleted on all paths.
+- Retention and cleanup behavior verified.
+- Documentation and migrations updated.
