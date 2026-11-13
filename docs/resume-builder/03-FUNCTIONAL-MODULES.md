@@ -1,5 +1,7 @@
 # 03 — Functional Modules
 
+> **Platform deployment boundary:** These modules belong to the independently deployable Resume platform, not the X Cron application monolith. The Angular microfrontend and NestJS API live in the separate `tharikn/x-cron-resume` repository. X Cron integrates through the documented identity and API contracts; it does not embed these modules or share their database. See [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md) before implementation.
+
 ## 1. Career Profile
 
 Purpose: maintain the user's reusable, normalized career history.
