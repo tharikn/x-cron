@@ -41,7 +41,7 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 15. Web, mobile web and Android share design tokens and domain behavior but use platform-appropriate layouts, navigation and native integrations.
 16. Android safe areas, system bars, keyboard, back navigation, text scaling and native file handling are mandatory design and QA concerns.
 
-## Independent Resume Platform Architecture
+## Competitor Gap Analysis and Expansion Roadmap\n\n[40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md](./40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md) compares public competitor capabilities and maps proposed portfolio, cover letter, profile import, career path, job clipper, CRM, autofill, analytics, credential, expert review, interview and career-document capabilities to the existing platform. It defines priorities, domain entities, API additions, privacy controls and phased acceptance criteria.\n\n## Independent Resume Platform Architecture
 
 The Resume Builder is designed as a separate product in its own repository, with an independently deployed Angular microfrontend and NestJS API. X Cron integrates through secure identity handoff and versioned APIs; the Resume platform owns its database and domain data. See [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md) for the target architecture, repository layout, authentication, deployment, integration contracts, service-extraction strategy and acceptance criteria.
 
@@ -109,6 +109,6 @@ The same document also contains Section 19 (Cross-Capability Architecture Rules)
 | [36-CONSENT-BASED-RECRUITER-FEEDBACK-AND-SHARING.md](./36-CONSENT-BASED-RECRUITER-FEEDBACK-AND-SHARING.md) | Consent-Based Recruiter Feedback and Sharing |
 | [37-INTEGRATION-SDK-API-AND-WEBHOOK-PLATFORM.md](./37-INTEGRATION-SDK-API-AND-WEBHOOK-PLATFORM.md) | Integration SDK, API and Webhook Platform |
 | [38-AI-GOVERNANCE-EVALUATION-AND-COST-CONTROL.md](./38-AI-GOVERNANCE-EVALUATION-AND-COST-CONTROL.md) | AI Governance, Evaluation and Cost Control |
-| [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md) | Separate repository, microfrontend, independently deployed API, identity, integration and service extraction architecture |
+| [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md) | Separate repository, microfrontend, independently deployed API, identity, integration and service extraction architecture |\n| [40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md](./40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md) | Competitor feature gaps, new capabilities, domain model, API contracts, prioritization and roadmap |
 
 Treat each document as an independent implementation prompt. Do not merge these features into the dashboard or each other.
