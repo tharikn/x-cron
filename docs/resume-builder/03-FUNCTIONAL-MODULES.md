@@ -57,15 +57,22 @@ Output candidates:
 
 Every generated item must include source text or an indication that it is an inference requiring confirmation. Do not generate fake metrics, employer names, dates or credentials.
 
-## 5. Template and Preview
+## 5. Template Catalogue
 
-- Provide a small set of accessible, ATS-friendly templates first.
+- Launch with at least 50 production-ready templates (target catalogue: 60).
+- Organize templates by career stage, industry, role family and visual style.
 - Use structured data and template tokens; never render arbitrary AI HTML.
-- Preview should match exported output as closely as practical.
-- Support typography, spacing, page margins and section order.
-- Version templates so older resume definitions remain reproducible.
+- Keep templates immutable and versioned so old resume definitions remain reproducible.
+- Validate accessibility, ATS readability, preview/export fidelity and responsive behavior.
 
-## 6. Job Description Analyzer
+## 6. Preview
+
+- Provide a dedicated preview route, separate from dashboard and editor concerns.
+- Support page-by-page A4/Letter rendering, zoom, pagination and overflow warnings.
+- Use the same normalized render model as export.
+- Preview must not permanently store document files.
+
+## 7. Job Description Analyzer
 
 Extract:
 - Job title and seniority (when stated)
@@ -78,7 +85,7 @@ Extract:
 
 Normalize synonyms through a maintainable skill taxonomy. Show extracted requirements so users can correct them.
 
-## 7. Job Matching and ATS
+## 8. Job Matching and ATS
 
 - Compare job requirements with selected resume/profile evidence.
 - Distinguish exact, related and missing skills.
@@ -86,7 +93,7 @@ Normalize synonyms through a maintainable skill taxonomy. Show extracted require
 - Explain every score component and link recommendations to evidence.
 - Never guarantee a result from an external ATS.
 
-## 8. Resume Optimizer
+## 9. Resume Optimizer
 
 Recommend:
 - Missing relevant keywords where evidence exists
@@ -97,7 +104,25 @@ Recommend:
 
 All proposed changes are reviewable diffs. Never auto-add unsupported claims.
 
-## 9. Export
+## 10. Resume Quality & Recruiter Review
+
+Implement the dedicated review experience and architecture in [20-RESUME-QUALITY-RECRUITER-REVIEW.md](./20-RESUME-QUALITY-RECRUITER-REVIEW.md).
+
+Core capabilities:
+- General resume quality review and optional job-specific review.
+- Writing, grammar, repetition, clarity, content strength and evidence checks.
+- Structure, chronology, consistency, credibility and completeness checks.
+- Recruiter scanability and role/seniority-aware observations.
+- Export readiness, PDF/DOCX text extraction, reading order, links, clipping and layout checks.
+- Evidence-linked findings with severity, confidence, explanation and recommended action.
+- Separate Resume Quality Score, Job Match score and Export Readiness.
+- Optional AI-assisted feedback using minimum necessary context.
+- Accept/edit/dismiss workflow; no silent content changes and no invented facts.
+- Versioned rules, scoring configuration, test fixtures and false-positive governance.
+
+The review score is not an actual ATS vendor score or a hiring guarantee. Reuse the existing Job Analyzer/ATS engine for job requirements rather than implementing duplicate keyword scoring.
+
+## 11. Export
 
 Initial formats:
 - PDF
@@ -109,14 +134,15 @@ Google Docs:
 - Later optional integration through Google OAuth and Drive/Docs APIs.
 - DOCX download remains available without Google authorization.
 
-## 10. Account, privacy and settings
+## 12. Account, privacy and settings
 
 - Respect host identity and tenant context.
 - Allow profile export and deletion.
-- Configure retention of analysis history.
+- Configure retention of analysis and review history.
 - Provide clear AI processing disclosure.
 - Do not store generated document files by default.
+- Keep individual document files on the user's device only.
 
-## 11. Module dependencies
+## 13. Module dependencies
 
-Career Profile is the source for Resume Builder. Job Analyzer feeds Match/ATS. Optimizer consumes analysis and returns suggestions. Export consumes a confirmed resume representation. AI is an optional capability used behind the relevant modules, not a dependency of all modules.
+Career Profile is the source for Resume Builder. Job Analyzer feeds Match/ATS and job-specific Review. Resume Review consumes structured resume data, render validation and existing ATS evidence; it does not own a duplicate ATS engine. Optimizer consumes analysis and returns suggestions. Export consumes a confirmed resume representation. AI is an optional capability used behind the relevant modules, not a dependency of all modules.
