@@ -122,7 +122,42 @@ Core capabilities:
 
 The review score is not an actual ATS vendor score or a hiring guarantee. Reuse the existing Job Analyzer/ATS engine for job requirements rather than implementing duplicate keyword scoring.
 
-## 11. Export
+## 11. Resume Parsing Test
+
+Implement the independent parser validation experience in [21-RESUME-PARSING-TEST.md](./21-RESUME-PARSING-TEST.md).
+
+- Test generated or user-selected local PDF/DOCX files for text extraction, field/section recognition, reading order, dates, links, Unicode and layout integrity.
+- Compare extracted content with known structured source data when available.
+- Do not fabricate an accuracy score when no ground truth exists.
+- Keep uploaded document bytes local or transient; never persist them permanently.
+- Show parser/version, limitations, evidence and actionable diagnostics.
+- Keep Parsing Test Score separate from Resume Quality and Resume Match scores.
+
+## 12. Recruiter View
+
+Implement the independent read-only presentation experience in [22-RECRUITER-VIEW.md](./22-RECRUITER-VIEW.md).
+
+- Present identity, summary, recent relevant experience, achievements, skills, projects and education in recruiter-friendly order.
+- Provide quick-scan and full-content modes.
+- Allow toggling to the original formatted preview.
+- Optionally display linked quality-review annotations without duplicating the review engine.
+- Support contact anonymization.
+- Keep private by default; no public sharing link without explicit opt-in.
+- Never mutate source resume content or create another score.
+
+## 13. Resume Match Score
+
+Implement the independent job-specific matching experience in [23-RESUME-MATCH-SCORE.md](./23-RESUME-MATCH-SCORE.md).
+
+- Accept pasted job descriptions, permitted public LinkedIn/Naukri/Indeed URLs and authorized integrations where available.
+- Extract role, responsibilities, required/preferred skills, experience and qualifications; let the user confirm/correct them.
+- Compare against an exact selected resume version and map every match to resume evidence.
+- Show a weighted 0–100 Resume Match Score, dimension breakdown, strong/partial/missing evidence and recommended actions.
+- Reuse existing Job Analyzer, skill taxonomy and ATS matching primitives; do not create duplicate scoring logic.
+- Never bypass login, CAPTCHA, paywalls, anti-bot controls or source terms. Paste-in is the fallback.
+- Do not claim selection probability or guarantee ATS success.
+
+## 14. Export
 
 Initial formats:
 - PDF
@@ -134,7 +169,7 @@ Google Docs:
 - Later optional integration through Google OAuth and Drive/Docs APIs.
 - DOCX download remains available without Google authorization.
 
-## 12. Account, privacy and settings
+## 15. Account, privacy and settings
 
 - Respect host identity and tenant context.
 - Allow profile export and deletion.
@@ -143,6 +178,6 @@ Google Docs:
 - Do not store generated document files by default.
 - Keep individual document files on the user's device only.
 
-## 13. Module dependencies
+## 16. Module dependencies
 
-Career Profile is the source for Resume Builder. Job Analyzer feeds Match/ATS and job-specific Review. Resume Review consumes structured resume data, render validation and existing ATS evidence; it does not own a duplicate ATS engine. Optimizer consumes analysis and returns suggestions. Export consumes a confirmed resume representation. AI is an optional capability used behind the relevant modules, not a dependency of all modules.
+Career Profile is the source for Resume Builder. Job Analyzer feeds Match/ATS and job-specific Review. Resume Match consumes the same normalized JD and evidence services as ATS; it owns the user-facing job-specific report, not duplicate keyword/scoring logic. Parsing Test validates document extraction and is separate from the import parser. Recruiter View is a read-only projection of a resume version. Resume Review consumes structured resume data, render validation and existing ATS evidence. Optimizer consumes analysis and returns suggestions. Export consumes a confirmed resume representation. AI is optional and not a dependency of core deterministic workflows.
