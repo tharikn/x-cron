@@ -1,13 +1,18 @@
 # 15 — Development Phases and Acceptance Criteria
 
-## Phase 0 — Foundation
-- Confirm X Cron identity/tenant integration contract.
-- Create NestJS service/module skeleton.
-- Configure PostgreSQL and Prisma migrations.
-- Establish API versioning, validation, logging and CI.
-- Define strict local-only document policy and transient upload cleanup.
+## Phase 0 — Independent platform foundation
 
-Exit: authenticated identity is enforced on every builder route/API; no guest routes; no cross-user access; no permanent document file storage.
+- Create the separate repository `tharikn/x-cron-resume`; do not implement the Resume product inside the X Cron runtime repository.
+- Set up a monorepo with independently buildable/deployable Angular Resume microfrontend, NestJS Resume API and optional asynchronous worker.
+- Configure independent CI/CD, environment configuration, health checks, logging, metrics and deployment pipelines.
+- Establish the Resume-owned PostgreSQL database, Prisma schema and migrations; prohibit direct X Cron database access.
+- Publish the versioned OpenAPI contract and generate typed integration SDKs.
+- Confirm X Cron identity/tenant contract and implement OIDC + PKCE or a single-use authorization-code handoff.
+- Establish API versioning, validation, tenant isolation, audit metadata and rate limits.
+- Define strict local-only document policy and transient upload cleanup.
+- Add a sample host integration so the Resume frontend/API can be exercised without X Cron internals.
+
+Exit: the Resume frontend and API build and run independently; X Cron can launch the experience through secure identity handoff; a second test client can authenticate against the API; no guest routes, cross-user access or permanent document-file storage.
 
 ## Phase 1 — Authenticated Resume Builder MVP
 - Career profile CRUD and structured resume management.
