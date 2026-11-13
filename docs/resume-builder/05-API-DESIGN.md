@@ -158,3 +158,9 @@ The API is deployed independently from X Cron and must not rely on X Cron intern
 
 ## 15. Idempotency and limits
 Use idempotency keys for expensive generation/export/review/match operations. Rate-limit AI, URL import and file endpoints. Limit text lengths, upload size, page count, response size and processing time. Return 429 with retry guidance. Delete temporary uploaded bytes on success, error, timeout and cancellation.
+
+## 16. Competitor-Informed Extension APIs
+
+The additive API groups for cover letters, public portfolios, import/provenance, career paths, compensation, job capture, contacts, activities, analytics, expert review and career documents are specified in [40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md — Section 7](./40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md#7-api-additions).
+
+Implement these contracts incrementally under `/api/v1`; do not duplicate existing career-profile, resume-version, JD-analysis, application-vault or AI endpoints. Public portfolio/share routes are the only deliberately limited unauthenticated surfaces and must return a minimized, explicitly published projection. Browser autofill must use short-lived scoped access and must not expose an unrestricted profile endpoint.
