@@ -7,6 +7,8 @@ Product baseline: PRD v1.0 (31 Oct 2026). Build order follows [docs/ROADMAP.md](
 
 ## Monorepo
 
+The Resume & Career Intelligence product is planned as a separate platform/repository with its own Angular frontend, NestJS API and database boundary. X Cron integrates through secure identity handoff and versioned APIs. See [Resume Builder architecture](docs/resume-builder/39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md).
+
 | Path | Role |
 | --- | --- |
 | `mobile/` | Ionic + Capacitor + Angular Android client |
