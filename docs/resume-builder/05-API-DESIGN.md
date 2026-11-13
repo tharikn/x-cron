@@ -141,5 +141,20 @@ All dashboard routes require authentication; admin analytics require explicit pe
 ## 13. Host job portal integration
 Pass normalized job title, description, optional external job ID, location/work mode and source/tenant context. An externalJobId alone must never grant access to portal data.
 
-## 14. Idempotency and limits
+## 14. Platform authentication and host integration
+
+The API is deployed independently from X Cron and must not rely on X Cron internal controllers, database access or private ORM models.
+
+- Publish an OpenAPI specification as the canonical contract and generate typed client SDKs from it.
+- Support OIDC Authorization Code + PKCE where available.
+- If the host identity provider cannot support OIDC directly, use a short-lived, single-use authorization-code exchange bound to issuer, subject, audience, redirect URI, nonce and expiry.
+- Never pass bearer tokens, refresh tokens or long-lived credentials in URLs.
+- Validate issuer, audience, signature, expiry, scopes and tenant context on every request.
+- Map the stable external identity (issuer + subject) to a Resume-owned user record; email is not the identity key.
+- Enforce Resume-owned object-level authorization even for requests authenticated by X Cron.
+- Host job/application context must be passed as validated, minimal, authorized payloads. An external job/application ID alone never authorizes access to host data.
+- Use signed, versioned webhooks for outbound events. Payloads contain IDs/status metadata only, never resume text or document binaries.
+- See [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md) for the complete host handoff, client and deployment design.
+
+## 15. Idempotency and limits
 Use idempotency keys for expensive generation/export/review/match operations. Rate-limit AI, URL import and file endpoints. Limit text lengths, upload size, page count, response size and processing time. Return 429 with retry guidance. Delete temporary uploaded bytes on success, error, timeout and cancellation.
