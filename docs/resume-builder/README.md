@@ -41,7 +41,30 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 15. Web, mobile web and Android share design tokens and domain behavior but use platform-appropriate layouts, navigation and native integrations.
 16. Android safe areas, system bars, keyboard, back navigation, text scaling and native file handling are mandatory design and QA concerns.
 
-## Competitor Gap Analysis and Expansion Roadmap\n\n[40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md](./40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md) compares public competitor capabilities and maps proposed portfolio, cover letter, profile import, career path, job clipper, CRM, autofill, analytics, credential, expert review, interview and career-document capabilities to the existing platform. It defines priorities, domain entities, API additions, privacy controls and phased acceptance criteria.\n\n## Independent Resume Platform Architecture
+
+## Competitor-Informed Feature Specifications (separate documents)
+
+Document 40 is the competitor landscape and index only. Each of its 12 proposed capabilities has an independent design specification:
+
+| File | Feature |
+|---|---|
+| [40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md](./40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md) | Competitor analysis, prioritization and index |
+| [41-CAREER-PORTFOLIO-WEBSITE.md](./41-CAREER-PORTFOLIO-WEBSITE.md) | Career Portfolio Website |
+| [42-COVER-LETTER-INTELLIGENCE.md](./42-COVER-LETTER-INTELLIGENCE.md) | Cover Letter Intelligence |
+| [43-EXTERNAL-PROFILE-AND-CAREER-DATA-IMPORT.md](./43-EXTERNAL-PROFILE-AND-CAREER-DATA-IMPORT.md) | External Profile and Career Data Import |
+| [44-CAREER-PATH-AND-COMPENSATION-INTELLIGENCE.md](./44-CAREER-PATH-AND-COMPENSATION-INTELLIGENCE.md) | Career Path and Compensation Intelligence |
+| [45-JOB-CLIPPER-AND-BROWSER-EXTENSION.md](./45-JOB-CLIPPER-AND-BROWSER-EXTENSION.md) | Job Clipper and Browser Extension |
+| [46-APPLICATION-CRM-AND-CONTACT-NETWORK.md](./46-APPLICATION-CRM-AND-CONTACT-NETWORK.md) | Application CRM and Contact Network |
+| [47-APPLICATION-AUTOFILL-ASSISTANT.md](./47-APPLICATION-AUTOFILL-ASSISTANT.md) | Application Autofill Assistant |
+| [48-JOB-SEARCH-ANALYTICS.md](./48-JOB-SEARCH-ANALYTICS.md) | Job Search Analytics |
+| [49-CREDENTIAL-AND-EVIDENCE-WALLET.md](./49-CREDENTIAL-AND-EVIDENCE-WALLET.md) | Credential and Evidence Wallet |
+| [50-HUMAN-EXPERT-REVIEW-MARKETPLACE.md](./50-HUMAN-EXPERT-REVIEW-MARKETPLACE.md) | Human Expert Review Marketplace |
+| [51-INTERVIEW-COPILOT.md](./51-INTERVIEW-COPILOT.md) | Interview Copilot |
+| [52-CAREER-DOCUMENT-SUITE.md](./52-CAREER-DOCUMENT-SUITE.md) | Career Document Suite |
+
+Each feature document defines its own requirements, user journey, data model, APIs, architecture, security, acceptance criteria and delivery phases. Keep these designs separate and reuse the shared architecture in document 39.
+
+## Independent Resume Platform Architecture
 
 The Resume Builder is designed as a separate product in its own repository, with an independently deployed Angular microfrontend and NestJS API. X Cron integrates through secure identity handoff and versioned APIs; the Resume platform owns its database and domain data. See [39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md](./39-INDEPENDENT-RESUME-PLATFORM-ARCHITECTURE.md) for the target architecture, repository layout, authentication, deployment, integration contracts, service-extraction strategy and acceptance criteria.
 
