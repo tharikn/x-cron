@@ -43,7 +43,7 @@ Dashboard, preview, local storage, template catalogue, parsing test, recruiter v
 
 ## Extended Career Intelligence Capabilities
 
-The new product capabilities are consolidated inside the existing functional-modules document. They are not separate files, so the folder intentionally remains at 25 numbered documents.
+The 13 extended product capabilities are maintained as separate specifications numbered 26–38, and are indexed below.
 
 See [03-FUNCTIONAL-MODULES.md — Section 18: Extended Career Intelligence Capabilities](./03-FUNCTIONAL-MODULES.md#18-extended-career-intelligence-capabilities) for these 13 capabilities:
 
@@ -92,5 +92,18 @@ The same document also contains Section 19 (Cross-Capability Architecture Rules)
 | [23-RESUME-MATCH-SCORE.md](./23-RESUME-MATCH-SCORE.md) | Job-description-to-resume match score and evidence report |
 | [24-RESUME-INTELLIGENCE-UI-UX-ARCHITECTURE.md](./24-RESUME-INTELLIGENCE-UI-UX-ARCHITECTURE.md) | Advanced responsive UI/UX, design system and interaction architecture |
 | [25-CROSS-PLATFORM-WEB-MOBILE-ANDROID-LAYOUT-ARCHITECTURE.md](./25-CROSS-PLATFORM-WEB-MOBILE-ANDROID-LAYOUT-ARCHITECTURE.md) | Cross-platform alignment, responsive layouts, Android system integration and device QA |
+| [26-CAREER-INTELLIGENCE-PROFILE-AND-ACHIEVEMENT-BANK.md](./26-CAREER-INTELLIGENCE-PROFILE-AND-ACHIEVEMENT-BANK.md) | Career Intelligence Profile and Achievement Bank |
+| [27-RESUME-TRUTH-VERIFICATION-AND-EVIDENCE-PROVENANCE.md](./27-RESUME-TRUTH-VERIFICATION-AND-EVIDENCE-PROVENANCE.md) | Resume Truth Verification and Evidence Provenance |
+| [28-MULTI-RESUME-AND-IMMUTABLE-VERSION-MANAGEMENT.md](./28-MULTI-RESUME-AND-IMMUTABLE-VERSION-MANAGEMENT.md) | Multi-Resume and Immutable Version Management |
+| [29-JOB-DESCRIPTION-INTELLIGENCE-AND-EVIDENCE-BASED-MATCHING.md](./29-JOB-DESCRIPTION-INTELLIGENCE-AND-EVIDENCE-BASED-MATCHING.md) | Job Description Intelligence and Evidence-Based Matching |
+| [30-MULTI-PARSER-COMPATIBILITY-LABORATORY.md](./30-MULTI-PARSER-COMPATIBILITY-LABORATORY.md) | Multi-Parser Compatibility Laboratory |
+| [31-RESUME-QUALITY-EXPORT-READINESS-AND-REGRESSION-TESTING.md](./31-RESUME-QUALITY-EXPORT-READINESS-AND-REGRESSION-TESTING.md) | Resume Quality, Export Readiness and Regression Testing |
+| [32-JOB-PORTAL-AND-APPLICATION-INTELLIGENCE-INTEGRATION.md](./32-JOB-PORTAL-AND-APPLICATION-INTELLIGENCE-INTEGRATION.md) | Job Portal and Application Intelligence Integration |
+| [33-APPLICATION-RESUME-VAULT.md](./33-APPLICATION-RESUME-VAULT.md) | Application Resume Vault |
+| [34-CAREER-READINESS-AND-SKILL-GAP-GUIDANCE.md](./34-CAREER-READINESS-AND-SKILL-GAP-GUIDANCE.md) | Career Readiness and Skill Gap Guidance |
+| [35-RESUME-GROUNDED-INTERVIEW-PREPARATION.md](./35-RESUME-GROUNDED-INTERVIEW-PREPARATION.md) | Resume-Grounded Interview Preparation |
+| [36-CONSENT-BASED-RECRUITER-FEEDBACK-AND-SHARING.md](./36-CONSENT-BASED-RECRUITER-FEEDBACK-AND-SHARING.md) | Consent-Based Recruiter Feedback and Sharing |
+| [37-INTEGRATION-SDK-API-AND-WEBHOOK-PLATFORM.md](./37-INTEGRATION-SDK-API-AND-WEBHOOK-PLATFORM.md) | Integration SDK, API and Webhook Platform |
+| [38-AI-GOVERNANCE-EVALUATION-AND-COST-CONTROL.md](./38-AI-GOVERNANCE-EVALUATION-AND-COST-CONTROL.md) | AI Governance, Evaluation and Cost Control |
 
 Treat each document as an independent implementation prompt. Do not merge these features into the dashboard or each other.
