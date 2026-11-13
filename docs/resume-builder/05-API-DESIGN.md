@@ -75,7 +75,20 @@ Export responses stream bytes or use a short-lived one-time retrieval token. Nev
 
 Preview is a separate feature/route, not a dashboard subview. Do not expose executable template code.
 
-## 8. Dashboard and analytics
+## 8. Resume quality and recruiter review
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | /resumes/:id/reviews | Start general or job-specific review |
+| GET | /resumes/:id/reviews | List authorized review report metadata |
+| GET | /resume-reviews/:reviewId | Get report, scores and findings |
+| POST | /resume-reviews/:reviewId/recheck | Re-run review against the current resume version |
+| POST | /resume-reviews/:reviewId/findings/:findingId/decision | Accept, dismiss or ignore a finding |
+| POST | /resume-reviews/:reviewId/suggestions/:suggestionId/apply | Apply an approved structured diff |
+| DELETE | /resume-reviews/:reviewId | Delete review history subject to retention rules |
+
+Review endpoints require authenticated ownership checks for the resume, report, finding, suggestion and optional job analysis. A job-specific review must reuse authorized Job Analyzer/ATS output. Suggestion application creates a structured resume version/change; it must never modify a local document file on the server. Persist report metadata and evidence references according to the disclosed retention policy, not document binaries or raw resume text in logs.
+
+## 9. Dashboard and analytics
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | /dashboard/me | User's own resume summary and recent activity |
@@ -88,8 +101,8 @@ Preview is a separate feature/route, not a dashboard subview. Do not expose exec
 
 All dashboard routes require authentication; admin analytics require explicit permission. Events must not contain resume text, contact details, job descriptions or file bytes.
 
-## 9. Host job portal integration
+## 10. Host job portal integration
 Pass normalized job title, description, optional external job ID, location/work mode and source/tenant context. An externalJobId alone must never grant access to portal data.
 
-## 10. Idempotency and limits
-Use idempotency keys for expensive generation/export operations. Rate-limit AI and file endpoints. Limit text lengths, upload size, page count and processing time. Return 429 with retry guidance. Delete temporary uploaded bytes on success, error, timeout and cancellation.
+## 11. Idempotency and limits
+Use idempotency keys for expensive generation/export/review operations. Rate-limit AI and file endpoints. Limit text lengths, upload size, page count and processing time. Return 429 with retry guidance. Delete temporary uploaded bytes on success, error, timeout and cancellation.
