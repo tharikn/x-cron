@@ -74,6 +74,20 @@ Exit: AI suggestions require user approval; no unsupported facts are added; manu
 
 Cloud document backup/sync is excluded from this design. Do not add it without a separate explicit product requirement and approval.
 
+## Phase 7 — Competitor-informed product expansion
+
+Follow the additive E0–E6 roadmap in [40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md](./40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md). This phase begins only after the core Resume Builder foundation is stable.
+
+- E0: approve contracts, ownership, privacy and feature flags.
+- E1: cover-letter drafts, evidence links, immutable versions and local export.
+- E2: career portfolio private preview, selected-field publishing, expiry and revocation.
+- E3: profile import review, conflict resolution and evidence-linked career paths.
+- E4: explicit job clipping, contact/activity CRM and privacy-safe job-search analytics.
+- E5: user-confirmed browser autofill and credential references.
+- E6: optional expert review, interview copilot and career document suite.
+
+Exit: each shipped capability has a documented owner, API/data contract, consent model, retention policy, authorization tests, feature flag and acceptance tests. No expansion duplicates an existing engine or changes X Cron's ownership of its jobs/applications.
+
 ## Recommended implementation order
 1. Identity foundation and API authorization.
 2. Structured profile/resume model.
@@ -86,7 +100,7 @@ Cloud document backup/sync is excluded from this design. Do not add it without a
 9. Recruiter View and Resume Quality Review.
 10. Optional safe public URL import and approved platform integrations.
 11. AI capabilities and semantic matching.
-12. Analytics and optional Google Docs integration.
+12. Analytics and optional Google Docs integration.\n13. Competitor-informed expansion E0–E6, beginning with cover letters and portfolio.
 
 ## Definition of done
 - DTO/domain validation and authorization tests.
