@@ -241,3 +241,25 @@ The following capabilities are maintained as separate implementation specificati
 | R6 — Platform scale | SDK, webhooks, localization, provider governance and optional service extraction | External integrations are secure, versioned and independently operable |
 
 Do not implement all releases in one sprint. Complete the core data contracts, privacy model and versioning foundations before adding AI or external integrations.
+
+
+## 21. Competitor-Informed Product Expansion
+
+The following additions extend the existing modules; they must reuse the career profile, evidence, versioning, JD, application, review, export and AI-governance foundations rather than create duplicate engines. Full requirements, data entities, APIs, privacy controls and acceptance criteria are in [40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md](./40-COMPETITOR-GAP-ANALYSIS-AND-PRODUCT-EXPANSION.md).
+
+| New capability | Reuses existing modules | Boundary / key rule |
+|---|---|---|
+| Cover Letter Intelligence | 26, 27, 28, 29, 33, 38 | Evidence-linked drafts; immutable versions; bind submitted version to application |
+| Career Portfolio Website | 26, 27, 28, 22, 36 | Explicitly selected fields; private by default; publish snapshots and revocation |
+| External Profile/Career Import | Resume Import, 26, 27, 38 | Imported facts require user confirmation; official integrations only |
+| Career Path and Compensation Intelligence | 29, 34, Skill Taxonomy, 38 | Evidence-linked paths; salary only with dated, sourced data |
+| Job Clipper / Browser Extension | 29, 32, 37 | Explicit user action; no background tab surveillance or prohibited scraping |
+| Application CRM and Contact Network | 32, 33, 36 | Host portal remains source of truth for its application status |
+| Application Autofill Assistant | 26, 27, 37 | User-reviewed field mapping; no auto-submit or access-control bypass |
+| Job Search Analytics | 32, 33, Analytics, 38 | Privacy-safe aggregates; define denominators and source coverage |
+| Credential and Evidence Wallet | 26, 27, 36 | Metadata/reference-first; verification status must be source-backed |
+| Human Expert Review | 20, 28, 36 | Time-limited read-only reviewer access; candidate controls changes |
+| Interview Copilot | 35, 27, 38 | Opt-in sessions; no covert assistance or protected-trait assessment |
+| Career Document Suite | 26, 27, 28, Export, 38 | Versioned factual content; local-first exports |
+
+**Delivery rule:** These are expansion candidates, not blockers for the Resume Builder MVP. Follow the E0–E6 release sequence in document 40 and gate every capability behind privacy/security review and feature flags.
