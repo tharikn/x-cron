@@ -2,7 +2,7 @@ export const environment = {
   production: true,
   apiUrl: 'https://x-cron-api.onrender.com/v1',
   /** XCron CV microservice origin (handoff target). */
-  resumeUrl: 'https://resume.xcron.in',
+  resumeUrl: 'https://xcroncv-web-ui.onrender.com',
   siteUrl: 'https://x-cron.onrender.com',
   siteName: 'X Cron',
   /** Set at build time to your Google OAuth Web client ID. */
@@ -16,4 +16,8 @@ export const environment = {
     'https://github.com/tharikn/x-cron/releases/latest/download/xcron-jobs.apk',
   androidApkVersion: '1.0.4',
   androidApkSizeLabel: '~10 MB',
+  /** XCron CV (resume builder) APK — separate repo + GitHub Releases. */
+  resumeReleasesApiUrl: 'https://api.github.com/repos/tharikn/xcroncv/releases',
+  resumeApkUrl:
+    'https://github.com/tharikn/xcroncv/releases/latest/download/xcron-cv.apk',
 };

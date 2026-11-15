@@ -2,7 +2,7 @@ export const environment = {
   production: true,
   apiUrl: 'https://x-cron-api.onrender.com/v1',
   /** XCron CV microservice origin (handoff target). */
-  resumeUrl: 'https://resume.xcron.in',
+  resumeUrl: 'https://xcroncv-web-ui.onrender.com',
   googleClientId:
     '199090164542-ina98t21c5d8mm081gnj0j9fo5qvgsd0.apps.googleusercontent.com',
   githubRepo: 'tharikn/x-cron',
