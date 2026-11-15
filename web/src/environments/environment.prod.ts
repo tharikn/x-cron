@@ -1,6 +1,8 @@
 export const environment = {
   production: true,
   apiUrl: 'https://x-cron-api.onrender.com/v1',
+  /** XCron CV microservice origin (handoff target). */
+  resumeUrl: 'https://resume.xcron.in',
   siteUrl: 'https://x-cron.onrender.com',
   siteName: 'X Cron',
   /** Set at build time to your Google OAuth Web client ID. */

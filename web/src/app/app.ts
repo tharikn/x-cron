@@ -27,6 +27,7 @@ import { LocaleService } from './core/services/locale.service';
 import { NotificationsService } from './core/services/notifications.service';
 import { OnboardingService } from './core/services/onboarding.service';
 import { SeekerService } from './core/services/seeker.service';
+import { ResumeLaunchService } from './core/services/resume-launch.service';
 import { SiteService } from './core/services/site.service';
 import { ToastService } from './core/services/toast.service';
 import { TrackingService } from './core/services/tracking.service';
@@ -75,6 +76,7 @@ export class App implements OnInit, OnDestroy {
   private readonly notifications = inject(NotificationsService);
   private readonly onboarding = inject(OnboardingService);
   private readonly seeker = inject(SeekerService);
+  private readonly resumeLaunch = inject(ResumeLaunchService);
   private readonly connectivity = inject(ConnectivityService);
   private readonly tracking = inject(TrackingService);
   private navSub?: Subscription;
@@ -188,6 +190,12 @@ export class App implements OnInit, OnDestroy {
   openMenu(): void {
     this.menuOpen.set(true);
     this.lockBody();
+  }
+
+  buildResume(event: Event): void {
+    event.preventDefault();
+    this.closeMenu();
+    void this.resumeLaunch.launch();
   }
 
   closeMenu(): void {

@@ -38,6 +38,7 @@ import { TrackingService } from '../../core/services/tracking.service';
 import { LocaleService } from '../../core/services/locale.service';
 import { PreferencesService } from '../../core/services/preferences.service';
 import { SeekerService } from '../../core/services/seeker.service';
+import { ResumeLaunchService } from '../../core/services/resume-launch.service';
 import { ViewedJobsService } from '../../core/services/viewed-jobs.service';
 import { JobCardComponent } from '../../shared/job-card/job-card.component';
 import { LocationTypeaheadComponent } from '../../shared/location-typeahead/location-typeahead.component';
@@ -108,6 +109,7 @@ export class DiscoverPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly seeker = inject(SeekerService);
   private readonly router = inject(Router);
+  protected readonly resumeLaunch = inject(ResumeLaunchService);
   private readonly route = inject(ActivatedRoute);
   readonly viewed = inject(ViewedJobsService);
 
