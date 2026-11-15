@@ -14,6 +14,17 @@
       <p class="hero__jobs">Jobs</p>
       <h1 class="hero__quote">{{ 'home.headline' | t }}</h1>
       <p class="lead">{{ 'home.lead' | t }}</p>
+      <ion-button
+        expand="block"
+        color="dark"
+        class="hero__resume"
+        data-testid="build-resume"
+        [disabled]="resumeLaunch.busy()"
+        (click)="resumeLaunch.launch()"
+      >
+        <ion-icon slot="start" name="document-text-outline"></ion-icon>
+        {{ 'home.buildResume' | t }}
+      </ion-button>
     </section>
 
     @if (usingApi()) {

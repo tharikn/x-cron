@@ -98,6 +98,9 @@
       <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
         {{ 'nav.home' | t }}
       </a>
+      <a href="#" data-testid="build-resume" (click)="buildResume($event)">
+        {{ 'nav.buildResume' | t }}
+      </a>
       @if (isEmployer()) {
         <div class="drawer__group">
           <a routerLink="/post" routerLinkActive="is-active" (click)="closeMenu()">

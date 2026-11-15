@@ -19,6 +19,7 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
     sortOrder: 1,
     strings: {
       'nav.home': 'Home',
+      'nav.buildResume': 'Build Resume',
       'nav.post': 'Post',
       'nav.import': 'Bulk import',
       'nav.myJobs': 'Feeds',

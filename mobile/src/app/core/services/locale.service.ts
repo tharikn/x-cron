@@ -18,6 +18,7 @@ const FALLBACK_LANGUAGES: AppLanguageOption[] = [
     sortOrder: 1,
     strings: {
       'nav.discover': 'Discover',
+      'home.buildResume': 'Build Resume',
       'nav.post': 'Post',
       'nav.prefs': 'Prefs',
       'nav.account': 'Account',
