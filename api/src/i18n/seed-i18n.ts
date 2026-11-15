@@ -112,6 +112,7 @@ const EN_STRINGS: Record<string, string> = {
     'Install the Android app for a faster, thumb-friendly job browse — same jobs, clearer on mobile.',
   'appDownload.cta': 'Download APK',
   'appDownload.ctaVersion': 'Download',
+  'appDownload.ctaResume': 'Get XCron CV (Resume Builder) APK',
   'appDownload.direct': 'Direct install',
   'appDownload.hint':
     'Downloads the latest APK from GitHub Releases. On Android, allow install from this browser when prompted.',
@@ -314,6 +315,7 @@ const TA_STRINGS: Record<string, string> = {
     'வேகமான, தொடுவதற்கு எளிதான வேலை உலாவலுக்கு Android செயலியை நிறுவுங்கள் — அதே வேலைகள், மொபைலில் தெளிவாக.',
   'appDownload.cta': 'APK பதிவிறக்கு',
   'appDownload.ctaVersion': 'பதிவிறக்கு',
+  'appDownload.ctaResume': 'XCron CV (ரெஸ்யூம் பில்டர்) APK பெறுங்கள்',
   'appDownload.direct': 'நேரடி நிறுவல்',
   'appDownload.hint':
     'GitHub Releases-இலிருந்து சமீபத்திய APK பதிவிறக்கும். Android-ல் கேட்டால் இந்த உலாவியிலிருந்து நிறுவலை அனுமதியுங்கள்.',
@@ -516,6 +518,7 @@ const HI_STRINGS: Record<string, string> = {
     'तेज़, अंगूठे के अनुकूल जॉब ब्राउज़ के लिए Android ऐप इंस्टॉल करें — वही नौकरियाँ, मोबाइल पर साफ़।',
   'appDownload.cta': 'APK डाउनलोड करें',
   'appDownload.ctaVersion': 'डाउनलोड',
+  'appDownload.ctaResume': 'XCron CV (रिज़्यूमे बिल्डर) APK पाएँ',
   'appDownload.direct': 'सीधा इंस्टॉल',
   'appDownload.hint':
     'GitHub Releases से नवीनतम APK डाउनलोड होता है। Android पर पूछे जाने पर इस ब्राउज़र से इंस्टॉल की अनुमति दें।',

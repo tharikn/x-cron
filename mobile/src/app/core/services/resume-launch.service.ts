@@ -3,6 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
+import { DefaultWebViewOptions, InAppBrowser } from '@capacitor/inappbrowser';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { useApiCredentials } from '../utils/api-credentials';
@@ -46,7 +47,7 @@ export class ResumeLaunchService {
       );
       const url = `${redirectUri}?code=${encodeURIComponent(code)}&nonce=${nonce}`;
       if (Capacitor.isNativePlatform()) {
-        await Browser.open({ url, presentationStyle: 'fullscreen' });
+        await this.openInApp(url);
       } else {
         window.location.assign(url);
       }
@@ -54,6 +55,29 @@ export class ResumeLaunchService {
       this.failed.set(true);
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  /**
+   * Android: full-screen in-app WebView so XCron CV behaves like a screen of this app
+   * (close button + hardware back return to X Cron Jobs). If the WebView plugin
+   * fails, fall back to a Chrome Custom Tab so the handoff still works.
+   */
+  private async openInApp(url: string): Promise<void> {
+    try {
+      await InAppBrowser.openInWebView({
+        url,
+        options: {
+          ...DefaultWebViewOptions,
+          showURL: false,
+          showToolbar: true,
+          showNavigationButtons: false,
+          closeButtonText: 'Close',
+          android: { ...DefaultWebViewOptions.android, hardwareBack: true, allowZoom: false },
+        },
+      });
+    } catch {
+      await Browser.open({ url, presentationStyle: 'fullscreen' });
     }
   }
 }

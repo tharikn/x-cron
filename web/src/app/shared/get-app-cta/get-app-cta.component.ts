@@ -24,16 +24,22 @@ export class GetAppCtaComponent implements OnInit {
   readonly fallbackSizeLabel = environment.androidApkSizeLabel;
 
   readonly latest = this.apkReleases.latest;
+  readonly latestResume = this.apkReleases.latestResume;
   readonly loading = this.apkReleases.loading;
   readonly error = this.apkReleases.error;
 
   ngOnInit(): void {
     if (typeof window === 'undefined') return;
     void this.apkReleases.loadLatest();
+    void this.apkReleases.loadLatestResume();
   }
 
   apkUrl(): string {
     return this.latest()?.apkUrl || this.fallbackApkUrl;
+  }
+
+  resumeApkUrl(): string {
+    return this.latestResume()?.apkUrl || environment.resumeApkUrl;
   }
 
   versionLabel(): string {

@@ -31,6 +31,9 @@
       >
         {{ 'appDownload.cta' | t }}
       </a>
+      <a class="get-app__cta get-app__cta--secondary" [href]="resumeApkUrl()" rel="noopener" data-testid="download-cv-apk">
+        {{ 'appDownload.ctaResume' | t }}
+      </a>
       <p class="get-app__meta">
         <span>Android</span>
         <span aria-hidden="true">·</span>
@@ -86,6 +89,9 @@
           rel="noopener"
         >
           {{ 'appDownload.cta' | t }}
+        </a>
+        <a class="get-app__cta get-app__cta--secondary" [href]="resumeApkUrl()" rel="noopener" data-testid="download-cv-apk">
+          {{ 'appDownload.ctaResume' | t }}
         </a>
         <p class="get-app__hint">{{ 'appDownload.hint' | t }}</p>
       </div>
