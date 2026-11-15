@@ -9,6 +9,7 @@ import { ChannelsModule } from './channels/channels.module';
 import { CompaniesModule } from './companies/companies.module';
 import { validateEnv } from './config/env.validation';
 import { FilesModule } from './files/files.module';
+import { HandoffModule } from './handoff/handoff.module';
 import { HealthController } from './health/health.controller';
 import { I18nModule } from './i18n/i18n.module';
 import { IngestionModule } from './ingestion/ingestion.module';
@@ -44,6 +45,7 @@ import { TrackingModule } from './tracking/tracking.module';
     FilesModule,
     AiModule,
     AuthModule,
+    HandoffModule,
     CompaniesModule,
     ModerationModule,
     JobsModule,
