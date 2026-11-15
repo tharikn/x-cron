@@ -2,6 +2,7 @@ import type { LanguageWithStrings } from './i18n.types';
 
 const EN_STRINGS: Record<string, string> = {
   'nav.home': 'Home',
+  'nav.buildResume': 'Build Resume',
   'nav.post': 'Post',
   'nav.import': 'Bulk import',
   'nav.myJobs': 'Feeds',
@@ -202,6 +203,7 @@ const EN_STRINGS: Record<string, string> = {
 
 const TA_STRINGS: Record<string, string> = {
   'nav.home': 'முகப்பு',
+  'nav.buildResume': 'ரெஸ்யூம் உருவாக்கு',
   'nav.post': 'பதிவு',
   'nav.import': 'மொத்த பதிவேற்றம்',
   'nav.myJobs': 'Feeds',
@@ -403,6 +405,7 @@ const TA_STRINGS: Record<string, string> = {
 
 const HI_STRINGS: Record<string, string> = {
   'nav.home': 'होम',
+  'nav.buildResume': 'रिज़्यूमे बनाएँ',
   'nav.post': 'पोस्ट',
   'nav.import': 'बल्क अपलोड',
   'nav.myJobs': 'Feeds',

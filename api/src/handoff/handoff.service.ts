@@ -6,6 +6,7 @@ import {
 import {
   createPrivateKey,
   createPublicKey,
+  createHash,
   createSign,
   generateKeyPairSync,
   randomBytes,
@@ -54,7 +55,16 @@ export class HandoffService {
       this.privateKey = pair.privateKey;
       this.publicKey = pair.publicKey;
     }
-    this.kid = process.env.HANDOFF_KEY_ID ?? 'xcron-handoff-1';
+    // Default kid = RFC 7638 thumbprint, so a new key always gets a new kid and
+    // remote JWKS caches (jose) refetch instead of verifying against a stale key.
+    this.kid = process.env.HANDOFF_KEY_ID ?? this.thumbprint();
+  }
+
+  private thumbprint(): string {
+    const { e, kty, n } = this.publicKey.export({ format: 'jwk' });
+    return createHash('sha256')
+      .update(JSON.stringify({ e, kty, n }))
+      .digest('base64url');
   }
 
   get issuer(): string {

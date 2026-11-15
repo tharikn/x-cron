@@ -41,4 +41,9 @@ describe('HandoffService', () => {
     const code2 = svc.createCode(user, REDIRECT, NONCE);
     expect(() => svc.exchange('bad', code2, REDIRECT, NONCE)).toThrow();
   });
+
+  it('derives a distinct key id per generated key (JWKS cache safety)', () => {
+    delete process.env.HANDOFF_KEY_ID;
+    expect(new HandoffService().kid).not.toBe(new HandoffService().kid);
+  });
 });
