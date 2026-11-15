@@ -37,6 +37,8 @@ export class ApkReleasesService {
 
   readonly releases = signal<ApkReleaseRow[]>([]);
   readonly latest = signal<ApkReleaseRow | null>(null);
+  /** XCron CV standalone APK (separate repo). */
+  readonly latestResume = signal<ApkReleaseRow | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -63,6 +65,21 @@ export class ApkReleasesService {
       this.latest.set(null);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  /** Latest XCron CV APK from its own GitHub repo; silent on failure (static link is the fallback). */
+  async loadLatestResume(): Promise<void> {
+    if (!environment.resumeReleasesApiUrl) return;
+    try {
+      const release = await firstValueFrom(
+        this.http.get<GitHubRelease>(`${environment.resumeReleasesApiUrl}/latest?t=${Date.now()}`, {
+          headers: { Accept: 'application/vnd.github+json' },
+        }),
+      );
+      this.latestResume.set(release?.draft || release?.prerelease ? null : this.toRow(release, 'xcron-cv.apk'));
+    } catch {
+      this.latestResume.set(null);
     }
   }
 
@@ -93,8 +110,8 @@ export class ApkReleasesService {
     }
   }
 
-  private toRow(release: GitHubRelease): ApkReleaseRow | null {
-    const apk = release.assets?.find((a) => a.name === 'xcron-jobs.apk');
+  private toRow(release: GitHubRelease, assetName = 'xcron-jobs.apk'): ApkReleaseRow | null {
+    const apk = release.assets?.find((a) => a.name === assetName);
     if (!apk?.browser_download_url) return null;
 
     let versionCode: number | null = null;

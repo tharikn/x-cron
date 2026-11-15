@@ -16,4 +16,8 @@ export const environment = {
     'https://github.com/tharikn/x-cron/releases/latest/download/xcron-jobs.apk',
   androidApkVersion: '1.0.4',
   androidApkSizeLabel: '~10 MB',
+  /** XCron CV (resume builder) APK — separate repo + GitHub Releases. */
+  resumeReleasesApiUrl: 'https://api.github.com/repos/tharikn/xcroncv/releases',
+  resumeApkUrl:
+    'https://github.com/tharikn/xcroncv/releases/latest/download/xcron-cv.apk',
 };
