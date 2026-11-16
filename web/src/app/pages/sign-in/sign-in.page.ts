@@ -33,6 +33,7 @@ import {
 } from '../../core/services/seeker.service';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { OnboardingService } from '../../core/services/onboarding.service';
+import { ResumeLaunchService } from '../../core/services/resume-launch.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
@@ -67,6 +68,7 @@ export class SignInPage implements OnInit, AfterViewInit {
   private readonly toast = inject(ToastService);
   private readonly notifications = inject(NotificationsService);
   private readonly onboarding = inject(OnboardingService);
+  private readonly resumeLaunch = inject(ResumeLaunchService);
   private readonly seeker = inject(SeekerService);
   private readonly jobApplications = inject(ApplicationsService);
   private readonly applyProfilesApi = inject(ApplyProfilesService);
@@ -935,6 +937,11 @@ export class SignInPage implements OnInit, AfterViewInit {
 
   private async redirectAfterSignIn(): Promise<void> {
     await this.promptSystemNotifications();
+    const intent = this.route.snapshot.queryParamMap.get('intent');
+    if (intent === 'resume') {
+      void this.resumeLaunch.launch();
+      return;
+    }
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
     if (returnUrl?.startsWith('/') && !returnUrl.startsWith('//')) {
       if (this.isAdminReturnUrl(returnUrl) && !this.isAdmin()) {

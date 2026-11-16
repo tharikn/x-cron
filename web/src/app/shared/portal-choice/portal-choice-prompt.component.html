@@ -1,0 +1,57 @@
+<div class="portal-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="portal-title">
+  <div class="portal-modal">
+    <div class="portal-modal__head">
+      <div class="portal-brand">
+        <span class="portal-brand__x">X Cron</span>
+        <span class="portal-brand__tag">Welcome</span>
+      </div>
+      <h1 id="portal-title" class="portal-modal__title">How would you like to get started?</h1>
+      <p class="portal-modal__subtitle">Select an application to continue</p>
+    </div>
+
+    <div class="portal-cards">
+      <!-- Card 1: Job Search -->
+      <button type="button" class="portal-card" (click)="choose('jobs')" data-testid="portal-choice-jobs">
+        <div class="portal-card__icon portal-card__icon--jobs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+        </div>
+        <div class="portal-card__body">
+          <h2 class="portal-card__heading">Job Search</h2>
+          <p class="portal-card__desc">Discover and apply for verified jobs, track applications, and connect with employers.</p>
+        </div>
+        <div class="portal-card__action">
+          <span>Find Jobs &rarr;</span>
+        </div>
+      </button>
+
+      <!-- Card 2: Resume Builder -->
+      <button type="button" class="portal-card" (click)="choose('resume')" data-testid="portal-choice-resume">
+        <div class="portal-card__icon portal-card__icon--resume">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="portal-card__body">
+          <h2 class="portal-card__heading">Resume Builder</h2>
+          <p class="portal-card__desc">Build, customize, and export ATS-ready resumes with professional templates in XCron CV.</p>
+        </div>
+        <div class="portal-card__action">
+          <span>Build Resume &rarr;</span>
+        </div>
+      </button>
+    </div>
+
+    <div class="portal-modal__footer">
+      <button type="button" class="portal-skip" (click)="skip()">
+        Skip for now &amp; explore as guest
+      </button>
+    </div>
+  </div>
+</div>

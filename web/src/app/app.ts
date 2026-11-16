@@ -36,6 +36,7 @@ import { HelpChatComponent } from './shared/help-chat/help-chat.component';
 import { RouteEnterDirective } from './shared/route-enter/route-enter.directive';
 import { ApiLoadingSkeletonComponent } from './shared/skeleton/api-loading-skeleton.component';
 import { ThemePromptComponent } from './shared/theme-prompt/theme-prompt.component';
+import { PortalChoicePromptComponent } from './shared/portal-choice/portal-choice-prompt.component';
 
 const FOOTER_ITEM_KEYS: Record<string, string> = {
   ql_home: 'footer.quick.home',
@@ -61,6 +62,7 @@ const FOOTER_ITEM_KEYS: Record<string, string> = {
     RouteEnterDirective,
     ApiLoadingSkeletonComponent,
     ThemePromptComponent,
+    PortalChoicePromptComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -92,6 +94,7 @@ export class App implements OnInit, OnDestroy {
   readonly apiBusy = this.apiLoading.visible;
   readonly toasts = this.toastService.messages;
   readonly themePromptOpen = this.onboarding.themePromptOpen;
+  readonly portalChoiceOpen = this.onboarding.portalChoiceOpen;
   readonly online = this.connectivity.online;
   readonly isSignedIn = this.auth.isSignedIn;
   readonly isAdmin = this.auth.isAdmin;
@@ -129,9 +132,12 @@ export class App implements OnInit, OnDestroy {
     if (isPlatformBrowser(this.platformId)) {
       this.connectivity.start();
       this.tracking.start();
-      this.onboarding.openThemePromptIfNeeded();
-      if (!this.onboarding.themePromptOpen()) {
-        void this.maybeForceProfileSetup();
+      this.onboarding.openPortalChoiceIfNeeded();
+      if (!this.onboarding.portalChoiceOpen()) {
+        this.onboarding.openThemePromptIfNeeded();
+        if (!this.onboarding.themePromptOpen()) {
+          void this.maybeForceProfileSetup();
+        }
       }
     }
     this.navSub = this.router.events
@@ -156,6 +162,14 @@ export class App implements OnInit, OnDestroy {
 
   onThemePromptClosed(): void {
     void this.maybeForceProfileSetup();
+  }
+
+  onPortalChoiceClosed(): void {
+    this.onboarding.completePortalChoice();
+    this.onboarding.openThemePromptIfNeeded();
+    if (!this.onboarding.themePromptOpen()) {
+      void this.maybeForceProfileSetup();
+    }
   }
 
   private async maybeForceProfileSetup(): Promise<void> {

@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import type { SeekerProfile } from './seeker.service';
 
 const THEME_PROMPT_KEY = 'xcron.web.themePromptDone';
+const PORTAL_CHOICE_KEY = 'xcron.web.portalChoiceDone';
 const PROFILE_REMIND_KEY = 'xcron.web.profileRemindUntil';
 /** Soft snooze after Remind later — inbox nudges still fire. */
 const REMIND_MS = 24 * 60 * 60 * 1000;
@@ -23,6 +24,34 @@ export class OnboardingService {
   private readonly auth = inject(AuthService);
 
   readonly themePromptOpen = signal(false);
+  readonly portalChoiceOpen = signal(false);
+
+  /** First-open portal choice prompt (Jobs vs Resume Builder). */
+  needsPortalChoice(): boolean {
+    if (!isPlatformBrowser(this.platformId)) return false;
+    try {
+      return localStorage.getItem(PORTAL_CHOICE_KEY) !== '1';
+    } catch {
+      return true;
+    }
+  }
+
+  openPortalChoiceIfNeeded(): void {
+    if (this.needsPortalChoice()) {
+      this.portalChoiceOpen.set(true);
+    }
+  }
+
+  completePortalChoice(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        localStorage.setItem(PORTAL_CHOICE_KEY, '1');
+      } catch {
+        // ignore
+      }
+    }
+    this.portalChoiceOpen.set(false);
+  }
 
   /** First-open theme chooser for guests and signed-in users. */
   needsThemePrompt(): boolean {
