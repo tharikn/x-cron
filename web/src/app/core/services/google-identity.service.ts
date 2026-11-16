@@ -109,6 +109,7 @@ export class GoogleIdentityService {
   async renderButton(
     host: HTMLElement,
     onCredential: (idToken: string) => void,
+    options?: { theme?: 'outline' | 'filled_blue' | 'filled_black' },
   ): Promise<void> {
     if (!isPlatformBrowser(this.platformId) || !this.clientId) return;
     await this.ensureScript();
@@ -121,7 +122,7 @@ export class GoogleIdentityService {
     });
     const width = Math.min(360, Math.max(240, host.clientWidth || 320));
     window.google!.accounts.id.renderButton(host, {
-      theme: 'filled_black',
+      theme: options?.theme ?? 'filled_black',
       size: 'large',
       text: 'continue_with',
       shape: 'rectangular',

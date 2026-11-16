@@ -129,10 +129,19 @@ button.ghost {
 .google-btn-host {
   min-height: 44px;
   margin-bottom: 0.35rem;
+  color-scheme: light;
+  background: transparent !important;
 }
 
-.google-btn-host ::ng-deep div[role='button'] {
-  width: 100% !important;
+.google-btn-host ::ng-deep {
+  iframe {
+    color-scheme: light !important;
+    background: transparent !important;
+  }
+
+  div[role='button'] {
+    width: 100% !important;
+  }
 }
 
 @keyframes sheet-fade {

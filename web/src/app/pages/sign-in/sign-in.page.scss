@@ -243,10 +243,19 @@ button:disabled {
   width: 100%;
   display: flex;
   justify-content: center;
+  color-scheme: light;
+  background: transparent !important;
 }
 
-.google-btn-host ::ng-deep div[role='button'] {
-  border-radius: var(--xcron-radius-sm) !important;
+.google-btn-host ::ng-deep {
+  iframe {
+    color-scheme: light !important;
+    background: transparent !important;
+  }
+
+  div[role='button'] {
+    border-radius: var(--xcron-radius-sm) !important;
+  }
 }
 
 .role {

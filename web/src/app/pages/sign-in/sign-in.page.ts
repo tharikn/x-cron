@@ -6,6 +6,7 @@ import {
   OnInit,
   PLATFORM_ID,
   computed,
+  effect,
   inject,
   signal,
   viewChild,
@@ -21,6 +22,9 @@ import {
   AuthService,
   type AuthDeviceSession,
 } from '../../core/services/auth.service';
+import {
+  ThemeService,
+} from '../../core/services/theme.service';
 import { GoogleIdentityService } from '../../core/services/google-identity.service';
 import { JobsService } from '../../core/services/jobs.service';
 import {
@@ -65,6 +69,7 @@ export class SignInPage implements OnInit, AfterViewInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly google = inject(GoogleIdentityService);
+  private readonly theme = inject(ThemeService);
   private readonly toast = inject(ToastService);
   private readonly notifications = inject(NotificationsService);
   private readonly onboarding = inject(OnboardingService);
@@ -129,6 +134,17 @@ export class SignInPage implements OnInit, AfterViewInit {
   readonly employerApps = signal<JobApplication[]>([]);
   readonly postedJobs = signal<Job[]>([]);
   readonly jobPath = jobPath;
+
+  constructor() {
+    effect(() => {
+      // Re-mount Google button if active theme changes
+      const currentTheme = this.theme.resolved();
+      if (this.googleRendered && isPlatformBrowser(this.platformId)) {
+        this.googleRendered = false;
+        queueMicrotask(() => void this.mountGoogleButton());
+      }
+    });
+  }
 
   username = '';
   password = '';
@@ -731,9 +747,14 @@ export class SignInPage implements OnInit, AfterViewInit {
     const host = this.googleHost()?.nativeElement;
     if (!host || this.googleRendered) return;
     try {
-      await this.google.renderButton(host, (idToken) => {
-        void this.completeGoogle(idToken);
-      });
+      const isLight = this.theme.resolved() === 'light';
+      await this.google.renderButton(
+        host,
+        (idToken) => {
+          void this.completeGoogle(idToken);
+        },
+        { theme: isLight ? 'outline' : 'filled_black' },
+      );
       this.googleRendered = true;
     } catch {
       // Fallback button remains if GIS fails to mount
