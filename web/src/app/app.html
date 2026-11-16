@@ -342,6 +342,10 @@
 
 <app-help-chat />
 
+@if (portalChoiceOpen()) {
+  <app-portal-choice-prompt (closed)="onPortalChoiceClosed()" />
+}
+
 @if (themePromptOpen()) {
   <app-theme-prompt (closed)="onThemePromptClosed()" />
 }
