@@ -18,6 +18,13 @@ import type { AuthUser } from '../auth/auth.types';
 const CODE_TTL_MS = 60_000;
 const TOKEN_TTL_S = 15 * 60;
 
+/**
+ * The standalone XCron CV APK registers this scheme, so a code may be minted for it even
+ * when HANDOFF_REDIRECT_URIS only lists the hosted web origin. Redeeming still needs the
+ * single-use code + matching nonce.
+ */
+export const NATIVE_CV_REDIRECT = 'xcroncv://auth/callback';
+
 interface CodeRecord {
   userId: string;
   roles: string[];
@@ -74,10 +81,11 @@ export class HandoffService {
     return process.env.HANDOFF_AUDIENCE ?? 'xcroncv';
   }
   private get allowedRedirects(): string[] {
-    return (process.env.HANDOFF_REDIRECT_URIS ?? 'http://localhost:4300/auth/callback')
+    const configured = (process.env.HANDOFF_REDIRECT_URIS ?? 'http://localhost:4300/auth/callback')
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+    return configured.includes(NATIVE_CV_REDIRECT) ? configured : [...configured, NATIVE_CV_REDIRECT];
   }
 
   jwks() {

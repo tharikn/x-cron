@@ -69,6 +69,19 @@
     </div>
   }
 
+  <!-- Handoff to the standalone CV service: show progress while the code is minted and the browser navigates. -->
+  @if (resumeLaunch.busy() || resumeLaunch.redirecting()) {
+    <div
+      class="handoff-overlay"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      [attr.aria-label]="'common.loading' | t"
+    >
+      <span class="handoff-overlay__spin" aria-hidden="true"></span>
+    </div>
+  }
+
   @if (!online()) {
     <div class="offline-banner" role="status" aria-live="polite">
       You’re offline — reconnect to search, apply, or sync.

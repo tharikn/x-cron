@@ -1,6 +1,6 @@
 import { createPublicKey, createVerify } from 'crypto';
 import type { AuthUser } from '../auth/auth.types';
-import { HandoffService } from './handoff.service';
+import { HandoffService, NATIVE_CV_REDIRECT } from './handoff.service';
 
 const REDIRECT = 'http://localhost:4300/auth/callback';
 const NONCE = 'n'.repeat(24);
@@ -40,6 +40,12 @@ describe('HandoffService', () => {
     ).toThrow();
     const code2 = svc.createCode(user, REDIRECT, NONCE);
     expect(() => svc.exchange('bad', code2, REDIRECT, NONCE)).toThrow();
+  });
+
+  it('always allows the native CV APK redirect, even when not configured', () => {
+    const svc = new HandoffService();
+    const code = svc.createCode(user, NATIVE_CV_REDIRECT, NONCE);
+    expect(svc.exchange(SECRET, code, NATIVE_CV_REDIRECT, NONCE).access_token).toBeTruthy();
   });
 
   it('derives a distinct key id per generated key (JWKS cache safety)', () => {

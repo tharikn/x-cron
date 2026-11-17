@@ -17,6 +17,8 @@ export class ResumeLaunchService {
 
   readonly busy = signal(false);
   readonly failed = signal(false);
+  /** True once the browser navigation to CV has started (kept until unload). */
+  readonly redirecting = signal(false);
 
   async launch(): Promise<void> {
     if (this.busy()) return;
@@ -40,6 +42,9 @@ export class ResumeLaunchService {
       window.location.assign(
         `${redirectUri}?code=${encodeURIComponent(code)}&nonce=${nonce}`,
       );
+      this.redirecting.set(true);
+      // If the navigation is blocked (e.g. offline), do not leave the overlay forever.
+      setTimeout(() => this.redirecting.set(false), 10_000);
     } catch {
       this.failed.set(true);
     } finally {

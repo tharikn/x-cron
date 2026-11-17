@@ -78,7 +78,7 @@ export class App implements OnInit, OnDestroy {
   private readonly notifications = inject(NotificationsService);
   private readonly onboarding = inject(OnboardingService);
   private readonly seeker = inject(SeekerService);
-  private readonly resumeLaunch = inject(ResumeLaunchService);
+  protected readonly resumeLaunch = inject(ResumeLaunchService);
   private readonly connectivity = inject(ConnectivityService);
   private readonly tracking = inject(TrackingService);
   private navSub?: Subscription;

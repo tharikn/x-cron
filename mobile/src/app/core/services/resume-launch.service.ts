@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { AppLauncher } from '@capacitor/app-launcher';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { DefaultWebViewOptions, InAppBrowser } from '@capacitor/inappbrowser';
@@ -9,6 +10,9 @@ import { environment } from '../../../environments/environment';
 import { useApiCredentials } from '../utils/api-credentials';
 import { csrfHeaders } from '../utils/csrf';
 import { AuthService } from './auth.service';
+
+/** Must match the intent filter in the standalone XCron CV APK (com.xcron.cv). */
+const NATIVE_CV_REDIRECT = 'xcroncv://auth/callback';
 
 /**
  * Opens XCron CV (standalone microservice) for the signed-in user via a one-time
@@ -32,29 +36,57 @@ export class ResumeLaunchService {
     this.busy.set(true);
     this.failed.set(false);
     try {
-      const base = environment.resumeUrl.replace(/\/+$/, '');
-      const redirectUri = `${base}/auth/callback`;
-      const nonce = crypto.randomUUID().replace(/-/g, '');
-      const { code } = await firstValueFrom(
-        this.http.post<{ code: string }>(
-          `${environment.apiUrl}/handoff/resume`,
-          { redirectUri, nonce },
-          {
-            withCredentials: useApiCredentials(),
-            headers: { ...this.auth.authHeaders(), ...csrfHeaders() },
-          },
-        ),
-      );
-      const url = `${redirectUri}?code=${encodeURIComponent(code)}&nonce=${nonce}`;
       if (Capacitor.isNativePlatform()) {
-        await this.openInApp(url);
+        // When the standalone CV APK is installed, hand the session to it directly.
+        // The in-app WebView remains the fallback (CV app not installed / intent rejected).
+        if (await this.canOpenCvApp()) {
+          try {
+            const url = await this.handoffUrl(NATIVE_CV_REDIRECT);
+            await AppLauncher.openUrl({ url });
+            return;
+          } catch {
+            // Fall through to the hosted WebView flow below.
+          }
+        }
+        await this.openInApp(await this.handoffUrl(this.webRedirect()));
       } else {
-        window.location.assign(url);
+        window.location.assign(await this.handoffUrl(this.webRedirect()));
       }
     } catch {
       this.failed.set(true);
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  private webRedirect(): string {
+    const base = environment.resumeUrl.replace(/\/+$/, '');
+    return `${base}/auth/callback`;
+  }
+
+  /** Mints a single-use code bound to the redirect URI + nonce. */
+  private async handoffUrl(redirectUri: string): Promise<string> {
+    const nonce = crypto.randomUUID().replace(/-/g, '');
+    const { code } = await firstValueFrom(
+      this.http.post<{ code: string }>(
+        `${environment.apiUrl}/handoff/resume`,
+        { redirectUri, nonce },
+        {
+          withCredentials: useApiCredentials(),
+          headers: { ...this.auth.authHeaders(), ...csrfHeaders() },
+        },
+      ),
+    );
+    return `${redirectUri}?code=${encodeURIComponent(code)}&nonce=${nonce}`;
+  }
+
+  /** Android 11+ needs the `<queries>` entry in the host manifest for this to answer true. */
+  private async canOpenCvApp(): Promise<boolean> {
+    try {
+      const { value } = await AppLauncher.canOpenUrl({ url: NATIVE_CV_REDIRECT });
+      return value;
+    } catch {
+      return false;
     }
   }
 

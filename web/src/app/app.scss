@@ -230,6 +230,39 @@
   }
 }
 
+/* Transparent progress overlay while XCron CV is opened (one-time code handoff). */
+.handoff-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--xcron-bg) 55%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.handoff-overlay__spin {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--xcron-cta-gradient);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  animation: handoff-spin 0.9s linear infinite;
+}
+
+@keyframes handoff-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handoff-overlay__spin {
+    animation-duration: 2.4s;
+  }
+}
+
 .backdrop {
   position: fixed;
   inset: 0;

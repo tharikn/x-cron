@@ -22,7 +22,11 @@
         [disabled]="resumeLaunch.busy()"
         (click)="resumeLaunch.launch()"
       >
-        <ion-icon slot="start" name="document-text-outline"></ion-icon>
+        @if (resumeLaunch.busy()) {
+          <ion-spinner slot="start" name="crescent"></ion-spinner>
+        } @else {
+          <ion-icon slot="start" name="document-text-outline"></ion-icon>
+        }
         {{ 'nav.buildResume' | t }}
       </ion-button>
     </section>
