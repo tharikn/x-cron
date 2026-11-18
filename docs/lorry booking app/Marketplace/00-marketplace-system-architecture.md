@@ -1,384 +1,325 @@
-# Load Marketplace — System Architecture & Backend Implementation Prompt
+# Load Marketplace — System Architecture
 
-> Product: X Cron Lorry Booking Platform  
-> Module: Load Marketplace  
-> Stack: Flutter, NestJS, PostgreSQL, Redis  
-> Market: India, including intra-state and interstate freight
+Product: X Cron Lorry Booking Platform  
+Scope: Core Load Marketplace only  
+Stack: Flutter, NestJS, PostgreSQL, Redis  
+Market: India
 
-## 1. Objective
+## 1. Scope and boundaries
 
-Build a two-sided freight marketplace connecting shippers/load owners with truck owners and fleet operators. Shippers publish loads; eligible carriers discover, evaluate, negotiate and book them. The marketplace also recommends return-load (backhaul) opportunities to reduce empty kilometres.
+Marketplace enables shippers to publish freight-load listings and transporters to discover, search, filter, compare and save them.
 
-This is an implementation specification, not a clone of another product. Use broad mobility/freight usability principles—fast search, clear route hierarchy, map/list parity, transparent pricing, live status, trust signals and low-friction actions—while creating original X Cron product design. Do not copy competitor source, assets, branding, wording, exact screen layouts or proprietary interaction flows.
+Included:
+- Draft, create, validate, publish, edit, pause, resume, expire and withdraw load listings.
+- Load search, filtering, sorting, pagination and listing details.
+- Basic vehicle/cargo requirement compatibility using existing Profile/Fleet data.
+- Saved loads and saved search preferences.
+- List/map result parity, listing moderation, privacy, audit and cache management.
 
-## 2. Roles and product modes
+Explicitly excluded; implement as separate modules/documents:
+- Backhaul and return-load optimization.
+- Offers, negotiation, booking, allocation and payments.
+- Trip lifecycle, GPS tracking, driver operations, proof of delivery and FASTag.
+- Route optimization, fuel/toll costing, earnings and profit estimation.
+- User, fleet and vehicle onboarding. Reuse the existing Profile onboard module.
 
-- SHIPPER / LOAD_OWNER: create and manage loads, review carrier offers, negotiate, award and track bookings.
-- OWNER / FLEET_OPERATOR: manage trucks/drivers, search loads, negotiate and book.
-- DRIVER: view assigned trip details and perform authorized operational milestones; cannot alter commercial terms unless explicitly authorized.
-- ADMIN / OPS: moderate listings, review suspicious activity, handle disputes and operational exceptions.
+Do not add excluded capabilities to Marketplace. Provide stable listing IDs and integration events for other modules.
 
-One account may hold multiple roles. Keep one canonical account identity and enforce role/resource permissions.
+## 2. Actors and permissions
 
-Marketplace modes:
-1. Find Loads — carrier searches loads compatible with vehicle, capacity, location, route and time.
-2. Find Trucks — shipper searches available eligible vehicles for a load.
-3. Backhaul — loads near a vehicle's expected delivery point and aligned with its return corridor.
-4. My Loads / My Bookings — listings, offers, negotiations, confirmed bookings and trip lifecycle.
+- SHIPPER / LOAD_OWNER: manage only their own listings.
+- TRANSPORTER / TRUCK_OWNER: search, view, filter and save eligible listings.
+- ADMIN / MODERATOR: review, hide, restore or remove listings with a reason and audit record.
 
-The same domain and data model must power both sides.
+A user may have multiple roles. Reuse canonical account, profile, fleet and vehicle records. Enforce role permissions and resource ownership on every API.
 
-## 3. Architecture decision
+## 3. Architecture overview
 
-Start with a **modular monolith in NestJS**, not premature microservices. Keep module boundaries, interfaces, events and data ownership explicit so high-volume modules can be extracted later.
+Use a NestJS modular monolith initially. Avoid premature microservices.
 
-    Flutter App (shipper / owner / driver)
+    Flutter App
+        |
+        | HTTPS REST / OpenAPI
+        v
+    NestJS API
+      ├── Marketplace Loads
+      ├── Search & Discovery
+      ├── Compatibility / Relevance
+      ├── Saved Loads & Search Preferences
+      ├── Moderation
+      ├── Audit
+      └── Outbox / Background Workers
               |
-       HTTPS REST API
-       WebSocket gateway only for timely live updates
-              |
-       NestJS application
-        ├── Auth & Authorization
-        ├── Accounts / Profiles / Fleet / Vehicles (existing onboarding)
-        ├── Load Management
-        ├── Marketplace Search & Discovery
-        ├── Matching & Backhaul
-        ├── Offers / Negotiation
-        ├── Booking & Allocation
-        ├── Trip / Tracking integration boundary
-        ├── Pricing & Earnings Estimate
-        ├── Notifications
-        ├── Moderation / Trust
-        ├── Audit
-        └── Outbox / Background Jobs
-              |
-        ├── PostgreSQL + PostGIS
-        ├── Redis (cache, rate limits, ephemeral presence, queue coordination)
-        └── Object storage (load documents and proof files)
+        ├── PostgreSQL (+ PostGIS where available)
+        ├── Redis (cache, rate limits, queue coordination)
+        └── Object Storage (optional listing attachments)
 
-### Stack responsibilities
+Technology responsibilities:
+- Flutter: screens, forms, filters, map/list presentation and local UI state.
+- NestJS: validation, authorization, listing rules, search orchestration and API contracts.
+- PostgreSQL: source of truth for listings, statuses, preferences, saves and audit history.
+- PostGIS: indexed geographic/radius search when enabled.
+- Redis: short-lived search cache, rate limiting and queue coordination only.
+- Workers: listing expiry, media scanning, cache invalidation and notification dispatch.
+- Object storage: optional listing attachments using short-lived signed URLs.
 
-| Technology | Responsibility | Not for |
-|---|---|---|
-| Flutter | Mobile UI, local form state, maps, push handling | Authoritative pricing, eligibility or booking decisions |
-| NestJS | Domain rules, validation, authorization, APIs, orchestration | Unbounded synchronous long-running work |
-| PostgreSQL | Source of truth, transactions, constraints, history | High-frequency ephemeral presence polling |
-| PostGIS | Radius, corridor and spatial queries | Replacing road-network routing |
-| Redis | Cache, rate limits, short-lived presence, job coordination | Permanent load/booking records or sole source of truth |
-| Worker | Matching refresh, notifications, expiry, retries | Untracked business decisions |
-| Maps adapter | Geocoding, road distance, ETA, route geometry | Direct provider coupling in domain services |
+PostgreSQL remains authoritative. Redis loss must not lose marketplace data. Confirm PostGIS availability before relying on spatial SQL; isolate spatial access behind repository methods and document a fallback.
 
-Use migrations. Confirm PostGIS exists in all target environments. Isolate spatial access behind repository interfaces. If PostGIS is unavailable initially, document a temporary fallback rather than scattering distance calculations across services.
+## 4. NestJS module structure
 
-## 4. NestJS module boundaries
+Adapt to the existing repository conventions:
 
-Suggested structure; adapt to the actual repository conventions:
+    src/modules/marketplace/
+      loads/
+        domain/
+        application/
+        infrastructure/
+        presentation/
+      search/
+        domain/
+        application/
+        infrastructure/
+        presentation/
+      compatibility/
+      saved-items/
+      preferences/
+      moderation/
+      audit/
+      outbox/
 
-    src/
-      modules/
-        loads/
-        marketplace/
-        matching/
-        offers/
-        bookings/
-        pricing/
-        fleet/
-        vehicles/
-        notifications/
-        audit/
-        outbox/
-      integrations/
-        maps/
-        object-storage/
-        push/
-      common/
-        auth/ validation/ errors/ pagination/ observability/
-      workers/
+Each module separates:
+- Domain: listing rules, state transitions and policies.
+- Application: use cases and orchestration.
+- Infrastructure: ORM repositories, Redis, storage and queue adapters.
+- Presentation: controllers, DTOs, guards and response serializers.
 
-Each module has:
-- Domain: entities, value objects, state transitions and policies; no NestJS/provider SDK dependency.
-- Application: use cases and transaction orchestration.
-- Infrastructure: ORM repositories, Redis, provider adapters and queue handlers.
-- Presentation: controllers, DTOs, guards, serializers and API documentation.
+Reuse the existing ORM, auth guards, migrations, logging, notification and storage integrations. Keep controllers thin. Never return raw ORM entities.
 
-Do not introduce a second ORM or competing architectural pattern. Reuse the existing ORM, auth guards, response conventions and migration tooling. Controllers stay thin; validate DTOs and return explicit response DTOs, never raw database entities.
+## 5. Marketplace data model
 
-## 5. Core domain model
+Use UUIDs or the existing project ID standard. Store timestamps in UTC. Store currency as integer minor units (INR paise) or a documented integer-rupee convention; never floating-point. Store weight in kg and dimensions in documented units.
 
-Use UUIDs or the repository's established ID standard. Store timestamps in UTC. Use integer minor units for currency (INR paise) or one explicitly documented integer-rupee convention; never floating-point. Store weight in kg and distance in metres/km consistently.
-
-| Table | Key fields / purpose |
+| Table | Main fields / purpose |
 |---|---|
-| loads | id, shipper_id, status, reference_code, cargo_type, description, weight_kg, volume, package_count, loading_type, required_vehicle_type, required_capacity_kg, hazardous flag, special requirements, pickup/delivery windows, pricing mode, offered_amount, currency, visibility |
-| load_stops | load_id, sequence, stop_type, address, place_id, geography(Point,4326), service window, instructions |
-| vehicles | Reuse existing vehicle aggregate, type/body, capacity, dimensions, verification state |
-| vehicle_availability | vehicle_id, availability window, current/expected location, status, source, last_seen_at |
-| load_requirements | load_id, typed requirement key/value for extensible validated requirements |
-| load_media | load_id, object key, media type, uploader, malware scan status |
-| load_offers | load_id, carrier_id, vehicle_id, amount, currency, message, status, expires_at, idempotency key |
-| offer_events | offer_id, actor_id, event type, previous/new status, snapshot, timestamp |
-| bookings | load_id, winning_offer_id, shipper_id, carrier_id, vehicle_id, driver_id, status, agreed amount/currency, version |
-| booking_events | booking_id, actor_id, event type, from/to status, metadata, timestamp |
-| saved_loads | user_id, load_id, created_at |
-| search_preferences | user_id, role, route, radius, vehicle filters, corridor and notification settings |
-| route_estimates | origin/destination, provider, distance, duration, route version, expiry |
-| matching_results | load_id, vehicle_id, score, score breakdown, reasons, calculated_at, expiry |
-| audit_logs | actor, action, resource, before/after references, correlation ID, timestamp |
-| outbox_events | event ID, aggregate, event type, payload, created_at, published_at, retry metadata |
+| marketplace_loads | id, shipper_id, reference_code, status, cargo_type, description, weight_kg, volume, package_count, loading_type, required_vehicle_type, required_capacity_kg, special_requirements, pickup_window, delivery_window, pricing_mode, freight_amount, currency, visibility, published_at, expires_at, created_at, updated_at |
+| marketplace_load_stops | id, load_id, sequence, stop_type, address fields, place_id, geography(Point,4326), service_window, instructions |
+| marketplace_load_media | id, load_id, object_key, media_type, uploader_id, scan_status, created_at |
+| marketplace_load_requirements | id, load_id, requirement_key, typed_value |
+| marketplace_saved_loads | user_id, load_id, created_at; unique(user_id, load_id) |
+| marketplace_search_preferences | id, user_id, name, normalized_filters, alert_enabled, created_at, updated_at |
+| marketplace_listing_events | id, load_id, actor_id, event_type, previous_status, new_status, reason, metadata, created_at |
+| marketplace_audit_logs | actor_id, action, resource_type, resource_id, correlation_id, metadata, created_at |
+| outbox_events | event_id, aggregate_type, aggregate_id, event_type, payload, created_at, published_at, retry_count |
 
-Use normalized address fields and PostGIS geography points. Store address text and geocoding provider IDs, not coordinates alone. Keep PII/contact access controlled and masked. Do not store FASTag credentials, bank credentials or unrelated sensitive data in marketplace records.
+Reference existing vehicle, fleet, user and profile records; do not duplicate them. If a stable vehicle snapshot is required for audit, store only the minimum necessary snapshot and document why.
 
-Support multi-stop loads from day one: at least one pickup and one delivery, ordered stops, stop types, time windows, service durations and instructions. Validate sequence and time feasibility server-side. Geocoded points may be nullable while geocoding is pending; retain geocode status and manual correction.
+Support ordered multi-stop routes with at least one pickup and one delivery. Validate stop sequence and address completeness before publishing. Store human-readable address fields and provider place IDs as well as optional geography points. Geocoding may be pending; expose status and permit correction. Do not present straight-line distance as road distance.
 
-### Indexes
+### Indexes and constraints
 
-- loads(status, pickup_window_start, created_at DESC)
-- loads(shipper_id, created_at DESC)
-- load_stops(load_id, sequence)
-- GiST indexes on pickup/delivery geography
-- load_offers(load_id, status, created_at DESC) and (carrier_id, status, created_at DESC)
-- Unique active booking constraint per load using a partial unique index for active statuses.
-- Unique idempotency key scoped to actor and operation.
-- vehicle_availability(status, available_from, available_until), plus GiST location index.
-- bookings(carrier_id, status, created_at DESC).
+- marketplace_loads(status, published_at DESC, id)
+- marketplace_loads(shipper_id, created_at DESC)
+- marketplace_load_stops(load_id, sequence)
+- GiST index on stop geography when PostGIS is enabled.
+- Unique marketplace_saved_loads(user_id, load_id).
+- marketplace_search_preferences(user_id, created_at DESC).
+- Unique public reference_code.
+- Check constraints for positive weight, valid freight amount and valid time windows.
+- Idempotency key unique per actor and operation for retryable mutations.
 
-Validate query plans with realistic data. Use cursor pagination with stable ordering and a unique tie-breaker. Do not index every field.
+Use cursor pagination with stable ordering and a unique tie-breaker. Validate indexes with representative query plans; do not index every filter column.
 
-## 6. Load lifecycle and invariants
+## 6. Listing lifecycle and rules
 
-Conceptual lifecycle:
+    DRAFT -> PUBLISHED -> PAUSED
+                  |          |
+                  v          v
+                EXPIRED    PUBLISHED
+                  |
+                  v
+               WITHDRAWN
 
-    DRAFT -> PUBLISHED -> RESERVED -> BOOKED -> IN_TRANSIT -> DELIVERED -> CLOSED
-                 |           |          |
-                 +-> PAUSED  +-> EXPIRED +-> CANCELLED
-                 +-> CANCELLED
+Keep moderation visibility (REVIEW_REQUIRED, HIDDEN, REMOVED) separate from owner lifecycle status.
 
-Define an explicit state machine and transition matrix in code: allowed transitions, actor, required fields, side effects and cancellation reasons.
+Rules:
+1. Draft and paused listings are not publicly discoverable.
+2. Only authorized owners can edit or withdraw their listings.
+3. Publishing validates cargo, stops, schedule, vehicle requirements and freight fields.
+4. Expired, withdrawn, hidden and removed listings are excluded from public search.
+5. Material edits update freshness, invalidate cache and create audit events.
+6. Expiry is enforced in search queries even if the worker is delayed.
+7. A user cannot save the same listing twice.
+8. Admin moderation requires a reason and immutable audit event.
+9. Visibility and contact disclosure are server-side decisions.
+10. All mutations are authorized and auditable.
 
-Invariants:
-1. Drafts are not discoverable.
-2. Publishing validates required fields, ownership, verification and policy.
-3. A load cannot have two active confirmed bookings.
-4. Offers require an eligible vehicle and authorized carrier.
-5. Driver assignment must belong to the carrier/fleet or be explicitly accepted.
-6. Expired/withdrawn loads cannot accept offers.
-7. Agreed commercial terms are an immutable booking snapshot; amendments require auditable acceptance.
-8. Every transition records actor, timestamp, reason and correlation ID.
-9. Cancellation/no-show rules are role-aware and explicit.
-10. Every mutation is authorized server-side.
+Implement transitions in a domain state machine. Do not accept arbitrary status changes from clients.
 
-Use a PostgreSQL transaction plus row lock or compare-and-swap version check when accepting an offer. Verify load and offer eligibility, reserve the load, create booking, update offer states and write outbox events atomically. Add a unique constraint as the final concurrency guard. Redis locks must never be the only double-booking protection.
+## 7. Load publishing
 
-## 7. Marketplace discovery
+Use a draft-first flow:
+- Pickup and delivery locations/stops.
+- Cargo category, description, weight, volume and package count.
+- Loading/unloading type and special handling.
+- Required vehicle type/body, capacity and dimensions.
+- Pickup and delivery date/time windows.
+- Freight amount, currency and fixed/negotiable mode.
+- Shipper-provided payment/loading notes and optional attachments.
+- Listing expiry where policy permits.
+
+Validate units, numeric bounds, time windows, stop order, supported values, ownership and account eligibility on the server. Allow partial draft saves without making drafts searchable. Use allowlisted DTOs and reject unknown/immutable fields.
+
+## 8. Search, discovery and basic compatibility
 
 Filters:
-- Pickup current location, selected city/district/state and radius.
-- Destination city/district/state, destination radius or route corridor.
-- Pickup date/time window.
-- Vehicle type/body, capacity and dimensions.
-- Cargo category, loading/unloading type and special handling.
-- FTL/PTL where supported.
-- Minimum freight and pricing mode.
-- Payment terms, verified shipper/carrier.
-- Listing status and freshness.
+- Pickup place/city/district/state and configurable radius.
+- Destination place/city/district/state.
+- Pickup date/date window.
+- Vehicle type/body and capacity.
+- Cargo category, weight range and loading type.
+- FTL/PTL only if supported by the product model.
+- Freight range and fixed/negotiable mode.
+- Verified shipper.
+- Sort by relevance, nearest pickup, highest freight or newest.
 
-Behavior:
-- Default to loads compatible with the selected active vehicle; allow vehicle switching.
-- Return only published, visible, non-expired loads.
-- Apply authorization, moderation, blocklist and eligibility rules before response.
-- List and map views must use the same query contract.
-- Use validated filters, bounded page size and cursor pagination.
-- Return applied filters, next cursor and a clear empty state.
-- Hide shipper phone/email until the approved contact-disclosure milestone.
-- Keep feed response compact; fetch full details separately.
+Search pipeline:
+1. Validate and normalize filters.
+2. Restrict to published, visible, non-expired listings.
+3. Apply role, moderation and block rules.
+4. Apply hard cargo/vehicle requirements when an active vehicle is selected.
+5. Apply geographic filters using PostGIS where configured.
+6. Rank remaining candidates deterministically.
+7. Return compact cards, applied filters and an opaque next cursor.
 
-Cache only safe non-personal search results. Cache keys include normalized filters, role, active vehicle, authorization scope and relevant version. Invalidate/version cache when status, terms, stops or visibility changes. PostgreSQL remains authoritative.
+List and map views use the same search contract and result IDs. Manual place search must work without location permission. Bound radius, page size and query complexity.
 
-## 8. Matching and backhaul engine
+Compatibility is limited to comparing listing requirements with existing transporter vehicle data:
+- Vehicle type/body.
+- Rated capacity vs load weight.
+- Dimensions/equipment where known.
+- Cargo restrictions and mandatory permits where represented.
+- Pickup window validity.
 
-Pipeline:
-1. Candidate retrieval: published loads with pickup near current/expected vehicle location or a configured route corridor.
-2. Hard eligibility: vehicle type/body, capacity, dimensions, cargo restrictions, permits, verification, availability, account status and time windows.
-3. Route feasibility: road distance/ETA to pickup, loaded route, delivery-to-next-pickup distance, service time and schedule.
-4. Scoring: rank eligible candidates and persist explainable score components.
-5. Presentation: show reasons, pickup detour, route deviation, empty km, estimated gross/net and freshness.
-6. Refresh on relevant load/vehicle/location/booking events and periodically for stale candidates.
+Hard requirements are filters, not ranking bonuses. Unknown vehicle data must produce NEEDS_VERIFICATION, not an assumed match. Relevance may rank by pickup proximity, destination preference, pickup date preference, freight sort and listing freshness. Return reason codes such as VEHICLE_TYPE_MATCH, CAPACITY_MATCH and PICKUP_NEARBY. Do not calculate backhaul, route feasibility, road detours or profit.
 
-Hard filters always run before ranking. A high score cannot override capacity, safety or schedule failure.
+## 9. API contract
 
-Initial configurable score weights (hypotheses to calibrate, not fixed truth):
-
-| Signal | Initial weight |
-|---|---:|
-| Pickup proximity / detour | 20 |
-| Destination alignment with preferred corridor | 20 |
-| Vehicle/cargo compatibility quality | 10 (hard gate first) |
-| Pickup/delivery time feasibility | 15 (hard gate first) |
-| Estimated net per total km | 20 |
-| Shipper trust/completion history | 10 |
-| Listing freshness | 5 |
-
-Normalize components to 0–1, version the scoring model and persist breakdown. Do not show fake precision percentages. Explain matches with grounded reasons such as "Vehicle compatible", "Pickup 18 km away" or "Low return-route deviation".
-
-### Backhaul rules
-
-Backhaul is not merely the reverse route. For a vehicle expected to deliver at destination D:
-- Find loads with pickup near D (configurable radius or road detour).
-- Evaluate the new destination against the truck's home/target corridor.
-- Calculate D-to-pickup deadhead, loaded route distance, destination deviation and schedule feasibility.
-- Ensure the vehicle is not committed and has enough turnaround/loading time.
-- Compare incremental net contribution against deadhead, tolls, fuel, waiting, empty-return baseline and risk.
-- Explain why the load matches and how much additional distance it adds.
-
-Route deviation thresholds (e.g. 20–50 km) are configurable experiments, not universal constants. Prefer road distance/ETA from a routing provider over straight-line distance. If provider is unavailable, degrade gracefully, label approximate distance and do not claim route feasibility.
-
-### Earnings estimate
-
-Show freight separately from estimated expenses/net:
-- Freight amount and payment terms.
-- Loaded + deadhead distance.
-- Fuel based on vehicle-specific or configurable mileage and fuel price.
-- Toll only when reliable route toll data exists; otherwise state not included/estimated.
-- Loading, unloading, waiting, parking and platform fees when configured.
-- Estimated net contribution and per-km figure.
-
-Show assumptions and calculation timestamp. Never claim guaranteed profit or invent toll/fuel costs.
-
-## 9. REST API contract
-
-Use /api/v1, repository naming conventions, authentication, authorization, DTO validation, rate limits and OpenAPI.
+Use /api/v1 and existing naming conventions. Authenticate all endpoints unless product policy explicitly allows otherwise.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| POST | /loads | Create draft |
-| PATCH | /loads/:id | Edit own draft/allowed fields |
-| POST | /loads/:id/publish | Validate and publish |
-| POST | /loads/:id/pause | Pause own listing |
-| POST | /loads/:id/cancel | Cancel with reason |
-| GET | /marketplace/loads | Search feed |
-| GET | /loads/:id | Role-aware details |
-| POST | /loads/:id/save | Save load |
-| DELETE | /loads/:id/save | Unsave load |
-| POST | /loads/:id/offers | Submit offer |
-| GET | /loads/:id/offers | Authorized shipper offers |
-| POST | /offers/:id/counter | Counter-offer |
-| POST | /offers/:id/accept | Accept and atomically create booking |
-| POST | /offers/:id/withdraw | Withdraw own offer |
-| GET | /marketplace/backhaul | Return-load recommendations |
-| GET | /marketplace/vehicles | Shipper-side vehicle discovery |
-| GET | /bookings/:id | Booking details |
-| POST | /bookings/:id/cancel | Authorized cancellation |
+| POST | /marketplace/loads | Create draft |
+| PATCH | /marketplace/loads/:id | Update own listing |
+| POST | /marketplace/loads/:id/publish | Validate and publish |
+| POST | /marketplace/loads/:id/pause | Pause own listing |
+| POST | /marketplace/loads/:id/resume | Resume paused listing |
+| POST | /marketplace/loads/:id/withdraw | Withdraw own listing |
+| GET | /marketplace/loads | Search and paginate |
+| GET | /marketplace/loads/:id | Role-aware listing details |
+| POST | /marketplace/loads/:id/save | Save listing |
+| DELETE | /marketplace/loads/:id/save | Unsave listing |
+| GET | /marketplace/saved-loads | List saved listings |
+| POST | /marketplace/search-preferences | Save normalized search |
+| GET | /marketplace/search-preferences | List saved searches |
+| PATCH | /marketplace/search-preferences/:id | Update own search |
+| DELETE | /marketplace/search-preferences/:id | Delete own search |
+| POST | /admin/marketplace/loads/:id/hide | Hide with reason |
+| POST | /admin/marketplace/loads/:id/restore | Restore after review |
 
-Use strict allowlist DTOs; reject unknown/immutable fields. Require Idempotency-Key for publish, offer submission, acceptance and booking/payment-related operations. Return stable error codes: LOAD_NOT_BOOKABLE, VEHICLE_NOT_ELIGIBLE, OFFER_EXPIRED, BOOKING_CONFLICT, ROUTE_ESTIMATE_UNAVAILABLE. Include safe message and correlation ID.
+Booking, offers and negotiation endpoints belong to their separate modules, not Marketplace.
 
-Example search:
+Example:
+    GET /api/v1/marketplace/loads?pickupPlaceId=<place>&pickupRadiusKm=40&destinationState=Karnataka&vehicleId=<uuid>&sort=relevance&limit=20
 
-    GET /api/v1/marketplace/loads?pickupLat=9.9252&pickupLng=78.1198&pickupRadiusKm=40&destinationState=Karnataka&vehicleId=<uuid>&sort=best_match&limit=20
-
-Coordinates and date values in examples are illustrative. Validate coordinate bounds, timezone conversion and maximum radius. Prefer saved place IDs.
-
-Example response (illustrative):
-
+Response example:
     {
       "items": [{
         "id": "load-uuid",
+        "referenceCode": "XC-LOAD-1024",
         "route": {
           "pickup": {"label": "Madurai, Tamil Nadu"},
-          "delivery": {"label": "Bengaluru, Karnataka"}
+          "delivery": {"label": "Bengaluru, Karnataka"},
+          "stopCount": 2
         },
         "cargo": {"category": "General", "weightKg": 12000},
         "vehicleRequirement": {"type": "CONTAINER_32_FT", "capacityKg": 15000},
         "freight": {"amountMinor": 2800000, "currency": "INR", "mode": "FIXED"},
-        "match": {"label": "Good route fit", "reasons": ["Vehicle compatible", "Pickup within 18 km"]},
+        "compatibility": {"status": "MATCH", "reasons": ["VEHICLE_TYPE_MATCH", "CAPACITY_MATCH"]},
         "shipper": {"displayName": "Verified shipper", "verification": "VERIFIED"}
       }],
+      "appliedFilters": {},
       "nextCursor": "opaque-cursor"
     }
 
-The amount convention must match the currency storage convention. Never return private contact details in public search results.
+Validate coordinate bounds, maximum radius, date/timezone and vehicle ownership. Prefer place IDs over raw free-form coordinates. Never expose private phone/email, exact private addresses or storage object keys in public search results.
 
-## 10. Redis, queues and event processing
+## 10. Redis and background jobs
 
-Redis:
-- Short-TTL search cache and reference data.
-- Rate-limit counters and abuse throttles.
-- Short-lived vehicle presence/last-seen cache; persist meaningful location snapshots according to consent/retention policy.
-- Queue coordination and job deduplication.
-- WebSocket presence only if needed.
+Redis is for short-TTL search cache, rate-limit counters, cache/version coordination and job deduplication only. Cache keys include normalized filters, caller visibility scope, role and selected vehicle. Invalidate/version cache after publish, pause, resume, withdrawal, expiry, moderation or material edits. Always re-check authoritative state for details and mutations.
 
-Use a durable queue (BullMQ if compatible with the existing project) for matching refresh, route estimates, load/offer expiry, notifications, media scanning and stale-match cleanup.
+Use the existing durable queue (BullMQ only if compatible) for listing expiry, media scanning, cache invalidation, saved-search alerts and outbox delivery.
 
-Use the **transactional outbox pattern**: write domain changes and outbox event in the same PostgreSQL transaction. Workers publish/process events and mark delivery. Consumers are idempotent. Retry transient failures with bounded exponential backoff and dead-letter/manual replay. Booking notifications must not be lost if a process crashes after DB commit.
+Use a transactional outbox: commit listing changes and event records in one PostgreSQL transaction. Consumers are idempotent, retry transient failures with bounded backoff and expose dead-letter/manual replay. Search queries must enforce expiry independently of the worker.
 
-## 11. Security, privacy and abuse
+## 11. Security and privacy
 
-- RBAC plus ownership checks for every resource/action; prevent IDOR.
-- Validate and normalize addresses, phone numbers, vehicle IDs and monetary values.
-- Mask contact details and sensitive documents until authorized disclosure.
-- Use signed short-lived object-storage URLs and scan uploads.
-- Rate-limit search, offer, login and publish; detect spam/duplicate low-quality listings.
-- Prevent duplicate offers/booking races with idempotency and DB constraints.
-- Audit price changes, offer acceptance, cancellation, contact disclosure and admin overrides.
-- Never log tokens, full phone numbers, documents, precise location histories or payment secrets.
-- Encrypt traffic and sensitive persisted data per platform security baseline.
-- Define location consent, retention and deletion policies before continuous tracking.
-- Provide report/block/moderation flows; admin overrides require reason and immutable audit.
+- Reuse central authentication; enforce role and ownership checks to prevent IDOR.
+- Validate IDs, DTOs, units, addresses, timestamps, numeric values and uploads.
+- Use signed short-lived attachment URLs and scan uploaded files.
+- Mask contact information and private exact addresses until separately authorized.
+- Rate-limit search, draft creation, publishing, saving and moderation.
+- Detect spam/duplicate listings and provide report/moderation workflows.
+- Audit publish, material edits, pause/resume, withdrawal and moderation.
+- Never log tokens, full phone numbers, private addresses, documents or payment secrets.
+- Apply encryption in transit and the platform's at-rest security baseline.
+- Define retention/deletion for drafts, attachments, saved searches and audit records.
+- Do not collect continuous driver/vehicle location as part of marketplace search.
 
 ## 12. Observability and tests
 
-Structured logs include request/correlation ID, internal actor ID, module, action, latency and outcome. Metrics:
-- Search p50/p95, error rate and cache hit rate.
-- Candidate count and match duration.
-- Offer-to-booking conversion and time-to-book.
-- Successful duplicate bookings (target zero).
-- Queue lag, retries and dead letters.
-- Routing-provider latency/errors/cost.
-- Expired listing and stale-result ratio.
+Metrics: search p50/p95 and error rate, cache hit rate, zero-result rate, draft-to-publish conversion, listing freshness/expiry lag, validation failures, moderation queue age, saved-load usage, notification delivery and spatial query latency.
 
 Tests:
-- Unit: state machines, eligibility, scoring, backhaul deviation, earnings assumptions.
-- Integration: PostGIS, Redis invalidation, outbox and queue idempotency.
-- Concurrency: simultaneous competing offer acceptance; exactly one booking succeeds.
-- Authorization: cross-shipper edits, driver commercial mutation, private offer visibility.
-- Contract/privacy: DTOs and response field exposure.
-- Performance: realistic spatial density, pagination, cache cold/warm and offer activity.
-- Failure: Redis outage, routing timeout, worker restart, duplicate event, push failure.
+- Unit: listing validation, lifecycle, filter normalization and compatibility.
+- Integration: PostGIS, Redis invalidation, outbox and expiry worker idempotency.
+- Authorization: cross-shipper edits, unauthorized withdrawal, hidden listing visibility and saved-item ownership.
+- Contract: DTO validation, pagination and response privacy.
+- Concurrency: duplicate publish/edit/withdraw retries.
+- Performance: realistic listing volume, spatial density and cold/warm cache.
+- Failure: Redis outage, queue restart, delayed expiry and duplicate events.
 - Migration: clean install and upgrade.
 
 ## 13. Delivery phases
 
-1. Foundation: inspect code, auth/profile/vehicle models, schema, migrations and observability.
-2. Load publishing: draft, stops, cargo, requirements, media, validation and moderation.
-3. Carrier discovery: filters, list/map, saved loads, details and eligibility.
-4. Offers/booking: offer/counter/accept, transactional allocation, cancellation and audit.
-5. Matching: candidate filtering, explainable ranking, cache and background refresh.
-6. Backhaul: delivery-to-pickup corridor, route deviation and incremental earnings.
-7. Hardening: load tests, fraud controls, dashboards, failure recovery and rollout.
-
-Feature flags control backhaul, route provider, earnings estimate and notifications. Deploy schema changes backward-compatibly. Do not silently change Profile onboard flows.
+1. Inspect repository, ORM, auth, Profile onboard, vehicle/fleet schema, Redis, queues and migrations.
+2. Build listing schema, lifecycle, audit and DTOs.
+3. Implement draft, stops, cargo, requirements, attachments and publish.
+4. Implement search, filters, pagination, list/map contract and details.
+5. Add vehicle compatibility and explainable relevance.
+6. Add saved loads, saved searches and optional alerts.
+7. Harden moderation, privacy, cache, observability and performance.
 
 ## 14. Agentic AI implementation instructions
 
 Before coding:
-1. Inspect repository structure, NestJS modules, ORM, migrations, auth guards, user/profile/vehicle entities, Redis, queues, API conventions and tests.
-2. Read existing Profile onboard docs and reuse canonical identity, owner/fleet and vehicle models. Do not recreate them.
-3. Produce a gap analysis and implementation plan referencing actual files.
-4. Confirm PostGIS and queue support; propose minimal compatible changes if absent.
-5. Implement small vertical slices with migrations, tests and OpenAPI updates.
-6. Do not introduce microservices, infrastructure or paid providers without documenting cost and operational trade-offs.
-7. Keep business rules server-side and state changes auditable.
-8. Record architecture changes and migration impact in this document.
+1. Inspect actual NestJS structure, ORM, migrations, auth, Redis, queue and existing Profile/Fleet/Vehicle models.
+2. Reuse canonical account, role, fleet and vehicle entities.
+3. Identify shared notification, storage and location integrations before adding dependencies.
+4. Produce a gap analysis mapped to actual files and a phased implementation plan.
+5. Implement only Marketplace scope in this document.
+6. Do not implement backhaul, offers, negotiation, booking, payment, tracking, route optimization or earnings.
+7. Avoid new microservices and paid providers without documented need and approval.
+8. Add tests, OpenAPI updates, migrations and architecture notes with each vertical slice.
 
 ## 15. Definition of done
 
-- Shippers can draft, publish, pause and cancel valid loads.
-- Carriers discover only eligible published loads and receive privacy-safe details.
-- Vehicle compatibility and schedule checks are enforced server-side.
-- Offers/counters have complete auditable lifecycle.
-- Concurrent acceptance cannot create duplicate active bookings.
-- Backhaul is route- and schedule-aware, explainable and clearly estimated.
-- PostgreSQL is authoritative; Redis loss does not lose business data.
-- Background work is durable, retryable and idempotent.
-- APIs are documented, validated, secured and tested.
-- Flutter/backend contracts agree on states, filters, errors and pagination.
-- Existing Profile onboard functionality remains intact.
+- Shippers can draft, validate, publish, pause, resume and withdraw listings.
+- Transporters can search, filter, sort, view and save published listings.
+- Search respects visibility, expiry, role and ownership.
+- Compatibility uses existing profile/fleet data and never guesses missing attributes.
+- List and map views show the same eligible listings.
+- Listing lifecycle, moderation and material edits are auditable.
+- PostgreSQL is authoritative; Redis loss does not lose marketplace data.
+- Search is paginated, indexed, bounded and observable.
+- APIs are documented, secured, validated and tested.
+- Profile onboard and separate transaction/booking modules remain unaffected.
