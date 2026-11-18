@@ -1,370 +1,334 @@
-# Load Marketplace — Flutter UI/UX Design System & Implementation Prompt
+# Load Marketplace — Flutter UI/UX Design Guide
 
-> Product: X Cron Lorry Booking Platform  
-> Module: Load Marketplace  
-> Client: Flutter  
-> Companion: 00-marketplace-system-architecture.md
+Product: X Cron Lorry Booking Platform  
+Scope: Core Load Marketplace only  
+Client: Flutter  
+Backend: 00-marketplace-system-architecture.md
 
 ## 1. Design objective
 
-Create a high-quality mobile-first marketplace that feels as quick and intuitive as a leading mobility app while serving freight workflows. Apply broad mobility-product usability principles—prominent route search, clear action hierarchy, map/list choice, live status, concise cards, trust cues and low-friction repeat actions—but create original X Cron information architecture, component composition, typography, icon treatment, spacing, visual language and copy.
+Design an original freight-load marketplace for shippers and transporters. Use broad mobility-product usability principles—fast search, strong route hierarchy, concise result cards, clear filters, map/list parity and predictable navigation—without copying Uber/Ola branding, assets, screen layouts, wording or proprietary interaction patterns.
 
-Do not reproduce Uber/Ola screens pixel-for-pixel, brand colors/logos, illustrations, source, wording, proprietary assets or exact interaction sequences. Competitors are usability references only, not design templates.
+This guide covers load publishing and load discovery only. Backhaul, negotiation, booking, payments, tracking and trip operations belong to separate modules and must not appear as implemented Marketplace features.
 
-Primary users include truck drivers using phones in bright daylight, fleet owners comparing vehicles and shippers publishing loads. Optimize for readability, one-handed use, low cognitive load, intermittent networks and varied digital literacy.
+Prioritize Android phones, bright outdoor use, one-handed interaction, low cognitive load, intermittent connectivity and varied digital literacy.
 
-## 2. UX principles
+## 2. Marketplace journeys
 
-1. Route first: pickup and delivery are the first things users scan.
-2. Earnings transparent: freight is separate from estimated expenses/net; estimates are never guaranteed profit.
-3. Compatibility visible: vehicle fit, capacity, dimensions and timing are easy to understand.
-4. Progressive disclosure: cards show decision essentials; details show operational/commercial record.
-5. Map/list parity: every map result has an equivalent list result and accessible details.
-6. One primary action per screen; secondary actions are quieter.
-7. Trust without clutter: verification and completion metrics have clear definitions.
-8. Status clarity: text plus icon/color, never color alone.
-9. Field-friendly: large targets, strong contrast, readable type, simple language and safe recovery.
-10. Original X Cron design; no competitor asset or pixel-copy.
+Transporter:
+1. Open Find Loads.
+2. Select an active vehicle from existing Profile/Fleet data.
+3. Search by pickup, destination and date.
+4. Refine with filters and list/map view.
+5. Compare cards and open load details.
+6. Save a load or hand off to the separately implemented enquiry/transaction flow.
 
-## 3. Information architecture
+Shipper:
+1. Open My Listings.
+2. Create a draft.
+3. Enter route, cargo, vehicle requirements, schedule and freight terms.
+4. Review and publish.
+5. View, edit, pause, resume or withdraw own listings.
 
-### Carrier / truck owner bottom navigation
+Use the app's existing role switcher and navigation where possible. Do not duplicate profile, fleet or vehicle onboarding.
 
-- Home: active vehicle, availability, trip summary and recommended action.
-- Find Loads: feed, route search, filters, map/list.
-- Backhaul: return opportunities based on active/expected delivery.
-- Bookings: offers, confirmed bookings, active trips and history.
-- Account: profile, fleet, vehicles, preferences, support and settings.
+## 3. Screens and information architecture
 
-If testing favors four destinations, combine Home/Account entry points carefully; never hide marketplace or bookings.
+Marketplace destinations, nested within the existing app navigation:
+- Find Loads — transporter discovery feed.
+- Post a Load — shipper creation flow.
+- My Listings — shipper's own drafts and published listings.
+- Saved Loads — transporter's saved items.
+- Search Preferences — saved filters/searches, if enabled.
 
-### Shipper navigation
-
-- Overview
-- Post a Load
-- Find Trucks
-- Bookings
-- Account
-
-Role switcher is explicit for multi-role accounts. Preserve selected role and active vehicle across sessions while allowing quick switching.
-
-## 4. Screen inventory and behavior
-
-### A. Carrier marketplace / Find Loads
+### A. Find Loads
 
 Header:
-- Compact account identity.
-- Active vehicle selector with verification/availability state.
-- Location permission indicator and manual place selection fallback.
-- Notifications entry.
+- Page title and concise location context.
+- Active vehicle selector using existing verified vehicle data.
+- Manual location selection and permission state.
+- Search history or saved-search shortcut.
 
-Route search panel:
-- Pickup field (current location or selected place).
-- Optional destination field.
-- Swap action where relevant.
-- Pickup date/time selector.
-- Search CTA, recent searches and saved route shortcuts.
+Search panel:
+- Pickup location.
+- Optional destination.
+- Pickup date/date range.
+- Search action.
 
-Quick categories: Recommended, Nearby pickup, Backhaul, Interstate, Saved. Use selectable horizontal chips; avoid fragmenting the same result set into too many tabs.
+Feed controls:
+- Result count, sort, filter with active count, list/map toggle.
+- Applied-filter chips with remove/clear behavior.
+- Cursor-paginated cards, pull-to-refresh and last-updated indication.
+- Preserve scroll position when returning from details.
 
-Feed:
-- Best matches / Available loads.
-- Sort and filter actions.
-- Result count/applied-filter summary.
-- Cards with route, freight, pickup date, vehicle fit, weight, distance and trust cue.
-- List/map toggle.
-- Pull-to-refresh with stale timestamp and retry.
-- Cursor-based infinite scroll; preserve scroll position returning from details.
+Do not add Backhaul, earnings, booking status or live-trip widgets.
 
-### B. Load card
+### B. Load result card
 
-Recommended hierarchy:
+    [Verified shipper]                         [Save]
+    PICKUP CITY  ───────── route line ───  DROP CITY
+    Pickup date / time                    Number of stops
+    ₹ Freight amount                      Fixed / Negotiable
+    Required vehicle       Cargo weight   Listing age
+    [View load details]
 
-    [match reason / verified label]                    [save]
-    PICKUP CITY  ───────── route line ─────────  DROP CITY
-    Pickup date/time                           Delivery window
-    ₹ Freight amount                           Fixed / Negotiable
-    Vehicle required       Weight       Distance
-    [estimated net, only when reliable inputs exist]
-    [View details]                              [Make offer]
-
-Rules:
-- Route is the strongest visual element.
-- Freight is prominent without obscuring route hierarchy.
-- Limit metadata chips; prioritize vehicle fit, cargo weight, pickup time and distance.
-- Show Fixed or Negotiable explicitly.
-- Show Backhaul opportunity only when backend returns a real match reason.
-- Omit net estimate if unavailable; never fabricate it.
-- Neutral card surfaces, subtle borders/elevation and consistent radius.
-- No full-screen color block per card; status is not color-only.
+Design rules:
+- Pickup and destination are the strongest visual anchors.
+- Freight amount is prominent and formatted in INR.
+- Show vehicle type, cargo weight, pickup window and stop count.
+- Show fixed/negotiable pricing clearly.
+- Compatibility label only when backend provides it: Compatible, Not compatible or Needs verification.
+- Never fabricate match percentages, road distance, net earnings or availability.
+- Save is secondary and has a clear selected state.
+- Keep metadata compact; avoid excessive chips.
 
 ### C. Load details
 
 Sections:
-1. Route summary, ordered stops and map preview.
-2. Pickup/delivery windows and service time.
-3. Cargo: category, description, weight, volume, package count, loading type and special handling.
-4. Vehicle requirements: type/body, capacity, dimensions, permits and equipment.
-5. Freight/payment: amount, pricing mode, advance/balance terms and responsibility for loading/tolls/other charges.
-6. Estimate: distance, fuel/toll assumptions, expenses, estimated net/per-km, timestamp and "estimate only".
-7. Shipper: verification, platform tenure and meaningful completion metrics when available.
-8. Instructions, attachments and report-listing action.
-9. Sticky bottom action: Make offer / Book at fixed price according to backend policy.
+1. Route: ordered pickup/delivery stops, permitted address detail and map preview.
+2. Schedule: pickup/delivery windows and stop instructions.
+3. Cargo: category, description, weight, volume, package count and handling.
+4. Vehicle requirements: type/body, capacity, dimensions and mandatory equipment/permits.
+5. Freight: amount, currency, fixed/negotiable mode and shipper-provided payment/loading notes.
+6. Shipper summary: approved display name and verification status.
+7. Attachments: preview/download only through authorized short-lived URLs.
+8. Listing metadata: reference code, published/updated time and status.
+9. Marketplace action: Save load. Any enquiry action must hand off to the separate transaction module.
 
-Never reveal phone/email before backend authorizes disclosure. UI visibility alone is not authorization; API must decide field exposure.
+Never expose phone/email, private exact addresses or document URLs unless backend authorizes disclosure. Hiding a field in Flutter is not a security control.
 
 ### D. Filters bottom sheet
 
 Groups:
-- Route: pickup place/radius; destination/state/corridor.
-- Date: pickup window.
-- Vehicle: type, body, capacity, dimensions.
-- Cargo: category, weight, loading type, FTL/PTL.
-- Commercial: minimum freight, fixed/negotiable, payment terms.
+- Pickup: place/city/state and radius.
+- Destination: place/city/state.
+- Date: pickup date or range.
+- Vehicle: type/body/capacity.
+- Cargo: category, weight range and loading type.
+- Freight: minimum/maximum and fixed/negotiable.
 - Trust: verified shipper only.
-- Sort: best match, nearest pickup, highest freight, best estimated net, newest.
+- Sort: relevance, nearest pickup, highest freight, newest.
 
 Behavior:
-- Active filter count, Reset and Apply.
-- Draft filter state separate from applied state.
-- Preserve filters when returning from details.
-- Explain zero-result state and suggest widening radius/date.
-- Do not repeatedly request location permission; manual search remains available.
+- Keep draft filter values separate until Apply.
+- Show active count, Reset and Apply.
+- Preserve filters when opening/closing details.
+- Allow individual filter-chip removal.
+- Explain zero results and suggest widening pickup radius/date or clearing a restrictive filter.
+- Manual place search works without location permission.
 
 ### E. Map view
 
-- Same result IDs and eligibility as list.
+- Use the same search result IDs and eligibility as list view.
 - Cluster dense markers.
-- Marker selection opens compact preview; preview opens details.
-- Recenter and return-to-list actions.
-- Draw route only when route geometry/estimate exists.
-- Loading, permission-denied, offline and provider-error states.
-- Map is never the only way to access results.
-- Do not continuously track a user just because map is open.
+- Marker selection opens a compact preview; preview opens details.
+- Provide recenter and return-to-list actions.
+- Draw route lines only when geometry is supplied by an approved location integration.
+- Handle loading, offline, denied permission and provider failure.
+- Map is never the only way to browse.
+- Do not start continuous tracking because the map is open.
 
-### F. Backhaul
+### F. Post a Load
 
-Show context first: expected delivery location/time, active vehicle, preferred return destination/corridor, radius and maximum deviation.
-
-Each result shows:
-- Original delivery -> suggested next pickup deadhead segment.
-- Suggested pickup -> next delivery.
-- Extra pickup detour/deadhead km.
-- Total additional distance/time.
-- Freight and estimated incremental net.
-- Match reasons: corridor fit, pickup proximity, time feasibility and vehicle compatibility.
-- View load / Make offer.
-
-A nearby load is not automatically a backhaul match. Empty state offers widen radius, adjust corridor or enable alerts. Thresholds are configurable and user-controlled.
-
-### G. Offer and negotiation
-
-- Offer amount, currency and fixed/negotiable context.
-- Optional message, availability and selected vehicle.
-- Counter-offer history in chronological order, actor and timestamp.
-- Expiry from server timestamp with timezone-safe rendering.
-- Confirmation before submit, withdraw or accept.
-- Disable duplicate taps while request is pending.
-- On conflict, refresh state and explain what changed.
-- Never show booking confirmed until API confirms.
-
-### H. Booking and trip states
-
-Map backend states to clear user labels:
-- Offer pending
-- Counter-offer received
-- Accepted / booking confirmed
-- Vehicle/driver assigned
-- Pickup pending
-- Loaded / in transit
-- Delivered
-- Completed / closed
-- Cancelled / expired / issue reported
-
-Show timeline, timestamps and actor. Driver operational actions are separate from owner commercial actions. Add proof upload only when backend requires it.
-
-### I. Shipper: Post a Load
-
-Step flow:
-1. Pickup and delivery stops.
-2. Cargo and handling.
-3. Vehicle requirements.
-4. Pickup/delivery windows.
-5. Freight and payment terms.
-6. Instructions and optional documents.
+Progressive multi-step form:
+1. Route and stops — pickup, delivery and optional additional stops.
+2. Cargo — category, description, weight, dimensions/volume, package count and handling.
+3. Vehicle requirement — type/body, capacity and required equipment.
+4. Schedule — pickup/delivery windows and stop service notes.
+5. Freight — amount, currency, fixed/negotiable and shipper-provided payment/loading terms.
+6. Attachments/instructions — optional files and notes.
 7. Review and publish.
 
-- Safe draft autosave and saved/unsaved indicator.
-- Progress; allow backward navigation without data loss.
-- Inline validation and review summary.
-- Address autocomplete, manual correction and map-pin adjustment.
-- Units visible for weight/dimensions.
-- Mandatory vs optional fields explained.
-- Confirm publication and show next action (review offers).
-- Do not force every advanced field onto the first screen.
+Requirements:
+- Save draft and resume later.
+- Show progress and allow backward navigation without data loss.
+- Validate inline and show a review summary.
+- Address autocomplete plus manual correction/map pin where supported.
+- Make units explicit (kg, tonnes, cm/ft).
+- Mark mandatory vs optional fields.
+- Prevent duplicate publish taps.
+- Confirm only after server acknowledgement.
+- After publishing, navigate to My Listings; do not imply a booking has been made.
 
-### J. Shipper: Find Trucks
+### G. My Listings
 
-Search by pickup/radius, destination corridor, pickup window, vehicle type/capacity, body type and verification. Cards show vehicle fit, availability freshness, carrier trust and route suitability. Respect carrier privacy; do not expose driver personal details without authorization.
+Tabs or filters:
+- Draft
+- Published
+- Paused
+- Expired
+- Withdrawn
 
-## 5. Visual styling guide
+Each card shows route, cargo, freight, published/updated time and status. Owner actions depend on server state: Continue draft, Edit, Pause, Resume or Withdraw. Confirm destructive actions and collect a reason if policy requires it. Show moderation-hidden/review-required states with a safe explanation.
 
-Audit the existing Flutter theme first and reuse it if sound. If no design system exists, use the following original X Cron neutral logistics direction as a starting proposal; validate it with users.
+### H. Saved Loads and Search Preferences
+
+Saved Loads:
+- Reuse the same listing card component.
+- Label expired/withdrawn items and disable unavailable actions.
+- Allow unsave.
+
+Search Preferences:
+- Save current filters with an optional name.
+- Edit and delete saved searches.
+- Enable/disable alerts only if backend notification support exists.
+- Do not imply alerts are active until backend confirms.
+
+## 4. Visual styling guide
+
+Audit the existing Flutter theme first and reuse sound tokens. If no design system exists, establish the original X Cron visual direction below and validate it on devices.
 
 ### Color tokens
 
 | Token | Suggested value | Usage |
 |---|---|---|
-| Brand primary | #172B4D | Primary navigation/action emphasis |
-| Brand accent | #2563EB | Links, selected controls, map focus |
-| Success | #15803D | Verified/completed/positive |
-| Warning | #B45309 | Pending/attention |
-| Danger | #B91C1C | Destructive/error |
+| Brand primary | #172B4D | Primary actions and navigation emphasis |
+| Brand accent | #2563EB | Links, selected controls and map focus |
+| Success | #15803D | Verified/positive status |
+| Warning | #B45309 | Review/pending status |
+| Danger | #B91C1C | Destructive/error status |
 | App background | #F6F7F9 | Main canvas |
-| Surface | #FFFFFF | Cards/sheets |
+| Surface | #FFFFFF | Cards and sheets |
 | Text primary | #17202A | Main text |
 | Text secondary | #667085 | Supporting text |
-| Border | #E4E7EC | Dividers/outlines |
+| Border | #E4E7EC | Dividers and outlines |
 
-These are proposed tokens, not competitor brand reproduction. Validate WCAG 2.2 AA contrast and adjust where needed. Do not hard-code colors in individual widgets. Add dark theme only when ready to test it.
+Use semantic theme tokens, not widget-level hard-coded colors. Validate WCAG 2.2 AA contrast and never communicate status by color alone. Do not imitate competitor palettes or brand assets.
 
 ### Typography
+- Use a highly legible platform font or properly licensed bundled family.
+- Define semantic styles: page title, section title, card title, body, label, caption and numeric emphasis.
+- Use tabular figures for freight, weight and dates where supported.
+- Prefer sentence case, plain language and short labels.
+- Respect system text scaling; avoid clipped values and fixed-height text containers.
 
-- Highly legible sans-serif available on Android/iOS (platform system font or licensed bundled family).
-- Semantic styles: display, page title, section title, card title, body, label, caption, numeric emphasis.
-- Tabular figures for freight, weight, distance and timestamps where supported.
-- Sentence case, plain language and short labels.
-- Avoid all-caps long labels.
-- Respect system text scaling; prevent clipping.
-
-### Spacing and shape
-
-Use an 8-point base scale: 4, 8, 12, 16, 24, 32. Suggested page padding 16–20dp, card padding 16dp, section gap 24dp, field gap 8–12dp. Consistent radii: 8dp controls, 12–16dp cards, 20dp sheets. Use subtle elevation only where it clarifies hierarchy. Avoid excessive gradients, glass effects, oversized decorative illustrations and unnecessary animation.
+### Spacing, shape and elevation
+Use an 8-point spacing scale: 4, 8, 12, 16, 24 and 32dp. Suggested page padding 16–20dp, card padding 16dp, section spacing 24dp and field spacing 8–12dp. Use consistent 8dp control radius, 12–16dp card radius and 20dp sheet radius. Use subtle elevation only when it clarifies hierarchy. Avoid excessive gradients, glass effects and decorative animation.
 
 ### Touch and accessibility
-
 - Minimum touch target 48x48dp.
 - WCAG 2.2 AA contrast.
-- Semantic labels for icons and controls.
+- Semantic labels and screen-reader traversal for all controls.
 - Never rely on color alone.
-- Keyboard/focus behavior for external keyboards.
-- Screen-reader labels and meaningful traversal order.
-- Validation text close to the field.
-- Haptics sparingly for confirmed actions, not every tap.
+- Support system font scaling and external keyboard focus.
+- Place validation messages beside the relevant field.
+- Use haptics sparingly for acknowledged actions.
 
 ### Iconography and imagery
+Use one consistent icon family and stroke weight. Label ambiguous icons. Use permissioned logistics imagery only where useful; avoid decorative stock-photo clutter. Never use Uber/Ola logos or assets.
 
-Use one consistent icon family/stroke weight. Give icons labels or accessible semantics when meaning is unclear. Use permissioned logistics imagery only where it adds value; avoid stock-photo filler on every card. Never use competitor logos/assets.
+## 5. Flutter feature architecture
 
-## 6. Flutter implementation guidance
-
-Inspect existing Flutter project before selecting state management, routing, networking, serialization, maps or design-system libraries. Reuse sound existing standards; do not add competing packages.
-
-Suggested feature separation:
+Inspect the existing Flutter project before choosing state management, routing, networking, maps or UI libraries. Reuse established standards; do not add competing packages.
 
     features/marketplace/
-      presentation/   screens, widgets, state
-      application/    controllers, notifiers, use cases
-      domain/         typed models and client policies
-      data/           API client, DTO mapping, repositories
-    core/
-      design_system/
-      network/
-      location/
-      navigation/
+      presentation/
+        find_loads/
+        load_details/
+        post_load/
+        my_listings/
+        saved_loads/
+        search_preferences/
+        widgets/
+      application/
+        controllers/
+        use_cases/
+      domain/
+        models/
+        policies/
+      data/
+        dto/
+        repositories/
+        services/
 
 Guidelines:
-- Typed immutable models and explicit DTO-to-domain mapping.
-- Separate API DTOs from view models where transformation is needed.
-- Repository abstractions for search, details, offers, bookings and backhaul.
-- Explicit loading, empty, error, offline, stale and permission-denied states.
-- Debounce place search; cancel stale requests when filters change.
-- Cursor pagination and item deduplication by ID.
-- Cache only safe recent results locally; refresh authoritative status before booking.
-- Secure token storage consistent with existing auth.
-- Never store sensitive documents/full contact data in plain preferences.
-- No business calculations in widgets; display server estimates with assumptions.
-- WebSocket/push only for timely updates; REST is recovery source.
-- Analytics without PII: search, filter, details, offer started/submitted, booking confirmed.
-- Map API errors to actionable messages; retain correlation ID for support.
+- Reuse shared authentication, profile, fleet and vehicle features.
+- Use typed immutable models and explicit DTO-to-domain mapping.
+- Separate API DTOs from view models where useful.
+- Use repositories for listings, search, saved items and preferences.
+- Include loading, empty, error, offline, stale and permission-denied states.
+- Debounce place search and cancel stale requests after filter changes.
+- Use cursor pagination and deduplicate by listing ID.
+- Cache only safe recent listing data; refresh authoritative state before owner mutations.
+- Store auth tokens only through the existing secure mechanism.
+- Keep listing validation and compatibility decisions on the backend.
+- Do not calculate route feasibility, profit or backhaul in Flutter.
+- Keep analytics free of PII: search, filter, details viewed, save/unsave, draft started and publish completed.
+- Preserve request correlation IDs for support diagnostics.
 
-## 7. API/UI contract alignment
+## 6. API/UI contract
 
-Follow 00-marketplace-system-architecture.md. Flutter must support search filters/cursors, role-aware list/detail, applied filters and match reasons, offer/counter/withdraw/accept states, booking lifecycle, backhaul reasons/deviation, earnings assumptions/freshness and stable error codes.
+Follow 00-marketplace-system-architecture.md. Flutter needs:
+- Create/update draft and publish/pause/resume/withdraw listing.
+- Search with normalized filters, sorting and cursor pagination.
+- Role-aware listing details and owner listing management.
+- Saved loads and saved search preferences.
+- Compatibility status and reason codes from backend.
+- Stable validation/error codes and server-confirmed state.
 
-Never hard-code sample loads, counts, freight or live badges in production. Keep demo fixtures isolated to demo/dev environments and visibly label them.
+Do not hard-code sample listings, counts, freight or verification badges in production. Demo fixtures must be isolated and visibly marked.
 
-## 8. Responsive behavior and performance
+## 7. Responsive behavior and performance
 
-- Design for common Android phone widths first, then adapt to larger phones/tablets.
-- No horizontal overflow on narrow screens or large text.
-- Lazy lists and bounded image thumbnails.
-- Avoid rebuilding entire feed when one card's saved state changes.
-- Debounce search and cancel outdated requests.
-- Cluster map markers and dispose controllers/listeners.
-- Pagination, request timeouts, retry rules and offline messaging.
-- Avoid excessive polling; push/WebSocket reconnects use backoff.
-- Show last-updated time for potentially stale results.
+- Design for common Android phone widths first; adapt to tablets.
+- No horizontal overflow with long city names, large freight values or large text.
+- Lazy-load feed cards and bounded attachment thumbnails.
+- Avoid rebuilding the entire feed for one saved-state change.
+- Debounce search, cancel stale requests and use bounded timeouts.
+- Cluster map markers and dispose map controllers/listeners.
+- Provide pagination, retry and offline messaging.
+- Show last-updated time when cached data may be stale.
 
-## 9. Localization for India
+## 8. India localization
 
-- Locale-aware INR currency and number grouping.
-- Explicit units for weight (kg/tonne), dimensions and distance.
-- Store UTC; display selected/local timezone with unambiguous date/time.
+- Locale-aware INR formatting and Indian number grouping.
+- Explicit units for kg/tonne and dimensions.
+- Store UTC; display dates/times clearly in the applicable local timezone.
 - Support Indian states, districts, PIN codes and local address conventions.
-- Keep strings in localization resources; do not concatenate translated sentences.
-- Plan for Tamil, Hindi and other languages with expandable layouts.
-- Use simple operational wording and explain logistics terms where needed.
+- Keep strings in localization resources; avoid concatenated translated phrases.
+- Plan layouts for Tamil, Hindi and other languages without fixed text assumptions.
+- Use simple operational wording and explain unfamiliar freight terms.
 
-## 10. UI states and microcopy
+## 9. UI states and copy
 
-Every screen includes loading skeleton, useful empty state, retryable error, offline/stale state, permission-denied state, disabled-action reason and server-confirmed success. Include conflict state when a load is booked/expired by another user.
+Every screen defines loading, empty, error, offline/stale, permission-denied, validation and server-confirmed success states.
 
 Example copy:
-- "No loads match these filters." / "Try widening the pickup radius."
-- "This load is no longer available." / "Refresh results to see current loads."
-- "Location access is off." / "Choose a pickup city instead."
-- "Your offer was sent." / "Track replies in Bookings."
+- "No loads match these filters." — "Try widening the pickup radius or date range."
+- "This listing is no longer available." — "Refresh to see current loads."
+- "Location access is off." — "Choose a pickup city instead."
+- "Draft saved." — show only after server acknowledgement.
+- "Load published." — show only after server acknowledgement.
 
-Do not claim success before API acknowledgement.
+If publishing fails, preserve the draft and field values. If a listing expires while details are open, refresh its state and disable unavailable actions.
 
-## 11. Design QA checklist
+## 10. Design QA checklist
 
-- Route/freight hierarchy is immediately understandable.
-- Vehicle compatibility is clear without opening each result.
+- Pickup, destination and freight are immediately scannable.
+- Vehicle requirement and cargo weight are easy to compare.
 - Search works with and without location permission.
-- List/map use consistent result IDs and statuses.
-- Filters are grouped, editable and preserved.
-- Details disclose commercial assumptions and payment terms.
-- Backhaul shows deadhead, route deviation and match reason.
-- Contact is hidden until API authorization.
-- Offer/booking actions prevent duplicate submissions.
-- Long city names and large values are tested.
-- Large text, screen readers, contrast and touch targets pass.
-- Loading, empty, error, offline and stale states are designed.
+- List and map show the same eligible listings.
+- Filters are grouped, preserved and removable.
+- Multi-stop route and schedule are understandable.
+- Draft creation resumes without data loss.
+- Owner actions reflect backend listing state.
+- Contact details and private addresses follow API authorization.
+- Long place names, large values and large text are tested.
+- Screen readers, contrast and touch targets pass.
+- Loading, empty, error, offline and stale states are complete.
+- No backhaul, negotiation, booking, payment or tracking UI is implemented here.
 - No competitor assets, logos, exact layouts or copied text.
 
-## 12. Agentic AI implementation prompt
+## 11. Agentic AI implementation prompt
 
 Before implementation:
-1. Inspect Flutter structure, navigation, state management, API client, theme, localization, maps and Profile/vehicle onboarding.
-2. Reuse established identity, vehicle and fleet models; do not duplicate profile or vehicle forms.
-3. Review backend API contract and report missing endpoints before coding against assumptions.
-4. Produce screen flow and component inventory; build tokens/reusable components first.
-5. Implement vertical slices: Find Loads -> Details -> Offer -> Booking -> Backhaul -> Shipper Post Load -> Find Trucks.
-6. Include loading/empty/error/offline/permission and accessibility states in each slice.
-7. Use real API responses outside isolated demo fixtures.
-8. Use broad usability inspiration only; keep original X Cron design.
-9. Add widget, unit and integration tests; use golden screenshots if project supports them.
-10. Update this document when decisions materially change.
-
-## 13. Definition of done
-
-- Carrier and shipper experiences are distinct but share one marketplace domain.
-- Core screens work on supported Android/iOS devices.
-- Search, list/map, filters, details, offers, bookings and backhaul use documented APIs.
-- Freight is distinct from estimates and estimate assumptions are visible.
-- Actions reflect server-confirmed state.
-- Offline/loading/empty/error/permission states are complete.
-- Accessibility, localization, responsive and performance checks pass.
-- Visual system is consistent and original to X Cron.
+1. Inspect Flutter navigation, state management, API client, theme, localization and existing Profile/vehicle onboarding.
+2. Reuse account, role, fleet and vehicle models; do not duplicate onboarding.
+3. Review backend API contracts and report gaps before coding.
+4. Produce screen flow and reusable component inventory.
+5. Implement: Post Load -> My Listings -> Find Loads -> Filters/Map -> Details -> Saved Loads/Search Preferences.
+6. Include accessibility and loading/empty/error/offline/permission states in each slice.
+7. Use real APIs outside isolated demo fixtures.
+8. Keep design original to X Cron; do not copy competitor interfaces.
+9. Add widget, unit and integration tests; add golden tests if supported.
+10. Implement only Marketplace scope and integrate other modules through documented hand-off contracts.
