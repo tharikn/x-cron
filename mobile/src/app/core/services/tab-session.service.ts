@@ -2,7 +2,9 @@ import { Injectable, signal } from '@angular/core';
 
 const TAB_ID_KEY = 'xcron.tabId';
 const ACTIVE_TAB_KEY = 'xcron.activeTab';
+const ACTIVE_TAB_HEARTBEAT_KEY = 'xcron.activeTabHeartbeat';
 const CHANNEL = 'xcron-auth-tab';
+const STALE_MS = 3000;
 
 /**
  * One active browser tab for the Ionic web shell / PWA.
@@ -43,15 +45,27 @@ export class TabSessionService {
         this.blockedByOtherTab.set(true);
       }
     });
+
+    window.setInterval(() => {
+      if (localStorage.getItem(ACTIVE_TAB_KEY) === this.tabId()) {
+        localStorage.setItem(ACTIVE_TAB_HEARTBEAT_KEY, String(Date.now()));
+      }
+    }, 1000);
   }
 
   claim(): boolean {
     const owner = localStorage.getItem(ACTIVE_TAB_KEY);
-    if (owner && owner !== this.tabId()) {
+    const heartbeat = Number(localStorage.getItem(ACTIVE_TAB_HEARTBEAT_KEY) || 0);
+    const stale =
+      !owner ||
+      owner === this.tabId() ||
+      Date.now() - heartbeat > STALE_MS;
+    if (owner && owner !== this.tabId() && !stale) {
       this.blockedByOtherTab.set(true);
       return false;
     }
     localStorage.setItem(ACTIVE_TAB_KEY, this.tabId());
+    localStorage.setItem(ACTIVE_TAB_HEARTBEAT_KEY, String(Date.now()));
     this.blockedByOtherTab.set(false);
     this.channel?.postMessage({ type: 'claim', tabId: this.tabId() });
     return true;
@@ -59,6 +73,7 @@ export class TabSessionService {
 
   forceClaim(): void {
     localStorage.setItem(ACTIVE_TAB_KEY, this.tabId());
+    localStorage.setItem(ACTIVE_TAB_HEARTBEAT_KEY, String(Date.now()));
     this.blockedByOtherTab.set(false);
     this.channel?.postMessage({ type: 'claim', tabId: this.tabId() });
   }
@@ -66,6 +81,7 @@ export class TabSessionService {
   release(): void {
     if (localStorage.getItem(ACTIVE_TAB_KEY) === this.tabId()) {
       localStorage.removeItem(ACTIVE_TAB_KEY);
+      localStorage.removeItem(ACTIVE_TAB_HEARTBEAT_KEY);
     }
     this.channel?.postMessage({ type: 'release', tabId: this.tabId() });
   }

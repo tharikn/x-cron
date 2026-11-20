@@ -22,10 +22,10 @@ export class OnboardingService {
 
   readonly themePromptOpen = signal(false);
 
-  /** First-open theme chooser for guests and signed-in users. */
+  /** Theme chooser for every new app session. */
   needsThemePrompt(): boolean {
     try {
-      return localStorage.getItem(THEME_PROMPT_KEY) !== '1';
+      return sessionStorage.getItem(THEME_PROMPT_KEY) !== '1';
     } catch {
       return true;
     }
@@ -39,7 +39,7 @@ export class OnboardingService {
 
   completeThemePrompt(): void {
     try {
-      localStorage.setItem(THEME_PROMPT_KEY, '1');
+      sessionStorage.setItem(THEME_PROMPT_KEY, '1');
     } catch {
       // ignore
     }

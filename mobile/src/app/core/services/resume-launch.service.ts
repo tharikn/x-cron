@@ -36,24 +36,32 @@ export class ResumeLaunchService {
     this.busy.set(true);
     this.failed.set(false);
     try {
-      if (Capacitor.isNativePlatform()) {
-        // When the standalone CV APK is installed, hand the session to it directly.
-        // The in-app WebView remains the fallback (CV app not installed / intent rejected).
-        if (await this.canOpenCvApp()) {
-          try {
-            const url = await this.handoffUrl(NATIVE_CV_REDIRECT);
-            await AppLauncher.openUrl({ url });
-            return;
-          } catch {
-            // Fall through to the hosted WebView flow below.
+      let launched = false;
+      for (let attempt = 0; attempt < 3 && !launched; attempt++) {
+        try {
+          if (Capacitor.isNativePlatform()) {
+            if (await this.canOpenCvApp()) {
+              try {
+                const url = await this.handoffUrl(NATIVE_CV_REDIRECT);
+                await AppLauncher.openUrl({ url });
+                launched = true;
+                continue;
+              } catch {
+                // Fall through to the hosted WebView flow below.
+              }
+            }
+            await this.openInApp(await this.handoffUrl(this.webRedirect()));
+          } else {
+            window.location.assign(await this.handoffUrl(this.webRedirect()));
+          }
+          launched = true;
+        } catch {
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 300));
           }
         }
-        await this.openInApp(await this.handoffUrl(this.webRedirect()));
-      } else {
-        window.location.assign(await this.handoffUrl(this.webRedirect()));
       }
-    } catch {
-      this.failed.set(true);
+      if (!launched) this.failed.set(true);
     } finally {
       this.busy.set(false);
     }

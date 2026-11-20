@@ -29,23 +29,32 @@ export class ResumeLaunchService {
     this.busy.set(true);
     this.failed.set(false);
     try {
+      let code: string | null = null;
       const base = environment.resumeUrl.replace(/\/+$/, '');
       const redirectUri = `${base}/auth/callback`;
-      const nonce = crypto.randomUUID().replace(/-/g, '');
-      const { code } = await firstValueFrom(
-        this.http.post<{ code: string }>(
-          `${environment.apiUrl}/handoff/resume`,
-          { redirectUri, nonce },
-          { withCredentials: true, headers: this.auth.authHeaders() },
-        ),
-      );
-      window.location.assign(
-        `${redirectUri}?code=${encodeURIComponent(code)}&nonce=${nonce}`,
-      );
-      this.redirecting.set(true);
-      // If the navigation is blocked (e.g. offline), do not leave the overlay forever.
-      setTimeout(() => this.redirecting.set(false), 10_000);
-    } catch {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const nonce = crypto.randomUUID().replace(/-/g, '');
+          const response = await firstValueFrom(
+            this.http.post<{ code: string }>(
+              `${environment.apiUrl}/handoff/resume`,
+              { redirectUri, nonce },
+              { withCredentials: true, headers: this.auth.authHeaders() },
+            ),
+          );
+          code = response.code;
+          window.location.assign(
+            `${redirectUri}?code=${encodeURIComponent(code)}&nonce=${nonce}`,
+          );
+          this.redirecting.set(true);
+          setTimeout(() => this.redirecting.set(false), 10_000);
+          return;
+        } catch {
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 300));
+          }
+        }
+      }
       this.failed.set(true);
     } finally {
       this.busy.set(false);

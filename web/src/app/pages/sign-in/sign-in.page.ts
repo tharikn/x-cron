@@ -22,6 +22,7 @@ import {
   AuthService,
   type AuthDeviceSession,
 } from '../../core/services/auth.service';
+import { TabSessionService } from '../../core/services/tab-session.service';
 import {
   ThemeService,
 } from '../../core/services/theme.service';
@@ -73,6 +74,7 @@ export class SignInPage implements OnInit, AfterViewInit {
   private readonly toast = inject(ToastService);
   private readonly notifications = inject(NotificationsService);
   private readonly onboarding = inject(OnboardingService);
+  private readonly tabs = inject(TabSessionService);
   private readonly resumeLaunch = inject(ResumeLaunchService);
   private readonly seeker = inject(SeekerService);
   private readonly jobApplications = inject(ApplicationsService);
@@ -83,6 +85,7 @@ export class SignInPage implements OnInit, AfterViewInit {
   private googleRendered = false;
 
   readonly isSignedIn = this.auth.isSignedIn;
+  readonly tabId = this.tabs.tabId;
   readonly isAdmin = this.auth.isAdmin;
   readonly isEmployer = this.auth.isEmployer;
   readonly user = this.auth.user;
@@ -958,6 +961,9 @@ export class SignInPage implements OnInit, AfterViewInit {
 
   private async redirectAfterSignIn(): Promise<void> {
     await this.promptSystemNotifications();
+    if (this.onboarding.needsPortalChoice()) {
+      this.onboarding.openPortalChoiceIfNeeded();
+    }
     const intent = this.route.snapshot.queryParamMap.get('intent');
     if (intent === 'resume') {
       void this.resumeLaunch.launch();

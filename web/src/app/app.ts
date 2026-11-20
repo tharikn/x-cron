@@ -132,13 +132,7 @@ export class App implements OnInit, OnDestroy {
     if (isPlatformBrowser(this.platformId)) {
       this.connectivity.start();
       this.tracking.start();
-      this.onboarding.openPortalChoiceIfNeeded();
-      if (!this.onboarding.portalChoiceOpen()) {
-        this.onboarding.openThemePromptIfNeeded();
-        if (!this.onboarding.themePromptOpen()) {
-          void this.maybeForceProfileSetup();
-        }
-      }
+      void this.initOnboarding();
     }
     this.navSub = this.router.events
       .pipe(
@@ -166,6 +160,18 @@ export class App implements OnInit, OnDestroy {
 
   onPortalChoiceClosed(): void {
     this.onboarding.completePortalChoice();
+    this.onboarding.openThemePromptIfNeeded();
+    if (!this.onboarding.themePromptOpen()) {
+      void this.maybeForceProfileSetup();
+    }
+  }
+
+  private async initOnboarding(): Promise<void> {
+    await this.auth.ensureSession();
+    if (this.auth.isSignedIn() && this.onboarding.needsPortalChoice()) {
+      this.onboarding.openPortalChoiceIfNeeded();
+      return;
+    }
     this.onboarding.openThemePromptIfNeeded();
     if (!this.onboarding.themePromptOpen()) {
       void this.maybeForceProfileSetup();

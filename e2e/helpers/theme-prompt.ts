@@ -9,6 +9,7 @@ export async function skipThemePrompt(page: Page): Promise<void> {
     for (const key of keys) {
       try {
         localStorage.setItem(key, '1');
+        sessionStorage.setItem(key, '1');
       } catch {
         /* ignore */
       }

@@ -167,13 +167,26 @@ export class AuthService {
   }): Promise<void> {
     this.tabs.forceClaim();
     // Google idToken is exchanged once — never persisted client-side.
-    const response = await firstValueFrom(
-      this.http.post<AuthSessionResponse>(
-        `${environment.apiUrl}/auth/google`,
-        input,
-        { withCredentials: true, headers: this.authHeaders() },
-      ),
-    );
+    let response: AuthSessionResponse | null = null;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        response = await firstValueFrom(
+          this.http.post<AuthSessionResponse>(
+            `${environment.apiUrl}/auth/google`,
+            input,
+            { withCredentials: true, headers: this.authHeaders() },
+          ),
+        );
+        break;
+      } catch (err) {
+        lastError = err;
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      }
+    }
+    if (!response) throw (lastError ?? new Error('Google sign-in failed'));
     this.persist(response.token, response.refreshToken, response.user);
     this.sessionValidated.set(true);
     await this.linkPushDevice();
@@ -288,6 +301,7 @@ export class AuthService {
       sessionStorage.removeItem(USER_KEY);
       sessionStorage.removeItem(SESSION_REFRESH_KEY);
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(SESSION_REFRESH_KEY);
       localStorage.removeItem(LEGACY_TOKEN_KEY);
       localStorage.removeItem(LEGACY_REFRESH_KEY);
     }
@@ -381,6 +395,7 @@ export class AuthService {
       this.refreshToken.set(response.refreshToken);
       if (isPlatformBrowser(this.platformId)) {
         sessionStorage.setItem(SESSION_REFRESH_KEY, response.refreshToken);
+        localStorage.setItem(SESSION_REFRESH_KEY, response.refreshToken);
       }
       return true;
     } catch {
@@ -403,7 +418,9 @@ export class AuthService {
 
   private hydrateSessionRefresh(): void {
     if (!isPlatformBrowser(this.platformId)) return;
-    const refresh = sessionStorage.getItem(SESSION_REFRESH_KEY);
+    const refresh =
+      sessionStorage.getItem(SESSION_REFRESH_KEY) ||
+      localStorage.getItem(SESSION_REFRESH_KEY);
     if (refresh) this.refreshToken.set(refresh);
   }
 
@@ -414,6 +431,7 @@ export class AuthService {
     if (isPlatformBrowser(this.platformId)) {
       sessionStorage.setItem(USER_KEY, JSON.stringify(user));
       sessionStorage.setItem(SESSION_REFRESH_KEY, refreshToken);
+      localStorage.setItem(SESSION_REFRESH_KEY, refreshToken);
       localStorage.removeItem(LEGACY_TOKEN_KEY);
       localStorage.removeItem(LEGACY_REFRESH_KEY);
     }

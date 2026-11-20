@@ -53,11 +53,11 @@ export class OnboardingService {
     this.portalChoiceOpen.set(false);
   }
 
-  /** First-open theme chooser for guests and signed-in users. */
+  /** Theme chooser for every new browser session. */
   needsThemePrompt(): boolean {
     if (!isPlatformBrowser(this.platformId)) return false;
     try {
-      return localStorage.getItem(THEME_PROMPT_KEY) !== '1';
+      return sessionStorage.getItem(THEME_PROMPT_KEY) !== '1';
     } catch {
       return true;
     }
@@ -72,7 +72,7 @@ export class OnboardingService {
   completeThemePrompt(): void {
     if (isPlatformBrowser(this.platformId)) {
       try {
-        localStorage.setItem(THEME_PROMPT_KEY, '1');
+        sessionStorage.setItem(THEME_PROMPT_KEY, '1');
       } catch {
         // ignore
       }

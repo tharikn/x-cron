@@ -1,4 +1,9 @@
 <section class="page">
+  @if (busy()) {
+    <div class="auth-loading-overlay" role="status" aria-live="polite" aria-busy="true" data-testid="login-spinner">
+      <span class="sk sk--btn-bar auth-loading-overlay__bar" aria-hidden="true"></span>
+    </div>
+  }
   <div
     class="stack"
     [class.stack--hub]="isSignedIn() && !isAdmin() && !needsAdminLogin()"
@@ -771,8 +776,9 @@
               </div>
             }
 
-            <div class="hub-section sessions">
+            <div class="hub-section sessions" data-testid="session-info">
               <h2>Devices &amp; sessions</h2>
+              <p class="hint" data-testid="tab-id">Tab: {{ tabId() }}</p>
               <p class="hint">
                 Review where you are signed in. Revoke a session you do not
                 recognise, or sign out everywhere.

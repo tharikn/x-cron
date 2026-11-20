@@ -173,13 +173,26 @@ export class AuthService {
     intendedRole?: 'seeker' | 'employer';
   }): Promise<void> {
     this.tabs.forceClaim();
-    const response = await firstValueFrom(
-      this.http.post<AuthSessionResponse>(
-        `${environment.apiUrl}/auth/google`,
-        input,
-        { ...this.credOpts(), headers: this.authHeaders() },
-      ),
-    );
+    let response: AuthSessionResponse | null = null;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        response = await firstValueFrom(
+          this.http.post<AuthSessionResponse>(
+            `${environment.apiUrl}/auth/google`,
+            input,
+            { ...this.credOpts(), headers: this.authHeaders() },
+          ),
+        );
+        break;
+      } catch (err) {
+        lastError = err;
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      }
+    }
+    if (!response) throw (lastError ?? new Error('Google sign-in failed'));
     this.persist(
       response.token,
       response.refreshToken,
