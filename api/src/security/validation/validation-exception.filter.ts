@@ -4,6 +4,7 @@ import {
   Catch,
   ExceptionFilter,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
 import type { Response } from 'express';
@@ -45,6 +46,8 @@ export function validationFailedException(errors: ValidationError[]): BadRequest
  */
 @Catch(BadRequestException)
 export class ValidationExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(ValidationExceptionFilter.name);
+
   catch(exception: BadRequestException, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const res = ctx.getResponse<Response>();
@@ -66,6 +69,9 @@ export class ValidationExceptionFilter implements ExceptionFilter {
     const payload = body as Record<string, unknown>;
     // Already field-mapped (exceptionFactory / InputProtector)
     if (payload.errors && typeof payload.errors === 'object' && !Array.isArray(payload.errors)) {
+      this.logger.warn(
+        `Validation failed status=${status} correlationId=${correlationId ?? '-'} errors=${JSON.stringify(payload.errors)}`,
+      );
       res.status(status).json({
         statusCode: status,
         error: 'Bad Request',

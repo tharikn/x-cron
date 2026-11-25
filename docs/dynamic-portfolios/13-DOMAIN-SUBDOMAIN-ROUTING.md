@@ -1,5 +1,9 @@
 # Domain, Subdomain and Routing
 
+## MVP implementation status
+
+The shipped MVP serves public portfolios from the platform path `/p/:slug` (anonymous, no auth). Subdomain and custom-domain routing described below is deferred; domain binding/verification is part of that deferred capability.
+
 ## Platform URL
 
 Every site receives a platform URL such as username.xcron.example or site-slug.xcron.example. The actual platform domain is environment-configured.

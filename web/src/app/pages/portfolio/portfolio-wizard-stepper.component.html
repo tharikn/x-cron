@@ -1,0 +1,21 @@
+<nav class="wp-stepper" [class.wp-stepper--compact]="compact()" aria-label="Portfolio creation steps">
+  <ol class="wp-stepper__list">
+    @for (step of steps; track step.id) {
+      <li class="wp-stepper__item" [attr.data-state]="state(step.id)">
+        <button
+          type="button"
+          class="wp-stepper__button"
+          [disabled]="locked() || step.id >= active()"
+          [attr.aria-current]="state(step.id) === 'active' ? 'step' : null"
+          (click)="go(step.id)"
+        >
+          <span class="wp-stepper__marker" aria-hidden="true">{{ marker(step.id) }}</span>
+          <span class="wp-stepper__text">
+            <strong>{{ step.label }}</strong>
+            <small>{{ step.hint }}</small>
+          </span>
+        </button>
+      </li>
+    }
+  </ol>
+</nav>

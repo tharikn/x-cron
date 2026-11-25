@@ -1,0 +1,81 @@
+<section class="page">
+  <header class="head">
+    <div>
+      <p class="eyebrow">Dynamic portfolios</p>
+      <h1>Portfolios</h1>
+      <p class="lead">
+        Structured, JSON-first pages. Draft safely, publish an immutable version, roll back any time.
+      </p>
+    </div>
+    <div class="head__actions">
+      <a class="btn" routerLink="/portfolio/new">New portfolio</a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p class="state">Loading your portfolios…</p>
+  } @else if (!sites().length) {
+    <div class="empty card">
+      <h2>No portfolios yet</h2>
+      <p>Choose a design, add the details, then publish your first page in a few minutes.</p>
+      <a class="btn" routerLink="/portfolio/new">Create a portfolio</a>
+    </div>
+  } @else {
+    <ul class="sites">
+      @for (site of sites(); track site.id) {
+        <li class="site card">
+          <div class="site__head">
+            <div>
+              <h2>
+                <a [routerLink]="['/portfolio', site.id]">{{ site.name }}</a>
+              </h2>
+              <p class="site__path">/p/{{ site.slug }}</p>
+            </div>
+            <span class="pill" [attr.data-status]="site.status">{{ statusLabel(site) }}</span>
+          </div>
+
+          <dl class="site__meta">
+            <div>
+              <dt>Sections</dt>
+              <dd>{{ site.sectionCount }}</dd>
+            </div>
+            <div>
+              <dt>Language</dt>
+              <dd>{{ site.defaultLocale }}</dd>
+            </div>
+            <div>
+              <dt>Template</dt>
+              <dd>{{ site.template.id }}</dd>
+            </div>
+            <div>
+              <dt>Updated</dt>
+              <dd>{{ site.updatedAt | date: 'mediumDate' }}</dd>
+            </div>
+          </dl>
+
+          <div class="site__actions">
+            <a class="btn btn--sm" [routerLink]="['/portfolio', site.id]">Edit draft</a>
+            @if (site.status === 'published') {
+              <a
+                class="btn btn--ghost btn--sm"
+                [routerLink]="['/p', site.slug]"
+                target="_blank"
+                rel="noopener"
+              >
+                View live
+              </a>
+            }
+            <button
+              type="button"
+              class="btn btn--ghost btn--sm danger"
+              [disabled]="deletingId() === site.id"
+              (click)="remove(site)"
+            >
+              {{ deletingId() === site.id ? 'Deleting…' : 'Delete' }}
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

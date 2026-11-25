@@ -1,0 +1,17 @@
+<main class="public">
+  @if (loading()) {
+    <div class="state" role="status">Loading portfolio…</div>
+  } @else if (notFound()) {
+    <div class="state">
+      <h1>Portfolio not found</h1>
+      <p>This portfolio is not published, or the link is incorrect.</p>
+      <a href="/">Back to X Cron</a>
+    </div>
+  } @else if (document(); as document) {
+    <app-portfolio-renderer
+      [document]="document"
+      [locale]="activeLocale()"
+      (interaction)="onInteraction($event)"
+    />
+  }
+</main>

@@ -4,7 +4,7 @@ Engineering notes for everything built against PRD v1.0 (roadmap R0–R5 + MVP+)
 **Audience:** developers picking up the monorepo.  
 **Release status:** see [Is this ready for release?](#is-this-ready-for-release) at the bottom.
 
-Related docs: [ROADMAP.md](./ROADMAP.md) · [FILE_MAP.md](./FILE_MAP.md) · [MVP_COMPLETE.md](./MVP_COMPLETE.md) · [COST_MODEL.md](./COST_MODEL.md) · [MOBILE_MVP.md](./MOBILE_MVP.md) · [CHANNEL_PULL.md](./CHANNEL_PULL.md) · [PERFORMANCE_SCORE.md](./PERFORMANCE_SCORE.md) · [APPLICATIONS_TIMELINE.md](./APPLICATIONS_TIMELINE.md) · [FEEDBACK.md](./FEEDBACK.md) · [JOB_DISCOVERY.md](./JOB_DISCOVERY.md) · [REDIS.md](./REDIS.md) · [WEBSITE_AND_ANDROID_UX.md](./WEBSITE_AND_ANDROID_UX.md) · [E2E.md](./E2E.md)  
+Related docs: [ROADMAP.md](./ROADMAP.md) · [FILE_MAP.md](./FILE_MAP.md) · [MVP_COMPLETE.md](./MVP_COMPLETE.md) · [COST_MODEL.md](./COST_MODEL.md) · [MOBILE_MVP.md](./MOBILE_MVP.md) · [CHANNEL_PULL.md](./CHANNEL_PULL.md) · [PERFORMANCE_SCORE.md](./PERFORMANCE_SCORE.md) · [APPLICATIONS_TIMELINE.md](./APPLICATIONS_TIMELINE.md) · [FEEDBACK.md](./FEEDBACK.md) · [JOB_DISCOVERY.md](./JOB_DISCOVERY.md) · [REDIS.md](./REDIS.md) · [WEBSITE_AND_ANDROID_UX.md](./WEBSITE_AND_ANDROID_UX.md) · [E2E.md](./E2E.md) · [dynamic-portfolios/README.md](./dynamic-portfolios/README.md) — Dynamic Portfolios module spec + task breakdown (DP-001…DP-032)  
 
 Agent guides: [../CLAUDE.md](../CLAUDE.md) · [../api/CLAUDE.md](../api/CLAUDE.md) · [../mobile/CLAUDE.md](../mobile/CLAUDE.md) · [../web/CLAUDE.md](../web/CLAUDE.md)
 
@@ -225,6 +225,7 @@ Node **22.22.3+** required.
 | `reputation/` | Performance Score for seeker + employer; match % + event ledger |
 | `account/` | Account deletion orchestration |
 | `site/` | Public footer config (`GET /v1/site/footer`; admin PUT) |
+| `portfolio/` | Dynamic Portfolios module: JSON-first sites, drafts, versions, publish/rollback, public runtime, URL media, AI copy (`/v1/portfolio/*`) |
 | `health/` | `GET /v1/health` |
 
 Global: `AuthGuard` via `APP_GUARD`; mark public routes with `@Public()`.

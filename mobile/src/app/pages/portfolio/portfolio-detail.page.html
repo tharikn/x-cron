@@ -1,0 +1,98 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/portfolio"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ site()?.name || 'Portfolio' }}</ion-title>
+    <ion-buttons slot="end">
+      @if (site()) {
+        <ion-button
+          [disabled]="publishing()"
+          (click)="publish()"
+        >
+          {{ publishing() ? 'Publishing...' : 'Publish' }}
+        </ion-button>
+      }
+    </ion-buttons>
+  </ion-toolbar>
+  @if (site()) {
+    <ion-toolbar>
+      <ion-segment
+        [value]="tab()"
+        (ionChange)="tab.set($any($event.detail.value))"
+      >
+        <ion-segment-button value="preview">
+          <ion-label>Preview</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="quick-edit">
+          <ion-label>Quick Edit</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </ion-toolbar>
+  }
+</ion-header>
+
+<ion-content>
+  @if (loading()) {
+    <div class="ion-padding">
+      <app-list-skeleton></app-list-skeleton>
+    </div>
+  } @else if (!draft()) {
+    <div class="ion-padding empty-state">
+      <h3>Portfolio not found</h3>
+    </div>
+  } @else {
+    @if (tab() === 'preview') {
+      <div class="preview-status ion-padding-horizontal ion-padding-top">
+        <ion-badge [color]="site()?.status === 'published' ? 'success' : 'medium'">
+          {{ site()?.status }}
+        </ion-badge>
+        <span class="slug-label">/p/{{ site()?.slug }}</span>
+      </div>
+      <div class="renderer-wrap">
+        <app-portfolio-renderer
+          [document]="draft()!"
+          device="mobile"
+        ></app-portfolio-renderer>
+      </div>
+    } @else {
+      <div class="ion-padding">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Hero & About</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-item>
+              <ion-label position="stacked">Headline</ion-label>
+              <ion-input [(ngModel)]="heroHeadline"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Subheadline</ion-label>
+              <ion-input [(ngModel)]="heroSubheadline"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">About Bio</ion-label>
+              <ion-textarea
+                [(ngModel)]="aboutBio"
+                [autoGrow]="true"
+                rows="4"
+              ></ion-textarea>
+            </ion-item>
+
+            <div class="ion-margin-top">
+              <ion-button
+                expand="block"
+                [disabled]="saving()"
+                (click)="saveQuickEdit()"
+              >
+                {{ saving() ? 'Saving...' : 'Save Changes' }}
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    }
+  }
+</ion-content>

@@ -26,7 +26,7 @@ The platform must support:
 
 ## Core architecture decisions
 
-1. JSON is the source of truth. Never persist user-authored HTML as canonical site content.
+1. JSON is the source of truth. Never persist user-authored HTML as canonical site content, except the single allow-listed `custom-code` section whose opaque source only ever runs inside an opaque-origin sandbox (see 26).
 2. Schema-version every site document.
 3. Templates are immutable/versioned design packages.
 4. Renderer is allow-listed. JSON may reference only registered components and validated props.
@@ -74,6 +74,22 @@ Treat every file in this folder as an implementation specification. Read this RE
 | 23-DEPLOYMENT-OBSERVABILITY-AND-COST.md | Deployment and cost |
 | 24-IMPLEMENTATION-TASK-BREAKDOWN.md | Agent execution tasks |
 | 25-AI-ASSISTED-CREATION.md | Optional AI capabilities |
+| 26-CUSTOM-CODE-SANDBOX.md | Sandboxed HTML/CSS/JS blocks |
+
+## Implementation status
+
+This folder is the implementation specification for the **Dynamic Portfolios** module. The current build state is tracked in two places:
+
+- Task execution status: [24-IMPLEMENTATION-TASK-BREAKDOWN.md](./24-IMPLEMENTATION-TASK-BREAKDOWN.md) (DP-001 … DP-032) — each task lists its acceptance criteria and current implementation status.
+- MVP delivery status: [../../IMPLEMENTATION_PLAN.md](../../IMPLEMENTATION_PLAN.md) — one row per delivered task family (✅ DONE / 🟡 PARTIAL / ⏳ Planned).
+
+Status legend:
+
+| Status | Meaning |
+|---|---|
+| ✅ DONE | Implemented and verified (build + tests pass) |
+| 🟡 PARTIAL | Core path shipped; explicitly deferred sub-features listed in the task breakdown |
+| ⏳ PLANNED | Specified, not yet implemented |
 
 ## Recommended order
 

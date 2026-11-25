@@ -4,6 +4,16 @@
 
 REST/JSON, versioned under /api/v1, cursor pagination, consistent errors, request IDs, idempotent mutation where retries are possible and optimistic concurrency for drafts.
 
+## Implemented deviations from this spec
+
+The MVP implementation follows the repository route conventions and ships only the core contract subset. Recorded deviations:
+
+1. Base path: implemented as `/v1/portfolio/*` (project convention), not `/api/v1/portfolio/*` as written above. No alias is added; clients consume `/v1/portfolio/*`.
+2. Public read path: implemented as `GET /v1/portfolio/public/:slug` (web SSR public route is `/p/:slug`). Subdomain routing is deferred.
+3. Media: implemented as a URL-based asset registry (`POST /v1/portfolio/media`, `DELETE /v1/portfolio/media/:assetId`). The spec's `upload-intent` / `complete` binary upload pipeline is deferred.
+4. AI: implemented as `POST /v1/portfolio/ai/generate` returning structured copy proposals with a deterministic fallback. Editor-side accept/reject workflow is deferred.
+5. Public analytics: implemented as `POST /v1/portfolio/public/:slug/events` (privacy-light beacon).
+
 ## Core resources
 
 Sites:

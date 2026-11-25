@@ -187,6 +187,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'portfolio',
+        loadComponent: () =>
+          import('./pages/portfolio/portfolio-list.page').then(
+            (m) => m.PortfolioListPage,
+          ),
+      },
+      {
+        path: 'portfolio/:id',
+        loadComponent: () =>
+          import('./pages/portfolio/portfolio-detail.page').then(
+            (m) => m.PortfolioDetailPage,
+          ),
+      },
+      {
         path: '',
         redirectTo: 'discover',
         pathMatch: 'full',

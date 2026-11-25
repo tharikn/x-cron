@@ -20,3 +20,12 @@ Test XSS, unsafe URLs, malicious SVG, IDOR, tenant isolation, preview-token reus
 
 ## Contract tests
 Site schema and renderer contracts must remain synchronized. Every schema change requires updated fixtures and renderer tests.
+
+## Implemented coverage (MVP)
+
+Currently shipped with the Dynamic Portfolios MVP implementation:
+
+- Unit: site JSON schema + publish validation (`api/src/portfolio/site-schema.spec.ts`); AI assist fallback (`api/src/portfolio/portfolio-ai.service.spec.ts`).
+- No dedicated portfolio unit suites exist in `web/` or `mobile/` yet — only the shared utils/guards suites cover cross-cutting behaviour.
+
+Planned next: renderer contract tests, draft/publish/rollback lifecycle suites, authorization (IDOR/workspace) tests, security suites (XSS, unsafe URLs, malicious SVG), visual regression and E2E journeys (create → edit → publish → open `/p/:slug` → rollback).

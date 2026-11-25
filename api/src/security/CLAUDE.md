@@ -7,7 +7,7 @@ Design map: [../../../docs/SECURITY_PRIVACY.md](../../../docs/SECURITY_PRIVACY.m
 ## Guards / middleware order
 
 1. **`CorrelationIdMiddleware`** (`SecurityModule.configure`, applied before the input protector so rejected requests still carry an id) — assign/echo `X-Request-Id` (`req.correlationId`); CORS exposes the header; validation 400s include `correlationId`
-2. **`InputProtectorMiddleware`** (`SecurityModule.configure`) — rejects XSS / SQLi *payload* patterns, null bytes, prototype-pollution keys on JSON body + query (not English SQL keyword blacklists; Prisma stays parameterized — never interpolate UI into SQL)
+2. **`InputProtectorMiddleware`** (`SecurityModule.configure`) — rejects XSS / SQLi *payload* patterns, null bytes, prototype-pollution keys on JSON body + query (not English SQL keyword blacklists; Prisma stays parameterized — never interpolate UI into SQL). Narrow exception: `allowPortfolioCode` skips pattern checks for `html`/`css`/`js` of a `custom-code` object, and only on `PUT …/draft` + `POST …/draft/validate`; control chars and pollution keys still apply, and other routes keep the strict scan. Draft bodies can reach 2 MB (`useBodyParser('json')` in `main.ts`).
 3. **`SecurityThrottlerGuard`** — named throttlers (`default` / `auth` / `sensitive`)
 4. **`CsrfGuard`** — double-submit when access cookie is present; **skipped** when `Authorization: Bearer` is present, or on auth bootstrap (`/auth/login|register|refresh|google|admin/login`) so a stale cookie cannot block re-login
 5. **`AuthGuard`** — Bearer (preferred) or cookie access → `request.user` + tab binding; public routes do not hard-fail on `session_tab_mismatch` (stale cookie + new tab id)

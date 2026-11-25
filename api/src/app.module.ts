@@ -28,6 +28,7 @@ import { OutboxModule } from './outbox/outbox.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PortfolioModule } from './portfolio/portfolio.module';
 import { ReputationModule } from './reputation/reputation.module';
 import { SeekerModule } from './seeker/seeker.module';
 import { RedisModule } from './redis/redis.module';
@@ -67,6 +68,7 @@ import { TrackingModule } from './tracking/tracking.module';
     I18nModule,
     SiteModule,
     LocationsModule,
+    PortfolioModule,
   ],
   controllers: [HealthController],
   providers: [

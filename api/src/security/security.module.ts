@@ -10,6 +10,7 @@ import {
 import { THROTTLE_DEFAULT } from './security.constants';
 import { AuditService } from './audit.service';
 import { CorrelationIdMiddleware } from './correlation-id.middleware';
+import { RequestLoggingMiddleware } from './request-logging.middleware';
 import { CsrfGuard } from './csrf.guard';
 import { InputProtectorMiddleware } from './input-protector.middleware';
 import { SecurityThrottlerGuard } from './security-throttler.guard';
@@ -72,7 +73,11 @@ function buildThrottlerModule() {
 export class SecurityModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer
-      .apply(CorrelationIdMiddleware, InputProtectorMiddleware)
+      .apply(
+        CorrelationIdMiddleware,
+        RequestLoggingMiddleware,
+        InputProtectorMiddleware,
+      )
       .forRoutes('*');
   }
 }

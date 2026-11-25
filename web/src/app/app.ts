@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import {
+  ActivatedRouteSnapshot,
   NavigationCancel,
   NavigationEnd,
   NavigationError,
@@ -91,6 +92,7 @@ export class App implements OnInit, OnDestroy {
 
   readonly menuOpen = signal(false);
   readonly navigating = signal(false);
+  readonly isBareRoute = signal(false);
   readonly apiBusy = this.apiLoading.visible;
   readonly toasts = this.toastService.messages;
   readonly themePromptOpen = this.onboarding.themePromptOpen;
@@ -134,6 +136,7 @@ export class App implements OnInit, OnDestroy {
       this.tracking.start();
       void this.initOnboarding();
     }
+    this.syncBareRoute();
     this.navSub = this.router.events
       .pipe(
         filter(
@@ -149,9 +152,23 @@ export class App implements OnInit, OnDestroy {
           this.navigating.set(true);
           return;
         }
+        this.syncBareRoute();
         this.navigating.set(false);
         this.closeMenu();
       });
+  }
+
+  private syncBareRoute(): void {
+    this.isBareRoute.set(
+      this.hasBareShell(this.router.routerState.snapshot.root),
+    );
+  }
+
+  private hasBareShell(route: ActivatedRouteSnapshot): boolean {
+    return (
+      route.data['bareShell'] === true ||
+      route.children.some((child) => this.hasBareShell(child))
+    );
   }
 
   onThemePromptClosed(): void {

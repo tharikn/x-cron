@@ -1,0 +1,28 @@
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--xcron-muted, #9a94b8);
+}
+
+.create-card {
+  margin-bottom: 1rem;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.meta-line {
+  font-size: 0.875rem;
+  color: var(--xcron-muted, #9a94b8);
+  margin: 0.25rem 0;
+}
+
+.actions-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}

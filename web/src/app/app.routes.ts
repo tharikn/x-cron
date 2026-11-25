@@ -2,6 +2,7 @@ import type { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
 import { employerGuard } from './core/guards/employer.guard';
 import { moderatorGuard } from './core/guards/moderator.guard';
+import { portfolioGuard } from './core/guards/portfolio.guard';
 
 function withQuery(path: string, queryParams: Record<string, string>): string {
   const q = new URLSearchParams();
@@ -136,6 +137,40 @@ export const routes: Routes = [
     path: 'feedback',
     loadComponent: () =>
       import('./pages/feedback/feedback.page').then((m) => m.FeedbackPage),
+  },
+  // Dynamic Portfolios — self-contained lazy module routes.
+  {
+    path: 'portfolio',
+    canActivate: [portfolioGuard],
+    loadComponent: () =>
+      import('./pages/portfolio/portfolio-list.page').then(
+        (m) => m.PortfolioListPage,
+      ),
+  },
+  {
+    path: 'portfolio/new',
+    canActivate: [portfolioGuard],
+    loadComponent: () =>
+      import('./pages/portfolio/portfolio-wizard.page').then(
+        (m) => m.PortfolioWizardPage,
+      ),
+  },
+  {
+    path: 'portfolio/:siteId',
+    canActivate: [portfolioGuard],
+    loadComponent: () =>
+      import('./pages/portfolio/portfolio-editor.page').then(
+        (m) => m.PortfolioEditorPage,
+      ),
+  },
+  {
+    path: 'p/:slug',
+    // Public portfolio is a standalone site: the app shell hides its chrome.
+    data: { bareShell: true },
+    loadComponent: () =>
+      import('./pages/portfolio-public/portfolio-public.page').then(
+        (m) => m.PortfolioPublicPage,
+      ),
   },
   {
     path: 'admin/feedback',

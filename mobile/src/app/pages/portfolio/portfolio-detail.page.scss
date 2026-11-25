@@ -1,0 +1,21 @@
+.preview-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.slug-label {
+  font-size: 0.85rem;
+  color: var(--xcron-muted, #9a94b8);
+}
+
+.renderer-wrap {
+  border-top: 1px solid var(--xcron-line, #2a2440);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--xcron-muted, #9a94b8);
+}

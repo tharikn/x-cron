@@ -1,0 +1,71 @@
+<!-- Portfolio editor tour overlay. Shown on first entry and re-openable via Help. -->
+@if (isActive()) {
+  <div class="tour-backdrop" (click)="skip()"></div>
+
+  <div
+    class="tour"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Portfolio editor tour"
+  >
+    <!-- Highlight box pinned to the current step's target element. -->
+    <div
+      class="tour-highlight"
+      [style.left.px]="highlightRect()?.left ?? 0"
+      [style.top.px]="highlightRect()?.top ?? 0"
+      [style.width.px]="highlightRect()?.width ?? 0"
+      [style.height.px]="highlightRect()?.height ?? 0"
+      [attr.data-active]="highlightRect() ? 'true' : 'false'"
+    >
+      <div class="tour-highlight__ring"></div>
+    </div>
+
+    <div class="tour-card">
+      <div class="tour-card__head">
+        <span class="tour-card__progress">{{ currentNumber() }} of {{ total }}</span>
+        <button
+          type="button"
+          class="tour-card__close"
+          (click)="skip()"
+          aria-label="Close tour"
+        >
+          ✕
+        </button>
+      </div>
+
+      <h2 class="tour-card__title">{{ current()?.title }}</h2>
+      <p class="tour-card__body">{{ current()?.body }}</p>
+
+      @if (stepHint(current())) {
+        <p class="tour-card__hint">{{ stepHint(current()) }}</p>
+      }
+
+      <div class="tour-card__actions">
+        <button
+          type="button"
+          class="tour-card__btn tour-card__btn--ghost"
+          [disabled]="currentNumber() === 1"
+          (click)="prev()"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          class="tour-card__btn"
+          (click)="next()"
+        >
+          {{ isLast() ? 'Finish' : 'Next' }}
+        </button>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      class="tour-dismiss"
+      (click)="skip()"
+      aria-label="Close tour"
+    >
+      Close tour
+    </button>
+  </div>
+}

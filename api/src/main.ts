@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
@@ -14,7 +15,9 @@ async function bootstrap() {
   await startOpenTelemetry();
 
   // rawBody required for Razorpay webhook HMAC verification
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   // CommonJS middleware (avoid TS callability issues with esModuleInterop).
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -59,6 +62,15 @@ async function bootstrap() {
       'X-Request-Id',
     ],
   });
+
+  /**
+   * Portfolio drafts carry pasted/imported HTML + CSS + JS (up to ~520 KB of
+   * code per document, see the custom-code registry entry), which exceeds the
+   * Express default 100 KB JSON limit. Registering this parser before Nest's
+   * own (at init) replaces the default limit while keeping the `rawBody`
+   * capture the Razorpay webhook HMAC depends on.
+   */
+  app.useBodyParser('json', { limit: '2mb' });
 
   app.useGlobalFilters(new ValidationExceptionFilter());
   app.useGlobalPipes(

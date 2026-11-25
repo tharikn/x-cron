@@ -11,7 +11,7 @@ Local-first, multilingual job discovery (India-first). PRD baseline v1.0.
 | `mobile/` | Ionic + Capacitor Android client | [mobile/CLAUDE.md](mobile/CLAUDE.md) |
 | `web/` | Angular SSR public SEO site | [web/CLAUDE.md](web/CLAUDE.md) |
 | `e2e/` | Playwright journeys (mobile + web + opt-in Android) | [e2e/README.md](e2e/README.md) |
-| `docs/` | Roadmap, FILE_MAP, DEVELOPER, [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md), [REDIS.md](docs/REDIS.md), MVP notes | — |
+| `docs/` | Roadmap, FILE_MAP, DEVELOPER, [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md), [REDIS.md](docs/REDIS.md), MVP notes, [dynamic-portfolios/](docs/dynamic-portfolios/) | — |
 
 **E2E:** from repo root `npm run test:e2e` → `scripts/run-e2e.mjs` (API + clients + Playwright api+mobile+web; `npm run test:e2e:api` = browserless `/v1` contract specs). **Unit:** `npm test` in `api/`, `npm run test:unit` in `web/` + `mobile/`. Android Chrome (emulator/device): `npm run test:e2e:android` (needs `adb devices`). Failures listed in `e2e/test-results/ISSUES.md`.
 
@@ -89,6 +89,7 @@ When changing UI, update **both** clients unless the change is package-specific 
 
 - [docs/DEVELOPER.md](docs/DEVELOPER.md) — what shipped, stubs, release gate  
 - [docs/FILE_MAP.md](docs/FILE_MAP.md) — folder-wise file inventory  
+- [docs/dynamic-portfolios/README.md](docs/dynamic-portfolios/README.md) — Dynamic Portfolios module spec + task breakdown (DP-001…DP-032)  
 - [docs/ROADMAP.md](docs/ROADMAP.md) — R0–R5 + MVP+  
 - [docs/MVP_COMPLETE.md](docs/MVP_COMPLETE.md) — MVP vs production gaps  
 - [docs/CHANNEL_PULL.md](docs/CHANNEL_PULL.md) — Job Fare Telegram/WA bridge design

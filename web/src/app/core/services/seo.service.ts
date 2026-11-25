@@ -3,6 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { environment } from '../../../environments/environment';
 import type { Job } from '../models/job.model';
+import type { PortfolioDocument } from '../models/portfolio.model';
+import { localizedValue } from '../models/portfolio.model';
 
 @Injectable({ providedIn: 'root' })
 export class SeoService {
@@ -48,6 +50,40 @@ export class SeoService {
       path,
     });
     this.setJsonLd(this.jobPostingSchema(job, `${environment.siteUrl}${path}`));
+  }
+
+  /** Set SEO metadata for a portfolio site from its document. */
+  setPortfolio(document: PortfolioDocument, slug: string): void {
+    const path = `/p/${slug}`;
+    const defaultLocale = document.site.defaultLocale;
+    const activeLocale = document.site.locales?.[0] ?? defaultLocale;
+    const page = document.pages[0];
+    const title =
+      localizedValue(page?.seo.title, activeLocale, defaultLocale) ||
+      `${environment.siteName} · Portfolio`;
+    const description =
+      localizedValue(page?.seo.description, activeLocale, defaultLocale) ||
+      `Portfolio of ${document.site.name}`;
+    this.setPage({
+      title,
+      description,
+      path,
+      robots: 'index,follow',
+    });
+    this.setStructuredData(this.portfolioJsonLd(document, `${environment.siteUrl}${path}`));
+  }
+
+  /** Replace the page JSON-LD block. Additive — existing job SEO is unchanged. */
+  setStructuredData(data: Record<string, unknown>): void {
+    this.setJsonLd(data);
+  }
+
+  /** Update just the social-share image without touching the rest of the tags. */
+  setSocialImage(url: string): void {
+    if (!url) return;
+    this.meta.updateTag({ property: 'og:image', content: url });
+    this.meta.updateTag({ name: 'twitter:image', content: url });
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
   }
 
   private setCanonical(url: string): void {
@@ -133,5 +169,54 @@ export class SeoService {
       default:
         return 'OTHER';
     }
+  }
+
+  /** Build JSON-LD structured data for a portfolio page. */
+  private portfolioJsonLd(document: PortfolioDocument, canonicalUrl: string): Record<string, unknown> {
+    const defaultLocale = document.site.defaultLocale;
+    const activeLocale = document.site.locales?.[0] ?? defaultLocale;
+    const map = (key: 'title' | 'description') => {
+      const localized = document.pages[0]?.seo?.[key];
+      if (!localized) return undefined;
+      return localized[activeLocale] ?? localized[defaultLocale] ?? '';
+    };
+    const title = map('title');
+    const description = map('description');
+    const hero = document.pages[0]?.sections?.find((s) => s.type === 'hero');
+    const imageUrl = hero?.props?.['imageUrl'] ?? '';
+    const navigation = document.navigation ?? [];
+    const skillsSection = document.pages[0]?.sections?.find((s) => s.type === 'skills');
+    const rawSkills = skillsSection?.props?.['items'];
+    const skillItems = Array.isArray(rawSkills) ? rawSkills : [];
+    const sameAs = navigation
+      .filter((item) => item.target.startsWith('http'))
+      .map((item) => item.target);
+    const schema: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'ProfilePage',
+      mainEntity: {
+        '@type': 'Person',
+        name: document.site.name,
+        description,
+        ...(document.site.locales && document.site.locales.length > 1
+          ? { availableLanguage: document.site.locales.map((l: string) => l.replace('-', '_')) }
+          : {}),
+      },
+    };
+    if (title) schema['name'] = title;
+    if (description) schema['description'] = description;
+    if (imageUrl) schema['image'] = imageUrl;
+    if (skillItems.length > 0) {
+      schema['skills'] = skillItems;
+    }
+    if (sameAs.length > 0) {
+      schema['sameAs'] = sameAs;
+    }
+    return {
+      ...schema,
+      '@type': 'ProfilePage',
+      url: canonicalUrl,
+      identifier: document.site.slug,
+    };
   }
 }

@@ -1,0 +1,144 @@
+.wp-stepper {
+  width: 100%;
+  min-width: 0;
+}
+
+.wp-stepper__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wp-stepper__item {
+  position: relative;
+  min-width: 0;
+}
+
+.wp-stepper__item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 1.4rem;
+  left: calc(100% - 0.2rem);
+  width: 0.6rem;
+  height: 1px;
+  background: var(--xcron-line);
+  pointer-events: none;
+}
+
+.wp-stepper__button {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 2.85rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: var(--xcron-radius-sm);
+  background: var(--xcron-bg);
+  color: var(--xcron-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.wp-stepper__button:disabled {
+  cursor: default;
+}
+
+.wp-stepper__button:not(:disabled):hover {
+  border-color: var(--xcron-primary);
+}
+
+.wp-stepper__marker {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: 50%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--xcron-muted);
+}
+
+.wp-stepper__text {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.wp-stepper__text strong {
+  overflow: hidden;
+  font-size: 0.84rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wp-stepper__text small {
+  overflow: hidden;
+  font-size: 0.72rem;
+  color: var(--xcron-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wp-stepper__item[data-state='done'] .wp-stepper__marker {
+  border-color: var(--xcron-primary);
+  background: color-mix(in srgb, var(--xcron-primary) 14%, transparent);
+  color: var(--xcron-primary);
+}
+
+.wp-stepper__item[data-state='active'] .wp-stepper__button {
+  border-color: var(--xcron-primary);
+  background: color-mix(in srgb, var(--xcron-primary) 6%, var(--xcron-bg));
+}
+
+.wp-stepper__item[data-state='active'] .wp-stepper__marker {
+  border-color: var(--xcron-primary);
+  background: var(--xcron-primary);
+  color: var(--xcron-bg);
+}
+
+.wp-stepper__item[data-state='upcoming'] .wp-stepper__button {
+  opacity: 0.72;
+}
+
+.wp-stepper--compact .wp-stepper__list {
+  gap: 0.35rem;
+}
+
+.wp-stepper--compact .wp-stepper__button {
+  min-height: 2.35rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.wp-stepper--compact .wp-stepper__marker {
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 0.72rem;
+}
+
+.wp-stepper--compact .wp-stepper__text small {
+  display: none;
+}
+
+.wp-stepper--compact .wp-stepper__text strong {
+  font-size: 0.78rem;
+}
+
+@media (max-width: 720px) {
+  .wp-stepper__text small {
+    display: none;
+  }
+
+  .wp-stepper__button {
+    justify-content: center;
+    padding: 0.45rem;
+  }
+}

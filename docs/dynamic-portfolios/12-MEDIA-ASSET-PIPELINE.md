@@ -4,6 +4,10 @@
 
 JPEG, PNG, WebP, AVIF and sanitized SVG. Fonts come from an approved catalog or controlled upload pipeline.
 
+## MVP implementation status
+
+The shipped MVP implements a URL-based asset registry instead of the binary upload pipeline described below: clients submit an `http(s)` image URL (`POST /v1/portfolio/media`), assets are stored per user, and `DELETE /v1/portfolio/media/:assetId` removes them. The spec's signed-URL intent/complete upload flow and async optimized variants are deferred.
+
 ## Upload flow
 
 1. Request upload intent.

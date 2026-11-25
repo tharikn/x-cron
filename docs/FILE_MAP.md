@@ -34,6 +34,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `docs/COST_MODEL.md` | Low-cost ops / budget planning |
 | `docs/MOBILE_MVP.md` | Early mobile MVP notes / AC mapping |
 | `docs/FILE_MAP.md` | This file — folder-wise inventory |
+| `docs/dynamic-portfolios/` | Dynamic Portfolios module spec set: product scope → AI, task breakdown DP-001…DP-032 |
 | `docs/CHANNEL_PULL.md` | Job Fare Telegram / WA bridge design |
 | `docs/PERFORMANCE_SCORE.md` | Seeker + recruiter Performance Score + E2E diagram |
 | `docs/E2E.md` | Playwright one-command journeys + traditional QA pattern |
@@ -315,6 +316,22 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `ops.store.ts` | Metric counters |
 | `ops.types.ts` | Ops types |
 
+#### `api/src/portfolio/`
+
+| Path | Purpose |
+| --- | --- |
+| `portfolio.module.ts` | Dynamic Portfolios module (imports `AiModule`; store port + service + AI assist) |
+| `portfolio.controller.ts` | `/v1/portfolio/*`: catalog, sites, drafts, versions, publish/rollback/unpublish, analytics, AI assist, anonymous public read + events |
+| `portfolio.service.ts` | Ownership checks, revision-aware autosave, immutable versions, rollback, SEO payload, public read |
+| `portfolio.store.ts` / `*.memory-store.ts` | Storage port + in-memory implementation |
+| `site-schema.ts` / `portfolio.validation.ts` | Schema v1 validation, URL sanitizers, publish checks |
+| `component-registry.ts` | Allow-listed section types + schema-driven property fields |
+| `templates/template-catalog.ts` | 13 starter templates (MVP subset of 100+ catalog) |
+| `design-tokens.ts` / `portfolio.seo.ts` | Theme tokens + JSON-LD / social metadata |
+| `portfolio-ai.service.ts` | Optional copy assist via `AiService` + deterministic fallback |
+| `dto/portfolio.dto.ts` | Request contracts |
+| `site-schema.spec.ts` / `portfolio-ai.service.spec.ts` | Jest unit tests |
+
 #### `api/src/seeker/`
 
 | Path | Purpose |
@@ -494,6 +511,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Path | Purpose |
 | --- | --- |
 | `models/job.model.ts` | Job / prefs client models |
+| `models/portfolio.model.ts` | Dynamic Portfolios client models (site/doc/component/version types) |
 | `data/mock-jobs.ts` | Offline fallback jobs |
 | `utils/format.ts` | Salary/location/unlock formatters |
 | `utils/xcron-nav-animation.ts` | Bottom→top Ionic `navAnimation` + tab-bar enter helper |
@@ -506,6 +524,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `services/connectivity.service.ts` | Online/offline banner signal |
 | `services/auth.service.ts` | Username/password + Google + admin auth client |
 | `services/jobs.service.ts` | Search/post/moderation API client (`directPublish` on create) |
+| `services/portfolio.service.ts` | Dynamic Portfolios API client (list/create/preview/quick edit) |
 | `services/ai.service.ts` | Job enrich + in-app help client (`/v1/ai/*`, `/v1/ai/help/*`) |
 | `services/preferences.service.ts` | Local + API prefs sync/claim (incl. `theme`) |
 | `services/theme.service.ts` | Appearance preference → `html[data-theme]` |
@@ -545,6 +564,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `application-detail/*` | ATS detail tabs (Overview · Chat · Timeline) + score/fit |
 | `feedback/*` | FAQ + Contact Admin messenger |
 | `admin-feedback/*` | Admin Contact Admin desk |
+| `portfolio/*` | Dynamic Portfolios list/create/detail + Hero/About quick edit (`/tabs/portfolio`) |
 
 #### `mobile/src/app/shared/`
 
@@ -555,6 +575,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `theme-prompt/*` | First-open theme chooser overlay |
 | `help-chat/*` | Signed-in floating help chatbot (messenger UI above tab bar) |
 | `skeleton/*` | Layout-matched skeletons aligned with web (job-list, table, list variants, detail, score, analytics, top-bar api-loading) |
+| `portfolio-renderer/*` | Deliberate mobile copy of the web portfolio renderer (`--pf-*` tokens + a11y parity) |
 
 #### `mobile/src/app/home/`
 
@@ -686,6 +707,12 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `core/services/theme.service.ts` | Appearance preference → `html[data-theme]` |
 | `core/services/onboarding.service.ts` | Theme prompt + seeker wizard gates / Remind later |
 | `core/services/preferences.service.ts` | Local + API prefs sync (incl. `theme`) |
+| `core/models/portfolio.model.ts` | Dynamic Portfolios client contracts (site/doc/component/version types) |
+| `core/services/portfolio.service.ts` | Dynamic Portfolios API client (`/v1/portfolio/*`) |
+| `core/guards/portfolio.guard.ts` | Dynamic Portfolios route guard (auth/workspace ownership) |
+| `pages/portfolio/*` | Dynamic Portfolios list + draft editor (`/portfolio`, `/portfolio/:siteId`) |
+| `pages/portfolio-public/*` | Dynamic Portfolios public SSR runtime (`/p/:slug`) |
+| `shared/portfolio-renderer/*` | Allow-listed portfolio renderer (editor preview + public parity) |
 
 ---
 
@@ -701,6 +728,8 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | Touch trust / moderation / reports / suspend | `api/src/moderation/` · [ADMIN_TRUST_MODERATION.md](./ADMIN_TRUST_MODERATION.md) |
 | Touch bulk import / OCR | `api/src/ingestion/` |
 | Touch Job Fare / Telegram pull | `api/src/channels/` · `mobile/.../job-fare/` · `docs/CHANNEL_PULL.md` |
+| Add a portfolio API endpoint | `api/src/portfolio/*.controller.ts` + service |
+| Change the portfolio editor / public runtime / renderer | `web/src/app/pages/portfolio*` · `web/src/app/pages/portfolio-public*` · `web/src/app/shared/portfolio-renderer*` (mirror in `mobile/src/app/shared/portfolio-renderer/`) |
 | Change mobile screen | `mobile/src/app/pages/<name>/` |
 | Change SEO web page | `web/src/app/pages/<name>/` |
 | Update roadmap / release notes | `docs/` |

@@ -1,4 +1,5 @@
-<div class="shell">
+<div class="shell" [class.shell--bare]="isBareRoute()">
+  @if (!isBareRoute()) {
   <header class="top">
     <a class="logo" routerLink="/" (click)="closeMenu()">
       <span class="logo__x">X Cron</span>
@@ -56,6 +57,7 @@
       </button>
     </div>
   </header>
+  }
 
   @if (navigating() || apiBusy()) {
     <div
@@ -88,6 +90,7 @@
     </div>
   }
 
+  @if (!isBareRoute()) {
   <div
     class="backdrop"
     [class.backdrop--open]="menuOpen()"
@@ -182,6 +185,9 @@
         {{ 'nav.feedback' | t }}
       </a>
       @if (isSignedIn()) {
+        <a routerLink="/portfolio" routerLinkActive="is-active" (click)="closeMenu()">
+          Portfolios
+        </a>
         <a routerLink="/settings" routerLinkActive="is-active" (click)="closeMenu()">
           {{ 'nav.settings' | t }}
           <span class="drawer__meta">{{ languageLabel() }}</span>
@@ -239,12 +245,13 @@
       </div>
     }
   </aside>
+  }
 
   <main appRouteEnter="ltr">
     <router-outlet />
   </main>
 
-  @if (!isAdmin()) {
+  @if (!isBareRoute() && !isAdmin()) {
     <footer class="foot" aria-label="Site footer">
       <app-get-app-cta variant="band" />
       @if (footer(); as foot) {
@@ -337,7 +344,7 @@
   }
 </div>
 
-@if (toasts().length) {
+@if (!isBareRoute() && toasts().length) {
   <div class="toast-stack" aria-live="polite" aria-relevant="additions">
     @for (toast of toasts(); track toast.id) {
       <button
@@ -353,12 +360,14 @@
   </div>
 }
 
-<app-help-chat />
+@if (!isBareRoute()) {
+  <app-help-chat />
+}
 
-@if (portalChoiceOpen()) {
+@if (!isBareRoute() && portalChoiceOpen()) {
   <app-portal-choice-prompt (closed)="onPortalChoiceClosed()" />
 }
 
-@if (themePromptOpen()) {
+@if (!isBareRoute() && themePromptOpen()) {
   <app-theme-prompt (closed)="onThemePromptClosed()" />
 }
