@@ -3,6 +3,7 @@
   [class.pf--dark]="mode() === 'dark'"
   [class.pf--compact]="tokens().density === 'compact'"
   [class.pf--editable]="editable()"
+  [class.pf--guides]="editable() && showGuides()"
   [attr.data-device]="device()"
   [attr.lang]="activeLocale()"
   [style.--pf-primary]="tokens().primary"
@@ -14,11 +15,12 @@
   [style.--pf-density]="density()"
   [style.--pf-heading-font]="headingFont()"
   [style.--pf-body-font]="bodyFont()"
+  (contextmenu)="onCanvasContextMenu($event)"
 >
   <a class="pf__skip" href="#pf-main">Skip to content</a>
 
   @if (!fullCodePage()) {
-  <header class="pf__nav" [class.pf__nav--builder]="editable()">
+  <header class="pf__nav" [class.pf__nav--builder]="editable()" (contextmenu)="onNavContextMenu($event)">
     <div class="pf__nav-inner">
       @if (editable()) {
         <span
@@ -59,6 +61,9 @@
     @if (!sections().length) {
       <div class="pf__empty">
         <p>This page has no visible sections yet.</p>
+        @if (editable()) {
+          <button type="button" class="pf-empty-add" (click)="emitQuickInsert()">+ Add section</button>
+        }
       </div>
     }
 
@@ -76,6 +81,7 @@
         [attr.draggable]="editable() ? 'true' : null"
         [ngStyle]="getSectionStyles(section)"
         (click)="onSectionClick($event, section.id)"
+        (contextmenu)="onSectionContextMenu($event, section.id)"
         (mouseenter)="onSectionMouseEnter(section.id)"
         (mouseleave)="onSectionMouseLeave(section.id)"
         (dragstart)="onDragStart($event, section.id)"
@@ -84,15 +90,32 @@
         (drop)="onDrop($event, section.id)"
         (dragend)="onDragEnd()"
       >
-        <!-- Section label badge (editor only) -->
+        <!-- Section label badge & left-click menu trigger (editor only) -->
         @if (editable()) {
           <div class="pf-builder-label">
             <span class="pf-builder-label__grip" title="Drag to reorder">⠿</span>
             <span class="pf-builder-label__type">{{ section.type }}</span>
             <span class="pf-builder-label__variant">{{ section.variant }}</span>
             @if (sectionIssueCount(section.id) > 0) {
-              <span class="pf-builder-label__issue" title="Validation issues">⚠ {{ sectionIssueCount(section.id) }}</span>
+              <span class="pf-builder-label__issue" title="Validation issues">! {{ sectionIssueCount(section.id) }}</span>
             }
+          </div>
+
+          <div class="pf-builder-quick" (click)="$event.stopPropagation()">
+            <button
+              type="button"
+              class="pf-builder-quick__btn"
+              title="Insert section below"
+              aria-label="Insert section below"
+              (click)="emitQuickInsert(section.id)"
+            >+</button>
+            <button
+              type="button"
+              class="pf-builder-quick__btn"
+              title="Section options"
+              aria-label="Section options"
+              (click)="onSectionMenuButton($event, section.id)"
+            >⋯</button>
           </div>
         }
 
@@ -663,6 +686,7 @@
                 [editable]="editable()"
                 [mode]="mode()"
                 [showDiagnostics]="editable()"
+                [storageKey]="codeStorageKey(section)"
               />
             </div>
           }

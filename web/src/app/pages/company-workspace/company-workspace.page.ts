@@ -8,6 +8,7 @@ import {
   type CompanyMemberDto,
   type RecruiterDashboardDto,
 } from '../../core/services/companies.service';
+import { useJobImageUpload } from '../../core/hooks/use-job-image-upload';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 import { friendlyHttpMessage } from '../../core/utils/friendly-http-message';
@@ -22,6 +23,7 @@ type Tab = 'dashboard' | 'profile' | 'team' | 'verification';
 })
 export class CompanyWorkspacePage implements OnInit {
   private readonly companies = inject(CompaniesService);
+  private readonly jobImageUpload = useJobImageUpload();
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
 
@@ -41,8 +43,10 @@ export class CompanyWorkspacePage implements OnInit {
     }>
   >([]);
   readonly lastInviteLink = signal<string | null>(null);
+  readonly uploadingLogo = this.jobImageUpload.pending;
 
   name = '';
+  logoUrl = '';
   legalName = '';
   about = '';
   website = '';
@@ -106,6 +110,7 @@ export class CompanyWorkspacePage implements OnInit {
 
   private fillForm(c: CompanyDto): void {
     this.name = c.name || '';
+    this.logoUrl = c.logoUrl || '';
     this.legalName = c.legalName || '';
     this.about = c.about || '';
     this.website = c.website || '';
@@ -115,6 +120,23 @@ export class CompanyWorkspacePage implements OnInit {
     this.hiringLocationsText = (c.hiringLocations || []).join(', ');
   }
 
+  onLogoPicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) void this.uploadLogo(file);
+  }
+
+  async uploadLogo(file: File): Promise<void> {
+    const uploaded = await this.jobImageUpload.upload(file, 'company-logo');
+    if (!uploaded) {
+      this.toast.error(this.jobImageUpload.error() ?? 'Could not upload logo.');
+      return;
+    }
+    this.logoUrl = uploaded.url;
+    this.toast.success('Logo uploaded. Save the profile to apply it.');
+  }
+
   async saveProfile(): Promise<void> {
     const c = this.company();
     if (!c) return;
@@ -122,6 +144,7 @@ export class CompanyWorkspacePage implements OnInit {
     try {
       const updated = await this.companies.patch(c.id, {
         name: this.name.trim(),
+        logoUrl: this.logoUrl.trim() || undefined,
         legalName: this.legalName.trim() || undefined,
         about: this.about.trim(),
         website: this.website.trim() || undefined,

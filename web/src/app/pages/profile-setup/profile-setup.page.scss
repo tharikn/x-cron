@@ -340,6 +340,20 @@ input:not([type]):focus {
   }
 }
 
+.asset-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.asset-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid var(--xcron-line);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .setup,
   .celebrate,

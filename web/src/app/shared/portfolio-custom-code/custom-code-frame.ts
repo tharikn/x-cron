@@ -4,8 +4,9 @@
  * User HTML/CSS/JS is treated as opaque, untrusted input. It is never parsed by
  * Angular and never executes on the app origin: it is composed into a separate
  * document that only ever loads inside an iframe WITHOUT `allow-same-origin`,
- * which gives it an opaque origin (no cookies, storage, DOM or authenticated
- * fetch). This mirrors how Framer, Webflow and CodePen host user code.
+ * which gives it an opaque origin (no cookies, no parent DOM and no
+ * authenticated fetch). Browser storage is bridged, never exposed directly.
+ * This mirrors how Framer, Webflow and CodePen host user code.
  *
  * Keep this file in sync with the mobile copy:
  * mobile/src/app/shared/portfolio-custom-code/custom-code-frame.ts
@@ -37,6 +38,34 @@ export interface CustomCodeSplit {
   js: string;
 }
 
+export interface CustomCodeStorage {
+  localStorage?: Record<string, string>;
+  sessionStorage?: Record<string, string>;
+}
+
+/**
+ * Browser-storage bridge limits. The frame is untrusted, so author code can
+ * never write more than this per section into the host origin's storage.
+ */
+export const CUSTOM_CODE_STORAGE_LIMITS = {
+  bytes: 64 * 1024,
+  keyLength: 128,
+  valueLength: 32 * 1024,
+} as const;
+
+/**
+ * Serialise data that is embedded in the frame document. Escaping `<`, `>` and
+ * `&` keeps a storage value from terminating the wrapper `<script>`.
+ */
+function safeJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 function text(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
@@ -64,18 +93,6 @@ export function readCustomCodeProps(
     allowPopups: flag(props['allowPopups']),
     allowExternal: flag(props['allowExternal']),
   };
-}
-
-/**
- * The sandbox is the security boundary. `allow-same-origin` is deliberately
- * never included: with it, the frame could read cookies and call the API with
- * the visitor's session. Top navigation, modals and pointer lock stay denied.
- */
-export function customCodeSandbox(props: CustomCodeFrameProps): string {
-  const tokens = ['allow-scripts'];
-  if (props.allowForms) tokens.push('allow-forms');
-  if (props.allowPopups) tokens.push('allow-popups');
-  return tokens.join(' ');
 }
 
 function escapeScript(source: string): string {
@@ -107,10 +124,20 @@ function buildCsp(props: CustomCodeFrameProps): string {
 /**
  * Height + error bridge. This is our code, injected before the author's script
  * so runtime errors are reported even when the author script throws early.
+ *
+ * It also installs a Storage-compatible in-memory shim. An opaque-origin frame
+ * throws on `localStorage` access, which aborts the author's script before it
+ * can render anything. The shim behaves like Storage, is seeded from the host
+ * origin (scoped per site + section), and relays writes back through `send`.
  */
-function bridgeScript(token: string): string {
+function bridgeScript(token: string, storage: CustomCodeStorage): string {
   return `(function(){
   var TOKEN = ${JSON.stringify(token)};
+  var SEED = ${safeJson(storage.localStorage || {})};
+  var SESSION_SEED = ${safeJson(storage.sessionStorage || {})};
+  var STORAGE_LIMIT = ${CUSTOM_CODE_STORAGE_LIMITS.bytes};
+  var KEY_LIMIT = ${CUSTOM_CODE_STORAGE_LIMITS.keyLength};
+  var VALUE_LIMIT = ${CUSTOM_CODE_STORAGE_LIMITS.valueLength};
   var sent = 0;
   var last = 0;
   var pending = null;
@@ -119,6 +146,115 @@ function bridgeScript(token: string): string {
     message.__pf = TOKEN;
     try { parent.postMessage(message, '*'); } catch (error) {}
   }
+  function installStorage(name, seed) {
+    try {
+      var nativeStore = window[name];
+      if (nativeStore && typeof nativeStore.getItem === 'function') return;
+    } catch (error) {}
+    var data = Object.create(null);
+    var used = 0;
+    function bytesOf(value) {
+      try { return new TextEncoder().encode(value).length; } catch (error) { return value.length * 2; }
+    }
+    function quotaError() {
+      var error;
+      try {
+        error = new DOMException('Storage quota exceeded', 'QuotaExceededError');
+      } catch (inner) {
+        error = new Error('Storage quota exceeded');
+        error.name = 'QuotaExceededError';
+      }
+      throw error;
+    }
+    function notify(op, key, value) {
+      var message = { type: 'storage', store: name, op: op };
+      if (key !== undefined) message.key = key;
+      if (value !== undefined) message.value = value;
+      send(message);
+    }
+    function write(key, value, silent) {
+      key = String(key);
+      value = String(value);
+      if (key.length === 0 || key.length > KEY_LIMIT || value.length > VALUE_LIMIT) quotaError();
+      var previous = data[key];
+      var next = used
+        - (previous === undefined ? 0 : bytesOf(key) + bytesOf(previous))
+        + bytesOf(key) + bytesOf(value);
+      if (next > STORAGE_LIMIT) quotaError();
+      used = next;
+      data[key] = value;
+      if (!silent) notify('set', key, value);
+    }
+    function remove(key, silent) {
+      key = String(key);
+      if (data[key] === undefined) return;
+      used -= bytesOf(key) + bytesOf(data[key]);
+      delete data[key];
+      if (!silent) notify('remove', key);
+    }
+    var api = {
+      getItem: function (key) {
+        key = String(key);
+        return data[key] === undefined ? null : data[key];
+      },
+      setItem: function (key, value) { write(key, value, false); },
+      removeItem: function (key) { remove(key, false); },
+      clear: function () {
+        data = Object.create(null);
+        used = 0;
+        notify('clear');
+      },
+      key: function (index) {
+        var keys = Object.keys(data);
+        var position = Number(index);
+        return position >= 0 && position < keys.length ? keys[position] : null;
+      }
+    };
+    if (seed && typeof seed === 'object') {
+      Object.keys(seed).forEach(function (key) {
+        if (typeof seed[key] !== 'string') return;
+        try { write(key, seed[key], true); } catch (error) {}
+      });
+    }
+    var store = api;
+    if (typeof Proxy === 'function') {
+      store = new Proxy(api, {
+        get: function (target, property) {
+          if (property === 'length') return Object.keys(data).length;
+          if (typeof property !== 'string') return undefined;
+          if (typeof target[property] === 'function') return target[property];
+          return api.getItem(property);
+        },
+        set: function (target, property, value) {
+          if (typeof property === 'string') api.setItem(property, value);
+          return true;
+        },
+        has: function (target, property) {
+          return (typeof property === 'string' && data[property] !== undefined) || property in target;
+        },
+        deleteProperty: function (target, property) {
+          if (typeof property === 'string') api.removeItem(property);
+          return true;
+        },
+        ownKeys: function () { return Object.keys(data); },
+        getOwnPropertyDescriptor: function (target, property) {
+          if (typeof property === 'string' && data[property] !== undefined) {
+            return { value: data[property], enumerable: true, configurable: true, writable: true };
+          }
+          return Object.getOwnPropertyDescriptor(target, property);
+        }
+      });
+    }
+    try {
+      Object.defineProperty(window, name, {
+        value: store,
+        configurable: true,
+        enumerable: true
+      });
+    } catch (error) {}
+  }
+  installStorage('localStorage', SEED);
+  installStorage('sessionStorage', SESSION_SEED);
   function measure() {
     var root = document.documentElement;
     var body = document.body;
@@ -162,7 +298,11 @@ function bridgeScript(token: string): string {
  */
 export function composeCustomCodeDocument(
   props: CustomCodeFrameProps,
-  options: { mode: 'light' | 'dark'; token: string },
+  options: {
+    mode: 'light' | 'dark';
+    token: string;
+    storage?: CustomCodeStorage;
+  },
 ): string {
   return [
     '<!doctype html>',
@@ -174,7 +314,7 @@ export function composeCustomCodeDocument(
     '<meta name="referrer" content="no-referrer">',
     `<style>:root{color-scheme:${options.mode}}html,body{margin:0;padding:0}body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.5;overflow-wrap:break-word}</style>`,
     `<style>${escapeStyle(props.css)}</style>`,
-    `<script>${bridgeScript(options.token)}</script>`,
+    `<script>${bridgeScript(options.token, options.storage ?? {})}</script>`,
     '</head>',
     '<body>',
     props.html,

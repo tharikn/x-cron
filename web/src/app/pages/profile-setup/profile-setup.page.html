@@ -37,6 +37,16 @@
             <p class="field-error">{{ err }}</p>
           }
         </label>
+        <label>
+          <span>Profile photo (optional)</span>
+          <span class="asset-row">
+            @if (photoUrl) {
+              <img [src]="photoUrl" alt="Profile photo" class="asset-thumb" />
+            }
+            <input type="file" accept=".svg,.png,.jpg,.jpeg" (change)="onPhotoPicked($event)" />
+            @if (uploadingPhoto()) { <span>Uploading…</span> }
+          </span>
+        </label>
         <label [class.is-invalid]="!!fieldErrors['mobile']">
           <span>{{ 'onboarding.fields.mobile' | t }}</span>
           <app-pii-field
@@ -261,6 +271,14 @@
         <label class="toggle-row">
           <span>{{ 'onboarding.fields.openToWork' | t }}</span>
           <input type="checkbox" [(ngModel)]="openToWork" name="openToWork" />
+        </label>
+
+        <label>
+          <span>Resume / CV (optional, private)</span>
+          <span class="asset-row">
+            <input type="file" accept=".pdf,.doc,.docx" (change)="onResumePicked($event)" />
+            @if (uploadingResume()) { <span>Uploading…</span> }
+          </span>
         </label>
       }
     </div>

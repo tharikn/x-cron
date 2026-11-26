@@ -1,73 +1,75 @@
-<section class="editor">
+<section class="studio">
   <app-portfolio-tour (stepChange)="onTourStepChange($event)" />
-  <header class="topbar">
-    <div class="topbar__left">
-      <a class="back" routerLink="/portfolio">← Portfolios</a>
-      <div class="topbar__title">
-        <strong>{{ site()?.name || 'Portfolio' }}</strong>
-        <span class="save" [attr.data-state]="saveState()">{{ saveLabel() }}</span>
-      </div>
-    </div>
+  <app-editor-tooltip-overlay />
 
-    <div class="topbar__actions">
-      <button
-        type="button"
-        class="icon-btn"
-        [disabled]="!canUndo()"
-        title="Undo"
-        aria-label="Undo"
-        (click)="undo()"
-      >
-        ↶
-      </button>
-      <button
-        type="button"
-        class="icon-btn"
-        [disabled]="!canRedo()"
-        title="Redo"
-        aria-label="Redo"
-        (click)="redo()"
-      >
-        ↷
-      </button>
-      <button type="button" class="btn btn--ghost btn--sm" (click)="validateNow()" [disabled]="busy()">
-        Validate
-      </button>
-      <button type="button" class="btn btn--ghost btn--sm" (click)="importCodeFromToolbar()" title="Import an HTML, CSS or JS file into a Custom code section">
-        Import code
-      </button>
-      @if (site()?.status === 'published') {
-        <a class="btn btn--ghost btn--sm" [routerLink]="['/p', site()?.slug ?? '']" target="_blank" rel="noopener">
-          View live
-        </a>
-      }
-      <button type="button" class="btn btn--sm" [disabled]="publishing()" (click)="publish()">
-        {{ publishing() ? 'Working…' : 'Publish' }}
-      </button>
-      <button
-        type="button"
-        class="btn btn--ghost btn--sm"
-        [disabled]="showSiteSettings()"
-        (click)="showSiteSettings.update((value) => !value)"
-      >
-        Settings
-      </button>
-      <button
-        type="button"
-        class="btn btn--ghost btn--sm"
-        (click)="openTour()"
-        title="Help / guided tour"
-      >
-        Help
-      </button>
-    </div>
-  </header>
+  <!-- Unified Solid Studio Top Toolbar -->
+  <app-editor-toolbar
+    [siteName]="site()?.name || ''"
+    [saveState]="saveState()"
+    [lastSavedAt]="lastSavedAt()"
+    [canUndo]="canUndo()"
+    [canRedo]="canRedo()"
+    [isPublished]="site()?.status === 'published'"
+    [publishing]="publishing()"
+    [busy]="busy()"
+    [previewOnly]="previewOnly()"
+    [layersCollapsed]="layersCollapsed()"
+    [inspectorCollapsed]="inspectorCollapsed()"
+    [settingsOpen]="showSiteSettings()"
+    [device]="device()"
+    [previewMode]="previewMode()"
+    [activeLocale]="activeLocale()"
+    [locales]="locales()"
+    [errorCount]="errorCount()"
+    [warningCount]="warningCount()"
+    [slug]="site()?.slug ?? ''"
+    (undoClick)="undo()"
+    (redoClick)="redo()"
+    (validateClick)="validateNow()"
+    (importClick)="importCodeFromToolbar()"
+    (publishClick)="publish()"
+    (settingsClick)="showSiteSettings.update(v => !v)"
+    (helpClick)="openTour()"
+    (aiClick)="aiModalVisible.set(true)"
+    (commandPaletteClick)="commandPaletteVisible.set(true)"
+    (toggleLayersClick)="layersCollapsed.update(v => !v)"
+    (toggleInspectorClick)="inspectorCollapsed.update(v => !v)"
+    (previewOnlyChange)="previewOnly.set($event)"
+    (deviceChange)="device.set($event)"
+    (previewModeChange)="previewMode.set($event)"
+    (localeChange)="locale.set($event)"
+    (retrySaveClick)="retrySave()"
+    (siteNameChange)="onBrandEditRequest({ name: $event })"
+  />
 
-  <div class="wizard-strip">
-    <app-portfolio-wizard-stepper [active]="3" [locked]="true" [compact]="true" />
-  </div>
+  <!-- Canva-style Contextual Formatting Bar -->
+  @if (!previewOnly() && doc()) {
+    <app-editor-context-bar
+      [section]="selectedSection()"
+      [definition]="selectedDefinition()"
+      [sectionIndex]="selectedSectionIndex()"
+      [totalSections]="sections().length"
+      [hasCopiedStyle]="copiedStyle() !== null"
+      [anchorTargets]="anchorTargets()"
+      (variantChange)="selectedId() && setVariant(selectedId()!, $event)"
+      (styleChange)="setSectionStyle($event.key, $event.value)"
+      (ctaLinkChange)="setCtaLink($event)"
+      (copyStyleClick)="copySelectedStyle()"
+      (pasteStyleClick)="pasteStyleToSelected()"
+      (openContentClick)="inspectorCollapsed.set(false); openTab('content')"
+      (openDesignClick)="inspectorCollapsed.set(false); openTab('design')"
+      (moveUpClick)="selectedId() && moveSection(selectedId()!, -1)"
+      (moveDownClick)="selectedId() && moveSection(selectedId()!, 1)"
+      (duplicateClick)="selectedId() && duplicateSection(selectedId()!)"
+      (toggleHiddenClick)="selectedId() && toggleHidden(selectedId()!)"
+      (deleteClick)="selectedId() && removeSection(selectedId()!)"
+      (aiClick)="aiModalVisible.set(true)"
+      (addSectionClick)="openSectionPicker()"
+      (moreClick)="openContextMenuFromButton($event)"
+    />
+  }
 
-  <!-- Always mounted so the toolbar import works from any tab. -->
+  <!-- Hidden file picker for custom code import -->
   <input
     #codeFile
     type="file"
@@ -77,6 +79,7 @@
     (change)="onCodeFileSelected($event)"
   />
 
+  <!-- Collapsible Site Settings Bar -->
   @if (showSiteSettings()) {
     <div class="settings">
       <div class="settings__grid">
@@ -97,16 +100,16 @@
           </select>
         </label>
         <label>
-          <span>Languages (comma separated)</span>
-          <input [(ngModel)]="siteForm.locales" name="siteLocales" />
+          <span>Languages</span>
+          <input [(ngModel)]="siteForm.locales" name="siteLocales" placeholder="en-IN, ta-IN" />
         </label>
       </div>
       <div class="settings__actions">
-        <button type="button" class="btn btn--sm" [disabled]="busy()" (click)="saveSiteSettings()">
-          Save settings
+        <button type="button" class="icon-pill icon-pill--primary" [disabled]="busy()" (click)="saveSiteSettings()" appTip="Save settings">
+          <app-editor-icon name="save" [size]="14" />
         </button>
-        <button type="button" class="btn btn--ghost btn--sm" (click)="showSiteSettings.set(false)">
-          Close
+        <button type="button" class="icon-pill" (click)="showSiteSettings.set(false)" appTip="Close">
+          <app-editor-icon name="x" [size]="14" />
         </button>
       </div>
     </div>
@@ -114,30 +117,37 @@
 
   @if (saveError()) {
     <div class="alert" role="alert">
-      <span>{{ saveError() }}</span>
-      @if (saveState() === 'conflict') {
-        <button type="button" class="btn btn--ghost btn--sm" (click)="reloadDraft()">
-          Reload latest draft
-        </button>
-      } @else {
-        <button type="button" class="btn btn--ghost btn--sm" (click)="retrySave()">Retry</button>
-      }
+      <div class="alert__msg">
+        <app-editor-icon name="alert-circle" [size]="15" />
+        <span>{{ saveError() }}</span>
+      </div>
+      <div class="alert__actions">
+        @if (saveState() === 'conflict') {
+          <button type="button" class="icon-pill" (click)="reloadDraft()" appTip="Reload latest draft">
+            <app-editor-icon name="refresh" [size]="14" />
+          </button>
+        } @else {
+          <button type="button" class="icon-pill" (click)="retrySave()" appTip="Retry save">
+            <app-editor-icon name="refresh" [size]="14" />
+          </button>
+        }
+      </div>
     </div>
   }
 
   @if (validation(); as result) {
     @if (!result.ok) {
       <div class="validation-alert" role="alert">
-        <span>
-          <strong>{{ errorCount() }} blocking issue{{ errorCount() === 1 ? '' : 's' }}</strong>
-          highlighted on the affected field and section.
-        </span>
-        <div class="validation-alert__actions">
-          <button type="button" class="btn btn--ghost btn--sm" (click)="focusFirstIssue()">
-            Review first issue
+        <div class="alert__msg">
+          <app-editor-icon name="alert-triangle" [size]="15" />
+          <strong>{{ errorCount() }}</strong>
+        </div>
+        <div class="alert__actions">
+          <button type="button" class="icon-pill" (click)="focusFirstIssue()" appTip="Review first issue">
+            <app-editor-icon name="arrow-down" [size]="14" />
           </button>
-          <button type="button" class="btn btn--ghost btn--sm" (click)="dismissValidation()">
-            Dismiss
+          <button type="button" class="icon-pill" (click)="dismissValidation()" appTip="Dismiss">
+            <app-editor-icon name="x" [size]="14" />
           </button>
         </div>
       </div>
@@ -145,830 +155,1125 @@
   }
 
   @if (loading()) {
-    <p class="loading">Loading draft…</p>
+    <div class="studio-state">
+      <span class="sk sk--block"></span>
+    </div>
   } @else if (doc(); as document) {
-    <div class="workspace">
-      <aside class="panel panel--sections">
-        <div class="panel__head">
-          <h2>Sections</h2>
-          <span class="count">{{ sections().length }}</span>
+    <div
+      class="workspace"
+      [class.workspace--preview]="previewOnly()"
+      [class.workspace--no-left]="layersCollapsed()"
+      [class.workspace--no-right]="inspectorCollapsed()"
+    >
+      <!-- Left Layers & Navigation Sidebar -->
+      @if (!previewOnly()) {
+        <app-editor-layers-panel
+          [sections]="sections()"
+          [selectedId]="selectedId()"
+          [navItems]="navItems()"
+          [sectionIssues]="sectionIssues()"
+          [collapsed]="layersCollapsed()"
+          [locale]="activeLocale()"
+          [defaultLocale]="defaultLocale()"
+          (sectionSelect)="select($event)"
+          (sectionToggleHidden)="toggleHidden($event)"
+          (sectionDuplicate)="duplicateSection($event)"
+          (sectionReorder)="onSectionReorder($event)"
+          (sectionContextMenu)="openSectionContextMenu($event)"
+          (openPickerClick)="openSectionPicker()"
+          (toggleCollapse)="layersCollapsed.update(v => !v)"
+          (navAdd)="addNavItem()"
+          (navRemove)="removeNavItem($event)"
+          (navMoveUp)="moveNavItem($event, -1)"
+          (navMoveDown)="moveNavItem($event, 1)"
+          (navSync)="syncNavFromSections()"
+          (navLabelChange)="setNavLabel($event.id, $event.label)"
+          (navTargetChange)="setNavTarget($event.id, $event.target)"
+          (navContextMenu)="openNavContextMenu($event)"
+        />
+      }
+
+      <!-- Center Artboard Canvas -->
+      <main
+        class="stage"
+        [class.stage--guides]="showGuides() && !previewOnly()"
+        (contextmenu)="!previewOnly() && openCanvasContextMenu({ x: $event.clientX, y: $event.clientY })"
+      >
+        <div class="stage__scroll">
+          <div
+            class="stage__artboard"
+            [attr.data-device]="device()"
+            [style.zoom.%]="zoom()"
+          >
+            <app-portfolio-renderer
+              [document]="document"
+              [locale]="activeLocale()"
+              [device]="device()"
+              [editable]="!previewOnly()"
+              [showGuides]="showGuides()"
+              [activeSectionId]="selectedId()"
+              [forceMode]="previewMode()"
+              [sectionIssues]="sectionIssues()"
+              (editRequest)="onEditRequest($event)"
+              (brandEditRequest)="onBrandEditRequest($event)"
+              (navEditRequest)="onNavEditRequest($event)"
+              (rowEditRequest)="onRowEditRequest($event)"
+              (listEditRequest)="onListEditRequest($event)"
+              (sectionSelect)="onSectionSelect($event)"
+              (sectionReorder)="onSectionReorder($event)"
+              (sectionContextMenu)="openSectionContextMenu($event)"
+              (canvasContextMenu)="openCanvasContextMenu($event)"
+              (navContextMenu)="openNavContextMenu($event)"
+              (quickInsert)="openSectionPicker($event.index)"
+              (interaction)="onInteraction($event)"
+            />
+          </div>
         </div>
+      </main>
 
-        @if (!sections().length) {
-          <p class="muted">No sections yet. Add one below.</p>
-        }
-
-        <ul class="section-list">
-          @for (section of sections(); track section.id; let i = $index) {
-            <li>
+      <!-- Right Icon-Driven Inspector Sidebar -->
+      @if (!previewOnly() && !inspectorCollapsed()) {
+        <aside class="inspector panel panel--props" aria-label="Inspector">
+          <div class="tabs" role="tablist" aria-label="Editor panels">
+            <button
+              type="button"
+              role="tab"
+              [class.on]="tab() === 'content'"
+              (click)="openTab('content')"
+              appTip="Content"
+            >
+              <app-editor-icon name="edit" [size]="15" />
+            </button>
+            <button
+              type="button"
+              role="tab"
+              [class.on]="tab() === 'design'"
+              (click)="openTab('design')"
+              appTip="Section Design"
+              appTipKbd="D"
+            >
+              <app-editor-icon name="sliders" [size]="15" />
+            </button>
+            <button
+              type="button"
+              role="tab"
+              [class.on]="tab() === 'theme'"
+              (click)="openTab('theme')"
+              appTip="Theme & Brand Kit"
+            >
+              <app-editor-icon name="palette" [size]="15" />
+            </button>
+            <button
+              type="button"
+              role="tab"
+              [class.on]="tab() === 'publish'"
+              (click)="openTab('publish')"
+              appTip="Validation & Publish"
+            >
+              <app-editor-icon name="rocket" [size]="15" />
+              @if (errorCount() > 0) {
+                <span class="tab-dot"></span>
+              }
+            </button>
+            @if (domainTabAvailable()) {
               <button
                 type="button"
-                class="section-item"
-                [class.section-item--on]="selectedId() === section.id"
-                [class.section-item--hidden]="section.hidden"
-                [class.section-item--invalid]="sectionIssueCounts(section.id).errors > 0"
-                [class.section-item--warning]="sectionIssueCounts(section.id).errors === 0 && sectionIssueCounts(section.id).warnings > 0"
-                (click)="select(section.id)"
+                role="tab"
+                [class.on]="tab() === 'domain'"
+                (click)="openTab('domain')"
+                appTip="Custom domain"
               >
-                <span class="section-item__index">{{ i + 1 }}</span>
-                <span class="section-item__label">{{ sectionLabel(section.type) }}</span>
-                @if (sectionIssueCounts(section.id).errors + sectionIssueCounts(section.id).warnings > 0) {
-                  <span class="section-item__issue" title="Validation issues">⚠ {{ sectionIssueCounts(section.id).errors + sectionIssueCounts(section.id).warnings }}</span>
-                }
-                <span class="section-item__variant">{{ section.variant }}</span>
+                <app-editor-icon name="globe" [size]="15" />
               </button>
-              <div class="section-item__tools">
-                <button type="button" title="Move up" aria-label="Move up" [disabled]="i === 0" (click)="moveSection(section.id, -1)">↑</button>
-                <button type="button" title="Move down" aria-label="Move down" [disabled]="i === sections().length - 1" (click)="moveSection(section.id, 1)">↓</button>
-                <button type="button" [title]="section.hidden ? 'Show' : 'Hide'" [attr.aria-label]="section.hidden ? 'Show section' : 'Hide section'" (click)="toggleHidden(section.id)">
-                  {{ section.hidden ? '◌' : '◉' }}
-                </button>
-                <button type="button" title="Duplicate" aria-label="Duplicate section" (click)="duplicateSection(section.id)">⧉</button>
-                <button type="button" class="remove" title="Delete" aria-label="Delete section" (click)="removeSection(section.id)">×</button>
-              </div>
-            </li>
-          }
-        </ul>
-
-        <div class="add-section">
-          <label>
-            <span>Add section</span>
-            <select [(ngModel)]="addType" name="addType">
-              @for (type of sectionTypes; track type.value) {
-                <option [value]="type.value">{{ type.label }}</option>
-              }
-            </select>
-          </label>
-          <button type="button" class="btn btn--sm" (click)="addSection()">Add</button>
-        </div>
-
-        <div class="panel__head nav-panel__head">
-          <h2>Navigation Links</h2>
-          <span class="count">{{ navItems().length }}</span>
-        </div>
-
-        <ul class="nav-list">
-          @for (item of navItems(); track item.id; let i = $index) {
-            <li class="nav-item">
-              <div class="nav-item__inputs">
-                <input
-                  class="nav-item__label-input"
-                  [ngModel]="localized(item.label)"
-                  (ngModelChange)="setNavLabel(item.id, $event)"
-                  placeholder="Link label"
-                  title="Link label"
-                />
-                <select
-                  class="nav-item__target-select"
-                  [ngModel]="item.target"
-                  (ngModelChange)="setNavTarget(item.id, $event)"
-                  title="Target section"
-                >
-                  <option value="#pf-main">Top (#pf-main)</option>
-                  @for (sec of sections(); track sec.id) {
-                    <option [value]="'#' + sec.id">#{{ sec.id }} ({{ sectionLabel(sec.type) }})</option>
-                  }
-                </select>
-              </div>
-              <div class="nav-item__tools">
-                <button type="button" title="Move up" aria-label="Move up" [disabled]="i === 0" (click)="moveNavItem(item.id, -1)">↑</button>
-                <button type="button" title="Move down" aria-label="Move down" [disabled]="i === navItems().length - 1" (click)="moveNavItem(item.id, 1)">↓</button>
-                <button type="button" class="remove" title="Remove nav link" aria-label="Remove link" (click)="removeNavItem(item.id)">×</button>
-              </div>
-            </li>
-          }
-        </ul>
-
-        <div class="nav-actions">
-          <button type="button" class="link-btn" (click)="addNavItem()">+ Add nav link</button>
-          <button type="button" class="link-btn" (click)="syncNavFromSections()">Sync from sections</button>
-        </div>
-      </aside>
-
-      <div class="stage">
-        <div class="stage__bar">
-          <div class="devices" role="group" aria-label="Preview width">
-            <button type="button" [class.on]="device() === 'desktop'" (click)="device.set('desktop')">Desktop</button>
-            <button type="button" [class.on]="device() === 'tablet'" (click)="device.set('tablet')">Tablet</button>
-            <button type="button" [class.on]="device() === 'mobile'" (click)="device.set('mobile')">Mobile</button>
+            }
+            <button
+              type="button"
+              role="tab"
+              [class.on]="tab() === 'insights'"
+              (click)="openTab('insights')"
+              appTip="Insights"
+            >
+              <app-editor-icon name="bar-chart" [size]="15" />
+            </button>
           </div>
-          <div class="stage__theme" role="group" aria-label="Theme mode">
-            <button type="button" [class.on]="previewMode() === 'light'" (click)="previewMode.set('light')">Light</button>
-            <button type="button" [class.on]="previewMode() === 'dark'" (click)="previewMode.set('dark')">Dark</button>
-            <button type="button" [class.on]="previewMode() === '' && device() !== 'mobile'" (click)="previewMode.set('')">System</button>
-          </div>
-          <label class="stage__locale">
-            <span>Content language</span>
-            <select [ngModel]="activeLocale()" (ngModelChange)="locale.set($event)" name="previewLocale">
-              @for (code of locales(); track code) {
-                <option [value]="code">{{ code }}</option>
-              }
-            </select>
-          </label>
-          <span class="stage__hint">Click text to edit · Drag sections to reorder · Select to style</span>
-        </div>
-        <div class="stage__canvas" [attr.data-device]="device()">
-          <app-portfolio-renderer
-            [document]="document"
-            [locale]="activeLocale()"
-            [device]="device()"
-            [editable]="true"
-            [forceMode]="previewMode()"
-            [sectionIssues]="sectionIssues()"
-            (editRequest)="onEditRequest($event)"
-            (brandEditRequest)="onBrandEditRequest($event)"
-            (navEditRequest)="onNavEditRequest($event)"
-            (rowEditRequest)="onRowEditRequest($event)"
-            (listEditRequest)="onListEditRequest($event)"
-            (sectionSelect)="onSectionSelect($event)"
-            (sectionReorder)="onSectionReorder($event)"
-            (interaction)="onInteraction($event)"
-          />
-        </div>
-      </div>
 
-      <aside class="panel panel--props">
-        <div class="tabs" role="tablist" aria-label="Editor panels">
-          <button type="button" role="tab" [class.on]="tab() === 'content'" (click)="openTab('content')">Content</button>
-          <button type="button" role="tab" [class.on]="tab() === 'design'" (click)="openTab('design')">Design</button>
-          <button type="button" role="tab" [class.on]="tab() === 'theme'" (click)="openTab('theme')">Theme</button>
-          <button type="button" role="tab" [class.on]="tab() === 'publish'" (click)="openTab('publish')">Publish</button>
-          <button type="button" role="tab" [class.on]="tab() === 'insights'" (click)="openTab('insights')">Insights</button>
-        </div>
-
-        @switch (tab()) {
-          @case ('content') {
-            <div class="props-body">
-              @if (selectedSection(); as section) {
-                <div class="props-title">
-                  <h2>{{ sectionLabel(section.type) }}</h2>
-                  <span class="muted">{{ section.id }}</span>
-                </div>
-
-                @if (selectedDefinition(); as definition) {
-                  <label class="field">
-                    <span>Layout</span>
-                    <select [ngModel]="section.variant" (ngModelChange)="setVariant(section.id, $event)" name="variant">
-                      @for (variant of definition.variants; track variant) {
-                        <option [value]="variant">{{ variant }}</option>
-                      }
-                    </select>
-                  </label>
-
-                  <p class="a11y">{{ definition.description }}</p>
-
-                  @if (section.type === 'custom-code') {
-                    <div class="sandbox-note">
-                      <strong>Isolated sandbox</strong>
-                      <p>
-                        This code runs in its own origin. It cannot read this site, your account or visitor
-                        cookies. External requests are blocked unless you allow them, and search engines do not
-                        index frame content.
-                      </p>
-                      @if (codeNotice()) {
-                        <p class="sandbox-note__status">{{ codeNotice() }}</p>
+          <div class="props-body">
+            @switch (tab()) {
+              @case ('content') {
+                @if (selectedSection(); as section) {
+                  <div class="props-head">
+                    <div class="props-head__id">
+                      <h2>{{ sectionLabel(section.type) }}</h2>
+                      @if (selectedDefinition(); as definition) {
+                        <span
+                          class="info-trigger"
+                          [appTip]="definition.description"
+                          [appTipDesc]="definition.accessibility.join(' Â· ')"
+                        >
+                          <app-editor-icon name="info" [size]="13" />
+                        </span>
                       }
                     </div>
-                  }
 
-                  <div class="edit-hint">
-                    <span class="edit-hint__icon">✏️</span>
-                    <span>Click any text on the canvas to edit it directly, or use the form fields below.</span>
+                    <div class="props-head__tools">
+                      <button
+                        type="button"
+                        class="icon-pill icon-pill--ai"
+                        (click)="aiModalVisible.set(true)"
+                        appTip="AI copy assist"
+                      >
+                        <app-editor-icon name="sparkles" [size]="13" />
+                      </button>
+                      <button
+                        type="button"
+                        class="icon-pill"
+                        (click)="openContextMenuFromButton($event)"
+                        appTip="Section actions"
+                      >
+                        <app-editor-icon name="more-vertical" [size]="13" />
+                      </button>
+                    </div>
                   </div>
 
-                  @for (field of definition.fields; track field.key) {
-                    @let controlIssue = fieldIssue(section.id, field.key);
-                    <div
-                      class="field"
-                      [class.is-invalid]="controlIssue?.severity === 'error'"
-                      [class.has-warning]="controlIssue?.severity === 'warning'"
-                    >
+                  @if (selectedDefinition(); as definition) {
+                    <label class="field">
                       <span class="field__label">
-                        {{ field.label }}
-                        @if (field.required) { <em>required</em> }
+                        <span>Layout</span>
                       </span>
+                      <select [ngModel]="section.variant" (ngModelChange)="setVariant(section.id, $event)" name="variant">
+                        @for (variant of definition.variants; track variant) {
+                          <option [value]="variant">{{ variant }}</option>
+                        }
+                      </select>
+                    </label>
 
-                      @switch (field.kind) {
-                        @case ('localizedText') {
-                          <input
-                            [ngModel]="localized(section.props[field.key])"
-                            (ngModelChange)="setLocalized(field.key, $event)"
-                            [attr.maxlength]="field.maxLength ?? null"
-                            [attr.placeholder]="field.placeholder ?? null"
-                            [name]="'field-' + field.key"
-                            [id]="'field-' + field.key"
-                            [attr.aria-invalid]="controlIssue ? 'true' : null"
-                          />
-                          <small>{{ activeLocale() }}</small>
+                    @if (section.type === 'custom-code') {
+                      <div class="sandbox-badge" appTip="Sandboxed frame" appTipDesc="Isolated origin with no cookies, parent DOM or account access. Search engines do not index frame content.">
+                        <app-editor-icon name="shield" [size]="13" />
+                        <span>Sandbox</span>
+                        @if (codeNotice()) {
+                          <span class="sandbox-badge__status">Â· {{ codeNotice() }}</span>
                         }
-                        @case ('localizedTextarea') {
-                          <textarea
-                            rows="4"
-                            [ngModel]="localized(section.props[field.key])"
-                            (ngModelChange)="setLocalized(field.key, $event)"
-                            [attr.maxlength]="field.maxLength ?? null"
-                            [attr.placeholder]="field.placeholder ?? null"
-                            [name]="'field-' + field.key"
-                            [id]="'field-' + field.key"
-                            [attr.aria-invalid]="controlIssue ? 'true' : null"
-                          ></textarea>
-                          <small>{{ activeLocale() }}</small>
-                        }
-                        @case ('url') {
-                          <input
-                            type="url"
-                            [ngModel]="section.props[field.key]"
-                            (ngModelChange)="setProp(field.key, $event)"
-                            [attr.placeholder]="field.placeholder ?? 'https://…'"
-                            [name]="'field-' + field.key"
-                            [id]="'field-' + field.key"
-                            [attr.aria-invalid]="controlIssue ? 'true' : null"
-                          />
-                        }
-                        @case ('image') {
-                          <input
-                            type="url"
-                            [ngModel]="section.props[field.key]"
-                            (ngModelChange)="setProp(field.key, $event)"
-                            placeholder="https://image-url"
-                            [name]="'field-' + field.key"
-                            [id]="'field-' + field.key"
-                            [attr.aria-invalid]="controlIssue ? 'true' : null"
-                          />
-                          <small>Only http(s) image URLs are accepted.</small>
-                        }
-                        @case ('text') {
-                          <input
-                            [ngModel]="section.props[field.key]"
-                            (ngModelChange)="setProp(field.key, $event)"
-                            [attr.maxlength]="field.maxLength ?? null"
-                            [name]="'field-' + field.key"
-                            [id]="'field-' + field.key"
-                            [attr.aria-invalid]="controlIssue ? 'true' : null"
-                          />
-                        }
-                        @case ('textList') {
-                          @for (item of stringList(section.props[field.key]); track $index; let i = $index) {
-                            <div class="row">
-                              <input
-                                [ngModel]="item"
-                                (ngModelChange)="updateListItem(field.key, i, $event)"
-                                [name]="'list-' + field.key + '-' + i"
-                              />
-                              <button type="button" class="icon-btn" aria-label="Remove item" (click)="removeListItem(field.key, i)">×</button>
-                            </div>
-                          }
-                          <button type="button" class="link-btn" (click)="addListItem(field.key)">+ Add item</button>
-                        }
-                        @case ('objectList') {
-                          @for (row of objectRows(section.props[field.key]); track $index; let rowIndex = $index) {
-                            <div class="repeat">
-                              <div class="repeat__head">
-                                <strong>{{ field.itemLabel }} {{ rowIndex + 1 }}</strong>
-                                <div>
-                                  <button type="button" class="icon-btn" aria-label="Move up" (click)="moveRow(field.key, rowIndex, -1)">↑</button>
-                                  <button type="button" class="icon-btn" aria-label="Move down" (click)="moveRow(field.key, rowIndex, 1)">↓</button>
-                                  <button type="button" class="icon-btn remove" aria-label="Remove row" (click)="removeRow(field.key, rowIndex)">×</button>
-                                </div>
-                              </div>
-                              @for (nested of field.itemFields ?? []; track nested.key) {
-                                @let rowIssue = fieldIssue(section.id, field.key, rowIndex, nested.key);
-                                <label
-                                  class="field field--nested"
-                                  [class.is-invalid]="rowIssue?.severity === 'error'"
-                                  [class.has-warning]="rowIssue?.severity === 'warning'"
-                                >
-                                  <span>{{ nested.label }}</span>
-                                  @switch (nested.kind) {
-                                    @case ('localizedText') {
-                                      <input
-                                        [ngModel]="rowText(row, nested.key)"
-                                        (ngModelChange)="setRowLocalized(field.key, rowIndex, nested.key, $event)"
-                                        [name]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
-                                        [id]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
-                                        [attr.aria-invalid]="rowIssue ? 'true' : null"
-                                      />
-                                    }
-                                    @case ('localizedTextarea') {
-                                      <textarea
-                                        rows="3"
-                                        [ngModel]="rowText(row, nested.key)"
-                                        (ngModelChange)="setRowLocalized(field.key, rowIndex, nested.key, $event)"
-                                        [name]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
-                                        [id]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
-                                        [attr.aria-invalid]="rowIssue ? 'true' : null"
-                                      ></textarea>
-                                    }
-                                    @case ('textList') {
-                                      <input
-                                        [ngModel]="stringList(row[nested.key]).join(', ')"
-                                        (ngModelChange)="setRowList(field.key, rowIndex, nested.key, $event)"
-                                        placeholder="Comma separated"
-                                        [name]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
-                                        [id]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
-                                        [attr.aria-invalid]="rowIssue ? 'true' : null"
-                                      />
-                                    }
-                                    @default {
-                                      <input
-                                        [ngModel]="row[nested.key]"
-                                        (ngModelChange)="setRowText(field.key, rowIndex, nested.key, $event)"
-                                        [name]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
-                                        [id]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
-                                        [attr.aria-invalid]="rowIssue ? 'true' : null"
-                                      />
-                                    }
-                                  }
-                                  @if (rowIssue; as issue) {
-                                    <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
-                                  }
-                                </label>
-                              }
-                            </div>
-                          }
-                          <button type="button" class="link-btn" (click)="addRow(field)">+ Add {{ field.itemLabel }}</button>
-                        }
-                        @case ('code') {
-                          <div class="code-field">
-                            <div class="code-field__bar">
-                              <span class="code-field__meta">
-                                {{ codeLines(section.props[field.key]) }} lines ·
-                                {{ codeBytes(section.props[field.key]) }} bytes
+                      </div>
+                    }
+
+                    @for (field of definition.fields; track field.key) {
+                      @let controlIssue = fieldIssue(section.id, field.key);
+                      <div
+                        class="field"
+                        [class.is-invalid]="controlIssue?.severity === 'error'"
+                        [class.has-warning]="controlIssue?.severity === 'warning'"
+                      >
+                        <span class="field__label">
+                          <span class="field__name">
+                            {{ field.label }}
+                            @if (field.required) { <em class="req-dot" appTip="Required">*</em> }
+                          </span>
+                          <span class="field__meta-icons">
+                            @if (fieldTooltip(field)) {
+                              <span class="info-trigger" [appTip]="fieldTooltip(field)">
+                                <app-editor-icon name="info" [size]="12" />
                               </span>
-                              <span class="code-field__actions">
-                                @if (field.key === 'html' && canSplitPage(section)) {
-                                  <button type="button" class="link-btn" (click)="splitPage()">Split full page</button>
-                                }
-                                <button type="button" class="link-btn" (click)="triggerCodeImport(field.key)">Import file</button>
-                              </span>
-                            </div>
+                            }
+                            @if (field.kind === 'image') {
+                              <button
+                                type="button"
+                                class="mini-icon-btn"
+                                (click)="openMediaPicker({ kind: 'prop', key: field.key })"
+                                appTip="Pick from media library"
+                              >
+                                <app-editor-icon name="image" [size]="12" />
+                              </button>
+                            }
+                          </span>
+                        </span>
+
+                        @switch (field.kind) {
+                          @case ('localizedText') {
+                            <input
+                              [ngModel]="localized(section.props[field.key])"
+                              (ngModelChange)="setLocalized(field.key, $event)"
+                              [attr.maxlength]="field.maxLength ?? null"
+                              [attr.placeholder]="field.placeholder ?? null"
+                              [name]="'field-' + field.key"
+                              [id]="'field-' + field.key"
+                              [attr.aria-invalid]="controlIssue ? 'true' : null"
+                            />
+                          }
+                          @case ('localizedTextarea') {
                             <textarea
-                              class="code-field__input"
-                              rows="9"
-                              spellcheck="false"
-                              wrap="off"
-                              [ngModel]="codeValue(section.props[field.key])"
-                              (ngModelChange)="setCode(field.key, $event)"
+                              rows="3"
+                              [ngModel]="localized(section.props[field.key])"
+                              (ngModelChange)="setLocalized(field.key, $event)"
+                              [attr.maxlength]="field.maxLength ?? null"
                               [attr.placeholder]="field.placeholder ?? null"
                               [name]="'field-' + field.key"
                               [id]="'field-' + field.key"
                               [attr.aria-invalid]="controlIssue ? 'true' : null"
                             ></textarea>
-                            @if (field.key === 'html') {
-                              <small>
-                                Paste a whole page and choose “Split full page”, or import .html, .css and .js
-                                files. Code runs only inside a sandboxed frame.
-                              </small>
-                            }
-                          </div>
-                        }
-                        @case ('toggle') {
-                          <label class="switch">
+                          }
+                          @case ('url') {
                             <input
-                              type="checkbox"
-                              [ngModel]="section.props[field.key] === true"
-                              (ngModelChange)="setToggle(field.key, $event)"
+                              type="url"
+                              [ngModel]="section.props[field.key]"
+                              (ngModelChange)="setProp(field.key, $event)"
+                              [attr.placeholder]="field.placeholder ?? 'https://â€¦'"
                               [name]="'field-' + field.key"
                               [id]="'field-' + field.key"
+                              [attr.aria-invalid]="controlIssue ? 'true' : null"
                             />
-                            <span>{{ section.props[field.key] === true ? 'Enabled' : 'Off' }}</span>
-                          </label>
+                          }
+                          @case ('image') {
+                            <input
+                              type="url"
+                              [ngModel]="section.props[field.key]"
+                              (ngModelChange)="setProp(field.key, $event)"
+                              placeholder="https://â€¦"
+                              [name]="'field-' + field.key"
+                              [id]="'field-' + field.key"
+                              [attr.aria-invalid]="controlIssue ? 'true' : null"
+                            />
+                          }
+                          @case ('text') {
+                            <input
+                              [ngModel]="section.props[field.key]"
+                              (ngModelChange)="setProp(field.key, $event)"
+                              [attr.maxlength]="field.maxLength ?? null"
+                              [name]="'field-' + field.key"
+                              [id]="'field-' + field.key"
+                              [attr.aria-invalid]="controlIssue ? 'true' : null"
+                            />
+                          }
+                          @case ('textList') {
+                            @for (item of stringList(section.props[field.key]); track $index; let i = $index) {
+                              <div class="row">
+                                <input
+                                  [ngModel]="item"
+                                  (ngModelChange)="updateListItem(field.key, i, $event)"
+                                  [name]="'list-' + field.key + '-' + i"
+                                />
+                                <button type="button" class="mini-icon-btn mini-icon-btn--danger" (click)="removeListItem(field.key, i)" appTip="Remove item">
+                                  <app-editor-icon name="x" [size]="13" />
+                                </button>
+                              </div>
+                            }
+                            <button type="button" class="add-row-btn" (click)="addListItem(field.key)" appTip="Add item">
+                              <app-editor-icon name="plus" [size]="13" />
+                            </button>
+                          }
+                          @case ('objectList') {
+                            @for (row of objectRows(section.props[field.key]); track $index; let rowIndex = $index) {
+                              <div class="repeat">
+                                <div class="repeat__head">
+                                  <strong>{{ field.itemLabel }} {{ rowIndex + 1 }}</strong>
+                                  <div class="repeat__tools">
+                                    <button type="button" class="mini-icon-btn" (click)="moveRow(field.key, rowIndex, -1)" appTip="Move up">
+                                      <app-editor-icon name="arrow-up" [size]="12" />
+                                    </button>
+                                    <button type="button" class="mini-icon-btn" (click)="moveRow(field.key, rowIndex, 1)" appTip="Move down">
+                                      <app-editor-icon name="arrow-down" [size]="12" />
+                                    </button>
+                                    <button type="button" class="mini-icon-btn mini-icon-btn--danger" (click)="removeRow(field.key, rowIndex)" appTip="Remove row">
+                                      <app-editor-icon name="trash" [size]="12" />
+                                    </button>
+                                  </div>
+                                </div>
+                                @for (nested of field.itemFields ?? []; track nested.key) {
+                                  @let rowIssue = fieldIssue(section.id, field.key, rowIndex, nested.key);
+                                  <label
+                                    class="field field--nested"
+                                    [class.is-invalid]="rowIssue?.severity === 'error'"
+                                    [class.has-warning]="rowIssue?.severity === 'warning'"
+                                  >
+                                    <span class="field__label">
+                                      <span>{{ nested.label }}</span>
+                                      @if (nested.kind === 'image') {
+                                        <button
+                                          type="button"
+                                          class="mini-icon-btn"
+                                          (click)="$event.preventDefault(); openMediaPicker({ kind: 'row', fieldKey: field.key, rowIndex, nestedKey: nested.key })"
+                                          appTip="Pick from media library"
+                                        >
+                                          <app-editor-icon name="image" [size]="12" />
+                                        </button>
+                                      }
+                                    </span>
+                                    @switch (nested.kind) {
+                                      @case ('localizedText') {
+                                        <input
+                                          [ngModel]="rowText(row, nested.key)"
+                                          (ngModelChange)="setRowLocalized(field.key, rowIndex, nested.key, $event)"
+                                          [name]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
+                                          [id]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
+                                          [attr.aria-invalid]="rowIssue ? 'true' : null"
+                                        />
+                                      }
+                                      @case ('localizedTextarea') {
+                                        <textarea
+                                          rows="2"
+                                          [ngModel]="rowText(row, nested.key)"
+                                          (ngModelChange)="setRowLocalized(field.key, rowIndex, nested.key, $event)"
+                                          [name]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
+                                          [id]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
+                                          [attr.aria-invalid]="rowIssue ? 'true' : null"
+                                        ></textarea>
+                                      }
+                                      @case ('textList') {
+                                        <input
+                                          [ngModel]="stringList(row[nested.key]).join(', ')"
+                                          (ngModelChange)="setRowList(field.key, rowIndex, nested.key, $event)"
+                                          placeholder="tag1, tag2"
+                                          [name]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
+                                          [id]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
+                                          [attr.aria-invalid]="rowIssue ? 'true' : null"
+                                        />
+                                      }
+                                      @default {
+                                        <input
+                                          [ngModel]="row[nested.key]"
+                                          (ngModelChange)="setRowText(field.key, rowIndex, nested.key, $event)"
+                                          [name]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
+                                          [id]="'row-' + field.key + '-' + rowIndex + '-' + nested.key"
+                                          [attr.aria-invalid]="rowIssue ? 'true' : null"
+                                        />
+                                      }
+                                    }
+                                    @if (rowIssue; as issue) {
+                                      <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
+                                    }
+                                  </label>
+                                }
+                              </div>
+                            }
+                            <button type="button" class="add-row-btn" (click)="addRow(field)" [appTip]="'Add ' + (field.itemLabel || 'item')">
+                              <app-editor-icon name="plus" [size]="13" />
+                            </button>
+                          }
+                          @case ('code') {
+                            <div class="code-field">
+                              <div class="code-field__bar">
+                                <span class="code-field__meta">
+                                  {{ codeLines(section.props[field.key]) }}L Â· {{ codeBytes(section.props[field.key]) }}B
+                                </span>
+                                <span class="code-field__actions">
+                                  @if (field.key === 'html' && canSplitPage(section)) {
+                                    <button type="button" class="mini-icon-btn" (click)="splitPage()" appTip="Split full page into HTML/CSS/JS">
+                                      <app-editor-icon name="split" [size]="13" />
+                                    </button>
+                                  }
+                                  <button type="button" class="mini-icon-btn" (click)="triggerCodeImport(field.key)" appTip="Import file">
+                                    <app-editor-icon name="upload" [size]="13" />
+                                  </button>
+                                </span>
+                              </div>
+                              <textarea
+                                class="code-field__input"
+                                rows="8"
+                                spellcheck="false"
+                                wrap="off"
+                                [ngModel]="codeValue(section.props[field.key])"
+                                (ngModelChange)="setCode(field.key, $event)"
+                                [attr.placeholder]="field.placeholder ?? null"
+                                [name]="'field-' + field.key"
+                                [id]="'field-' + field.key"
+                                [attr.aria-invalid]="controlIssue ? 'true' : null"
+                              ></textarea>
+                            </div>
+                          }
+                          @case ('toggle') {
+                            <label class="switch">
+                              <input
+                                type="checkbox"
+                                [ngModel]="section.props[field.key] === true"
+                                (ngModelChange)="setToggle(field.key, $event)"
+                                [name]="'field-' + field.key"
+                                [id]="'field-' + field.key"
+                              />
+                              <span>{{ section.props[field.key] === true ? 'On' : 'Off' }}</span>
+                            </label>
+                          }
+                          @case ('number') {
+                            <input
+                              type="number"
+                              [ngModel]="section.props[field.key]"
+                              (ngModelChange)="setNumber(field.key, $event)"
+                              [attr.min]="field.min ?? null"
+                              [attr.max]="field.max ?? null"
+                              [name]="'field-' + field.key"
+                              [id]="'field-' + field.key"
+                              [attr.aria-invalid]="controlIssue ? 'true' : null"
+                            />
+                          }
                         }
-                        @case ('number') {
-                          <input
-                            type="number"
-                            [ngModel]="section.props[field.key]"
-                            (ngModelChange)="setNumber(field.key, $event)"
-                            [attr.min]="field.min ?? null"
-                            [attr.max]="field.max ?? null"
-                            [name]="'field-' + field.key"
-                            [id]="'field-' + field.key"
-                            [attr.aria-invalid]="controlIssue ? 'true' : null"
-                          />
-                          <small>Between {{ field.min ?? 0 }} and {{ field.max ?? '∞' }}.</small>
+                        @if (controlIssue; as issue) {
+                          <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
                         }
-                      }
-                      @if (controlIssue; as issue) {
-                        <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
-                      }
-                    </div>
+                      </div>
+                    }
                   }
+                } @else {
+                  <div class="empty-inspector" appTip="Select a section on canvas or layers">
+                    <app-editor-icon name="layers" [size]="22" />
+                  </div>
                 }
-              } @else {
-                <p class="muted">Select a section to edit its content.</p>
+
+                <div class="seo-block">
+                  <h3>SEO</h3>
+                  @let seoTitleIssue = seoIssue('title');
+                  <label class="field" [class.has-warning]="seoTitleIssue?.severity === 'warning'">
+                    <span>Title</span>
+                    <input
+                      [ngModel]="localized(document.pages[0]?.seo?.title)"
+                      (ngModelChange)="setSeo('title', $event)"
+                      name="seoTitle"
+                      id="seo-title"
+                      [attr.aria-invalid]="seoTitleIssue ? 'true' : null"
+                    />
+                    @if (seoTitleIssue; as issue) {
+                      <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
+                    }
+                  </label>
+                  @let seoDescriptionIssue = seoIssue('description');
+                  <label class="field" [class.has-warning]="seoDescriptionIssue?.severity === 'warning'">
+                    <span>Description</span>
+                    <textarea
+                      rows="2"
+                      [ngModel]="localized(document.pages[0]?.seo?.description)"
+                      (ngModelChange)="setSeo('description', $event)"
+                      name="seoDescription"
+                      id="seo-description"
+                      [attr.aria-invalid]="seoDescriptionIssue ? 'true' : null"
+                    ></textarea>
+                    @if (seoDescriptionIssue; as issue) {
+                      <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
+                    }
+                  </label>
+                  @if (seoIssue('imageUrl'); as issue) {
+                    <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
+                  }
+                </div>
               }
 
-              <div class="seo-block">
-                <h3>Page SEO</h3>
-                @let seoTitleIssue = seoIssue('title');
-                <label class="field" [class.has-warning]="seoTitleIssue?.severity === 'warning'">
-                  <span>Title ({{ activeLocale() }})</span>
-                  <input
-                    [ngModel]="localized(document.pages[0]?.seo?.title)"
-                    (ngModelChange)="setSeo('title', $event)"
-                    name="seoTitle"
-                    id="seo-title"
-                    [attr.aria-invalid]="seoTitleIssue ? 'true' : null"
-                  />
-                  @if (seoTitleIssue; as issue) {
-                    <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
-                  }
-                </label>
-                @let seoDescriptionIssue = seoIssue('description');
-                <label class="field" [class.has-warning]="seoDescriptionIssue?.severity === 'warning'">
-                  <span>Description ({{ activeLocale() }})</span>
-                  <textarea
-                    rows="3"
-                    [ngModel]="localized(document.pages[0]?.seo?.description)"
-                    (ngModelChange)="setSeo('description', $event)"
-                    name="seoDescription"
-                    id="seo-description"
-                    [attr.aria-invalid]="seoDescriptionIssue ? 'true' : null"
-                  ></textarea>
-                  @if (seoDescriptionIssue; as issue) {
-                    <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
-                  }
-                </label>
-                @if (seoIssue('imageUrl'); as issue) {
-                  <em class="field-error" [class.field-error--warning]="issue.severity !== 'error'">{{ issue.message }}</em>
-                }
-              </div>
-            </div>
-          }
-
-          @case ('design') {
-            <div class="props-body">
-              <h2>Section Design</h2>
-              @if (selectedSection(); as section) {
-                <div class="props-title">
-                  <h3>{{ sectionLabel(section.type) }}</h3>
-                  <span class="muted">{{ section.variant }}</span>
-                </div>
-
-                <div class="design-hint">
-                  <p>Customize the look of this section. Drag sections on the canvas to reorder them.</p>
-                </div>
-
-                <div class="design-group">
-                  <h4 class="design-group__title">Colors</h4>
-                  <label class="color-row">
-                    <span>Background</span>
-                    <div class="color-input-group">
-                      <input
-                        type="color"
-                        [ngModel]="selectedStyle().backgroundColor || '#ffffff'"
-                        (ngModelChange)="setSectionStyle('backgroundColor', $event)"
-                        name="sectionBg"
-                      />
-                      <button type="button" class="clear-btn" title="Clear" (click)="setSectionStyle('backgroundColor', '')">×</button>
+              @case ('design') {
+                @if (selectedSection(); as section) {
+                  <div class="props-head">
+                    <div class="props-head__id">
+                      <h2>{{ sectionLabel(section.type) }}</h2>
                     </div>
-                  </label>
-                  <label class="color-row">
-                    <span>Text color</span>
-                    <div class="color-input-group">
-                      <input
-                        type="color"
-                        [ngModel]="selectedStyle().textColor || '#000000'"
-                        (ngModelChange)="setSectionStyle('textColor', $event)"
-                        name="sectionText"
-                      />
-                      <button type="button" class="clear-btn" title="Clear" (click)="setSectionStyle('textColor', '')">×</button>
+                    <div class="props-head__tools">
+                      <button type="button" class="icon-pill" (click)="copySelectedStyle()" appTip="Copy style" appTipKbd="Ctrl+Alt+C">
+                        <app-editor-icon name="paintbrush" [size]="13" />
+                      </button>
+                      <button type="button" class="icon-pill" [disabled]="!copiedStyle()" (click)="pasteStyleToSelected()" appTip="Paste style" appTipKbd="Ctrl+Alt+V">
+                        <app-editor-icon name="clipboard" [size]="13" />
+                      </button>
+                      <button type="button" class="icon-pill" (click)="resetSectionStyles()" appTip="Reset styles">
+                        <app-editor-icon name="rotate-ccw" [size]="13" />
+                      </button>
                     </div>
-                  </label>
-                </div>
+                  </div>
 
-                <div class="design-group">
-                  <h4 class="design-group__title">Spacing</h4>
-                  <label class="field">
-                    <span>Padding top</span>
-                    <select
-                      [ngModel]="selectedStyle().paddingTop || ''"
-                      (ngModelChange)="setSectionStyle('paddingTop', $event)"
-                      name="paddingTop"
-                    >
-                      <option value="">Default</option>
-                      <option value="1rem">Small (1rem)</option>
-                      <option value="2rem">Medium (2rem)</option>
-                      <option value="4rem">Large (4rem)</option>
-                      <option value="6rem">Extra large (6rem)</option>
-                      <option value="8rem">Huge (8rem)</option>
-                    </select>
-                  </label>
-                  <label class="field">
-                    <span>Padding bottom</span>
-                    <select
-                      [ngModel]="selectedStyle().paddingBottom || ''"
-                      (ngModelChange)="setSectionStyle('paddingBottom', $event)"
-                      name="paddingBottom"
-                    >
-                      <option value="">Default</option>
-                      <option value="1rem">Small (1rem)</option>
-                      <option value="2rem">Medium (2rem)</option>
-                      <option value="4rem">Large (4rem)</option>
-                      <option value="6rem">Extra large (6rem)</option>
-                      <option value="8rem">Huge (8rem)</option>
-                    </select>
-                  </label>
-                  <label class="field">
-                    <span>Content width</span>
-                    <select
-                      [ngModel]="selectedStyle().maxWidth || ''"
-                      (ngModelChange)="setSectionStyle('maxWidth', $event)"
-                      name="maxWidth"
-                    >
-                      <option value="">Default (1120px)</option>
-                      <option value="680px">Narrow (680px)</option>
-                      <option value="860px">Medium (860px)</option>
-                      <option value="1120px">Wide (1120px)</option>
-                      <option value="1400px">Extra wide (1400px)</option>
-                      <option value="100%">Full width</option>
-                    </select>
-                  </label>
-                </div>
+                  <!-- Quick Surface Presets -->
+                  <div class="design-group">
+                    <h4 class="design-group__title">Surface</h4>
+                    <div class="surface-swatches">
+                      <button type="button" class="surface-chip" (click)="applySurfacePreset('default')" appTip="Theme default"></button>
+                      <button type="button" class="surface-chip surface-chip--soft" (click)="applySurfacePreset('soft')" appTip="Soft wash"></button>
+                      <button type="button" class="surface-chip surface-chip--tint" (click)="applySurfacePreset('tint')" appTip="Accent fill"></button>
+                      <button type="button" class="surface-chip surface-chip--dark" (click)="applySurfacePreset('dark')" appTip="Dark contrast"></button>
+                    </div>
+                    <label class="color-row">
+                      <span>Background</span>
+                      <div class="color-input-group">
+                        <input
+                          type="color"
+                          [ngModel]="selectedStyle().backgroundColor || '#ffffff'"
+                          (ngModelChange)="setSectionStyle('backgroundColor', $event)"
+                          name="sectionBg"
+                        />
+                        <button type="button" class="mini-icon-btn" (click)="setSectionStyle('backgroundColor', '')" appTip="Clear">
+                          <app-editor-icon name="x" [size]="12" />
+                        </button>
+                      </div>
+                    </label>
+                    <label class="color-row">
+                      <span>Text</span>
+                      <div class="color-input-group">
+                        <input
+                          type="color"
+                          [ngModel]="selectedStyle().textColor || '#000000'"
+                          (ngModelChange)="setSectionStyle('textColor', $event)"
+                          name="sectionText"
+                        />
+                        <button type="button" class="mini-icon-btn" (click)="setSectionStyle('textColor', '')" appTip="Clear">
+                          <app-editor-icon name="x" [size]="12" />
+                        </button>
+                      </div>
+                    </label>
+                  </div>
 
-                <div class="design-group">
-                  <h4 class="design-group__title">Layout</h4>
-                  <div class="field">
-                    <span>Text alignment</span>
+                  <!-- Alignment -->
+                  <div class="design-group">
+                    <h4 class="design-group__title">Align</h4>
                     <div class="segmented" role="group" aria-label="Text alignment">
-                      <button type="button" [class.on]="!selectedStyle().textAlign || selectedStyle().textAlign === 'left'" (click)="setSectionStyle('textAlign', 'left')">Left</button>
-                      <button type="button" [class.on]="selectedStyle().textAlign === 'center'" (click)="setSectionStyle('textAlign', 'center')">Center</button>
-                      <button type="button" [class.on]="selectedStyle().textAlign === 'right'" (click)="setSectionStyle('textAlign', 'right')">Right</button>
+                      <button type="button" [class.on]="!selectedStyle().textAlign || selectedStyle().textAlign === 'left'" (click)="setSectionStyle('textAlign', 'left')" appTip="Left">
+                        <app-editor-icon name="align-left" [size]="14" />
+                      </button>
+                      <button type="button" [class.on]="selectedStyle().textAlign === 'center'" (click)="setSectionStyle('textAlign', 'center')" appTip="Center">
+                        <app-editor-icon name="align-center" [size]="14" />
+                      </button>
+                      <button type="button" [class.on]="selectedStyle().textAlign === 'right'" (click)="setSectionStyle('textAlign', 'right')" appTip="Right">
+                        <app-editor-icon name="align-right" [size]="14" />
+                      </button>
                     </div>
+                  </div>
+
+                  <!-- Spacing & Width -->
+                  <div class="design-group">
+                    <h4 class="design-group__title">Spacing</h4>
+                    <div class="two-col">
+                      <label class="field">
+                        <span>Top</span>
+                        <select [ngModel]="selectedStyle().paddingTop || ''" (ngModelChange)="setSectionStyle('paddingTop', $event)" name="paddingTop">
+                          <option value="">Auto</option>
+                          <option value="1rem">1rem</option>
+                          <option value="2rem">2rem</option>
+                          <option value="4rem">4rem</option>
+                          <option value="6rem">6rem</option>
+                          <option value="8rem">8rem</option>
+                        </select>
+                      </label>
+                      <label class="field">
+                        <span>Bottom</span>
+                        <select [ngModel]="selectedStyle().paddingBottom || ''" (ngModelChange)="setSectionStyle('paddingBottom', $event)" name="paddingBottom">
+                          <option value="">Auto</option>
+                          <option value="1rem">1rem</option>
+                          <option value="2rem">2rem</option>
+                          <option value="4rem">4rem</option>
+                          <option value="6rem">6rem</option>
+                          <option value="8rem">8rem</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label class="field">
+                      <span>Width</span>
+                      <select [ngModel]="selectedStyle().maxWidth || ''" (ngModelChange)="setSectionStyle('maxWidth', $event)" name="maxWidth">
+                        <option value="">1120px</option>
+                        <option value="680px">680px</option>
+                        <option value="860px">860px</option>
+                        <option value="1400px">1400px</option>
+                        <option value="100%">100%</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <!-- Background Image -->
+                  <div class="design-group">
+                    <h4 class="design-group__title">Backdrop</h4>
+                    <div class="field">
+                      <span class="field__label">
+                        <span>Image URL</span>
+                        <button type="button" class="mini-icon-btn" (click)="openMediaPicker({ kind: 'styleBg' })" appTip="Pick from media library">
+                          <app-editor-icon name="image" [size]="12" />
+                        </button>
+                      </span>
+                      <input
+                        type="url"
+                        [ngModel]="selectedStyle().backgroundImage || ''"
+                        (ngModelChange)="setSectionStyle('backgroundImage', $event)"
+                        placeholder="https://â€¦"
+                        name="bgImage"
+                      />
+                    </div>
+                    @if (selectedStyle().backgroundImage) {
+                      <div class="two-col">
+                        <label class="field">
+                          <span>Size</span>
+                          <select [ngModel]="selectedStyle().backgroundSize || 'cover'" (ngModelChange)="setSectionStyle('backgroundSize', $event)" name="bgSize">
+                            <option value="cover">Cover</option>
+                            <option value="contain">Contain</option>
+                            <option value="auto">Auto</option>
+                          </select>
+                        </label>
+                        <label class="field">
+                          <span>Position</span>
+                          <select [ngModel]="selectedStyle().backgroundPosition || 'center'" (ngModelChange)="setSectionStyle('backgroundPosition', $event)" name="bgPosition">
+                            <option value="center">Center</option>
+                            <option value="top">Top</option>
+                            <option value="bottom">Bottom</option>
+                            <option value="left">Left</option>
+                            <option value="right">Right</option>
+                          </select>
+                        </label>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Borders & Opacity -->
+                  <div class="design-group">
+                    <h4 class="design-group__title">Borders &amp; Opacity</h4>
+                    <div class="two-col">
+                      <label class="field">
+                        <span>Top</span>
+                        <select [ngModel]="selectedStyle().borderTop || ''" (ngModelChange)="setSectionStyle('borderTop', $event)" name="borderTop">
+                          <option value="">None</option>
+                          <option value="1px solid currentColor">Thin</option>
+                          <option value="2px solid currentColor">Medium</option>
+                          <option value="3px solid currentColor">Thick</option>
+                          <option value="1px dashed currentColor">Dashed</option>
+                        </select>
+                      </label>
+                      <label class="field">
+                        <span>Bottom</span>
+                        <select [ngModel]="selectedStyle().borderBottom || ''" (ngModelChange)="setSectionStyle('borderBottom', $event)" name="borderBottom">
+                          <option value="">None</option>
+                          <option value="1px solid currentColor">Thin</option>
+                          <option value="2px solid currentColor">Medium</option>
+                          <option value="3px solid currentColor">Thick</option>
+                          <option value="1px dashed currentColor">Dashed</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label class="field">
+                      <span class="field__label">
+                        <span>Opacity</span>
+                        <small>{{ selectedStyle().opacity || '1' }}</small>
+                      </span>
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="1"
+                        step="0.05"
+                        [ngModel]="selectedStyle().opacity || '1'"
+                        (ngModelChange)="setSectionStyle('opacity', $event)"
+                        name="opacity"
+                      />
+                    </label>
+                  </div>
+                } @else {
+                  <div class="empty-inspector" appTip="Select a section">
+                    <app-editor-icon name="sliders" [size]="22" />
+                  </div>
+                }
+              }
+
+              @case ('theme') {
+                <div class="props-head">
+                  <h2>Theme</h2>
+                </div>
+
+                <!-- Canva-style 1-Click Brand Kit Palettes -->
+                <div class="design-group">
+                  <h4 class="design-group__title">Palettes</h4>
+                  <div class="palette-grid">
+                    @for (preset of themePresets; track preset.id) {
+                      <button
+                        type="button"
+                        class="palette-chip"
+                        (click)="applyThemePreset(preset)"
+                        [appTip]="preset.name"
+                      >
+                        <span [style.background]="preset.surface"></span>
+                        <span [style.background]="preset.primary"></span>
+                        <span [style.background]="preset.accent"></span>
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                <div class="field">
+                  <span>Mode</span>
+                  <div class="segmented" role="group" aria-label="Theme mode">
+                    <button type="button" [class.on]="document.theme.mode === 'light'" (click)="setThemeMode('light')" appTip="Light">
+                      <app-editor-icon name="sun" [size]="14" />
+                    </button>
+                    <button type="button" [class.on]="document.theme.mode === 'dark'" (click)="setThemeMode('dark')" appTip="Dark">
+                      <app-editor-icon name="moon" [size]="14" />
+                    </button>
+                    <button type="button" [class.on]="document.theme.mode === 'system'" (click)="setThemeMode('system')" appTip="System">
+                      <app-editor-icon name="contrast" [size]="14" />
+                    </button>
                   </div>
                 </div>
 
                 <div class="design-group">
-                  <h4 class="design-group__title">Background image</h4>
-                  <label class="field">
-                    <span>Image URL</span>
-                    <input
-                      type="url"
-                      [ngModel]="selectedStyle().backgroundImage || ''"
-                      (ngModelChange)="setSectionStyle('backgroundImage', $event)"
-                      placeholder="https://image-url"
-                      name="bgImage"
-                    />
+                  <h4 class="design-group__title">Tokens</h4>
+                  <label class="color-row">
+                    <span>Primary</span>
+                    <input type="color" [ngModel]="document.theme.tokens.primary" (ngModelChange)="setToken('primary', $event)" name="primary" />
                   </label>
-                  @if (selectedStyle().backgroundImage) {
-                    <label class="field">
-                      <span>Size</span>
-                      <select
-                        [ngModel]="selectedStyle().backgroundSize || 'cover'"
-                        (ngModelChange)="setSectionStyle('backgroundSize', $event)"
-                        name="bgSize"
+                  <label class="color-row">
+                    <span>Accent</span>
+                    <input type="color" [ngModel]="document.theme.tokens.accent" (ngModelChange)="setToken('accent', $event)" name="accent" />
+                  </label>
+                  <label class="color-row">
+                    <span>Surface</span>
+                    <input type="color" [ngModel]="document.theme.tokens.surface" (ngModelChange)="setToken('surface', $event)" name="surface" />
+                  </label>
+                  <label class="color-row">
+                    <span>Text</span>
+                    <input type="color" [ngModel]="document.theme.tokens.text" (ngModelChange)="setToken('text', $event)" name="text" />
+                  </label>
+                </div>
+
+                <div class="design-group">
+                  <h4 class="design-group__title">Font Pairings</h4>
+                  <div class="pairing-list">
+                    @for (pair of fontPairings; track pair.id) {
+                      <button
+                        type="button"
+                        class="pairing-btn"
+                        [class.on]="document.theme.tokens.fontHeading === pair.heading && document.theme.tokens.fontBody === pair.body"
+                        (click)="applyFontPairing(pair)"
+                        [appTip]="pair.name"
                       >
-                        <option value="cover">Cover</option>
-                        <option value="contain">Contain</option>
-                        <option value="auto">Auto</option>
+                        <app-editor-icon name="type" [size]="12" />
+                        <span>{{ pair.name }}</span>
+                      </button>
+                    }
+                  </div>
+                  <div class="two-col">
+                    <label class="field">
+                      <span>Heading</span>
+                      <select [ngModel]="document.theme.tokens.fontHeading" (ngModelChange)="setFont('fontHeading', $event)" name="fontHeading">
+                        @for (font of fontOptions; track font) { <option [value]="font">{{ font }}</option> }
                       </select>
                     </label>
                     <label class="field">
-                      <span>Position</span>
-                      <select
-                        [ngModel]="selectedStyle().backgroundPosition || 'center'"
-                        (ngModelChange)="setSectionStyle('backgroundPosition', $event)"
-                        name="bgPosition"
-                      >
-                        <option value="center">Center</option>
-                        <option value="top">Top</option>
-                        <option value="bottom">Bottom</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
+                      <span>Body</span>
+                      <select [ngModel]="document.theme.tokens.fontBody" (ngModelChange)="setFont('fontBody', $event)" name="fontBody">
+                        @for (font of fontOptions; track font) { <option [value]="font">{{ font }}</option> }
                       </select>
                     </label>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <span>Radius</span>
+                  <div class="segmented" role="group" aria-label="Corner radius">
+                    @for (radius of ['sm', 'md', 'lg']; track radius) {
+                      <button type="button" [class.on]="document.theme.tokens.radius === radius" (click)="setRadius($any(radius))">{{ radius }}</button>
+                    }
+                  </div>
+                </div>
+                <div class="field">
+                  <span>Density</span>
+                  <div class="segmented" role="group" aria-label="Density">
+                    @for (density of ['compact', 'comfortable']; track density) {
+                      <button type="button" [class.on]="document.theme.tokens.density === density" (click)="setDensity($any(density))">{{ density }}</button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @case ('publish') {
+                <div class="props-head">
+                  <h2>Publish</h2>
+                  <span class="status-pill" [attr.data-status]="site()?.status">
+                    {{ site()?.status || 'draft' }} Â· r{{ revision() }}
+                  </span>
+                </div>
+
+                @if (site()?.status === 'published') {
+                  <a class="live-link" [routerLink]="['/p', site()?.slug ?? '']" target="_blank" rel="noopener">
+                    <app-editor-icon name="external-link" [size]="13" />
+                    <span>/p/{{ site()?.slug }}</span>
+                  </a>
+                }
+
+                <div class="publish-actions">
+                  <button type="button" class="icon-pill" [disabled]="busy()" (click)="validateNow()" appTip="Validate draft">
+                    <app-editor-icon name="check-circle" [size]="15" />
+                  </button>
+                  <button type="button" class="icon-pill icon-pill--primary" [disabled]="publishing()" (click)="publish()" appTip="Publish current draft">
+                    <app-editor-icon name="rocket" [size]="15" />
+                  </button>
+                  @if (site()?.status === 'published') {
+                    <button type="button" class="icon-pill icon-pill--danger" [disabled]="publishing()" (click)="unpublish()" appTip="Unpublish">
+                      <app-editor-icon name="eye-off" [size]="15" />
+                    </button>
                   }
                 </div>
 
-                <div class="design-group">
-                  <h4 class="design-group__title">Borders</h4>
-                  <label class="field">
-                    <span>Top border</span>
-                    <select
-                      [ngModel]="selectedStyle().borderTop || ''"
-                      (ngModelChange)="setSectionStyle('borderTop', $event)"
-                      name="borderTop"
-                    >
-                      <option value="">None</option>
-                      <option value="1px solid currentColor">Thin solid</option>
-                      <option value="2px solid currentColor">Medium solid</option>
-                      <option value="3px solid currentColor">Thick solid</option>
-                      <option value="1px dashed currentColor">Dashed</option>
-                      <option value="1px dotted currentColor">Dotted</option>
-                    </select>
-                  </label>
-                  <label class="field">
-                    <span>Bottom border</span>
-                    <select
-                      [ngModel]="selectedStyle().borderBottom || ''"
-                      (ngModelChange)="setSectionStyle('borderBottom', $event)"
-                      name="borderBottom"
-                    >
-                      <option value="">None</option>
-                      <option value="1px solid currentColor">Thin solid</option>
-                      <option value="2px solid currentColor">Medium solid</option>
-                      <option value="3px solid currentColor">Thick solid</option>
-                      <option value="1px dashed currentColor">Dashed</option>
-                      <option value="1px dotted currentColor">Dotted</option>
-                    </select>
-                  </label>
+                @if (validation(); as result) {
+                  <div class="issues">
+                    @if (result.ok) {
+                      <div class="ok-badge">
+                        <app-editor-icon name="check-circle" [size]="14" />
+                        <span>Ready</span>
+                      </div>
+                    }
+                    @for (issue of result.errors; track issue.code + issue.path) {
+                      <button type="button" class="issue issue--error" (click)="goToIssue(issue)">
+                        <span class="issue__target">{{ issueTargetLabel(issue) }}</span>
+                        <span>{{ issue.message }}</span>
+                      </button>
+                    }
+                    @for (issue of result.warnings; track issue.code + issue.path) {
+                      <button type="button" class="issue issue--warning" (click)="goToIssue(issue)">
+                        <span class="issue__target">{{ issueTargetLabel(issue) }}</span>
+                        <span>{{ issue.message }}</span>
+                      </button>
+                    }
+                    @for (issue of result.suggestions; track issue.code + issue.path) {
+                      <p class="issue">{{ issue.message }}</p>
+                    }
+                  </div>
+                }
+
+                <div class="versions">
+                  <h3>Versions</h3>
+                  @for (version of versions(); track version.id) {
+                    <div class="version">
+                      <div>
+                        <strong>v{{ version.versionNumber }}</strong>
+                        @if (version.isLive) { <span class="live">live</span> }
+                        <small>{{ version.createdAt }}</small>
+                      </div>
+                      <button
+                        type="button"
+                        class="icon-pill"
+                        [disabled]="publishing()"
+                        (click)="rollback(version.id)"
+                        appTip="Roll back to this snapshot"
+                      >
+                        <app-editor-icon name="history" [size]="14" />
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
+              @case ('domain') {
+                <div class="props-head">
+                  <h2>Domain</h2>
+                  <span class="status-pill" [attr.data-status]="site()?.status">
+                    {{ site()?.status || 'draft' }}
+                  </span>
                 </div>
 
-                <div class="design-group">
-                  <h4 class="design-group__title">Effects</h4>
-                  <label class="field">
-                    <span>Opacity</span>
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="1"
-                      step="0.05"
-                      [ngModel]="selectedStyle().opacity || '1'"
-                      (ngModelChange)="setSectionStyle('opacity', $event)"
-                      name="opacity"
-                    />
-                    <small>{{ (selectedStyle().opacity || '1') }}</small>
-                  </label>
-                </div>
+                @if (site()?.status !== 'published') {
+                  <div class="empty-inspector">
+                    <app-editor-icon name="globe" [size]="22" />
+                    <p>Publish this portfolio to get a public URL, then attach a custom domain.</p>
+                  </div>
+                } @else {
+                  <div class="domain-card">
+                    <h3>Public URL</h3>
+                    <div class="domain-url">
+                      <code>{{ platformPublicUrl() }}</code>
+                      <a class="live-link" [routerLink]="['/p', site()?.slug ?? '']" target="_blank" rel="noopener">
+                        <app-editor-icon name="external-link" [size]="13" />
+                        <span>/p/{{ site()?.slug }}</span>
+                      </a>
+                    </div>
+                  </div>
 
-                <div class="design-actions">
-                  <button type="button" class="btn btn--ghost btn--sm" (click)="resetSectionStyles()">
-                    Reset section styles
+                  @if (verifiedDomain(); as domain) {
+                    <div class="domain-card">
+                      <h3>Custom domain</h3>
+                      <div class="domain-bound">
+                        <span class="status-pill" [attr.data-status]="domain.status">{{ domain.status }}</span>
+                        <p class="domain-bound__host">{{ domain.hostname }}</p>
+                        <a class="live-link" [href]="liveDomainUrl(domain.hostname)" target="_blank" rel="noopener">
+                          <app-editor-icon name="external-link" [size]="13" />
+                          <span>{{ liveDomainUrl(domain.hostname) }}</span>
+                        </a>
+                      </div>
+                      <button
+                        type="button"
+                        class="icon-pill icon-pill--danger"
+                        [disabled]="domainBusy()"
+                        (click)="removeDomain(domain.id)"
+                        appTip="Detach domain"
+                      >
+                        <app-editor-icon name="trash" [size]="14" />
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="domain-card">
+                      <h3>Attach a custom domain</h3>
+                      <p class="domain-hint">
+                        Optional. If you own a domain, connect it and serve this portfolio at your own URL.
+                      </p>
+                      <form class="domain-form" (ngSubmit)="onDomainSubmit()">
+                        <label>
+                          <span>Hostname</span>
+                          <input [(ngModel)]="newDomainHostname" name="domainHostname" maxlength="253" placeholder="www.yourdomain.com" />
+                        </label>
+                        <label>
+                          <span>Verification</span>
+                          <select [(ngModel)]="newDomainMethod" name="domainMethod">
+                            <option value="TXT">TXT record</option>
+                            <option value="CNAME">CNAME record</option>
+                          </select>
+                        </label>
+                        <button type="submit" class="icon-pill icon-pill--primary" [disabled]="domainBusy() || !newDomainHostname">
+                          <app-editor-icon name="plus" [size]="15" />
+                        </button>
+                      </form>
+                    </div>
+                  }
+
+                  @for (domain of domains(); track domain.id) {
+                    @if (domain.status === 'pending') {
+                      <div class="domain-card">
+                        <h3>Pending - {{ domain.hostname }}</h3>
+                        <p class="domain-hint">Add the DNS record, then verify:</p>
+                        <code class="domain-challenge">
+                          {{ domain.challenge?.name }} => {{ domain.challenge?.type === 'TXT' ? domain.challenge?.value : domain.challenge?.target }}
+                        </code>
+                        <div class="domain-proof-row">
+                          <input
+                            class="domain-proof"
+                            [value]="domainProofs()[domain.id] ?? ''"
+                            (input)="setDomainProof(domain.id, $any($event.target).value)"
+                            placeholder="Record value"
+                          />
+                          <button
+                            type="button"
+                            class="icon-pill"
+                            [disabled]="domainBusy()"
+                            (click)="verifyDomain(domain.id, domainProofs()[domain.id])"
+                            appTip="Verify domain"
+                          >
+                            <app-editor-icon name="check" [size]="14" />
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  }
+                }
+              }
+
+              @case ('insights') {
+                <div class="props-head">
+                  <h2>Insights</h2>
+                  <button type="button" class="icon-pill" (click)="loadAnalytics()" appTip="Refresh">
+                    <app-editor-icon name="refresh" [size]="13" />
                   </button>
                 </div>
-              } @else {
-                <p class="muted">Select a section on the canvas to customize its design.</p>
-                <div class="design-hint">
-                  <p>💡 <strong>Tip:</strong> Click any section on the canvas preview to select it. Drag sections to reorder them. Click any text to edit it directly.</p>
-                </div>
-              }
-            </div>
-          }
-
-          @case ('theme') {
-            <div class="props-body">
-              <h2>Theme</h2>
-              <div class="field">
-                <span>Appearance</span>
-                <div class="segmented" role="group" aria-label="Theme mode">
-                  @for (mode of ['light', 'dark', 'system']; track mode) {
-                    <button type="button" [class.on]="document.theme.mode === mode" (click)="setThemeMode($any(mode))">
-                      {{ mode }}
-                    </button>
+                @if (analytics(); as stats) {
+                  <div class="stats">
+                    <div><strong>{{ stats.views }}</strong><span>Views</span></div>
+                    <div><strong>{{ stats.uniqueVisitors }}</strong><span>Visitors</span></div>
+                    <div><strong>{{ stats.contactClicks }}</strong><span>Contacts</span></div>
+                    <div><strong>{{ stats.outboundClicks }}</strong><span>Links</span></div>
+                  </div>
+                  <h3>Paths</h3>
+                  @for (row of stats.byPath; track row.path) {
+                    <p class="stat-row"><span>{{ row.path }}</span><strong>{{ row.views }}</strong></p>
                   }
-                </div>
-              </div>
-
-              <div class="field">
-                <span>Colors</span>
-                <label class="color-row">
-                  <span>Primary</span>
-                  <input type="color" [ngModel]="document.theme.tokens.primary" (ngModelChange)="setToken('primary', $event)" name="primary" />
-                </label>
-                <label class="color-row">
-                  <span>Accent</span>
-                  <input type="color" [ngModel]="document.theme.tokens.accent" (ngModelChange)="setToken('accent', $event)" name="accent" />
-                </label>
-                <label class="color-row">
-                  <span>Surface</span>
-                  <input type="color" [ngModel]="document.theme.tokens.surface" (ngModelChange)="setToken('surface', $event)" name="surface" />
-                </label>
-                <label class="color-row">
-                  <span>Text</span>
-                  <input type="color" [ngModel]="document.theme.tokens.text" (ngModelChange)="setToken('text', $event)" name="text" />
-                </label>
-              </div>
-
-              <label class="field">
-                <span>Heading font</span>
-                <select [ngModel]="document.theme.tokens.fontHeading" (ngModelChange)="setFont('fontHeading', $event)" name="fontHeading">
-                  @for (font of fontOptions; track font) { <option [value]="font">{{ font }}</option> }
-                </select>
-              </label>
-              <label class="field">
-                <span>Body font</span>
-                <select [ngModel]="document.theme.tokens.fontBody" (ngModelChange)="setFont('fontBody', $event)" name="fontBody">
-                  @for (font of fontOptions; track font) { <option [value]="font">{{ font }}</option> }
-                </select>
-              </label>
-
-              <div class="field">
-                <span>Corner radius</span>
-                <div class="segmented" role="group" aria-label="Corner radius">
-                  @for (radius of ['sm', 'md', 'lg']; track radius) {
-                    <button type="button" [class.on]="document.theme.tokens.radius === radius" (click)="setRadius($any(radius))">{{ radius }}</button>
+                  <h3>Locales</h3>
+                  @for (row of stats.byLocale; track row.locale) {
+                    <p class="stat-row"><span>{{ row.locale }}</span><strong>{{ row.views }}</strong></p>
                   }
-                </div>
-              </div>
-              <div class="field">
-                <span>Density</span>
-                <div class="segmented" role="group" aria-label="Density">
-                  @for (density of ['compact', 'comfortable']; track density) {
-                    <button type="button" [class.on]="document.theme.tokens.density === density" (click)="setDensity($any(density))">{{ density }}</button>
+                  <h3>Referrers</h3>
+                  @for (row of stats.byReferrer; track row.referrer) {
+                    <p class="stat-row"><span>{{ row.referrer }}</span><strong>{{ row.views }}</strong></p>
                   }
-                </div>
-              </div>
-            </div>
-          }
-
-          @case ('publish') {
-            <div class="props-body">
-              <h2>Publishing</h2>
-              <div class="status" [attr.data-status]="site()?.status">
-                Status: {{ site()?.status || 'draft' }} · revision {{ revision() }}
-              </div>
-              @if (site()?.status === 'published') {
-                <p class="muted">
-                  Live at <a [routerLink]="['/p', site()?.slug ?? '']" target="_blank" rel="noopener">/p/{{ site()?.slug }}</a>
-                </p>
-              }
-
-              <div class="publish-actions">
-                <button type="button" class="btn btn--sm" [disabled]="busy()" (click)="validateNow()">Check draft</button>
-                <button type="button" class="btn btn--sm" [disabled]="publishing()" (click)="publish()">Publish current draft</button>
-                @if (site()?.status === 'published') {
-                  <button type="button" class="btn btn--ghost btn--sm" [disabled]="publishing()" (click)="unpublish()">Unpublish</button>
-                }
-              </div>
-
-              @if (validation(); as result) {
-                <div class="issues">
-                  <h3>Validation</h3>
-                  @if (result.ok) {
-                    <p class="ok">Ready to publish.</p>
-                  }
-                  @for (issue of result.errors; track issue.code + issue.path) {
-                    <button type="button" class="issue issue--error" (click)="goToIssue(issue)">
-                      <strong>Error</strong>
-                      <span class="issue__target">{{ issueTargetLabel(issue) }}</span>
-                      <span>{{ issue.message }}</span>
-                    </button>
-                  }
-                  @for (issue of result.warnings; track issue.code + issue.path) {
-                    <button type="button" class="issue issue--warning" (click)="goToIssue(issue)">
-                      <strong>Warning</strong>
-                      <span class="issue__target">{{ issueTargetLabel(issue) }}</span>
-                      <span>{{ issue.message }}</span>
-                    </button>
-                  }
-                  @for (issue of result.suggestions; track issue.code + issue.path) {
-                    <p class="issue"><strong>Suggestion</strong> {{ issue.message }}</p>
-                  }
-                </div>
-              }
-
-              <div class="versions">
-                <h3>Versions</h3>
-                @if (!versions().length) {
-                  <p class="muted">No published versions yet.</p>
-                }
-                @for (version of versions(); track version.id) {
-                  <div class="version">
-                    <div>
-                      <strong>v{{ version.versionNumber }}</strong>
-                      @if (version.isLive) { <span class="live">live</span> }
-                      <small>{{ version.createdAt }}</small>
-                    </div>
-                    <button type="button" class="btn btn--ghost btn--sm" [disabled]="publishing()" (click)="rollback(version.id)">
-                      Roll back
-                    </button>
+                } @else {
+                  <div class="empty-inspector" appTip="No analytics data yet">
+                    <app-editor-icon name="bar-chart" [size]="22" />
                   </div>
                 }
-              </div>
-            </div>
-          }
-
-          @case ('insights') {
-            <div class="props-body">
-              <h2>Insights</h2>
-              @if (analytics(); as stats) {
-                <div class="stats">
-                  <div><strong>{{ stats.views }}</strong><span>Views</span></div>
-                  <div><strong>{{ stats.uniqueVisitors }}</strong><span>Visitors</span></div>
-                  <div><strong>{{ stats.contactClicks }}</strong><span>Contact clicks</span></div>
-                  <div><strong>{{ stats.outboundClicks }}</strong><span>Outbound clicks</span></div>
-                </div>
-                <h3>By path</h3>
-                @for (row of stats.byPath; track row.path) {
-                  <p class="stat-row"><span>{{ row.path }}</span><strong>{{ row.views }}</strong></p>
-                }
-                <h3>By language</h3>
-                @for (row of stats.byLocale; track row.locale) {
-                  <p class="stat-row"><span>{{ row.locale }}</span><strong>{{ row.views }}</strong></p>
-                }
-                <h3>Referrers</h3>
-                @for (row of stats.byReferrer; track row.referrer) {
-                  <p class="stat-row"><span>{{ row.referrer }}</span><strong>{{ row.views }}</strong></p>
-                }
-              } @else {
-                <p class="muted">No analytics yet.</p>
               }
-            </div>
-          }
-        }
-      </aside>
+            }
+          </div>
+        </aside>
+      }
     </div>
   } @else {
-    <p class="loading">This portfolio could not be loaded.</p>
+    <div class="studio-state">
+      <app-editor-icon name="alert-circle" [size]="20" />
+    </div>
   }
+
+  <!-- Strong Unified Bottom Studio Taskbar -->
+  @if (doc()) {
+    <app-editor-taskbar
+      [saveState]="saveState()"
+      [lastSavedAt]="lastSavedAt()"
+      [sectionCount]="sections().length"
+      [selectedSectionType]="selectedSection()?.type ?? null"
+      [selectedVariant]="selectedSection()?.variant ?? ''"
+      [errorCount]="errorCount()"
+      [warningCount]="warningCount()"
+      [revision]="revision()"
+      [zoom]="zoom()"
+      [showGuides]="showGuides()"
+      [hasCopiedStyle]="copiedStyle() !== null"
+      (zoomChange)="zoom.set($event)"
+      (toggleGuidesClick)="showGuides.update(v => !v)"
+      (shortcutsClick)="shortcutsVisible.set(true)"
+      (focusIssueClick)="focusFirstIssue()"
+      (retrySaveClick)="retrySave()"
+      (pasteStyleClick)="pasteStyleToSelected()"
+    />
+  }
+
+  <!-- Shared Right-Click & Left-Click Cursor Context Menu -->
+  <app-editor-context-menu
+    [visible]="ctxVisible()"
+    [x]="ctxX()"
+    [y]="ctxY()"
+    [context]="ctxScope()"
+    [sectionId]="ctxSectionId()"
+    [sectionIndex]="ctxSectionIndex()"
+    [totalSections]="sections().length"
+    [sectionHidden]="ctxSection()?.hidden === true"
+    [textAlign]="ctxSection()?.style?.textAlign"
+    [hasCopiedStyle]="copiedStyle() !== null"
+    [hasCopiedSection]="copiedSection() !== null"
+    (action)="onContextMenuAction($event)"
+    (close)="ctxVisible.set(false)"
+  />
+
+  <!-- Visual Section Picker Modal -->
+  <app-editor-section-picker
+    [visible]="sectionPickerVisible()"
+    [sectionTypes]="sectionTypes"
+    [components]="components()"
+    (pick)="onPickSectionType($event)"
+    (close)="sectionPickerVisible.set(false)"
+  />
+
+  <!-- AI Copy Assist Modal -->
+  <app-editor-ai-modal
+    [visible]="aiModalVisible()"
+    [busy]="aiBusy()"
+    [result]="aiResult()"
+    [locale]="activeLocale()"
+    (generate)="onGenerateAiCopy($event)"
+    (applyField)="onApplyAiField($event)"
+    (applyAll)="onApplyAllAi($event)"
+    (close)="aiModalVisible.set(false)"
+  />
+
+  <!-- Media Library Modal -->
+  <app-editor-media-modal
+    [visible]="mediaModalVisible()"
+    [assets]="mediaAssets()"
+    [busy]="mediaBusy()"
+    (addUrl)="onAddMediaUrl($event)"
+    (uploadFile)="onUploadMedia($event)"
+    (pickUrl)="onPickMediaUrl($event)"
+    (deleteAsset)="onDeleteMediaAsset($event)"
+    (close)="mediaModalVisible.set(false)"
+  />
+
+  <!-- Command Palette (Ctrl+K) -->
+  <app-editor-command-palette
+    [visible]="commandPaletteVisible()"
+    [sections]="sections()"
+    [commands]="commandItems()"
+    (selectSection)="select($event)"
+    (close)="commandPaletteVisible.set(false)"
+  />
+
+  <!-- Keyboard Shortcuts Modal -->
+  <app-editor-shortcuts-modal
+    [visible]="shortcutsVisible()"
+    (close)="shortcutsVisible.set(false)"
+  />
 </section>

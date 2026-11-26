@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -12,10 +13,13 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import type {
+  PortfolioAiGenerateInput,
+  PortfolioAiGenerateResult,
   PortfolioAnalyticsSummary,
   PortfolioComponentDefinition,
+  PortfolioDomainBinding,
   PortfolioDocument,
-  PortfolioNavItem,
+  PortfolioMediaAsset,
   PortfolioPropField,
   PortfolioSection,
   PortfolioSectionStyle,
@@ -27,9 +31,11 @@ import type {
   PortfolioVersionSummary,
 } from '../../core/models/portfolio.model';
 import { localizedValue, sectionLabel } from '../../core/models/portfolio.model';
+import { useImageUpload } from '../../core/hooks/use-image-upload';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
 import { PortfolioService } from '../../core/services/portfolio.service';
+import { environment } from '../../../environments/environment';
 import {
   PortfolioTourService,
   type TourStep,
@@ -38,7 +44,6 @@ import {
   PortfolioRendererComponent,
   type PortfolioDevice,
 } from '../../shared/portfolio-renderer/portfolio-renderer.component';
-import { PortfolioWizardStepperComponent } from './portfolio-wizard-stepper.component';
 import { PortfolioTourComponent } from '../../shared/portfolio-tour/portfolio-tour.component';
 import {
   codeByteLength,
@@ -46,8 +51,29 @@ import {
   splitCustomCodePage,
   usesExternalResources,
 } from '../../shared/portfolio-custom-code/custom-code-frame';
+import { EditorIconComponent } from './editor-icons.component';
+import {
+  EditorTooltipDirective,
+  EditorTooltipOverlayComponent,
+} from './editor-tooltip.directive';
+import { EditorToolbarComponent } from './editor-toolbar.component';
+import { EditorContextBarComponent } from './editor-context-bar.component';
+import { EditorLayersPanelComponent } from './editor-layers-panel.component';
+import { EditorTaskbarComponent } from './editor-taskbar.component';
+import {
+  EditorContextMenuComponent,
+  type ContextMenuScope,
+} from './editor-context-menu.component';
+import {
+  EditorAiModalComponent,
+  EditorCommandPaletteComponent,
+  EditorMediaModalComponent,
+  EditorSectionPickerComponent,
+  EditorShortcutsModalComponent,
+  type CommandItem,
+} from './editor-modals.component';
 
-type EditorTab = 'content' | 'design' | 'theme' | 'publish' | 'insights';
+type EditorTab = 'content' | 'design' | 'theme' | 'publish' | 'domain' | 'insights';
 type SaveState = 'saved' | 'dirty' | 'saving' | 'conflict' | 'error';
 type SeoIssueKey = 'title' | 'description' | 'imageUrl';
 
@@ -64,8 +90,94 @@ interface IssueIndex {
   seo: Map<string, PortfolioValidationIssue[]>;
 }
 
+interface ThemePalettePreset {
+  id: string;
+  name: string;
+  mode: PortfolioThemeMode;
+  primary: string;
+  accent: string;
+  surface: string;
+  text: string;
+}
+
+interface FontPairingPreset {
+  id: string;
+  name: string;
+  heading: string;
+  body: string;
+}
+
+type MediaTarget =
+  | { kind: 'prop'; key: string }
+  | { kind: 'row'; fieldKey: string; rowIndex: number; nestedKey: string }
+  | { kind: 'styleBg' };
+
 const AUTOSAVE_MS = 1_200;
 const HISTORY_LIMIT = 40;
+
+const THEME_PRESETS: ThemePalettePreset[] = [
+  {
+    id: 'swiss',
+    name: 'Swiss Paper',
+    mode: 'light',
+    primary: '#0f0f10',
+    accent: '#2f6fed',
+    surface: '#ffffff',
+    text: '#141416',
+  },
+  {
+    id: 'midnight',
+    name: 'Night Violet',
+    mode: 'dark',
+    primary: '#f5f7ff',
+    accent: '#8f7bff',
+    surface: '#110d1f',
+    text: '#f0eef6',
+  },
+  {
+    id: 'editorial',
+    name: 'Warm Editorial',
+    mode: 'light',
+    primary: '#1f1812',
+    accent: '#c25e00',
+    surface: '#faf5ec',
+    text: '#2c241d',
+  },
+  {
+    id: 'emerald',
+    name: 'Emerald Studio',
+    mode: 'dark',
+    primary: '#ecfdf5',
+    accent: '#10b981',
+    surface: '#0a1914',
+    text: '#d1fae5',
+  },
+  {
+    id: 'obsidian',
+    name: 'Amber Noir',
+    mode: 'dark',
+    primary: '#ffffff',
+    accent: '#f5a524',
+    surface: '#0d0d10',
+    text: '#e4e4e7',
+  },
+  {
+    id: 'cobalt',
+    name: 'Slate Clean',
+    mode: 'light',
+    primary: '#0f172a',
+    accent: '#0284c7',
+    surface: '#f8fafc',
+    text: '#1e293b',
+  },
+];
+
+const FONT_PAIRINGS: FontPairingPreset[] = [
+  { id: 'editorial', name: 'Fraunces + Manrope', heading: 'Fraunces', body: 'Manrope' },
+  { id: 'modern', name: 'Outfit + Manrope', heading: 'Outfit', body: 'Manrope' },
+  { id: 'classic', name: 'Georgia + System', heading: 'Georgia', body: 'System' },
+  { id: 'tech', name: 'Mono + Manrope', heading: 'Mono', body: 'Manrope' },
+];
 
 function fieldIssueKey(
   sectionId: string,
@@ -157,12 +269,43 @@ export function locateIssue(
   return {};
 }
 
+/** Custom domain verification methods supported by the portfolio API. */
+export type DomainVerificationMethod = 'TXT' | 'CNAME';
+
+export interface DomainChallengeInput {
+  type: 'TXT' | 'CNAME';
+  name: string;
+  value?: string;
+  target?: string;
+}
+
 /**
- * Dynamic Portfolios — draft editor.
+ * Build the DNS ownership challenge for a custom domain binding.
+ * TXT: publish `_xcron.<host> â†’ xcron-verify=<token>`.
+ * CNAME: point `<host>` at `<token>.cname.xcron.app`.
+ */
+export function domainChallengeFor(
+  hostname: string,
+  method: DomainVerificationMethod = 'TXT',
+  token = `xcron-${Math.random().toString(36).slice(2, 8)}`,
+): DomainChallengeInput {
+  if (method === 'CNAME') {
+    return { type: 'CNAME', name: hostname, target: `${token}.cname.xcron.app` };
+  }
+  return { type: 'TXT', name: `_xcron.${hostname}`, value: `xcron-verify=${token}` };
+}
+
+/** Live URL a verified custom domain serves the portfolio at (site root). */
+export function domainLiveUrl(hostname: string): string {
+  return `https://${hostname}/`;
+}
+
+/**
+ * Dynamic Portfolios â€” studio draft editor.
  *
- * Local, revision-aware editing with a debounced autosave. The API owns the
- * schema, the component registry owns the property fields, and this page only
- * edits the JSON document. Nothing here mutates shared app state.
+ * Unified toolbar, contextual formatting bar, collapsible icon layers,
+ * icon-only inspector, bottom status/zoom taskbar, and shared right/left
+ * cursor context menus.
  */
 @Component({
   selector: 'app-portfolio-editor',
@@ -170,14 +313,27 @@ export function locateIssue(
     FormsModule,
     RouterLink,
     PortfolioRendererComponent,
-    PortfolioWizardStepperComponent,
     PortfolioTourComponent,
+    EditorIconComponent,
+    EditorTooltipDirective,
+    EditorTooltipOverlayComponent,
+    EditorToolbarComponent,
+    EditorContextBarComponent,
+    EditorLayersPanelComponent,
+    EditorTaskbarComponent,
+    EditorContextMenuComponent,
+    EditorSectionPickerComponent,
+    EditorAiModalComponent,
+    EditorMediaModalComponent,
+    EditorCommandPaletteComponent,
+    EditorShortcutsModalComponent,
   ],
   templateUrl: './portfolio-editor.page.html',
   styleUrl: './portfolio-editor.page.scss',
 })
 export class PortfolioEditorPage implements OnInit, OnDestroy {
   private readonly portfolio = inject(PortfolioService);
+  private readonly imageUpload = useImageUpload();
   private readonly route = inject(ActivatedRoute);
   private readonly seo = inject(SeoService);
   private readonly toast = inject(ToastService);
@@ -188,8 +344,8 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
   readonly components = signal<PortfolioComponentDefinition[]>([]);
   readonly versions = signal<PortfolioVersionSummary[]>([]);
   readonly analytics = signal<PortfolioAnalyticsSummary | null>(null);
+  readonly domains = signal<PortfolioDomainBinding[]>([]);
 
-  /** Guided tour for new editors. Auto-starts on first entry. */
   readonly isTourSeen = this.tourService.isSeen;
   readonly isTourActive = this.tourService.isActive;
 
@@ -206,13 +362,43 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
   readonly publishing = signal(false);
   readonly validation = signal<PortfolioValidationResult | null>(null);
   readonly showSiteSettings = signal(false);
+  readonly domainBusy = signal(false);
   readonly undoDepth = signal(0);
   readonly redoDepth = signal(0);
   readonly previewMode = signal<'light' | 'dark' | ''>('');
-  /** Which code field the hidden file picker will fill. */
   readonly codeImportAccept = signal('.html,.htm,.css,.js,.mjs');
-  /** Human-readable result of the last code import/split. */
   readonly codeNotice = signal('');
+
+  // â”€â”€ Studio UI State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  readonly layersCollapsed = signal(false);
+  readonly inspectorCollapsed = signal(false);
+  readonly previewOnly = signal(false);
+  readonly showGuides = signal(true);
+  readonly zoom = signal(100);
+
+  // â”€â”€ Clipboards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  readonly copiedStyle = signal<PortfolioSectionStyle | null>(null);
+  readonly copiedSection = signal<PortfolioSection | null>(null);
+
+  // â”€â”€ Context Menu State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  readonly ctxVisible = signal(false);
+  readonly ctxX = signal(0);
+  readonly ctxY = signal(0);
+  readonly ctxScope = signal<ContextMenuScope>('canvas');
+  readonly ctxSectionId = signal<string | null>(null);
+
+  // â”€â”€ Modals & Overlays â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  readonly sectionPickerVisible = signal(false);
+  readonly sectionInsertIndex = signal<number | null>(null);
+  readonly commandPaletteVisible = signal(false);
+  readonly shortcutsVisible = signal(false);
+  readonly aiModalVisible = signal(false);
+  readonly aiBusy = signal(false);
+  readonly aiResult = signal<PortfolioAiGenerateResult | null>(null);
+  readonly mediaModalVisible = signal(false);
+  readonly mediaBusy = signal(false);
+  readonly mediaAssets = signal<PortfolioMediaAsset[]>([]);
+  private mediaTarget: MediaTarget | null = null;
 
   @ViewChild('codeFile') private codeFileInput?: ElementRef<HTMLInputElement>;
   private lastCodeEdit = { key: '', at: 0 };
@@ -220,6 +406,8 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
 
   readonly sectionTypes = sectionLabels;
   readonly sectionLabel = sectionLabel;
+  readonly themePresets = THEME_PRESETS;
+  readonly fontPairings = FONT_PAIRINGS;
   readonly fontOptions = [
     'Outfit',
     'Manrope',
@@ -238,16 +426,28 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
   ];
 
   siteForm = { name: '', slug: '', defaultLocale: 'en-IN', locales: 'en-IN' };
+  newDomainHostname = '';
+  newDomainMethod: DomainVerificationMethod = 'TXT';
+  readonly domainProofs = signal<Record<string, string>>({});
 
   readonly sections = computed(() => this.doc()?.pages[0]?.sections ?? []);
   readonly navItems = computed(() => this.doc()?.navigation ?? []);
   readonly selectedSection = computed(
     () => this.sections().find((section) => section.id === this.selectedId()) ?? null,
   );
+  readonly selectedSectionIndex = computed(() => {
+    const id = this.selectedId();
+    return id ? this.sections().findIndex((s) => s.id === id) : -1;
+  });
   readonly selectedDefinition = computed(() => {
     const type = this.selectedSection()?.type;
     return this.components().find((component) => component.type === type) ?? null;
   });
+  readonly anchorTargets = computed(() =>
+    this.sections()
+      .filter((s) => !s.hidden)
+      .map((s) => ({ id: s.id, label: sectionLabel(s.type) })),
+  );
   readonly defaultLocale = computed(
     () => this.doc()?.site.defaultLocale ?? 'en-IN',
   );
@@ -264,8 +464,133 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
       (this.validation()?.warnings.length ?? 0) +
       (this.validation()?.suggestions.length ?? 0),
   );
+  readonly domainTabAvailable = computed(
+    () => this.site()?.status === 'published' || this.domains().length > 0,
+  );
+  readonly verifiedDomain = computed(
+    () => this.domains().find((domain) => domain.status === 'verified') ?? null,
+  );
+  readonly platformPublicUrl = computed(() => {
+    const site = this.site();
+    if (!site) return '';
+    const base = environment.siteUrl.replace(/\/$/, '');
+    return `${base}/p/${site.slug}`;
+  });
 
-  /** Per-section issue counts used by the section list and the canvas badges. */
+  readonly ctxSection = computed(() => {
+    const id = this.ctxSectionId();
+    return id ? this.sections().find((s) => s.id === id) ?? null : null;
+  });
+  readonly ctxSectionIndex = computed(() => {
+    const id = this.ctxSectionId();
+    return id ? this.sections().findIndex((s) => s.id === id) : -1;
+  });
+
+  readonly commandItems = computed<CommandItem[]>(() => [
+    {
+      id: 'add-section',
+      label: 'Insert new section',
+      kbd: 'A',
+      icon: 'plus',
+      run: () => this.openSectionPicker(),
+    },
+    {
+      id: 'ai-assist',
+      label: 'Open AI copy assist',
+      icon: 'sparkles',
+      run: () => this.aiModalVisible.set(true),
+    },
+    {
+      id: 'undo',
+      label: 'Undo last change',
+      kbd: 'Ctrl+Z',
+      icon: 'undo',
+      run: () => this.undo(),
+    },
+    {
+      id: 'redo',
+      label: 'Redo change',
+      kbd: 'Ctrl+Y',
+      icon: 'redo',
+      run: () => this.redo(),
+    },
+    {
+      id: 'preview',
+      label: this.previewOnly() ? 'Exit preview mode' : 'Enter live preview mode',
+      kbd: 'P',
+      icon: 'eye',
+      run: () => this.previewOnly.update((v) => !v),
+    },
+    {
+      id: 'device-desktop',
+      label: 'Viewport: Desktop',
+      kbd: '1',
+      icon: 'monitor',
+      run: () => this.device.set('desktop'),
+    },
+    {
+      id: 'device-tablet',
+      label: 'Viewport: Tablet',
+      kbd: '2',
+      icon: 'tablet',
+      run: () => this.device.set('tablet'),
+    },
+    {
+      id: 'device-mobile',
+      label: 'Viewport: Mobile',
+      kbd: '3',
+      icon: 'smartphone',
+      run: () => this.device.set('mobile'),
+    },
+    {
+      id: 'theme-light',
+      label: 'Preview light mode',
+      icon: 'sun',
+      run: () => this.previewMode.set('light'),
+    },
+    {
+      id: 'theme-dark',
+      label: 'Preview dark mode',
+      icon: 'moon',
+      run: () => this.previewMode.set('dark'),
+    },
+    {
+      id: 'validate',
+      label: 'Validate draft',
+      kbd: 'Ctrl+Shift+V',
+      icon: 'check-circle',
+      run: () => void this.validateNow(),
+    },
+    {
+      id: 'publish',
+      label: 'Publish current draft',
+      icon: 'rocket',
+      run: () => void this.publish(),
+    },
+    {
+      id: 'domain',
+      label: 'Open domain settings',
+      icon: 'globe',
+      run: () => {
+        this.inspectorCollapsed.set(false);
+        this.openTab('domain');
+      },
+    },
+    {
+      id: 'import-code',
+      label: 'Import HTML / CSS / JS file',
+      icon: 'code',
+      run: () => this.importCodeFromToolbar(),
+    },
+    {
+      id: 'settings',
+      label: 'Toggle site settings',
+      icon: 'settings',
+      run: () => this.showSiteSettings.update((v) => !v),
+    },
+  ]);
+
+  /** Per-section issue counts used by the section list and canvas badges. */
   readonly sectionIssues = computed<Record<string, { errors: number; warnings: number }>>(() => {
     const counts: Record<string, { errors: number; warnings: number }> = {};
     const validation = this.validation();
@@ -338,11 +663,11 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
         locales: draft.site.locales.join(', '),
       };
       await this.loadVersions();
+      await this.loadDomains();
     } catch (error) {
       this.saveError.set(this.errorMessage(error, 'Could not load this portfolio.'));
     } finally {
       this.loading.set(false);
-      // Show the guided walkthrough the first time this user opens the editor.
       if (!this.tourService.isSeen()) {
         this.tourService.start();
       }
@@ -352,6 +677,183 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.saveTimer != null) clearTimeout(this.saveTimer);
     if (this.saveState() === 'dirty') void this.save();
+  }
+
+  // â”€â”€ Keyboard Shortcuts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  @HostListener('document:keydown', ['$event'])
+  onGlobalKeydown(event: KeyboardEvent): void {
+    if (this.loading() || !this.doc()) return;
+    const mod = event.ctrlKey || event.metaKey;
+    const target = event.target as HTMLElement | null;
+    const inTextInput = Boolean(
+      target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable),
+    );
+
+    if (mod && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      this.commandPaletteVisible.update((v) => !v);
+      return;
+    }
+
+    if (mod && event.key.toLowerCase() === 'b') {
+      event.preventDefault();
+      this.layersCollapsed.update((v) => !v);
+      return;
+    }
+
+    if (mod && event.key.toLowerCase() === 'i') {
+      event.preventDefault();
+      this.inspectorCollapsed.update((v) => !v);
+      return;
+    }
+
+    if (mod && event.shiftKey && event.key.toLowerCase() === 'v') {
+      event.preventDefault();
+      void this.validateNow();
+      return;
+    }
+
+    if (mod && event.key === '0') {
+      event.preventDefault();
+      this.zoom.set(100);
+      return;
+    }
+
+    if (mod && (event.key === '=' || event.key === '+')) {
+      event.preventDefault();
+      this.zoom.update((z) => Math.min(125, z + 15));
+      return;
+    }
+
+    if (mod && event.key === '-') {
+      event.preventDefault();
+      this.zoom.update((z) => Math.max(50, z - 15));
+      return;
+    }
+
+    if (inTextInput) return;
+
+    if (event.key === 'Escape') {
+      if (this.ctxVisible()) {
+        this.ctxVisible.set(false);
+        return;
+      }
+      if (this.previewOnly()) {
+        this.previewOnly.set(false);
+        return;
+      }
+    }
+
+    if (mod && event.altKey && event.key.toLowerCase() === 'c') {
+      event.preventDefault();
+      this.copySelectedStyle();
+      return;
+    }
+
+    if (mod && event.altKey && event.key.toLowerCase() === 'v') {
+      event.preventDefault();
+      this.pasteStyleToSelected();
+      return;
+    }
+
+    if (mod && !event.shiftKey && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      this.undo();
+      return;
+    }
+
+    if ((mod && event.key.toLowerCase() === 'y') || (mod && event.shiftKey && event.key.toLowerCase() === 'z')) {
+      event.preventDefault();
+      this.redo();
+      return;
+    }
+
+    if (mod && event.key.toLowerCase() === 'd') {
+      const id = this.selectedId();
+      if (id) {
+        event.preventDefault();
+        this.duplicateSection(id);
+      }
+      return;
+    }
+
+    if (mod && event.key.toLowerCase() === 'c') {
+      const id = this.selectedId();
+      if (id) {
+        event.preventDefault();
+        this.copySection(id);
+      }
+      return;
+    }
+
+    if (mod && event.key.toLowerCase() === 'v') {
+      if (this.copiedSection()) {
+        event.preventDefault();
+        this.pasteSection(this.selectedId() ?? undefined);
+      }
+      return;
+    }
+
+    if (event.altKey && event.key === 'ArrowUp') {
+      const id = this.selectedId();
+      if (id) {
+        event.preventDefault();
+        this.moveSection(id, -1);
+      }
+      return;
+    }
+
+    if (event.altKey && event.key === 'ArrowDown') {
+      const id = this.selectedId();
+      if (id) {
+        event.preventDefault();
+        this.moveSection(id, 1);
+      }
+      return;
+    }
+
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      const id = this.selectedId();
+      if (id) {
+        event.preventDefault();
+        this.removeSection(id);
+      }
+      return;
+    }
+
+    switch (event.key.toLowerCase()) {
+      case '1':
+        this.device.set('desktop');
+        break;
+      case '2':
+        this.device.set('tablet');
+        break;
+      case '3':
+        this.device.set('mobile');
+        break;
+      case 'a':
+        event.preventDefault();
+        this.openSectionPicker();
+        break;
+      case 'd':
+        this.inspectorCollapsed.set(false);
+        this.openTab('design');
+        break;
+      case 'h':
+        if (this.selectedId()) this.toggleHidden(this.selectedId()!);
+        break;
+      case 'p':
+        this.previewOnly.update((v) => !v);
+        break;
+      case '?':
+        this.shortcutsVisible.update((v) => !v);
+        break;
+    }
   }
 
   private applyDraft(document: PortfolioDocument, revision: number): void {
@@ -368,7 +870,7 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     this.lastSavedAt.set(null);
   }
 
-  // ── Autosave / history ──────────────────────────────────────────────────
+  // â”€â”€ Autosave / history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private clone(document: PortfolioDocument): PortfolioDocument {
     return JSON.parse(JSON.stringify(document)) as PortfolioDocument;
@@ -446,8 +948,6 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
       } else {
         this.saveState.set('error');
         this.saveError.set(this.errorMessage(error, 'Autosave failed. Try again.'));
-        // A rejected save usually means bad document content. Fetch the
-        // structured issues so the offending field/section can be highlighted.
         void this.runValidation(true);
       }
     }
@@ -503,7 +1003,7 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     this.scheduleSave();
   }
 
-  // ── Sections ────────────────────────────────────────────────────────────
+  // â”€â”€ Sections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   select(sectionId: string): void {
     this.selectedId.set(sectionId);
@@ -521,8 +1021,22 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     return this.selectedSection()?.props ?? {};
   }
 
+  openSectionPicker(insertIndex: number | null = null): void {
+    this.sectionInsertIndex.set(insertIndex);
+    this.sectionPickerVisible.set(true);
+  }
+
+  onPickSectionType(type: PortfolioSectionType): void {
+    this.addType.set(type);
+    this.addSectionAt(type, this.sectionInsertIndex());
+    this.sectionInsertIndex.set(null);
+  }
+
   addSection(): void {
-    const type = this.addType();
+    this.addSectionAt(this.addType(), null);
+  }
+
+  addSectionAt(type: PortfolioSectionType, index: number | null): void {
     const definition = this.components().find((component) => component.type === type);
     if (!definition) return;
     const id = `${type}-${Date.now().toString(36)}`;
@@ -537,7 +1051,11 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     this.mutate((document) => {
       const page = document.pages[0];
       if (!page) return;
-      page.sections.push(section);
+      if (index != null && index >= 0 && index <= page.sections.length) {
+        page.sections.splice(index, 0, section);
+      } else {
+        page.sections.push(section);
+      }
       if (type !== 'hero' && type !== 'custom-code') {
         document.navigation.push({
           id: `nav-${id}`,
@@ -584,8 +1102,41 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     this.selectedId.set(id);
   }
 
+  copySection(sectionId: string): void {
+    const source = this.sections().find((s) => s.id === sectionId);
+    if (!source) return;
+    this.copiedSection.set(JSON.parse(JSON.stringify(source)) as PortfolioSection);
+    this.toast.success(`${sectionLabel(source.type)} copied.`);
+  }
+
+  pasteSection(afterSectionId?: string): void {
+    const source = this.copiedSection();
+    if (!source) return;
+    const id = `${source.type}-${Date.now().toString(36)}`;
+    this.mutate((document) => {
+      const page = document.pages[0];
+      if (!page) return;
+      const copy = this.cloneSection({ ...source, id }, document);
+      const idx = afterSectionId
+        ? page.sections.findIndex((s) => s.id === afterSectionId)
+        : -1;
+      if (idx >= 0) {
+        page.sections.splice(idx + 1, 0, copy);
+      } else {
+        page.sections.push(copy);
+      }
+      if (source.type !== 'hero' && source.type !== 'custom-code') {
+        document.navigation.push({
+          id: `nav-${id}`,
+          label: { [this.activeLocale()]: sectionLabel(source.type) },
+          target: `#${id}`,
+        });
+      }
+    });
+    this.selectedId.set(id);
+  }
+
   private cloneSection(section: PortfolioSection, document: PortfolioDocument): PortfolioSection {
-    // `mutate` already cloned the document; JSON round-trip isolates this copy.
     void document;
     return JSON.parse(JSON.stringify(section)) as PortfolioSection;
   }
@@ -616,7 +1167,326 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     });
   }
 
-  // ── Property editing ────────────────────────────────────────────────────
+  // â”€â”€ Style Clipboard & Presets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  copySelectedStyle(sectionId?: string): void {
+    const target = sectionId
+      ? this.sections().find((s) => s.id === sectionId)
+      : this.selectedSection();
+    if (!target) return;
+    this.copiedStyle.set({ ...(target.style ?? {}) });
+    this.toast.success('Section style copied.');
+  }
+
+  pasteStyleToSelected(sectionId?: string): void {
+    const clipboard = this.copiedStyle();
+    const id = sectionId ?? this.selectedId();
+    if (!clipboard || !id) return;
+    this.mutate((document) => {
+      const section = this.findSection(document, id);
+      if (!section) return;
+      section.style = Object.keys(clipboard).length ? { ...clipboard } : undefined;
+    });
+    this.toast.success('Style applied.');
+  }
+
+  applySurfacePreset(preset: 'default' | 'soft' | 'tint' | 'dark'): void {
+    const id = this.selectedId();
+    if (!id) return;
+    this.mutate((document) => {
+      const section = this.findSection(document, id);
+      if (!section) return;
+      const next: PortfolioSectionStyle = { ...(section.style ?? {}) };
+      const tokens = document.theme.tokens;
+      if (preset === 'default') {
+        delete next.backgroundColor;
+        delete next.textColor;
+      } else if (preset === 'soft') {
+        next.backgroundColor = document.theme.mode === 'dark' ? '#1b162b' : '#f4f4f8';
+        delete next.textColor;
+      } else if (preset === 'tint') {
+        next.backgroundColor = tokens.accent;
+        next.textColor = '#ffffff';
+      } else {
+        next.backgroundColor = '#111116';
+        next.textColor = '#f5f5f7';
+      }
+      section.style = Object.keys(next).length ? next : undefined;
+    });
+  }
+
+  setCtaLink(value: string): void {
+    const sec = this.selectedSection();
+    if (!sec) return;
+    const key = sec.type === 'cta' ? 'buttonHref' : 'primaryCtaHref';
+    this.setProp(key, value);
+  }
+
+  // â”€â”€ Context Menu Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  openSectionContextMenu(event: { sectionId: string; x: number; y: number }): void {
+    this.select(event.sectionId);
+    this.ctxScope.set('section');
+    this.ctxSectionId.set(event.sectionId);
+    this.ctxX.set(event.x);
+    this.ctxY.set(event.y);
+    this.ctxVisible.set(true);
+  }
+
+  openCanvasContextMenu(event: { x: number; y: number }): void {
+    this.ctxScope.set('canvas');
+    this.ctxSectionId.set(null);
+    this.ctxX.set(event.x);
+    this.ctxY.set(event.y);
+    this.ctxVisible.set(true);
+  }
+
+  openNavContextMenu(event: { x: number; y: number }): void {
+    this.ctxScope.set('nav');
+    this.ctxSectionId.set(null);
+    this.ctxX.set(event.x);
+    this.ctxY.set(event.y);
+    this.ctxVisible.set(true);
+  }
+
+  openContextMenuFromButton(event: MouseEvent): void {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const id = this.selectedId();
+    if (id) {
+      this.openSectionContextMenu({ sectionId: id, x: rect.left, y: rect.bottom + 6 });
+    } else {
+      this.openCanvasContextMenu({ x: rect.left, y: rect.bottom + 6 });
+    }
+  }
+
+  onContextMenuAction(event: { action: string; sectionId?: string }): void {
+    const id = event.sectionId ?? this.selectedId();
+    switch (event.action) {
+      case 'edit-content':
+        if (id) this.select(id);
+        this.inspectorCollapsed.set(false);
+        this.openTab('content');
+        break;
+      case 'edit-design':
+        if (id) this.select(id);
+        this.inspectorCollapsed.set(false);
+        this.openTab('design');
+        break;
+      case 'align-left':
+        if (id) this.select(id);
+        this.setSectionStyle('textAlign', 'left');
+        break;
+      case 'align-center':
+        if (id) this.select(id);
+        this.setSectionStyle('textAlign', 'center');
+        break;
+      case 'align-right':
+        if (id) this.select(id);
+        this.setSectionStyle('textAlign', 'right');
+        break;
+      case 'ai-assist':
+        this.aiModalVisible.set(true);
+        break;
+      case 'duplicate':
+        if (id) this.duplicateSection(id);
+        break;
+      case 'copy-section':
+        if (id) this.copySection(id);
+        break;
+      case 'paste-section':
+        this.pasteSection(id ?? undefined);
+        break;
+      case 'copy-style':
+        this.copySelectedStyle(id ?? undefined);
+        break;
+      case 'paste-style':
+        this.pasteStyleToSelected(id ?? undefined);
+        break;
+      case 'reset-style':
+        if (id) this.select(id);
+        this.resetSectionStyles();
+        break;
+      case 'move-up':
+        if (id) this.moveSection(id, -1);
+        break;
+      case 'move-down':
+        if (id) this.moveSection(id, 1);
+        break;
+      case 'toggle-hidden':
+        if (id) this.toggleHidden(id);
+        break;
+      case 'add-section-above': {
+        const idx = id ? this.sections().findIndex((s) => s.id === id) : 0;
+        this.openSectionPicker(Math.max(0, idx));
+        break;
+      }
+      case 'add-section-below': {
+        const idx = id ? this.sections().findIndex((s) => s.id === id) : -1;
+        this.openSectionPicker(idx >= 0 ? idx + 1 : null);
+        break;
+      }
+      case 'delete':
+        if (id) this.removeSection(id);
+        break;
+      case 'add-section':
+        this.openSectionPicker(null);
+        break;
+      case 'zoom-100':
+        this.zoom.set(100);
+        break;
+      case 'toggle-guides':
+        this.showGuides.update((v) => !v);
+        break;
+      case 'toggle-sidebar':
+        this.layersCollapsed.update((v) => !v);
+        break;
+      case 'toggle-preview':
+        this.previewOnly.update((v) => !v);
+        break;
+      case 'validate':
+        void this.validateNow();
+        break;
+      case 'add-nav':
+        this.addNavItem();
+        break;
+      case 'sync-nav':
+        this.syncNavFromSections();
+        break;
+    }
+  }
+
+  // â”€â”€ AI Copy Assist â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  async onGenerateAiCopy(input: PortfolioAiGenerateInput): Promise<void> {
+    this.aiBusy.set(true);
+    try {
+      this.aiResult.set(await this.portfolio.generateCopy(input));
+    } catch (error) {
+      this.toast.error(this.errorMessage(error, 'Could not generate copy.'));
+    } finally {
+      this.aiBusy.set(false);
+    }
+  }
+
+  onApplyAiField(event: {
+    target: 'headline' | 'subheadline' | 'bio' | 'skills';
+    value?: string;
+    values?: string[];
+  }): void {
+    const locale = this.activeLocale();
+    this.mutate((document) => {
+      const sections = document.pages[0]?.sections ?? [];
+      if (event.target === 'headline' || event.target === 'subheadline') {
+        const hero = sections.find((s) => s.type === 'hero');
+        if (!hero || event.value == null) return;
+        const prev = (hero.props[event.target] as Record<string, string> | undefined) ?? {};
+        hero.props[event.target] = { ...prev, [locale]: event.value };
+      } else if (event.target === 'bio') {
+        const about = sections.find((s) => s.type === 'about');
+        if (!about || event.value == null) return;
+        const prev = (about.props['body'] as Record<string, string> | undefined) ?? {};
+        about.props['body'] = { ...prev, [locale]: event.value };
+      } else if (event.target === 'skills') {
+        const skills = sections.find((s) => s.type === 'skills');
+        if (!skills || !event.values?.length) return;
+        skills.props['items'] = [...event.values];
+      }
+    });
+    this.toast.success('Proposal applied to draft.');
+  }
+
+  onApplyAllAi(result: PortfolioAiGenerateResult): void {
+    const locale = this.activeLocale();
+    this.mutate((document) => {
+      const sections = document.pages[0]?.sections ?? [];
+      const hero = sections.find((s) => s.type === 'hero');
+      if (hero) {
+        const hPrev = (hero.props['headline'] as Record<string, string> | undefined) ?? {};
+        const sPrev = (hero.props['subheadline'] as Record<string, string> | undefined) ?? {};
+        hero.props['headline'] = { ...hPrev, [locale]: result.headline };
+        hero.props['subheadline'] = { ...sPrev, [locale]: result.subheadline };
+      }
+      const about = sections.find((s) => s.type === 'about');
+      if (about) {
+        const bPrev = (about.props['body'] as Record<string, string> | undefined) ?? {};
+        about.props['body'] = { ...bPrev, [locale]: result.bio };
+      }
+      const skills = sections.find((s) => s.type === 'skills');
+      if (skills && result.suggestedSkills.length) {
+        skills.props['items'] = [...result.suggestedSkills];
+      }
+    });
+    this.aiModalVisible.set(false);
+    this.toast.success('AI copy proposals applied.');
+  }
+
+  // â”€â”€ Media Library â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  async openMediaPicker(target: MediaTarget): Promise<void> {
+    this.mediaTarget = target;
+    this.mediaModalVisible.set(true);
+    this.mediaBusy.set(true);
+    try {
+      this.mediaAssets.set(await this.portfolio.listMedia());
+    } catch {
+      this.mediaAssets.set([]);
+    } finally {
+      this.mediaBusy.set(false);
+    }
+  }
+
+  async onUploadMedia(file: File): Promise<void> {
+    this.mediaBusy.set(true);
+    try {
+      const uploaded = await this.imageUpload.upload(file, 'portfolio');
+      if (!uploaded) {
+        this.toast.error(this.imageUpload.error() ?? 'Could not upload image.');
+        return;
+      }
+      const media = await this.portfolio.addMedia(uploaded.url, uploaded.id);
+      this.mediaAssets.update((list) => [media, ...list]);
+      this.toast.success('Image uploaded and added to the media library.');
+    } finally {
+      this.mediaBusy.set(false);
+    }
+  }
+
+  async onAddMediaUrl(url: string): Promise<void> {
+    this.mediaBusy.set(true);
+    try {
+      const asset = await this.portfolio.addMedia(url);
+      this.mediaAssets.update((list) => [asset, ...list]);
+      this.toast.success('Saved to media library.');
+    } catch (error) {
+      this.toast.error(this.errorMessage(error, 'Enter a valid http(s) image URL.'));
+    } finally {
+      this.mediaBusy.set(false);
+    }
+  }
+
+  async onDeleteMediaAsset(id: string): Promise<void> {
+    try {
+      await this.portfolio.deleteMedia(id);
+      this.mediaAssets.update((list) => list.filter((a) => a.id !== id));
+    } catch {
+      this.toast.error('Could not delete media item.');
+    }
+  }
+
+  onPickMediaUrl(url: string): void {
+    const target = this.mediaTarget;
+    if (!target) return;
+    if (target.kind === 'prop') {
+      this.setProp(target.key, url);
+    } else if (target.kind === 'row') {
+      this.setRowText(target.fieldKey, target.rowIndex, target.nestedKey, url);
+    } else if (target.kind === 'styleBg') {
+      this.setSectionStyle('backgroundImage', url);
+    }
+    this.mediaTarget = null;
+  }
+
+  // â”€â”€ Property editing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   localized(value: unknown): string {
     return localizedValue(value, this.activeLocale(), this.defaultLocale());
@@ -644,10 +1514,6 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Code typing is coalesced into one undo entry per burst, so a 200 KB block
-   * does not push a full document snapshot on every keystroke.
-   */
   setCode(key: string, value: string): void {
     const now = Date.now();
     const coalesce = this.lastCodeEdit.key === key && now - this.lastCodeEdit.at < 900;
@@ -666,7 +1532,7 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     });
   }
 
-  // ── Custom code ─────────────────────────────────────────────────────────
+  // â”€â”€ Custom code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   codeValue(value: unknown): string {
     return typeof value === 'string' ? value : '';
@@ -680,7 +1546,6 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     return codeLineCount(value);
   }
 
-  /** True when the HTML pane holds a whole page that can be split into panes. */
   canSplitPage(section: PortfolioSection): boolean {
     return /<html[\s>]|<body[\s>]|<head[\s>]|<style[\s>]|<script[\s>]/i.test(
       this.codeValue(section.props['html']),
@@ -699,14 +1564,9 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     const parts = ['HTML'];
     if (split.css) parts.push('CSS');
     if (split.js) parts.push('JS');
-    this.codeNotice.set(`Split into ${parts.join(' + ')}.`);
+    this.codeNotice.set(`${parts.join(' + ')}`);
   }
 
-  /**
-   * Toolbar entry point: import a file as the whole portfolio. Existing sections
-   * are replaced (after confirmation) so the imported page becomes the entire
-   * site instead of being appended under the template.
-   */
   importCodeFromToolbar(): void {
     const definition = this.components().find((component) => component.type === 'custom-code');
     if (!definition) {
@@ -729,6 +1589,7 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     });
     this.addType.set('custom-code');
     this.addSection();
+    this.inspectorCollapsed.set(false);
     this.openTab('content');
     this.triggerCodeImport('html');
   }
@@ -744,7 +1605,6 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     this.codeImportSectionId = this.selectedId();
     const input = this.codeFileInput?.nativeElement;
     if (!input) return;
-    // Set the attribute directly so the picker filter is correct immediately.
     input.accept = accept;
     input.click();
   }
@@ -791,8 +1651,8 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     }
 
     const external = usesExternalResources(html, css, js);
-    if (external) notes.push('external fonts, styles or scripts enabled');
-    this.codeNotice.set(notes.join(' · '));
+    if (external) notes.push('external enabled');
+    this.codeNotice.set(notes.join(' Â· '));
     if (!html && !css && !js) return;
     this.mutate((document) => {
       const section = this.findSection(document, sectionId);
@@ -800,12 +1660,9 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
       if (html) section.props['html'] = html;
       if (css) section.props['css'] = css;
       if (js) section.props['js'] = js;
-      // Give an unnamed section a usable frame title (required by the schema).
       if (titleFromFile && !this.codeValue(section.props['title']).trim()) {
         section.props['title'] = titleFromFile;
       }
-      // Imported pages usually pull a web font or library; without this the
-      // sandboxed frame's CSP silently blocks them.
       if (external) section.props['allowExternal'] = true;
     });
     this.toast.success(this.codeNotice() || 'Code imported.');
@@ -829,6 +1686,21 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
       const section = this.findSection(document, id);
       if (section) update(section);
     }, options);
+  }
+
+  fieldTooltip(field: PortfolioPropField): string {
+    if (field.kind === 'image') return 'Accepts http(s) image URLs';
+    if (field.kind === 'url') return 'Accepts https:, http:, mailto:, tel: or #anchor';
+    if (field.kind === 'number') {
+      return `Range ${field.min ?? 0}â€“${field.max ?? 'âˆž'}`;
+    }
+    if (field.kind === 'code') {
+      return 'Sandboxed opaque origin; no access to app cookies or DOM';
+    }
+    if (field.kind === 'localizedText' || field.kind === 'localizedTextarea') {
+      return `Localized for ${this.activeLocale()}`;
+    }
+    return '';
   }
 
   emptyValue(field: PortfolioPropField): unknown {
@@ -918,7 +1790,8 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
       if (!Array.isArray(rows)) return;
       const row = rows[index];
       if (!row || typeof row !== 'object') return;
-      const previous = row[key] && typeof row[key] === 'object' ? (row[key] as Record<string, string>) : {};
+      const previous =
+        row[key] && typeof row[key] === 'object' ? (row[key] as Record<string, string>) : {};
       (row as Record<string, unknown>)[key] = { ...previous, [this.activeLocale()]: value };
     });
   }
@@ -981,7 +1854,24 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     return sectionLabel(type);
   }
 
-  // ── Theme ───────────────────────────────────────────────────────────────
+  // â”€â”€ Theme & Brand Kit Presets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  applyThemePreset(preset: ThemePalettePreset): void {
+    this.mutate((document) => {
+      document.theme.mode = preset.mode;
+      document.theme.tokens.primary = preset.primary;
+      document.theme.tokens.accent = preset.accent;
+      document.theme.tokens.surface = preset.surface;
+      document.theme.tokens.text = preset.text;
+    });
+  }
+
+  applyFontPairing(pairing: FontPairingPreset): void {
+    this.mutate((document) => {
+      document.theme.tokens.fontHeading = pairing.heading;
+      document.theme.tokens.fontBody = pairing.body;
+    });
+  }
 
   setThemeMode(mode: PortfolioThemeMode): void {
     this.mutate((document) => {
@@ -1023,7 +1913,7 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     });
   }
 
-  // ── Site settings ───────────────────────────────────────────────────────
+  // â”€â”€ Site settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async saveSiteSettings(): Promise<void> {
     const site = this.site();
@@ -1061,39 +1951,116 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     }
   }
 
-  // ── Guided tour ─────────────────────────────────────────────────────────
+  // â”€â”€ Guided tour â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  /** Re-open the guided tour from the Help button (works even after it was seen). */
   openTour(): void {
+    this.layersCollapsed.set(false);
+    this.inspectorCollapsed.set(false);
+    this.previewOnly.set(false);
     this.tourService.start();
     this.onTourStepChange(this.tourService.current());
   }
 
-  /**
-   * Reveal the panel a tour step points at. Publishing and version management
-   * live in the Publish tab, which is not the default tab.
-   */
   onTourStepChange(step: TourStep | null): void {
     if (!step) return;
     if (step.id === 'publish' || step.id === 'versions') {
+      this.inspectorCollapsed.set(false);
       this.openTab('publish');
-      // Wait for Angular to render the tab before re-measuring the highlight.
       setTimeout(() => this.tourService.measure(), 0);
     } else if (step.id === 'content') {
+      this.inspectorCollapsed.set(false);
       this.openTab('content');
       setTimeout(() => this.tourService.measure(), 0);
     }
   }
 
-  // ── Validation / publishing ─────────────────────────────────────────────
+  // â”€â”€ Validation / publishing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   openTab(tab: EditorTab): void {
     this.tab.set(tab);
     if (tab === 'publish') void this.loadVersions();
     if (tab === 'insights') void this.loadAnalytics();
+    if (tab === 'domain') void this.loadDomains();
   }
 
-  /** Fetch issues from the API and keep them for inline highlighting. */
+  async loadDomains(): Promise<void> {
+    const site = this.site();
+    if (!site) return;
+    try {
+      this.domains.set(await this.portfolio.listDomains(site.id));
+    } catch {
+      this.domains.set([]);
+    }
+  }
+
+  async createDomain(input: {
+    hostname: string;
+    verificationMethod?: 'TXT' | 'CNAME';
+  }): Promise<void> {
+    const site = this.site();
+    if (!site) return;
+    this.domainBusy.set(true);
+    try {
+      const created = await this.portfolio.createDomain(site.id, input);
+      this.domains.update((items) =>
+        [...items.filter((domain) => domain.hostname !== created.hostname), created],
+      );
+      this.toast.success(
+        `Domain ${created.hostname} added. Publish the TXT or CNAME record, then verify.`,
+      );
+    } catch (error) {
+      this.toast.error(this.errorMessage(error, 'Could not add this domain.'));
+    } finally {
+      this.domainBusy.set(false);
+    }
+  }
+
+  async verifyDomain(domainId: string, token?: string): Promise<void> {
+    this.domainBusy.set(true);
+    try {
+      const verified = await this.portfolio.verifyDomain(domainId, token);
+      this.domains.update((items) =>
+        items.map((domain) => (domain.id === verified.id ? verified : domain)),
+      );
+      this.toast.success(`Domain ${verified.hostname} verified.`);
+    } catch (error) {
+      this.toast.error(this.errorMessage(error, 'Could not verify this domain.'));
+    } finally {
+      this.domainBusy.set(false);
+    }
+  }
+
+  async removeDomain(domainId: string): Promise<void> {
+    this.domainBusy.set(true);
+    try {
+      await this.portfolio.removeDomain(domainId);
+      this.domains.update((items) => items.filter((domain) => domain.id !== domainId));
+      this.toast.success('Domain detached.');
+    } catch (error) {
+      this.toast.error(this.errorMessage(error, 'Could not remove this domain.'));
+    } finally {
+      this.domainBusy.set(false);
+    }
+  }
+
+  setDomainProof(domainId: string, value: string): void {
+    this.domainProofs.update((proofs) => ({ ...proofs, [domainId]: value }));
+  }
+
+  liveDomainUrl(hostname: string): string {
+    return domainLiveUrl(hostname);
+  }
+
+  async onDomainSubmit(): Promise<void> {
+    const hostname = this.newDomainHostname.trim();
+    if (!hostname) return;
+    await this.createDomain({
+      hostname,
+      verificationMethod: this.newDomainMethod,
+    });
+    this.newDomainHostname = '';
+  }
+
   private async runValidation(silent = false): Promise<PortfolioValidationResult | null> {
     const site = this.site();
     if (!site) return null;
@@ -1113,7 +2080,14 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     this.busy.set(true);
     try {
       const result = await this.runValidation();
-      if (result && !result.ok) this.tab.set('publish');
+      if (result) {
+        this.inspectorCollapsed.set(false);
+        if (!result.ok) {
+          this.openTab('publish');
+        } else {
+          this.toast.success('Validation passed.');
+        }
+      }
     } finally {
       this.busy.set(false);
     }
@@ -1131,8 +2105,10 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
       }
       const result = await this.runValidation();
       if (!result?.ok) {
-        // Errors are shown inline on the field/section plus the issue list.
-        if (result) this.tab.set('publish');
+        if (result) {
+          this.inspectorCollapsed.set(false);
+          this.openTab('publish');
+        }
         return;
       }
       const published = await this.portfolio.publish(site.id);
@@ -1148,7 +2124,6 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     }
   }
 
-  /** First error/warning for a section field, with errors taking precedence. */
   fieldIssue(
     sectionId: string,
     fieldKey: string,
@@ -1170,17 +2145,16 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
 
   issueTargetLabel(issue: PortfolioValidationIssue): string {
     const target = locateIssue(issue, this.sections());
-    if (target.seoKey) return `SEO · ${humanize(target.seoKey)}`;
+    if (target.seoKey) return `SEO Â· ${humanize(target.seoKey)}`;
     if (target.sectionId) {
       const section = this.sections().find((item) => item.id === target.sectionId);
       const label = section ? sectionLabel(section.type) : 'Section';
       const field = target.nestedKey ?? target.fieldKey;
-      return field ? `${label} · ${humanize(field)}` : label;
+      return field ? `${label} Â· ${humanize(field)}` : label;
     }
     return 'Draft';
   }
 
-  /** Jump from an issue row to the section and field that caused it. */
   goToIssue(issue: PortfolioValidationIssue): void {
     const target = locateIssue(issue, this.sections());
     if (target.sectionId) this.select(target.sectionId);
@@ -1189,11 +2163,12 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
       : target.fieldKey
         ? `field-${target.fieldKey}`
         : null;
+    this.inspectorCollapsed.set(false);
     if (!controlId) {
-      this.tab.set('publish');
+      this.openTab('publish');
       return;
     }
-    this.tab.set('content');
+    this.openTab('content');
     setTimeout(() => {
       const control = document.getElementById(controlId);
       control?.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -1344,7 +2319,7 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     });
   }
 
-  // ── Section styles ─────────────────────────────────────────────────────
+  // â”€â”€ Section styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   selectedStyle(): PortfolioSectionStyle {
     return this.selectedSection()?.style ?? {};
@@ -1374,7 +2349,7 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
     });
   }
 
-  // ── Navigation ──────────────────────────────────────────────────────────
+  // â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   onNavEditRequest(event: { id: string; label: string }): void {
     this.mutate((document) => {
@@ -1455,21 +2430,6 @@ export class PortfolioEditorPage implements OnInit, OnDestroy {
         }));
     });
     this.toast.success('Navigation links synced from page sections.');
-  }
-
-  saveLabel(): string {
-    switch (this.saveState()) {
-      case 'saving':
-        return 'Saving…';
-      case 'dirty':
-        return 'Unsaved changes';
-      case 'conflict':
-        return 'Conflict';
-      case 'error':
-        return 'Save failed';
-      default:
-        return this.lastSavedAt() ? 'Saved' : 'Draft saved';
-    }
   }
 
   private errorMessage(error: unknown, fallback: string): string {

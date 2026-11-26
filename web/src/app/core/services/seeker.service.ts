@@ -30,6 +30,7 @@ export interface ProfileCompletion {
 
 export interface SeekerProfile {
   displayName?: string;
+  photoUrl?: string;
   mobile?: string;
   email?: string;
   showContact: boolean;

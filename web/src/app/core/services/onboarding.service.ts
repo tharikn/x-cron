@@ -1,5 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 import type { SeekerProfile } from './seeker.service';
 
@@ -22,6 +23,7 @@ export const PROFILE_SETUP_STEPS: ProfileSetupStep[] = [
 export class OnboardingService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly themePromptOpen = signal(false);
   readonly portalChoiceOpen = signal(false);
@@ -63,7 +65,22 @@ export class OnboardingService {
     }
   }
 
+  /**
+   * Published portfolio URLs are standalone sites. Never interrupt a visitor
+   * (or the editor's "Open live site" tab) with the app-level theme chooser.
+   */
+  private isPublicPortfolioRoute(): boolean {
+    const isPublicPath = (path: string): boolean =>
+      /^\/p\/[^/]+(?:\/|$)/.test(path.split('?')[0] ?? '');
+    if (isPublicPath(this.router.url)) return true;
+    // Initial navigation may still be pending when onboarding starts.
+    return isPlatformBrowser(this.platformId)
+      ? isPublicPath(window.location.pathname)
+      : false;
+  }
+
   openThemePromptIfNeeded(): void {
+    if (this.isPublicPortfolioRoute()) return;
     if (this.needsThemePrompt()) {
       this.themePromptOpen.set(true);
     }

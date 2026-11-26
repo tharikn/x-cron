@@ -2,6 +2,8 @@ import { isPlatformBrowser } from '@angular/common';
 import { Component, OnInit, PLATFORM_ID, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { useJobImageUpload } from '../../core/hooks/use-job-image-upload';
+import { useResumeUpload } from '../../core/hooks/use-resume-upload';
 import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AuthService } from '../../core/services/auth.service';
 import {
@@ -38,6 +40,8 @@ export class ProfileSetupPage implements OnInit {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly auth = inject(AuthService);
   private readonly seeker = inject(SeekerService);
+  private readonly jobImageUpload = useJobImageUpload();
+  private readonly resumeUpload = useResumeUpload();
   private readonly applyProfiles = inject(ApplyProfilesService);
   private readonly onboarding = inject(OnboardingService);
   private readonly router = inject(Router);
@@ -53,8 +57,11 @@ export class ProfileSetupPage implements OnInit {
   readonly celebrating = signal(false);
   readonly busy = signal(false);
   readonly progress = signal(25);
+  readonly uploadingPhoto = this.jobImageUpload.pending;
+  readonly uploadingResume = this.resumeUpload.pending;
 
   displayName = '';
+  photoUrl = '';
   mobile = '';
   email = '';
   showContact = false;
@@ -121,6 +128,39 @@ export class ProfileSetupPage implements OnInit {
       // start empty
     }
     this.syncProgress();
+  }
+
+  onPhotoPicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) void this.uploadPhoto(file);
+  }
+
+  async uploadPhoto(file: File): Promise<void> {
+    const uploaded = await this.jobImageUpload.upload(file, 'profile-photo');
+    if (!uploaded) {
+      this.toast.error(this.jobImageUpload.error() ?? 'Could not upload photo.');
+      return;
+    }
+    this.photoUrl = uploaded.url;
+    this.toast.success('Photo uploaded. It will be saved with your profile.');
+  }
+
+  onResumePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) void this.uploadResume(file);
+  }
+
+  async uploadResume(file: File): Promise<void> {
+    const asset = await this.resumeUpload.upload(file);
+    if (!asset) {
+      this.toast.error(this.resumeUpload.error() ?? 'Could not upload resume.');
+      return;
+    }
+    this.toast.success('Resume uploaded privately to your job assets.');
   }
 
   stepTitleKey(): string {
@@ -245,6 +285,7 @@ export class ProfileSetupPage implements OnInit {
       u?.displayName?.trim() ||
       u?.username?.trim() ||
       '';
+    this.photoUrl = profile.photoUrl ?? '';
     this.mobile = profile.mobile ?? '';
     this.email = profile.email?.trim() || u?.email?.trim() || '';
     this.showContact = profile.showContact ?? false;
@@ -289,6 +330,7 @@ export class ProfileSetupPage implements OnInit {
       }
       return this.patch({
         displayName: this.displayName.trim(),
+        photoUrl: this.photoUrl.trim() || undefined,
         mobile: this.mobile.trim() || undefined,
         email: this.email.trim() || undefined,
         showContact: this.showContact,

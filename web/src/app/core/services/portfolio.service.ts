@@ -3,10 +3,14 @@ import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type {
+  PortfolioAiGenerateInput,
+  PortfolioAiGenerateResult,
   PortfolioAnalyticsSummary,
   PortfolioComponentDefinition,
+  PortfolioDomainBinding,
   PortfolioDocument,
   PortfolioDraftResponse,
+  PortfolioMediaAsset,
   PortfolioSiteSummary,
   PortfolioTemplateSummary,
   PortfolioValidationResult,
@@ -30,6 +34,7 @@ export class PortfolioService {
   readonly draft = signal<PortfolioDocument | null>(null);
   readonly draftSite = signal<PortfolioSiteSummary | null>(null);
   readonly versions = signal<PortfolioVersionSummary[]>([]);
+  readonly domains = signal<PortfolioDomainBinding[]>([]);
 
   private base = `${environment.apiUrl}/portfolio`;
 
@@ -215,10 +220,116 @@ export class PortfolioService {
     );
   }
 
+  // ── Custom domain bindings ───────────────────────────────────────────────
+
+  async listDomains(siteId?: string): Promise<PortfolioDomainBinding[]> {
+    const res = await firstValueFrom(
+      this.http.get<{ items: PortfolioDomainBinding[] }>(`${this.base}/domains`, {
+        params: siteId ? { siteId } : undefined,
+        headers: this.headers(),
+        withCredentials: true,
+      }),
+    );
+    this.domains.set(res.items ?? []);
+    return res.items ?? [];
+  }
+
+  createDomain(
+    siteId: string,
+    input: { hostname: string; verificationMethod?: 'TXT' | 'CNAME' },
+  ): Promise<PortfolioDomainBinding> {
+    return firstValueFrom(
+      this.http.post<PortfolioDomainBinding>(`${this.base}/domains`, {
+        siteId,
+        ...input,
+      }, {
+        headers: this.headers(),
+        withCredentials: true,
+      }),
+    );
+  }
+
+  verifyDomain(
+    domainId: string,
+    token?: string,
+  ): Promise<PortfolioDomainBinding> {
+    return firstValueFrom(
+      this.http.post<PortfolioDomainBinding>(
+        `${this.base}/domains/${encodeURIComponent(domainId)}/verify`,
+        { token },
+        { headers: this.headers(), withCredentials: true },
+      ),
+    );
+  }
+
+  removeDomain(domainId: string): Promise<{ ok: boolean }> {
+    return firstValueFrom(
+      this.http.delete<{ ok: boolean }>(
+        `${this.base}/domains/${encodeURIComponent(domainId)}`,
+        { headers: this.headers(), withCredentials: true },
+      ),
+    );
+  }
+
+  /** Anonymous public read resolved through a verified custom domain. */
+  getPublicByHostname(
+    hostname: string,
+    locale?: string,
+  ): Promise<PublicPortfolioResponse> {
+    const qs = locale ? `?locale=${encodeURIComponent(locale)}` : '';
+    return firstValueFrom(
+      this.http.get<PublicPortfolioResponse>(
+        `${this.base}/public/host/${encodeURIComponent(hostname)}${qs}`,
+      ),
+    );
+  }
+
   analytics(siteId: string): Promise<PortfolioAnalyticsSummary> {
     return firstValueFrom(
       this.http.get<PortfolioAnalyticsSummary>(
         `${this.base}/sites/${siteId}/analytics`,
+        { headers: this.headers(), withCredentials: true },
+      ),
+    );
+  }
+
+  /** AI copy assist — returns proposals only, never mutates drafts automatically. */
+  generateCopy(
+    input: PortfolioAiGenerateInput,
+  ): Promise<PortfolioAiGenerateResult> {
+    return firstValueFrom(
+      this.http.post<PortfolioAiGenerateResult>(
+        `${this.base}/ai/generate`,
+        input,
+        { headers: this.headers(), withCredentials: true },
+      ),
+    );
+  }
+
+  async listMedia(): Promise<PortfolioMediaAsset[]> {
+    const res = await firstValueFrom(
+      this.http.get<{ items: PortfolioMediaAsset[] }>(`${this.base}/media`, {
+        headers: this.headers(),
+        withCredentials: true,
+      }),
+    );
+    return res.items ?? [];
+  }
+
+  async addMedia(url: string, storageAssetId?: string): Promise<PortfolioMediaAsset> {
+    return firstValueFrom(
+      this.http.post<PortfolioMediaAsset>(
+        `${this.base}/media`,
+        { url, ...(storageAssetId ? { storageAssetId } : {}) },
+        { headers: this.headers(), withCredentials: true },
+      ),
+    );
+  }
+
+  deleteMedia(assetId: string): Promise<{ ok: boolean }> {
+    return firstValueFrom(
+      this.http.delete<{ ok: boolean }>(
+        `${this.base}/media/${encodeURIComponent(assetId)}`,
         { headers: this.headers(), withCredentials: true },
       ),
     );

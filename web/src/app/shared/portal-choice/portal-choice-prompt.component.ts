@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ResumeLaunchService } from '../../core/services/resume-launch.service';
 
-export type PortalChoice = 'jobs' | 'resume';
+export type PortalChoice = 'jobs' | 'resume' | 'portfolio';
 
 @Component({
   selector: 'app-portal-choice-prompt',
@@ -23,10 +23,8 @@ export class PortalChoicePromptComponent {
 
     if (choice === 'jobs') {
       if (this.auth.isSignedIn()) {
-        // Already signed in, go directly to home/jobs
         await this.router.navigateByUrl('/');
       } else {
-        // Needs sign in / sign up for jobs
         await this.router.navigate(['/sign-in'], {
           queryParams: { returnUrl: '/' },
         });
@@ -36,12 +34,21 @@ export class PortalChoicePromptComponent {
 
     if (choice === 'resume') {
       if (this.auth.isSignedIn()) {
-        // Already signed in, launch the resume builder handoff directly
         void this.resumeLaunch.launch();
       } else {
-        // Needs sign in / sign up, then will trigger resume handoff
         await this.router.navigate(['/sign-in'], {
           queryParams: { intent: 'resume' },
+        });
+      }
+      return;
+    }
+
+    if (choice === 'portfolio') {
+      if (this.auth.isSignedIn()) {
+        await this.router.navigateByUrl('/portfolio');
+      } else {
+        await this.router.navigate(['/sign-in'], {
+          queryParams: { returnUrl: '/portfolio' },
         });
       }
       return;

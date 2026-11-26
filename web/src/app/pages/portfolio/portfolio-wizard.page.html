@@ -15,74 +15,300 @@
       @if (loadingTemplates()) {
         <p class="state">Loading designs…</p>
       } @else {
-        <div class="templates-grid" role="group" aria-label="Portfolio designs">
-          @for (template of templates(); track template.id) {
-            <div
-              class="tpl-card"
-              role="button"
-              tabindex="0"
-              [class.tpl-card--selected]="selectedTemplateId() === template.id"
-              [class.tpl-card--hovered]="hoveredTemplateId() === template.id"
-              (mouseenter)="hoveredTemplateId.set(template.id)"
-              (mouseleave)="hoveredTemplateId.set(null)"
-              (focus)="hoveredTemplateId.set(template.id)"
-              (blur)="hoveredTemplateId.set(null)"
-              (click)="selectTemplate(template)"
-              (keydown.enter)="selectTemplate(template)"
-              (keydown.space)="selectTemplate(template); $event.preventDefault()"
-              [attr.aria-label]="'Choose design: ' + template.name"
-              [attr.aria-pressed]="selectedTemplateId() === template.id"
+        <div class="catalog-controls card">
+          <div class="catalog-controls__top">
+            <label class="catalog-search">
+              <span class="sr-only">Search designs</span>
+              <input
+                type="search"
+                [ngModel]="searchQuery()"
+                (ngModelChange)="setSearchQuery($event)"
+                placeholder="Search {{ templates().length }} designs by style, role, or mood…"
+                autocomplete="off"
+              />
+            </label>
+
+            <div class="mode-switch" role="group" aria-label="Theme mode filter">
+              <button
+                type="button"
+                [class.is-active]="activeThemeMode() === 'all'"
+                (click)="setThemeMode('all')"
+              >
+                All
+              </button>
+              <button
+                type="button"
+                [class.is-active]="activeThemeMode() === 'light'"
+                (click)="setThemeMode('light')"
+              >
+                Light
+              </button>
+              <button
+                type="button"
+                [class.is-active]="activeThemeMode() === 'dark'"
+                (click)="setThemeMode('dark')"
+              >
+                Dark
+              </button>
+            </div>
+          </div>
+
+          <div class="category-bar" role="group" aria-label="Category filter">
+            <button
+              type="button"
+              class="cat-pill"
+              [class.is-active]="activeCategory() === 'all'"
+              (click)="setCategory('all')"
             >
-              <div class="tpl-card__thumb">
-                <div class="tpl-card__renderer-wrap">
-                  @if (templateDocuments().get(template.id); as doc) {
-                    <app-portfolio-renderer
-                      [document]="doc"
-                      [locale]="activeLocale()"
-                      device="desktop"
-                      [forceMode]="template.theme.mode === 'system' ? '' : template.theme.mode"
-                    />
+              All ({{ templates().length }})
+            </button>
+            @for (cat of categoryOptions(); track cat.id) {
+              <button
+                type="button"
+                class="cat-pill"
+                [class.is-active]="activeCategory() === cat.id"
+                (click)="setCategory(cat.id)"
+              >
+                {{ cat.label }} ({{ cat.count }})
+              </button>
+            }
+          </div>
+
+          <div class="catalog-status" #catalogTop>
+            <span class="catalog-status__summary">
+              Showing {{ pageRangeStart() }}–{{ pageRangeEnd() }} of {{ totalFilteredCount() }} designs
+              @if (totalPages() > 1) {
+                <span class="catalog-status__page">· Page {{ currentPage() }} of {{ totalPages() }}</span>
+              }
+            </span>
+
+            <div class="catalog-status__right">
+              @if (searchQuery() || activeCategory() !== 'all' || activeThemeMode() !== 'all') {
+                <button type="button" class="btn btn--ghost btn--sm" (click)="clearFilters()">
+                  Reset filters
+                </button>
+              }
+
+              <label class="page-size">
+                <span>Per page</span>
+                <select
+                  [ngModel]="pageSize()"
+                  (ngModelChange)="setPageSize($event)"
+                  aria-label="Designs per page"
+                >
+                  @for (size of pageSizeOptions; track size) {
+                    <option [ngValue]="size">{{ size }}</option>
+                  }
+                </select>
+              </label>
+
+              @if (totalPages() > 1) {
+                <div class="pager-quick" aria-label="Quick page navigation">
+                  <button
+                    type="button"
+                    class="pager-btn pager-btn--compact"
+                    [disabled]="currentPage() <= 1"
+                    aria-label="Previous page"
+                    (click)="setPage(currentPage() - 1)"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    class="pager-btn pager-btn--compact"
+                    [disabled]="currentPage() >= totalPages()"
+                    aria-label="Next page"
+                    (click)="setPage(currentPage() + 1)"
+                  >
+                    ›
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (pagedTemplates().length === 0) {
+          <div class="empty-filter card">
+            <p>No designs match your current filters.</p>
+            <button type="button" class="btn btn--ghost btn--sm" (click)="clearFilters()">
+              Show all {{ templates().length }} designs
+            </button>
+          </div>
+        } @else {
+          <div class="templates-grid" role="group" aria-label="Portfolio designs">
+            @for (template of pagedTemplates(); track template.id) {
+              <div
+                class="tpl-card"
+                role="button"
+                tabindex="0"
+                [class.tpl-card--selected]="selectedTemplateId() === template.id"
+                [class.tpl-card--hovered]="hoveredTemplateId() === template.id"
+                (mouseenter)="hoveredTemplateId.set(template.id)"
+                (mouseleave)="hoveredTemplateId.set(null)"
+                (focus)="hoveredTemplateId.set(template.id)"
+                (blur)="hoveredTemplateId.set(null)"
+                (click)="selectTemplate(template)"
+                (keydown.enter)="selectTemplate(template)"
+                (keydown.space)="selectTemplate(template); $event.preventDefault()"
+                [attr.aria-label]="'Choose design: ' + template.name"
+                [attr.aria-pressed]="selectedTemplateId() === template.id"
+              >
+                <div class="tpl-card__thumb">
+                  <div class="tpl-card__renderer-wrap">
+                    @if (templateDocuments().get(template.id); as doc) {
+                      <app-portfolio-renderer
+                        [document]="doc"
+                        [locale]="activeLocale()"
+                        device="desktop"
+                        [forceMode]="template.theme.mode === 'system' ? '' : template.theme.mode"
+                      />
+                    }
+                  </div>
+
+                  <div class="tpl-card__actions-overlay">
+                    <button
+                      type="button"
+                      class="tpl-card__icon-btn"
+                      title="Preview"
+                      aria-label="Preview {{ template.name }}"
+                      (click)="previewTemplate(template); $event.stopPropagation()"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                      </svg>
+                      <span>Preview</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="tpl-card__icon-btn tpl-card__icon-btn--primary"
+                      title="Choose this design"
+                      aria-label="Use {{ template.name }} and continue"
+                      (click)="useTemplate(template); $event.stopPropagation()"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                      </svg>
+                      <span>Choose</span>
+                    </button>
+                  </div>
+
+                  @if (selectedTemplateId() === template.id) {
+                    <div class="tpl-card__selected-badge" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                      </svg>
+                    </div>
                   }
                 </div>
 
-                <div class="tpl-card__actions-overlay">
-                  <button
-                    type="button"
-                    class="tpl-card__icon-btn"
-                    title="Preview"
-                    aria-label="Preview {{ template.name }}"
-                    (click)="previewTemplate(template); $event.stopPropagation()"
-                  >
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                    </svg>
-                    <span>Preview</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="tpl-card__icon-btn tpl-card__icon-btn--primary"
-                    title="Choose this design"
-                    aria-label="Use {{ template.name }} and continue"
-                    (click)="useTemplate(template); $event.stopPropagation()"
-                  >
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                    </svg>
-                    <span>Choose</span>
-                  </button>
+                <div class="tpl-card__meta">
+                  <div class="tpl-card__meta-head">
+                    <strong class="tpl-card__name">{{ template.name }}</strong>
+                    <span class="tpl-card__swatches" aria-hidden="true">
+                      <span class="tpl-card__dot" [style.background]="template.theme.tokens.surface"></span>
+                      <span class="tpl-card__dot" [style.background]="template.theme.tokens.accent"></span>
+                    </span>
+                  </div>
+                  <span class="tpl-card__family">
+                    {{ template.family }} · {{ template.theme.mode === 'dark' ? 'Dark' : 'Light' }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+
+          @if (totalPages() > 1) {
+            <nav class="pager-bar card" aria-label="Design catalog pagination">
+              <div class="pager-bar__info">
+                <span>
+                  Page <strong>{{ currentPage() }}</strong> of <strong>{{ totalPages() }}</strong>
+                </span>
+                <span class="pager-bar__range">
+                  ({{ pageRangeStart() }}–{{ pageRangeEnd() }} of {{ totalFilteredCount() }})
+                </span>
+              </div>
+
+              <div class="pager-bar__controls">
+                <button
+                  type="button"
+                  class="pager-btn pager-btn--edge"
+                  [disabled]="currentPage() <= 1"
+                  aria-label="First page"
+                  (click)="setPage(1, true)"
+                >
+                  «
+                </button>
+                <button
+                  type="button"
+                  class="pager-btn pager-btn--nav"
+                  [disabled]="currentPage() <= 1"
+                  aria-label="Previous page"
+                  (click)="setPage(currentPage() - 1, true)"
+                >
+                  ‹ Prev
+                </button>
+
+                <div class="pager-bar__pages">
+                  @for (item of paginationItems(); track item.kind === 'page' ? item.page : item.key) {
+                    @if (item.kind === 'ellipsis') {
+                      <span class="pager-ellipsis" aria-hidden="true">…</span>
+                    } @else {
+                      <button
+                        type="button"
+                        class="pager-btn pager-btn--num"
+                        [class.is-active]="item.page === currentPage()"
+                        [attr.aria-current]="item.page === currentPage() ? 'page' : null"
+                        [attr.aria-label]="'Page ' + item.page"
+                        (click)="setPage(item.page, true)"
+                      >
+                        {{ item.page }}
+                      </button>
+                    }
+                  }
                 </div>
 
-                @if (selectedTemplateId() === template.id) {
-                  <div class="tpl-card__selected-badge" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                    </svg>
-                  </div>
-                }
+                <button
+                  type="button"
+                  class="pager-btn pager-btn--nav"
+                  [disabled]="currentPage() >= totalPages()"
+                  aria-label="Next page"
+                  (click)="setPage(currentPage() + 1, true)"
+                >
+                  Next ›
+                </button>
+                <button
+                  type="button"
+                  class="pager-btn pager-btn--edge"
+                  [disabled]="currentPage() >= totalPages()"
+                  aria-label="Last page"
+                  (click)="setPage(totalPages(), true)"
+                >
+                  »
+                </button>
               </div>
-            </div>
+
+              @if (totalPages() > 7) {
+                <form class="pager-jump" (ngSubmit)="submitJumpPage()">
+                  <label>
+                    <span>Go to</span>
+                    <input
+                      type="number"
+                      min="1"
+                      [max]="totalPages()"
+                      [ngModel]="jumpPageInput()"
+                      (ngModelChange)="jumpPageInput.set($event)"
+                      name="jumpPage"
+                      [placeholder]="'' + currentPage()"
+                      aria-label="Jump to page number"
+                    />
+                  </label>
+                  <button type="submit" class="pager-btn">Go</button>
+                </form>
+              }
+            </nav>
           }
-        </div>
+        }
       }
     </div>
   } @else if (step() === 2) {

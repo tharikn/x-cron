@@ -76,6 +76,16 @@
 
     @if (tab() === 'profile') {
       <form class="cw__form" (ngSubmit)="saveProfile()">
+        <label class="full">
+          Company logo
+          <span class="cw__logo-row">
+            @if (logoUrl) {
+              <img [src]="logoUrl" alt="Company logo" class="cw__logo" />
+            }
+            <input type="file" accept=".svg,.png,.jpg,.jpeg" (change)="onLogoPicked($event)" />
+            @if (uploadingLogo()) { <span>Uploading…</span> }
+          </span>
+        </label>
         <label>Display name <input [(ngModel)]="name" name="name" required /></label>
         <label>Legal name <input [(ngModel)]="legalName" name="legalName" /></label>
         <label>Website <input [(ngModel)]="website" name="website" placeholder="https://" /></label>

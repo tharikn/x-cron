@@ -3,6 +3,8 @@
  * Keep in sync with the API schema (schemaVersion 1.0).
  */
 
+import type { UploadedAsset } from './upload.model';
+
 export type PortfolioLocalizedText = Record<string, string>;
 
 export type PortfolioSectionType =
@@ -230,6 +232,65 @@ export interface PortfolioAnalyticsSummary {
   byLocale: Array<{ locale: string; views: number }>;
   byReferrer: Array<{ referrer: string; views: number }>;
   updatedAt: string;
+}
+
+// ── Custom domain bindings (mirrors api/src/portfolio) ──────────────────────
+
+export type PortfolioDomainStatus = 'pending' | 'verified' | 'rejected';
+
+export type PortfolioDomainVerificationMethod = 'TXT' | 'CNAME';
+
+export type PortfolioDomainTlsState = 'none' | 'provisioning' | 'active' | 'failed';
+
+export interface PortfolioDomainChallenge {
+  type: 'TXT' | 'CNAME';
+  name: string;
+  value?: string;
+  target?: string;
+}
+
+export interface PortfolioDomainBinding {
+  id: string;
+  siteId: string;
+  workspaceId: string;
+  hostname: string;
+  verificationMethod: PortfolioDomainVerificationMethod;
+  status: PortfolioDomainStatus;
+  challenge: PortfolioDomainChallenge | null;
+  tlsState: PortfolioDomainTlsState;
+  createdAt: string;
+  updatedAt: string;
+  verifiedAt: string | null;
+}
+
+export interface PortfolioDomainListResponse {
+  items: PortfolioDomainBinding[];
+}
+
+export interface PortfolioAiGenerateInput {
+  role: string;
+  experience?: string;
+  skills?: string[];
+  tone?: 'professional' | 'creative' | 'minimal';
+  locale?: string;
+}
+
+export interface PortfolioAiGenerateResult {
+  headline: string;
+  subheadline: string;
+  bio: string;
+  suggestedSkills: string[];
+  aiGenerated: boolean;
+}
+
+export interface PortfolioMediaAsset {
+  id: string;
+  ownerUserId: string;
+  url: string;
+  kind: 'image';
+  createdAt: string;
+  storageAssetId?: string;
+  upload?: UploadedAsset;
 }
 
 export function emptyLocalized(locale: string): PortfolioLocalizedText {

@@ -5,11 +5,13 @@ Renders the allow-listed `custom-code` section. User HTML/CSS/JS is untrusted an
 ## Non-negotiables
 
 - The frame loads with `<iframe sandbox="allow-scripts [allow-forms] [allow-popups]" credentialless>` and **no** `allow-same-origin`. Adding `allow-same-origin` hands the visitor's session to the author's code — treat it as a security incident, not a feature.
-- Never `innerHTML`, `bypassSecurityTrustHtml` or interpolate author source into an Angular template. `composeCustomCodeDocument()` builds the document as text and it is set through `srcdoc`.
+- Never `innerHTML`, `bypassSecurityTrustHtml`, `[srcdoc]` or any template interpolation for author source. `composeCustomCodeDocument()` builds the document as text and the component assigns it with `frame.srcdoc = source` after render. Angular's HTML sanitizer strips `<style>`/`<script>` from a `[srcdoc]` binding (the exact bug that made imported pages render unstyled).
+- `sandbox` must be a static attribute. Angular 22 throws `NG0910` for a dynamic `sandbox` binding.
 - Author `css`/`js` are embedded with `</style`, `</script` and `<!--` escapes. Keep those escapes when editing the composer.
+- Storage is bridged, not native. The bridge installs an in-memory `Storage` shim before author code; the component seeds it from `xcron.pf-code.v1.<siteId>:<sectionId>.<store>` and persists writes back. Keep the 64 KB/store, 128-byte key, 32 KB value caps and the message-source + token checks.
 - Parent↔frame messages are accepted only when `event.source === iframe.contentWindow` **and** the per-instance token matches. Opaque-origin frames report `origin: "null"`, so origin checks are not usable here.
 - The frame is `pointer-events: none` while `editable` so the builder keeps selection, drag and focus.
-- `srcdoc` is empty during SSR and the hydration pass (`hydrated` signal) so server and client markup match and the SSR payload stays small.
+- `srcdoc` is empty during SSR and the hydration pass (`hydrated` signal), then assigned imperatively, so server and client markup match and the SSR payload stays small.
 
 ## Files
 

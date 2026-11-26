@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import type {
@@ -19,6 +19,55 @@ import {
 } from './portfolio-wizard-stepper.component';
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
+
+export type PaginationItem =
+  | { kind: 'page'; page: number }
+  | { kind: 'ellipsis'; key: string };
+
+/**
+ * Compute a compact, gap-free page sequence with ellipses (max 7 numeric slots).
+ * Avoids single-page ellipses (e.g. `1 … 3` renders `1 2 3`).
+ */
+export function buildPaginationItems(currentPage: number, totalPages: number): PaginationItem[] {
+  if (totalPages <= 0) return [];
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => ({ kind: 'page', page: i + 1 }));
+  }
+
+  const clamped = Math.min(Math.max(1, currentPage), totalPages);
+  const pages = new Set<number>([1, totalPages, clamped - 1, clamped, clamped + 1]);
+
+  if (clamped <= 3) {
+    pages.add(2);
+    pages.add(3);
+    pages.add(4);
+  }
+  if (clamped >= totalPages - 2) {
+    pages.add(totalPages - 3);
+    pages.add(totalPages - 2);
+    pages.add(totalPages - 1);
+  }
+
+  const sorted = [...pages]
+    .filter((p) => p >= 1 && p <= totalPages)
+    .sort((a, b) => a - b);
+
+  const items: PaginationItem[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const page = sorted[i];
+    const prev = sorted[i - 1];
+    if (prev !== undefined) {
+      const gap = page - prev;
+      if (gap === 2) {
+        items.push({ kind: 'page', page: prev + 1 });
+      } else if (gap > 2) {
+        items.push({ kind: 'ellipsis', key: `gap-${prev}-${page}` });
+      }
+    }
+    items.push({ kind: 'page', page });
+  }
+  return items;
+}
 
 function slugify(value: string): string {
   return value
@@ -48,11 +97,21 @@ export class PortfolioWizardPage implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
+  @ViewChild('catalogTop') private catalogTop?: ElementRef<HTMLElement>;
+
   readonly step = signal<PortfolioWizardStep>(1);
   readonly busy = signal(false);
   readonly loadingTemplates = signal(true);
   readonly templates = signal<PortfolioTemplateSummary[]>([]);
   readonly selectedTemplateId = signal('');
+
+  readonly searchQuery = signal('');
+  readonly activeCategory = signal('all');
+  readonly activeThemeMode = signal<'all' | 'light' | 'dark'>('all');
+  readonly pageSizeOptions = [12, 24, 48, 96] as const;
+  readonly pageSize = signal<number>(24);
+  readonly requestedPage = signal<number>(1);
+  readonly jumpPageInput = signal<string>('');
 
   readonly hoveredTemplateId = signal<string | null>(null);
   readonly previewTemplateId = signal<string | null>(null);
@@ -73,6 +132,65 @@ export class PortfolioWizardPage implements OnInit {
     { value: 'en-US', label: 'English (US)' },
   ];
 
+  readonly categoryOptions = computed(() => {
+    const counts = new Map<string, { id: string; label: string; count: number }>();
+    for (const t of this.templates()) {
+      const existing = counts.get(t.category);
+      if (existing) {
+        existing.count++;
+      } else {
+        counts.set(t.category, { id: t.category, label: t.family || t.category, count: 1 });
+      }
+    }
+    return [...counts.values()];
+  });
+
+  readonly filteredTemplates = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const cat = this.activeCategory();
+    const mode = this.activeThemeMode();
+    return this.templates().filter((t) => {
+      if (cat !== 'all' && t.category !== cat) return false;
+      if (mode === 'light' && t.theme.mode === 'dark') return false;
+      if (mode === 'dark' && t.theme.mode !== 'dark') return false;
+      if (!q) return true;
+      return (
+        t.name.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q) ||
+        t.family.toLowerCase().includes(q) ||
+        t.description.toLowerCase().includes(q) ||
+        t.audience.some((a) => a.toLowerCase().includes(q))
+      );
+    });
+  });
+
+  readonly totalFilteredCount = computed(() => this.filteredTemplates().length);
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.totalFilteredCount() / this.pageSize())),
+  );
+
+  readonly currentPage = computed(() =>
+    Math.min(Math.max(1, this.requestedPage()), this.totalPages()),
+  );
+
+  readonly pagedTemplates = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize();
+    return this.filteredTemplates().slice(start, start + this.pageSize());
+  });
+
+  readonly pageRangeStart = computed(() =>
+    this.totalFilteredCount() === 0 ? 0 : (this.currentPage() - 1) * this.pageSize() + 1,
+  );
+
+  readonly pageRangeEnd = computed(() =>
+    Math.min(this.totalFilteredCount(), this.currentPage() * this.pageSize()),
+  );
+
+  readonly paginationItems = computed(() =>
+    buildPaginationItems(this.currentPage(), this.totalPages()),
+  );
+
   readonly selectedTemplate = computed(
     () => this.templates().find((template) => template.id === this.selectedTemplateId()) ?? null,
   );
@@ -85,10 +203,10 @@ export class PortfolioWizardPage implements OnInit {
     return template ? template.name : '';
   });
 
-  /** Live scaled documents for every template card. */
+  /** Live scaled documents for the active page only (keeps 500+ catalog fast). */
   readonly templateDocuments = computed<Map<string, PortfolioDocument>>(() => {
     const map = new Map<string, PortfolioDocument>();
-    for (const template of this.templates()) {
+    for (const template of this.pagedTemplates()) {
       map.set(template.id, this.buildDocumentForTemplate(template));
     }
     return map;
@@ -169,6 +287,53 @@ export class PortfolioWizardPage implements OnInit {
     if (this.busy()) return;
     this.selectedTemplateId.set(template.id);
     this.previewTemplateId.set(null);
+  }
+
+  setSearchQuery(value: string): void {
+    this.searchQuery.set(value);
+    this.requestedPage.set(1);
+  }
+
+  setCategory(category: string): void {
+    this.activeCategory.set(category);
+    this.requestedPage.set(1);
+  }
+
+  setThemeMode(mode: 'all' | 'light' | 'dark'): void {
+    this.activeThemeMode.set(mode);
+    this.requestedPage.set(1);
+  }
+
+  clearFilters(): void {
+    this.searchQuery.set('');
+    this.activeCategory.set('all');
+    this.activeThemeMode.set('all');
+    this.requestedPage.set(1);
+  }
+
+  setPage(page: number, scrollToGrid = false): void {
+    const clamped = Math.min(Math.max(1, Math.trunc(page)), this.totalPages());
+    this.requestedPage.set(clamped);
+    this.jumpPageInput.set('');
+    if (scrollToGrid) {
+      const el = this.catalogTop?.nativeElement;
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  setPageSize(rawSize: number | string): void {
+    const parsed = Number(rawSize);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    this.pageSize.set(parsed);
+    this.requestedPage.set(1);
+  }
+
+  submitJumpPage(): void {
+    const parsed = Number(this.jumpPageInput().trim());
+    if (!Number.isFinite(parsed) || parsed < 1) return;
+    this.setPage(parsed, true);
   }
 
   useTemplate(template: PortfolioTemplateSummary): void {

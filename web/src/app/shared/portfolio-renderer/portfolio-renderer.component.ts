@@ -77,6 +77,10 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
   readonly forceMode = input<'light' | 'dark' | ''>('');
   /** Inline edit mode (set true from editor to enable visual editing). */
   readonly editable = input<boolean>(false);
+  /** Show hover outlines, section badges, and insertion guides in edit mode. */
+  readonly showGuides = input<boolean>(true);
+  /** External selected section id controlled by the host editor. */
+  readonly activeSectionId = input<string | null>(null);
   /** Validation counts passed by the editor to mark sections with issues. */
   readonly sectionIssues = input<Record<string, { errors: number; warnings: number }>>({});
 
@@ -91,6 +95,14 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
   readonly sectionSelect = output<string>();
   /** Emitted when sections are reordered via drag-and-drop. */
   readonly sectionReorder = output<{ fromIndex: number; toIndex: number }>();
+  /** Emitted when user right-clicks or clicks the section options handle. */
+  readonly sectionContextMenu = output<{ sectionId: string; x: number; y: number }>();
+  /** Emitted when user right-clicks empty canvas space. */
+  readonly canvasContextMenu = output<{ x: number; y: number }>();
+  /** Emitted when user right-clicks the portfolio navigation bar. */
+  readonly navContextMenu = output<{ x: number; y: number }>();
+  /** Emitted when user clicks an inline `+` insert bar on the canvas. */
+  readonly quickInsert = output<{ index: number }>();
   /** Emitted when a section's style changes. */
   readonly sectionStyleChange = output<{ sectionId: string; style: PortfolioSectionStyle }>();
   /** Emitted when a row field is edited inline (objectList items). */
@@ -294,11 +306,54 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
 
   onSectionClick(event: MouseEvent, sectionId: string): void {
     if (!this.editable()) return;
-    // Don't select if the user clicked on an inline-editable element
-    const target = event.target as HTMLElement;
-    if (target.hasAttribute('contenteditable') && target.getAttribute('contenteditable') === 'true') return;
     this.selectedSectionId.set(sectionId);
     this.sectionSelect.emit(sectionId);
+    const target = event.target as HTMLElement;
+    if (target.hasAttribute('contenteditable') && target.getAttribute('contenteditable') === 'true') {
+      return;
+    }
+  }
+
+  onSectionContextMenu(event: MouseEvent, sectionId: string): void {
+    if (!this.editable()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectedSectionId.set(sectionId);
+    this.sectionSelect.emit(sectionId);
+    this.sectionContextMenu.emit({ sectionId, x: event.clientX, y: event.clientY });
+  }
+
+  onSectionMenuButton(event: MouseEvent, sectionId: string): void {
+    if (!this.editable()) return;
+    event.stopPropagation();
+    this.selectedSectionId.set(sectionId);
+    this.sectionSelect.emit(sectionId);
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.sectionContextMenu.emit({ sectionId, x: rect.left, y: rect.bottom + 4 });
+  }
+
+  onCanvasContextMenu(event: MouseEvent): void {
+    if (!this.editable()) return;
+    event.preventDefault();
+    this.canvasContextMenu.emit({ x: event.clientX, y: event.clientY });
+  }
+
+  onNavContextMenu(event: MouseEvent): void {
+    if (!this.editable()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.navContextMenu.emit({ x: event.clientX, y: event.clientY });
+  }
+
+  emitQuickInsert(afterSectionId?: string): void {
+    if (!this.editable()) return;
+    const allSections = this.document().pages[0]?.sections ?? [];
+    if (!afterSectionId) {
+      this.quickInsert.emit({ index: 0 });
+      return;
+    }
+    const idx = allSections.findIndex((s) => s.id === afterSectionId);
+    this.quickInsert.emit({ index: idx >= 0 ? idx + 1 : allSections.length });
   }
 
   onSectionMouseEnter(sectionId: string): void {
@@ -314,11 +369,15 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
   }
 
   isSectionSelected(sectionId: string): boolean {
-    return this.editable() && this.selectedSectionId() === sectionId;
+    if (!this.editable()) return false;
+    const active = this.activeSectionId() ?? this.selectedSectionId();
+    return active === sectionId;
   }
 
   isSectionHovered(sectionId: string): boolean {
-    return this.editable() && this.hoverSectionId() === sectionId && this.selectedSectionId() !== sectionId;
+    if (!this.editable()) return false;
+    const active = this.activeSectionId() ?? this.selectedSectionId();
+    return this.hoverSectionId() === sectionId && active !== sectionId;
   }
 
   isSectionInvalid(sectionId: string): boolean {
@@ -456,7 +515,7 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const sections = this.sections();
+    const sections = this.document().pages[0]?.sections ?? [];
     const fromIndex = sections.findIndex((s) => s.id === dragId);
     let toIndex = sections.findIndex((s) => s.id === targetSectionId);
     if (fromIndex < 0 || toIndex < 0) {
@@ -522,6 +581,14 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
     if (style.borderBottom) result['border-bottom'] = style.borderBottom;
     if (style.opacity) result['opacity'] = style.opacity;
     return result;
+  }
+
+  /**
+   * Namespace for the author's browser storage. Scoping by site and section
+   * keeps two portfolios (or two code blocks) from reading each other's data.
+   */
+  codeStorageKey(section: PortfolioSection): string {
+    return `${this.document().site.id}:${section.id}`;
   }
 
   getSectionInnerStyles(section: PortfolioSection): Record<string, string> {
