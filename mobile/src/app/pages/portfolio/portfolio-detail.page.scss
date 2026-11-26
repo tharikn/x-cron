@@ -1,37 +1,217 @@
-.preview-status {
+:host {
+  display: block;
+}
+
+ion-content {
+  --padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+ion-toolbar {
+  --min-height: 50px;
+}
+
+ion-title {
+  font-size: 0.95rem;
+  padding-inline: 0.25rem;
+}
+
+ion-button {
+  --padding-start: 0.6rem;
+  --padding-end: 0.6rem;
+  height: 36px;
+  min-height: 36px;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+ion-segment {
+  width: 100%;
+  padding: 0 12px 6px;
+}
+
+ion-segment-button {
+  --min-height: 34px;
+  min-height: 34px;
+  font-size: 0.82rem;
+}
+
+.status-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  padding-top: 0.6rem;
+  padding-bottom: 0.35rem;
+  font-size: 0.78rem;
 }
 
 .slug-label {
-  font-size: 0.85rem;
-  color: var(--xcron-muted, #9a94b8);
+  min-width: 0;
+  overflow: hidden;
+  color: var(--xcron-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.renderer-wrap {
-  border-top: 1px solid var(--xcron-line, #2a2440);
+.unsaved {
+  color: var(--xcron-accent);
+  font-weight: 600;
+}
+
+.issue-count {
+  color: var(--xcron-danger, #f43f5e);
+  font-weight: 600;
+}
+
+.tool-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-top: 0.35rem;
+  padding-bottom: 0.5rem;
+}
+
+.tool-row ion-button {
+  flex: 0 0 auto;
+}
+
+.selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.6rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: 12px;
+  background: var(--xcron-wash, rgba(124, 92, 255, 0.08));
+}
+
+.selection-bar__label {
+  display: flex;
+  flex: 1 1 8rem;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.selection-bar__label small {
+  color: var(--xcron-muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.selection-bar__tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.1rem;
+}
+
+.selection-bar ion-button {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.canvas {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 12px 28px;
+  overflow: hidden;
+}
+
+.canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(var(--xcron-line, #2a2440) 1px, transparent 1px),
+    linear-gradient(90deg, var(--xcron-line, #2a2440) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, #000 0, transparent 90%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, transparent 90%);
+}
+
+.canvas > * {
+  position: relative;
+  z-index: 1;
+}
+
+.canvas app-portfolio-renderer {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.canvas app-portfolio-renderer .pf {
+  width: 100%;
+  max-width: 100%;
+}
+
+.canvas--preview {
+  padding: 0;
+}
+
+.canvas--preview::before {
+  display: none;
 }
 
 .empty-state {
-  text-align: center;
   padding: 2rem 1rem;
-  color: var(--xcron-muted, #9a94b8);
+  color: var(--xcron-muted);
+  text-align: center;
 }
 
-.image-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0 1rem 0.5rem;
+ion-modal.pf-sheet {
+  --background: var(--xcron-bg-elevated);
+  --color: var(--xcron-ink);
+  --border-radius: 18px 18px 0 0;
 }
 
-.image-upload {
-  padding: 0.55rem 0.9rem;
-  border: 1px dashed var(--xcron-line-strong, #4a4268);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  color: var(--xcron-muted, #9a94b8);
-  cursor: pointer;
+/* Larger touch targets for the builder handles without changing public output. */
+::ng-deep .pf--editable .pf-builder-label__grip {
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 1rem;
+}
+
+::ng-deep .pf--editable .pf-builder-quick__btn {
+  width: 30px;
+  height: 30px;
+}
+
+::ng-deep .pf--editable .pf-builder-label,
+::ng-deep .pf--editable .pf-builder-quick {
+  max-width: calc(100% - 16px);
+}
+
+@media (max-width: 360px) {
+  ion-title {
+    font-size: 0.85rem;
+  }
+
+  ion-button {
+    --padding-start: 0.45rem;
+    --padding-end: 0.45rem;
+    font-size: 0.76rem;
+  }
+
+  .canvas {
+    padding: 8px 8px 24px;
+  }
 }

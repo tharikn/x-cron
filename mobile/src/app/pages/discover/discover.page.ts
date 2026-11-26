@@ -21,7 +21,6 @@ import {
   IonSearchbar,
   IonSelect,
   IonSelectOption,
-  IonSpinner,
   IonText,
   IonTitle,
   IonToggle,
@@ -44,6 +43,7 @@ import { ViewedJobsService } from '../../core/services/viewed-jobs.service';
 import { JobCardComponent } from '../../shared/job-card/job-card.component';
 import { LocationTypeaheadComponent } from '../../shared/location-typeahead/location-typeahead.component';
 import { JobListSkeletonComponent } from '../../shared/skeleton/job-list-skeleton.component';
+import { XcronSpinnerComponent } from '../../shared/xcron-spinner/xcron-spinner.component';
 
 const PAGE_SIZE = 8;
 
@@ -84,7 +84,7 @@ const EMPTY_QUERY: JobSearchQuery = {
     IonTitle,
     IonButton,
     IonIcon,
-    IonSpinner,
+    XcronSpinnerComponent,
     IonContent,
     IonSearchbar,
     IonList,

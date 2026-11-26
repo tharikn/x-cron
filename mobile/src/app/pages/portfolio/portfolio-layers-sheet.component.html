@@ -1,0 +1,53 @@
+<div class="sheet">
+  <div class="sheet__head">
+    <div>
+      <h2>Sections</h2>
+      <p>Tap a row to edit. Drag the grip on the canvas to reorder.</p>
+    </div>
+    <ion-button fill="clear" size="small" (click)="dismiss.emit()">Close</ion-button>
+  </div>
+
+  <div class="list">
+    @for (section of sections(); track section.id; let i = $index) {
+      <div class="layer" [class.layer--selected]="section.id === selectedId()" [class.layer--hidden]="!!section.hidden">
+        <button type="button" class="layer__main" (click)="selectSection.emit(section.id)">
+          <ion-icon name="layers-outline"></ion-icon>
+          <span>
+            <strong>{{ label(section) }}</strong>
+            <small>{{ section.variant }}{{ section.hidden ? ' · hidden' : '' }}</small>
+          </span>
+        </button>
+        <div class="layer__tools">
+          <ion-button
+            fill="clear"
+            size="small"
+            aria-label="Move up"
+            [disabled]="i === 0"
+            (click)="reorder.emit({ index: i, offset: -1 })"
+          >
+            <ion-icon name="arrow-up-outline"></ion-icon>
+          </ion-button>
+          <ion-button
+            fill="clear"
+            size="small"
+            aria-label="Move down"
+            [disabled]="i === sections().length - 1"
+            (click)="reorder.emit({ index: i, offset: 1 })"
+          >
+            <ion-icon name="arrow-down-outline"></ion-icon>
+          </ion-button>
+          <ion-button
+            fill="clear"
+            size="small"
+            [attr.aria-label]="section.hidden ? 'Show section' : 'Hide section'"
+            (click)="toggleVisibility.emit(section.id)"
+          >
+            <ion-icon [name]="section.hidden ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+    } @empty {
+      <p class="empty">No sections yet. Add one from the toolbar.</p>
+    }
+  </div>
+</div>

@@ -4,18 +4,22 @@
 
 .public {
   display: block;
-  width: 100%;
+  /* Bleed past the app shell padding on both sides. Keep width auto: an
+     explicit width with negative inline margins is over-constrained, so the
+     browser ignores the right negative margin and leaves a visible strip. */
   margin-inline: calc(-1 * var(--xcron-pad-x));
   min-height: 60vh;
+  position: relative;
 }
 
 .state {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 0.5rem;
-  min-height: 60vh;
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 65vh;
+  padding: 2.5rem 1.5rem;
   text-align: center;
   color: var(--xcron-muted);
 }
@@ -24,14 +28,149 @@
   margin: 0;
   font-family: var(--xcron-font-display);
   color: var(--xcron-ink);
-  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.state p {
-  margin: 0;
-}
-
-.state a {
-  color: var(--xcron-primary);
+.state__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffb84d;
+  background: rgba(245, 165, 36, 0.12);
+  border: 1px solid rgba(245, 165, 36, 0.24);
+  border-radius: 9999px;
+}
+
+.state__desc {
+  margin: 0;
+  font-size: 1rem;
+  max-width: 440px;
+  line-height: 1.5;
+}
+
+.state__timer {
+  margin: 0.5rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--xcron-ink-soft);
+
+  strong {
+    color: var(--xcron-primary);
+  }
+}
+
+.state__count {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #f5a524;
+}
+
+.state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.state__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--xcron-radius, 12px);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &--primary {
+    background: var(--xcron-cta-gradient, linear-gradient(90deg, #7c5cff 0%, #f5a524 100%));
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 16px rgba(124, 92, 255, 0.35);
+
+    &:hover {
+      box-shadow: 0 6px 20px rgba(124, 92, 255, 0.5);
+      transform: translateY(-1px);
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: var(--xcron-muted);
+    border: 1px solid var(--xcron-line, rgba(255, 255, 255, 0.12));
+
+    &:hover {
+      color: var(--xcron-ink);
+      border-color: var(--xcron-line-strong, rgba(255, 255, 255, 0.25));
+    }
+  }
+}
+
+.state__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(124, 92, 255, 0.2);
+  border-top-color: var(--xcron-primary, #7c5cff);
+  border-radius: 50%;
+  animation: pf-spin 0.8s linear infinite;
+}
+
+@keyframes pf-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Floating Platform Badge: Ensures live site visitors can always navigate back to the main app */
+.pf-platform-badge {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 999;
+  pointer-events: auto;
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8125rem;
+    color: #f0eef6;
+    background: rgba(13, 9, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(124, 92, 255, 0.25);
+    border-radius: 9999px;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+    strong {
+      color: #7c5cff;
+      font-weight: 700;
+    }
+
+    &:hover {
+      background: rgba(20, 15, 38, 0.95);
+      border-color: rgba(245, 165, 36, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(124, 92, 255, 0.3);
+    }
+  }
+
+  &__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+  }
 }

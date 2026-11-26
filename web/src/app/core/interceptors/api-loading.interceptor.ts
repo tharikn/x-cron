@@ -2,6 +2,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { finalize } from 'rxjs';
 import { ApiLoadingService } from '../services/api-loading.service';
+import { isAppApiRequest } from '../utils/api-request';
 
 /** Background / fire-and-forget calls — do not drive the global skeleton overlay. */
 const SILENT_PATH_MARKERS = [
@@ -23,7 +24,7 @@ function isSilent(url: string): boolean {
 }
 
 export const apiLoadingInterceptor: HttpInterceptorFn = (req, next) => {
-  if (isSilent(req.url)) {
+  if (!isAppApiRequest(req.url) || isSilent(req.url)) {
     return next(req);
   }
 

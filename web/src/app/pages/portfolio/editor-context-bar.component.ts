@@ -368,11 +368,13 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
       flex-wrap: wrap;
-      min-height: 40px;
-      padding: 4px 12px;
-      background: color-mix(in srgb, var(--xcron-bg-elevated) 92%, var(--xcron-wash));
+      min-height: 48px;
+      padding: 6px 16px;
+      background:
+        radial-gradient(500px 120px at 50% -60%, color-mix(in srgb, var(--xcron-primary) 16%, transparent), transparent 70%),
+        color-mix(in srgb, var(--xcron-bg-elevated) 92%, var(--xcron-wash));
       border-bottom: 1px solid var(--xcron-line);
     }
 
@@ -454,21 +456,35 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       padding: 0;
       border: 1px solid transparent;
-      border-radius: 7px;
+      border-radius: 0.6rem;
       background: transparent;
       color: var(--xcron-muted);
       cursor: pointer;
-      transition: background 120ms ease, color 120ms ease;
+      transition:
+        background 160ms var(--xcron-ease),
+        color 160ms var(--xcron-ease),
+        border-color 160ms var(--xcron-ease),
+        transform 160ms var(--xcron-ease);
+    }
+
+    .cb-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .cb-btn:focus-visible {
+      outline: none;
+      border-color: var(--xcron-primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--xcron-primary) 18%, transparent);
     }
 
     .cb-btn--sm {
-      width: 24px;
-      height: 22px;
-      border-radius: 5px;
+      width: 26px;
+      height: 24px;
+      border-radius: 0.4rem;
     }
 
     .cb-btn:hover:not(:disabled) {
@@ -515,9 +531,15 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       cursor: pointer;
     }
 
-    .cb-btn-pill:hover {
+    .cb-btn-pill:hover,
+    .cb-btn-pill:focus-visible {
       border-color: var(--xcron-primary);
       color: var(--xcron-primary);
+    }
+
+    .cb-btn-pill:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--xcron-primary) 18%, transparent);
     }
 
     .cb-swatch {
@@ -554,7 +576,7 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
     }
 
     .cb-swatch__dot--empty {
-      background: conic-gradient(#ef4444, #f59e0b, #22c55e, #3b82f6, #8b5cf6, #ef4444);
+      background: var(--xcron-cta-gradient);
     }
 
     .cb-swatch__text {
@@ -638,6 +660,19 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
     .cb-anchor-chip--on {
       border-color: var(--xcron-primary);
       color: var(--xcron-ink);
+    }
+
+    @media (max-width: 620px) {
+      .cb {
+        justify-content: flex-start;
+        padding: 8px 10px;
+      }
+
+      .cb-btn,
+      .cb-btn-pill,
+      .cb-swatch {
+        min-height: 44px;
+      }
     }
   `,
 })

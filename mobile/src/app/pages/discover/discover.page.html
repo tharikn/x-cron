@@ -23,7 +23,7 @@
         (click)="resumeLaunch.launch()"
       >
         @if (resumeLaunch.busy()) {
-          <ion-spinner slot="start" name="crescent"></ion-spinner>
+          <app-xcron-spinner slot="start" [size]="22" />
         } @else {
           <ion-icon slot="start" name="document-text-outline"></ion-icon>
         }

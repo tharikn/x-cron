@@ -1,0 +1,60 @@
+<div class="sheet">
+  <div class="sheet__head">
+    <div>
+      <h2>Edit {{ typeLabel }}</h2>
+      @if (locale()) {
+        <ion-select
+          class="locale-select"
+          [value]="locale()"
+          interface="popover"
+          aria-label="Editing locale"
+          (ionChange)="localeChange.emit($any($event.detail.value))"
+        >
+          @for (code of locales(); track code) {
+            <ion-select-option [value]="code">{{ code }}</ion-select-option>
+          }
+        </ion-select>
+      }
+    </div>
+    <ion-button fill="clear" size="small" (click)="dismiss.emit()">Close</ion-button>
+  </div>
+
+  @if (draft(); as current) {
+    <div class="sheet__body">
+      <ion-item>
+        <ion-label position="stacked">Variant</ion-label>
+        <ion-select [value]="current.variant" interface="popover" (ionChange)="setVariant($any($event.detail.value))">
+          @for (variant of variants(); track variant) {
+            <ion-select-option [value]="variant">{{ variant }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+
+      @for (field of fields(); track field.key) {
+        <app-portfolio-field
+          [field]="field"
+          [locale]="locale()"
+          [value]="current.props[field.key]"
+          (valueChange)="setProp(field.key, $event)"
+        />
+      }
+
+      <ion-item>
+        <ion-toggle
+          justify="space-between"
+          [checked]="!!current.hidden"
+          (ionChange)="setHidden($any($event.detail.checked))"
+        >
+          Hide this section
+        </ion-toggle>
+      </ion-item>
+    </div>
+
+    <div class="sheet__foot">
+      <ion-button expand="block" (click)="submit()">
+        <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+        Apply changes
+      </ion-button>
+    </div>
+  }
+</div>

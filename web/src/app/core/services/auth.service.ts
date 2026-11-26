@@ -12,6 +12,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { csrfHeaders } from '../utils/csrf';
 import { TabSessionService } from './tab-session.service';
+import { CSRF_COOKIE } from '../utils/security-constants';
 
 export interface AuthUser {
   id: string;
@@ -304,6 +305,13 @@ export class AuthService {
       localStorage.removeItem(SESSION_REFRESH_KEY);
       localStorage.removeItem(LEGACY_TOKEN_KEY);
       localStorage.removeItem(LEGACY_REFRESH_KEY);
+      // Drop the readable CSRF twin so a stale cookie from a previous
+      // origin/session can't make hasCookieSession() report a phantom session.
+      try {
+        document.cookie = `${CSRF_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+      } catch {
+        // ignore
+      }
     }
   }
 

@@ -17,13 +17,13 @@ const DEFAULTS: Omit<PreferenceRecord, 'updatedAt'> = {
   remotePreferred: false,
   interfaceLocale: 'en',
   sort: 'newest',
-  theme: 'system',
+  theme: 'light',
 };
 
 function normalizeTheme(value: unknown): ThemePreference {
   return THEMES.includes(value as ThemePreference)
     ? (value as ThemePreference)
-    : 'system';
+    : 'light';
 }
 
 @Injectable()

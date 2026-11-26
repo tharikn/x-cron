@@ -1,0 +1,21 @@
+<div class="sheet">
+  <div class="sheet__head">
+    <div>
+      <h2>Add section</h2>
+      <p>Choose a block to place on the canvas.</p>
+    </div>
+    <ion-button fill="clear" size="small" (click)="dismiss.emit()">Close</ion-button>
+  </div>
+
+  <div class="grid">
+    @for (component of components(); track component.type) {
+      <button type="button" class="tile" (click)="selectSection.emit(component.type)">
+        <ion-icon name="add-circle-outline"></ion-icon>
+        <strong>{{ component.label }}</strong>
+        <small>{{ component.description }}</small>
+      </button>
+    } @empty {
+      <p class="empty">Section types are unavailable. Check your connection and retry.</p>
+    }
+  </div>
+</div>

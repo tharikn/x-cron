@@ -73,7 +73,7 @@ Guards remain UX-only (`employerGuard` / `adminGuard`); API `@Roles` is authorit
 | Deep links | `DeepLinkService` + Manifest `https://x-cron.onrender.com` + `xcron://`; maps jobs, applications, feedback, Doc 10 aliases |
 | FCM + notification routing | `NotificationsService` — register/rotate when `fcmEnabled`; tap → `pathFromPayload` |
 | Resume / file upload | Apply profiles are **no CV**; import OCR uses Capacitor file/camera. Progress/retry for CV N/A |
-| Network + resume | `ConnectivityService` offline banner; app resume refreshes session/inbox |
+| Network + resume | `ConnectivityService` offline warning toast; app resume refreshes session/inbox |
 | Token storage | Access in memory; refresh cookie / Bearer restore — encrypted vault deferred |
 | Permissions | Notifications / camera requested at feature use (prefs + import) |
 | Version / minSdk | `android/app/build.gradle` `versionCode` / `versionName`; Capacitor `minSdkVersion` from variables |
@@ -88,7 +88,7 @@ Guards remain UX-only (`employerGuard` / `adminGuard`); API `@Roles` is authorit
 | Auth interceptor + single-flight refresh | `auth.interceptor` + `AuthService.refreshPromise` |
 | Correlation ID | Client `correlationInterceptor` (`X-Request-Id`); API `CorrelationIdMiddleware`; errors may show `(ref: …)` via `friendlyHttpMessage` |
 | Route guards | `employerGuard`, `adminGuard` |
-| Skeleton / empty / offline / retry | Shared skeleton components; offline banner; page Refresh actions |
+| Skeleton / empty / offline / retry | Shared skeleton components; offline warning toast; page Refresh actions |
 | Route overlay enter | **Web:** left→right (`shared/route-enter` on shell + Settings panel). **Mobile/Android:** bottom→top (`xcron-nav-animation` Ionic `navAnimation` + tab `ionTabsDidChange`). Path-change only; `prefers-reduced-motion` skips |
 | Feature flags | Env toggles (`AI_*`, `fcmEnabled`, payment gateway) — not a client flag SDK |
 

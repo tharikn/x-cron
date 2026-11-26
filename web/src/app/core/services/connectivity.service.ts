@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-/** Browser online/offline for shared retry banners (SSR-safe). */
+/** Browser online/offline signal for warning toasts and retry UI (SSR-safe). */
 @Injectable({ providedIn: 'root' })
 export class ConnectivityService {
   readonly online = signal(

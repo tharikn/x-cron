@@ -1,10 +1,14 @@
 import { isPlatformBrowser } from '@angular/common';
 import {
   Component,
+  ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   PLATFORM_ID,
+  ViewChild,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -30,12 +34,14 @@ import { OnboardingService } from './core/services/onboarding.service';
 import { SeekerService } from './core/services/seeker.service';
 import { ResumeLaunchService } from './core/services/resume-launch.service';
 import { SiteService } from './core/services/site.service';
+import { ThemePreference, ThemeService } from './core/services/theme.service';
 import { ToastService } from './core/services/toast.service';
 import { TrackingService } from './core/services/tracking.service';
 import { GetAppCtaComponent } from './shared/get-app-cta/get-app-cta.component';
 import { HelpChatComponent } from './shared/help-chat/help-chat.component';
 import { RouteEnterDirective } from './shared/route-enter/route-enter.directive';
 import { ApiLoadingSkeletonComponent } from './shared/skeleton/api-loading-skeleton.component';
+import { XcronSpinnerComponent } from './shared/xcron-spinner/xcron-spinner.component';
 import { ThemePromptComponent } from './shared/theme-prompt/theme-prompt.component';
 import { PortalChoicePromptComponent } from './shared/portal-choice/portal-choice-prompt.component';
 
@@ -62,6 +68,7 @@ const FOOTER_ITEM_KEYS: Record<string, string> = {
     HelpChatComponent,
     RouteEnterDirective,
     ApiLoadingSkeletonComponent,
+    XcronSpinnerComponent,
     ThemePromptComponent,
     PortalChoicePromptComponent,
   ],
@@ -74,6 +81,7 @@ export class App implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly locale = inject(LocaleService);
   private readonly site = inject(SiteService);
+  private readonly theme = inject(ThemeService);
   private readonly apiLoading = inject(ApiLoadingService);
   private readonly toastService = inject(ToastService);
   private readonly notifications = inject(NotificationsService);
@@ -84,6 +92,10 @@ export class App implements OnInit, OnDestroy {
   private readonly tracking = inject(TrackingService);
   private navSub?: Subscription;
   private notifPollId: ReturnType<typeof setInterval> | null = null;
+  private lastOnline: boolean | null = null;
+
+  @ViewChild('themePref') private themePref?: ElementRef<HTMLElement>;
+  @ViewChild('languagePref') private languagePref?: ElementRef<HTMLElement>;
   private readonly onVisChange = () => {
     if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
       void this.pollNotifications();
@@ -91,8 +103,11 @@ export class App implements OnInit, OnDestroy {
   };
 
   readonly menuOpen = signal(false);
+  readonly themeMenuOpen = signal(false);
+  readonly languageMenuOpen = signal(false);
   readonly navigating = signal(false);
   readonly isBareRoute = signal(false);
+  readonly hideFooter = signal(false);
   readonly apiBusy = this.apiLoading.visible;
   readonly toasts = this.toastService.messages;
   readonly themePromptOpen = this.onboarding.themePromptOpen;
@@ -124,8 +139,27 @@ export class App implements OnInit, OnDestroy {
     return label.slice(0, 2).toUpperCase();
   });
   readonly languageLabel = this.locale.languageLabel;
+  readonly languageOptions = this.locale.languages;
+  readonly currentLanguage = this.locale.language;
+  readonly themePreference = this.theme.preference;
+  readonly themeOptions: ThemePreference[] = ['system', 'light', 'dark', 'warm'];
   readonly footer = this.site.footer;
   readonly notifUnread = this.notifications.unreadCount;
+
+  constructor() {
+    // Offline is a transient warning popup, not a persistent layout banner.
+    effect(() => {
+      if (!isPlatformBrowser(this.platformId)) return;
+      const online = this.online();
+      if (this.lastOnline === online) return;
+      this.lastOnline = online;
+      if (!online) {
+        this.toastService.warning(
+          'You’re offline — reconnect to search, apply, or sync.',
+        );
+      }
+    });
+  }
 
   ngOnInit(): void {
     void this.locale.hydrate();
@@ -149,6 +183,7 @@ export class App implements OnInit, OnDestroy {
       )
       .subscribe((e) => {
         if (e instanceof NavigationStart) {
+          this.closePrefMenus();
           this.navigating.set(true);
           return;
         }
@@ -159,15 +194,22 @@ export class App implements OnInit, OnDestroy {
   }
 
   private syncBareRoute(): void {
-    this.isBareRoute.set(
-      this.hasBareShell(this.router.routerState.snapshot.root),
-    );
+    const root = this.router.routerState.snapshot.root;
+    this.isBareRoute.set(this.hasBareShell(root));
+    this.hideFooter.set(this.hasHideFooter(root));
   }
 
   private hasBareShell(route: ActivatedRouteSnapshot): boolean {
     return (
       route.data['bareShell'] === true ||
       route.children.some((child) => this.hasBareShell(child))
+    );
+  }
+
+  private hasHideFooter(route: ActivatedRouteSnapshot): boolean {
+    return (
+      route.data['hideFooter'] === true ||
+      route.children.some((child) => this.hasHideFooter(child))
     );
   }
 
@@ -225,8 +267,60 @@ export class App implements OnInit, OnDestroy {
   }
 
   openMenu(): void {
+    this.closePrefMenus();
     this.menuOpen.set(true);
     this.lockBody();
+  }
+
+  toggleThemeMenu(): void {
+    const open = !this.themeMenuOpen();
+    this.closePrefMenus();
+    this.themeMenuOpen.set(open);
+  }
+
+  toggleLanguageMenu(): void {
+    const open = !this.languageMenuOpen();
+    this.closePrefMenus();
+    this.languageMenuOpen.set(open);
+  }
+
+  closePrefMenus(): void {
+    this.themeMenuOpen.set(false);
+    this.languageMenuOpen.set(false);
+  }
+
+  selectTheme(pref: ThemePreference): void {
+    this.closePrefMenus();
+    void this.theme.setPreference(pref);
+  }
+
+  selectLanguage(code: string): void {
+    this.locale.setLanguage(code);
+    this.closePrefMenus();
+  }
+
+  themeLabelKey(pref: ThemePreference): string {
+    return this.theme.labelKey(pref);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as Node | null;
+    if (!target) return;
+    if (this.themeMenuOpen() && !this.themePref?.nativeElement.contains(target)) {
+      this.themeMenuOpen.set(false);
+    }
+    if (
+      this.languageMenuOpen() &&
+      !this.languagePref?.nativeElement.contains(target)
+    ) {
+      this.languageMenuOpen.set(false);
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.closePrefMenus();
   }
 
   buildResume(event: Event): void {

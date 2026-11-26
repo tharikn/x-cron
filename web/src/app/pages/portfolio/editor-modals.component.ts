@@ -77,16 +77,16 @@ export interface CommandItem {
       display: grid;
       place-items: center;
       padding: 16px;
-      background: rgba(5, 3, 14, 0.65);
+      background: color-mix(in srgb, var(--xcron-bg) 74%, transparent);
       backdrop-filter: blur(4px);
     }
 
     .m-dialog {
       width: min(560px, 100%);
-      border-radius: 14px;
+      border-radius: var(--xcron-radius);
       border: 1px solid var(--xcron-line-strong);
       background: var(--xcron-bg-elevated);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      box-shadow: var(--xcron-shadow-hover);
       overflow: hidden;
       animation: m-in 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
     }
@@ -131,9 +131,14 @@ export interface CommandItem {
       cursor: pointer;
     }
 
-    .m-close:hover {
+    .m-close:hover,
+    .m-close:focus-visible {
       background: var(--xcron-wash);
       color: var(--xcron-ink);
+    }
+
+    .m-close:focus-visible {
+      outline: 1px solid var(--xcron-primary);
     }
 
     .picker-grid {
@@ -317,7 +322,7 @@ export class EditorSectionPickerComponent {
       display: grid;
       place-items: center;
       padding: 16px;
-      background: rgba(5, 3, 14, 0.65);
+      background: color-mix(in srgb, var(--xcron-bg) 74%, transparent);
       backdrop-filter: blur(4px);
     }
 
@@ -325,10 +330,10 @@ export class EditorSectionPickerComponent {
       width: min(520px, 100%);
       max-height: 85vh;
       overflow-y: auto;
-      border-radius: 14px;
+      border-radius: var(--xcron-radius);
       border: 1px solid var(--xcron-line-strong);
       background: var(--xcron-bg-elevated);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      box-shadow: var(--xcron-shadow-hover);
     }
 
     .m-head {
@@ -371,9 +376,14 @@ export class EditorSectionPickerComponent {
       cursor: pointer;
     }
 
-    .m-close:hover {
+    .m-close:hover,
+    .m-close:focus-visible {
       background: var(--xcron-wash);
       color: var(--xcron-ink);
+    }
+
+    .m-close:focus-visible {
+      outline: 1px solid var(--xcron-primary);
     }
 
     .ai-form,
@@ -582,7 +592,7 @@ export class EditorAiModalComponent {
       display: grid;
       place-items: center;
       padding: 16px;
-      background: rgba(5, 3, 14, 0.65);
+      background: color-mix(in srgb, var(--xcron-bg) 74%, transparent);
       backdrop-filter: blur(4px);
     }
 
@@ -590,10 +600,10 @@ export class EditorAiModalComponent {
       width: min(520px, 100%);
       max-height: 80vh;
       overflow-y: auto;
-      border-radius: 14px;
+      border-radius: var(--xcron-radius);
       border: 1px solid var(--xcron-line-strong);
       background: var(--xcron-bg-elevated);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      box-shadow: var(--xcron-shadow-hover);
     }
 
     .m-head {
@@ -798,16 +808,16 @@ export class EditorMediaModalComponent {
       justify-content: center;
       align-items: flex-start;
       padding: 12vh 16px 16px;
-      background: rgba(5, 3, 14, 0.65);
+      background: color-mix(in srgb, var(--xcron-bg) 74%, transparent);
       backdrop-filter: blur(4px);
     }
 
     .cmd-dialog {
       width: min(500px, 100%);
-      border-radius: 14px;
+      border-radius: var(--xcron-radius);
       border: 1px solid var(--xcron-line-strong);
       background: var(--xcron-bg-elevated);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      box-shadow: var(--xcron-shadow-hover);
       overflow: hidden;
     }
 
@@ -952,16 +962,16 @@ export class EditorCommandPaletteComponent {
       display: grid;
       place-items: center;
       padding: 16px;
-      background: rgba(5, 3, 14, 0.65);
+      background: color-mix(in srgb, var(--xcron-bg) 74%, transparent);
       backdrop-filter: blur(4px);
     }
 
     .m-dialog {
       width: min(440px, 100%);
-      border-radius: 14px;
+      border-radius: var(--xcron-radius);
       border: 1px solid var(--xcron-line-strong);
       background: var(--xcron-bg-elevated);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      box-shadow: var(--xcron-shadow-hover);
     }
 
     .m-head {

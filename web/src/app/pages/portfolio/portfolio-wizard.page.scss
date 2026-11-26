@@ -151,7 +151,7 @@ h1 {
 }
 
 .mode-switch button.is-active {
-  background: var(--xcron-primary);
+  background: var(--xcron-primary-strong);
   color: var(--xcron-bg);
 }
 
@@ -320,7 +320,7 @@ h1 {
 }
 
 .pager-btn.is-active {
-  background: var(--xcron-primary);
+  background: var(--xcron-primary-strong);
   border-color: var(--xcron-primary);
   color: var(--xcron-bg);
   font-weight: 700;
@@ -401,7 +401,8 @@ h1 {
   transform: translateY(-2px);
 }
 
-.tpl-card--selected {
+.tpl-card--selected,
+.tpl-card:focus-within {
   border-color: var(--xcron-primary);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--xcron-primary) 25%, transparent);
 }
@@ -424,6 +425,12 @@ h1 {
   pointer-events: none;
   user-select: none;
   overflow: hidden;
+}
+
+.tpl-card__preview-placeholder {
+  width: 100%;
+  height: 35rem; // 14rem thumb at the 0.4 preview scale.
+  background: var(--xcron-bg-elevated);
 }
 
 .tpl-card__thumb::after {
@@ -455,7 +462,8 @@ h1 {
 }
 
 .tpl-card:hover .tpl-card__actions-overlay,
-.tpl-card--hovered .tpl-card__actions-overlay {
+.tpl-card--hovered .tpl-card__actions-overlay,
+.tpl-card:focus-within .tpl-card__actions-overlay {
   opacity: 1;
   pointer-events: auto;
   transform: scale(1);
@@ -489,7 +497,7 @@ h1 {
   }
 
   &--primary {
-    background: var(--xcron-primary);
+    background: var(--xcron-primary-strong);
     border-color: var(--xcron-primary);
     color: var(--xcron-bg);
 
@@ -508,7 +516,7 @@ h1 {
   width: 1.6rem;
   height: 1.6rem;
   border-radius: 50%;
-  background: var(--xcron-primary);
+  background: var(--xcron-primary-strong);
   color: var(--xcron-bg);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--xcron-primary) 40%, transparent);
   z-index: 2;
@@ -741,7 +749,7 @@ h1 {
 }
 
 .device-switch button.is-active {
-  background: var(--xcron-primary);
+  background: var(--xcron-primary-strong);
   color: var(--xcron-bg);
 }
 

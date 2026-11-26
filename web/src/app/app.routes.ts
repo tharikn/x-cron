@@ -158,11 +158,13 @@ export const routes: Routes = [
   {
     path: 'portfolio/:siteId',
     canActivate: [portfolioGuard],
+    data: { hideFooter: true },
     loadComponent: () =>
       import('./pages/portfolio/portfolio-editor.page').then(
         (m) => m.PortfolioEditorPage,
       ),
   },
+  { path: 'p', redirectTo: '', pathMatch: 'full' },
   {
     path: 'p/:slug',
     // Public portfolio is a standalone site: the app shell hides its chrome.

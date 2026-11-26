@@ -1,0 +1,127 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--xcron-bg-elevated);
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--xcron-line);
+  padding-bottom: 0.5rem;
+}
+
+.sheet__head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.sheet__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 0;
+}
+
+.sheet__foot {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--xcron-line);
+}
+
+.group-label {
+  margin: 0.85rem 0 0.4rem;
+  color: var(--xcron-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.preset {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: 10px;
+  background: var(--xcron-wash);
+  color: var(--xcron-ink);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.preset__dots {
+  display: flex;
+  width: 1.35rem;
+  height: 1.35rem;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--xcron-line);
+
+  i {
+    flex: 1;
+  }
+}
+
+.preset__dots::before {
+  content: '';
+  width: 33.33%;
+  background: var(--c1);
+}
+
+.preset__dots::after {
+  content: '';
+  width: 33.33%;
+  background: var(--c2);
+}
+
+.colors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.colors label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: 10px;
+  color: var(--xcron-ink-soft);
+  font-size: 0.85rem;
+}
+
+.colors input[type='color'] {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+ion-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  --background: transparent;
+}

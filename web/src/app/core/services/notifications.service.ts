@@ -460,12 +460,12 @@ export class NotificationsService {
     };
   }
 
-  /** Square X Cron mark for browser / Windows shade (not the plain X favicon). */
+  /** Transparent Xcron JOB mark for browser / Windows shade (light-theme strokes). */
   private osIconUrl(): string {
     if (typeof window === 'undefined') {
-      return '/brand/xcron-logo-mark-square.png';
+      return '/brand/xcron-logo-mark-square-light.png';
     }
-    return `${window.location.origin}/brand/xcron-logo-mark-square.png`;
+    return `${window.location.origin}/brand/xcron-logo-mark-square-light.png`;
   }
 
   /**

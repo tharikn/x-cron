@@ -301,10 +301,12 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      min-height: 48px;
-      padding: 6px 12px;
-      background: var(--xcron-bg-elevated);
+      gap: 10px;
+      min-height: 56px;
+      padding: 8px 16px;
+      background:
+        radial-gradient(420px 160px at 88% -40%, color-mix(in srgb, var(--xcron-accent) 14%, transparent), transparent 70%),
+        var(--xcron-bg-elevated);
       border-bottom: 1px solid var(--xcron-line);
       flex-wrap: wrap;
     }
@@ -332,8 +334,8 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: inline-flex;
       align-items: center;
       gap: 2px;
-      padding: 2px;
-      border-radius: 10px;
+      padding: 3px;
+      border-radius: var(--xcron-radius-sm);
       border: 1px solid var(--xcron-line);
       background: var(--xcron-wash);
     }
@@ -343,25 +345,40 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       padding: 0;
       border: 1px solid transparent;
-      border-radius: 8px;
+      border-radius: var(--xcron-radius-sm);
       background: transparent;
       color: var(--xcron-muted);
       text-decoration: none;
       cursor: pointer;
       transition:
-        background 140ms ease,
-        color 140ms ease,
-        border-color 140ms ease;
+        background 160ms var(--xcron-ease),
+        color 160ms var(--xcron-ease),
+        border-color 160ms var(--xcron-ease),
+        transform 160ms var(--xcron-ease);
+    }
+
+    .tb-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .tb-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .tb-btn:focus-visible {
+      outline: none;
+      border-color: var(--xcron-primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--xcron-primary) 20%, transparent);
     }
 
     .tb-btn--sm {
-      width: 30px;
-      height: 28px;
-      border-radius: 7px;
+      width: 32px;
+      height: 30px;
+      border-radius: 0.6rem;
     }
 
     .tb-btn:hover:not(:disabled) {
@@ -427,18 +444,18 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
     }
 
     .tb-brand__input {
-      width: 148px;
-      min-height: 30px !important;
-      height: 30px;
-      padding: 3px 8px !important;
-      border-radius: 8px !important;
+      width: 168px;
+      min-height: 34px !important;
+      height: 34px;
+      padding: 4px 10px !important;
+      border-radius: var(--xcron-radius-sm) !important;
       border: 1px solid transparent !important;
       background: transparent !important;
       color: var(--xcron-ink);
       font-family: var(--xcron-font-display) !important;
-      font-size: 13.5px !important;
+      font-size: 0.9rem !important;
       font-weight: 700;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.03em;
       text-overflow: ellipsis;
     }
 
@@ -488,13 +505,18 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      height: 32px;
-      padding: 0 8px;
-      border-radius: 8px;
+      height: 36px;
+      padding: 0 9px;
+      border-radius: var(--xcron-radius-sm);
       border: 1px solid var(--xcron-line);
       background: var(--xcron-wash);
       color: var(--xcron-muted);
       cursor: pointer;
+    }
+
+    .tb-locale:focus-within {
+      border-color: var(--xcron-primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--xcron-primary) 18%, transparent);
     }
 
     .tb-locale select {
@@ -514,18 +536,27 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      height: 34px;
-      padding: 0 14px;
+      height: 38px;
+      padding: 0 16px;
       border: 0;
-      border-radius: 9px;
+      border-radius: var(--xcron-radius-sm);
       background: var(--xcron-cta-gradient);
       color: #fff;
-      font-size: 12.5px;
+      font-family: var(--xcron-font-body);
+      font-size: 0.8rem;
       font-weight: 700;
       letter-spacing: 0.01em;
       cursor: pointer;
-      box-shadow: 0 4px 14px color-mix(in srgb, var(--xcron-primary) 32%, transparent);
-      transition: filter 150ms ease, transform 150ms ease, opacity 150ms ease;
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--xcron-primary) 30%, transparent);
+      transition:
+        background 160ms var(--xcron-ease),
+        transform 160ms var(--xcron-ease),
+        opacity 160ms var(--xcron-ease);
+    }
+
+    .tb-publish:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--xcron-primary) 25%, transparent);
     }
 
     .tb-publish:hover:not(:disabled) {
@@ -540,7 +571,31 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
 
     @media (max-width: 960px) {
       .tb-brand__input {
-        width: 110px;
+        width: 120px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .tb {
+        padding: 8px 10px;
+      }
+
+      .tb__group {
+        flex-wrap: wrap;
+      }
+
+      .tb-btn {
+        width: 44px;
+        height: 44px;
+      }
+
+      .tb-btn--sm {
+        width: 40px;
+        height: 40px;
+      }
+
+      .tb-publish {
+        height: 44px;
       }
     }
   `,

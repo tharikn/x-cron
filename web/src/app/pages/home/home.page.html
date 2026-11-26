@@ -1,145 +1,184 @@
 <section class="hero">
   <div class="hero__glow" aria-hidden="true"></div>
-  <p class="brand">X Cron</p>
-  <p class="brand-sub">Jobs</p>
-  <h1 class="hero__quote">{{ 'home.headline' | t }}</h1>
-  <p class="lead">{{ 'home.lead' | t }}</p>
+  <div class="hero__inner">
+    <p class="hero__eyebrow">X Cron Jobs</p>
+    <h1 class="hero__title">{{ 'home.headline' | t }}</h1>
+    <p class="hero__lead">{{ 'home.lead' | t }}</p>
+  </div>
 </section>
 
-<form class="search" (ngSubmit)="search()">
-  <label class="search__field">
-    <span>{{ 'home.keyword' | t }}</span>
-    <input
-      [(ngModel)]="keyword"
-      name="keyword"
-      [placeholder]="'home.keywordPlaceholder' | t"
-    />
-  </label>
-  <label class="search__field">
-    <span>{{ 'home.location' | t }}</span>
-    <app-location-typeahead
-      name="location"
-      [(value)]="location"
-      [placeholder]="'home.locationPlaceholder' | t"
-    />
-  </label>
-  <div class="search__field search__field--sort" #sortField>
-    <span id="home-sort-label">{{ 'home.sort' | t }}</span>
-    <button
-      type="button"
-      class="sort-trigger"
-      [attr.aria-expanded]="sortOpen()"
-      aria-haspopup="listbox"
-      aria-labelledby="home-sort-label"
-      (click)="toggleSort($event)"
-    >
-      {{ sortLabelKey() | t }}
-    </button>
-    @if (sortOpen()) {
-      <ul class="sort-menu" role="listbox" aria-labelledby="home-sort-label">
-        @for (opt of sortOptions; track opt.value) {
-          <li role="presentation">
-            <button
-              type="button"
-              class="sort-option"
-              role="option"
-              [attr.aria-selected]="sort === opt.value"
-              [class.sort-option--active]="sort === opt.value"
-              (click)="pickSort(opt.value)"
-            >
-              {{ opt.labelKey | t }}
-            </button>
-          </li>
-        }
-      </ul>
-    }
+<form class="search" (ngSubmit)="search()" aria-label="Job search">
+  <div class="search__primary">
+    <label class="search__field search__field--grow">
+      <span>{{ 'home.keyword' | t }}</span>
+      <input
+        [(ngModel)]="keyword"
+        name="keyword"
+        [placeholder]="'home.keywordPlaceholder' | t"
+        autocomplete="off"
+      />
+    </label>
+
+    <label class="search__field search__field--grow">
+      <span>{{ 'home.location' | t }}</span>
+      <app-location-typeahead
+        name="location"
+        [(value)]="location"
+        [placeholder]="'home.locationPlaceholder' | t"
+      />
+    </label>
+
+    <div class="search__primary-actions">
+      <button type="submit" class="search__go">{{ 'home.search' | t }}</button>
+    </div>
   </div>
-  <label class="search__field">
-    <span>Job type</span>
-    <select [(ngModel)]="jobType" name="jobType">
-      <option value="">Any type</option>
-      @for (t of jobTypes; track t) {
-        @if (t) {
-          <option [value]="t">{{ formatJobType(t) }}</option>
-        }
-      }
-    </select>
-  </label>
-  <label class="search__field">
-    <span>Category</span>
-    <select [(ngModel)]="category" name="category">
-      <option value="">Any category</option>
-      @for (c of categories(); track c) {
-        <option [value]="c">{{ c }}</option>
-      }
-    </select>
-  </label>
-  <label class="search__field">
-    <span>Skills</span>
-    <input
-      [(ngModel)]="skills"
-      name="skills"
-      placeholder="e.g. excel, sales"
-    />
-  </label>
-  <label class="search__field">
-    <span>Min salary (₹)</span>
-    <input
-      type="number"
-      [(ngModel)]="salaryMin"
-      name="salaryMin"
-      placeholder="e.g. 15000"
-    />
-  </label>
-  <label class="search__field">
-    <span>Posted within</span>
-    <select [(ngModel)]="postedWithin" name="postedWithin">
-      <option value="">Any time</option>
-      <option value="1d">Last 24 hours</option>
-      <option value="7d">Last 7 days</option>
-      <option value="30d">Last 30 days</option>
-    </select>
-  </label>
-  <label class="search__field search__field--check">
-    <input type="checkbox" [(ngModel)]="remote" name="remote" />
-    <span>Remote / WFH</span>
-  </label>
-  <label class="search__field search__field--check">
-    <input type="checkbox" [(ngModel)]="walkInOnly" name="walkInOnly" />
-    <span>Walk-in only</span>
-  </label>
-  <label class="search__field search__field--check">
-    <input type="checkbox" [(ngModel)]="verifiedEmployer" name="verifiedEmployer" />
-    <span>Verified employers</span>
-  </label>
-  <label class="search__field search__field--check">
-    <input type="checkbox" [(ngModel)]="fresher" name="fresher" />
-    <span>Fresher / entry</span>
-  </label>
-  <label class="search__field search__field--check">
-    <input type="checkbox" [(ngModel)]="easyApply" name="easyApply" />
-    <span>Easy apply</span>
-  </label>
-  <div class="search__actions">
-    <button type="button" class="search__clear" (click)="clearFilters()">
-      Clear filters
-    </button>
-    @if (isSignedIn()) {
+
+  <div class="search__toolbar">
+    <div class="search__field search__field--sort" #sortField>
+      <span id="home-sort-label">{{ 'home.sort' | t }}</span>
       <button
         type="button"
-        class="search__clear"
-        [disabled]="savingSearch()"
-        (click)="saveCurrentSearch()"
+        class="sort-trigger"
+        [attr.aria-expanded]="sortOpen()"
+        aria-haspopup="listbox"
+        aria-labelledby="home-sort-label home-sort-current"
+        (click)="toggleSort($event)"
       >
-        Save search
+        <span id="home-sort-current">{{ sortLabelKey() | t }}</span>
       </button>
-    }
-    <button type="submit" class="search__go">{{ 'home.search' | t }}</button>
+      @if (sortOpen()) {
+        <ul class="sort-menu" role="listbox" aria-labelledby="home-sort-label">
+          @for (opt of sortOptions; track opt.value) {
+            <li role="presentation">
+              <button
+                type="button"
+                class="sort-option"
+                role="option"
+                [attr.aria-selected]="sort === opt.value"
+                [class.sort-option--active]="sort === opt.value"
+                (click)="pickSort(opt.value)"
+              >
+                {{ opt.labelKey | t }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="search__toggle"
+      [attr.aria-expanded]="advancedOpen()"
+      aria-controls="advanced-filters"
+      (click)="toggleAdvanced()"
+    >
+      <span>{{ (advancedOpen() ? 'home.hideAdvancedFilters' : 'home.advancedFilters') | t }}</span>
+      @if (advancedFilterCount() > 0) {
+        <span class="search__toggle-count" aria-label="{{ advancedFilterCount() }} active filters">
+          {{ advancedFilterCount() }}
+        </span>
+      }
+    </button>
+
+    <div class="search__toolbar-actions">
+      <button type="button" class="search__clear" (click)="clearFilters()">
+        {{ 'home.clearFilters' | t }}
+      </button>
+      @if (isSignedIn()) {
+        <button
+          type="button"
+          class="search__clear"
+          [disabled]="savingSearch()"
+          (click)="saveCurrentSearch()"
+        >
+          {{ 'home.saveSearch' | t }}
+        </button>
+      }
+    </div>
   </div>
+
+  @if (advancedOpen()) {
+    <div id="advanced-filters" class="search__advanced">
+      <label class="search__field">
+        <span>Job type</span>
+        <select [(ngModel)]="jobType" name="jobType">
+          <option value="">Any type</option>
+          @for (t of jobTypes; track t) {
+            @if (t) {
+              <option [value]="t">{{ formatJobType(t) }}</option>
+            }
+          }
+        </select>
+      </label>
+
+      <label class="search__field">
+        <span>Category</span>
+        <select [(ngModel)]="category" name="category">
+          <option value="">Any category</option>
+          @for (c of categories(); track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="search__field">
+        <span>Skills</span>
+        <input
+          [(ngModel)]="skills"
+          name="skills"
+          placeholder="e.g. excel, sales"
+        />
+      </label>
+
+      <label class="search__field">
+        <span>Min salary (₹)</span>
+        <input
+          type="number"
+          [(ngModel)]="salaryMin"
+          name="salaryMin"
+          placeholder="e.g. 15000"
+        />
+      </label>
+
+      <label class="search__field">
+        <span>Posted within</span>
+        <select [(ngModel)]="postedWithin" name="postedWithin">
+          <option value="">Any time</option>
+          <option value="1d">Last 24 hours</option>
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+        </select>
+      </label>
+
+      <div class="search__checks" role="group" aria-label="Quick filters">
+        <label class="search__field search__field--check">
+          <input type="checkbox" [(ngModel)]="remote" name="remote" />
+          <span>Remote / WFH</span>
+        </label>
+        <label class="search__field search__field--check">
+          <input type="checkbox" [(ngModel)]="walkInOnly" name="walkInOnly" />
+          <span>Walk-in only</span>
+        </label>
+        <label class="search__field search__field--check">
+          <input type="checkbox" [(ngModel)]="verifiedEmployer" name="verifiedEmployer" />
+          <span>Verified employers</span>
+        </label>
+        <label class="search__field search__field--check">
+          <input type="checkbox" [(ngModel)]="fresher" name="fresher" />
+          <span>Fresher / entry</span>
+        </label>
+        <label class="search__field search__field--check">
+          <input type="checkbox" [(ngModel)]="easyApply" name="easyApply" />
+          <span>Easy apply</span>
+        </label>
+      </div>
+    </div>
+  }
 </form>
 
 @if (filterChips().length) {
-  <div class="filter-chips" role="list">
+  <div class="filter-chips" role="list" aria-label="Active filters">
     @for (chip of filterChips(); track chip.key) {
       <button
         type="button"
@@ -152,7 +191,7 @@
       </button>
     }
     <button type="button" class="filter-chip filter-chip--clear" (click)="clearFilters()">
-      Clear all
+      {{ 'home.clearFilters' | t }}
     </button>
   </div>
 }
@@ -184,9 +223,12 @@
       <app-job-list-skeleton [count]="5" [label]="'home.loading' | t" />
     } @else {
       <div class="results-head">
-        <h2>{{ 'home.openRoles' | t }}</h2>
+        <div>
+          <h2>{{ 'home.openRoles' | t }}</h2>
+          <p class="results-head__sub">{{ 'home.resultsLead' | t }}</p>
+        </div>
         <div class="results-head__right">
-          <span class="count">{{ total() }}</span>
+          <span class="count" aria-label="{{ total() }} jobs">{{ total() }}</span>
         </div>
       </div>
 
@@ -236,7 +278,10 @@
             <span class="job-card__cta" aria-hidden="true">{{ 'home.viewRole' | t }}</span>
           </a>
         } @empty {
-          <p class="status">{{ 'home.empty' | t }}</p>
+          <div class="status status--empty">
+            <p class="status__title">{{ 'home.empty' | t }}</p>
+            <p>{{ 'home.emptyLead' | t }}</p>
+          </div>
         }
       </div>
 

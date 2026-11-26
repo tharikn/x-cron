@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import type { OnInit } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -21,12 +22,10 @@ import {
   IonSelectOption,
   IonTitle,
   IonToolbar,
+  ToastController,
 } from '@ionic/angular';
-import type {
-  PortfolioSiteSummary,
-  PortfolioTemplateSummary,
-} from '../../core/models/portfolio.model';
-import { ToastController } from '@ionic/angular';
+
+import type { PortfolioSiteSummary, PortfolioTemplateSummary } from '../../core/models/portfolio.model';
 import { AuthService } from '../../core/services/auth.service';
 import { PortfolioService } from '../../core/services/portfolio.service';
 import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.component';

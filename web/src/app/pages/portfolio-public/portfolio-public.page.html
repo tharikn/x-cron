@@ -1,11 +1,30 @@
 <main class="public">
   @if (loading()) {
-    <div class="state" role="status">Loading portfolio…</div>
+    <div class="state" role="status">
+      <div class="state__spinner"></div>
+      <p>Loading portfolio…</p>
+    </div>
   } @else if (notFound()) {
-    <div class="state">
-      <h1>Portfolio not found</h1>
-      <p>This portfolio is not published, or the link is incorrect.</p>
-      <a href="/">Back to X Cron</a>
+    <div class="state state--faulty" role="alert">
+      <div class="state__badge">404 · Unreachable</div>
+      <h1>Portfolio Not Found</h1>
+      <p class="state__desc">This portfolio link is inactive, unpublished, or has moved.</p>
+      
+      @if (!redirectCancelled()) {
+        <p class="state__timer">
+          Routing you to the <strong>X Cron Jobs</strong> application in 
+          <span class="state__count">{{ countdown() }}s</span>…
+        </p>
+      }
+
+      <div class="state__actions">
+        <a routerLink="/" class="state__btn state__btn--primary">Explore Jobs on X Cron</a>
+        @if (!redirectCancelled()) {
+          <button type="button" class="state__btn state__btn--ghost" (click)="cancelRedirect()">
+            Stay on page
+          </button>
+        }
+      </div>
     </div>
   } @else if (document(); as document) {
     <app-portfolio-renderer
@@ -13,5 +32,13 @@
       [locale]="activeLocale()"
       (interaction)="onInteraction($event)"
     />
+
+    <!-- Floating Platform Badge: Ensures live site visitors can always navigate back to the main app -->
+    <aside class="pf-platform-badge" aria-label="X Cron Jobs platform">
+      <a routerLink="/" class="pf-platform-badge__link" title="Discover opportunities on X Cron Jobs">
+        <span class="pf-platform-badge__dot"></span>
+        <span class="pf-platform-badge__text">Built with <strong>X Cron</strong> · Explore Jobs</span>
+      </a>
+    </aside>
   }
 </main>

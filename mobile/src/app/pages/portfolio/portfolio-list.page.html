@@ -6,118 +6,88 @@
     <ion-title>Portfolios</ion-title>
     <ion-buttons slot="end">
       @if (isSignedIn()) {
-        <ion-button (click)="showCreate.set(!showCreate())">
-          {{ showCreate() ? 'Cancel' : '+ New' }}
-        </ion-button>
+      <ion-button (click)="showCreate.set(!showCreate())"> {{ showCreate() ? 'Cancel' : '+ New' }} </ion-button>
       }
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content class="ion-padding portfolio-list-content">
   @if (!isSignedIn()) {
-    <div class="empty-state">
-      <h2>Sign in required</h2>
-      <p>Sign in to create and manage your dynamic portfolios.</p>
-      <ion-button routerLink="/tabs/account" expand="block">Sign in</ion-button>
-    </div>
-  } @else {
-    @if (showCreate()) {
-      <ion-card class="create-card">
-        <ion-card-header>
-          <ion-card-title>Create Portfolio</ion-card-title>
-          <ion-card-subtitle>Start from a curated template</ion-card-subtitle>
-        </ion-card-header>
-        <ion-card-content>
-          <ion-item>
-            <ion-label position="stacked">Portfolio Name</ion-label>
-            <ion-input
-              [(ngModel)]="form.name"
-              placeholder="e.g. Alex Rivera"
-            ></ion-input>
-          </ion-item>
+  <div class="empty-state">
+    <h2>Sign in required</h2>
+    <p>Sign in to create and manage your dynamic portfolios.</p>
+    <ion-button routerLink="/tabs/account" expand="block">Sign in</ion-button>
+  </div>
+  } @else { @if (showCreate()) {
+  <ion-card class="create-card">
+    <ion-card-header>
+      <ion-card-title>Create Portfolio</ion-card-title>
+      <ion-card-subtitle>Start from a curated template</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Portfolio Name</ion-label>
+        <ion-input [(ngModel)]="form.name" placeholder="e.g. Alex Rivera"></ion-input>
+      </ion-item>
 
-          <ion-item>
-            <ion-label position="stacked">Custom Slug (optional)</ion-label>
-            <ion-input
-              [(ngModel)]="form.slug"
-              placeholder="e.g. alex-rivera"
-            ></ion-input>
-          </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Custom Slug (optional)</ion-label>
+        <ion-input [(ngModel)]="form.slug" placeholder="e.g. alex-rivera"></ion-input>
+      </ion-item>
 
-          <ion-item>
-            <ion-label position="stacked">Template</ion-label>
-            <ion-select [(ngModel)]="form.templateId">
-              @for (t of templates(); track t.id) {
-                <ion-select-option [value]="t.id">
-                  {{ t.name }} ({{ t.category }})
-                </ion-select-option>
-              }
-            </ion-select>
-          </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Template</ion-label>
+        <ion-select [(ngModel)]="form.templateId">
+          @for (t of templates(); track t.id) {
+          <ion-select-option [value]="t.id"> {{ t.name }} ({{ t.category }}) </ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
 
-          <div class="ion-margin-top">
-            <ion-button
-              expand="block"
-              [disabled]="creating()"
-              (click)="createSite()"
-            >
-              {{ creating() ? 'Creating...' : 'Create Portfolio' }}
-            </ion-button>
-          </div>
-        </ion-card-content>
-      </ion-card>
-    }
-
-    @if (loading()) {
-      <app-list-skeleton></app-list-skeleton>
-    } @else if (sites().length === 0) {
-      <div class="empty-state">
-        <h3>No portfolios yet</h3>
-        <p>Create your first dynamic portfolio to share with recruiters.</p>
-        <ion-button (click)="showCreate.set(true)" expand="block">
-          Create Portfolio
+      <div class="ion-margin-top">
+        <ion-button expand="block" [disabled]="creating()" (click)="createSite()">
+          {{ creating() ? 'Creating...' : 'Create Portfolio' }}
         </ion-button>
       </div>
-    } @else {
-      @for (site of sites(); track site.id) {
-        <ion-card>
-          <ion-card-header>
-            <div class="card-header-row">
-              <ion-card-title>{{ site.name }}</ion-card-title>
-              <ion-badge [color]="site.status === 'published' ? 'success' : 'medium'">
-                {{ site.status }}
-              </ion-badge>
-            </div>
-            <ion-card-subtitle>/p/{{ site.slug }}</ion-card-subtitle>
-          </ion-card-header>
-          <ion-card-content>
-            <p class="meta-line">
-              Template: {{ site.template.id }} · {{ site.sectionCount }} sections
-            </p>
-            <p class="meta-line">
-              Updated {{ site.updatedAt | date: 'mediumDate' }}
-            </p>
-            <div class="actions-row">
-              <ion-button
-                size="small"
-                fill="outline"
-                [routerLink]="['/tabs/portfolio', site.id]"
-              >
-                Preview & Edit
-              </ion-button>
-              <ion-button
-                size="small"
-                [color]="site.status === 'published' ? 'warning' : 'primary'"
-                [disabled]="busyId() === site.id"
-                (click)="togglePublish(site)"
-              >
-                {{ site.status === 'published' ? 'Unpublish' : 'Publish' }}
-              </ion-button>
-            </div>
-          </ion-card-content>
-        </ion-card>
-      }
-    }
-  }
+    </ion-card-content>
+  </ion-card>
+  } @if (loading()) {
+  <app-list-skeleton></app-list-skeleton>
+  } @else if (sites().length === 0) {
+  <div class="empty-state">
+    <h3>No portfolios yet</h3>
+    <p>Create your first dynamic portfolio to share with recruiters.</p>
+    <ion-button (click)="showCreate.set(true)" expand="block"> Create Portfolio </ion-button>
+  </div>
+  } @else { @for (site of sites(); track site.id) {
+  <ion-card>
+    <ion-card-header>
+      <div class="card-header-row">
+        <ion-card-title class="card-title">{{ site.name }}</ion-card-title>
+        <ion-badge class="card-badge" [color]="site.status === 'published' ? 'success' : 'medium'">
+          {{ site.status }}
+        </ion-badge>
+      </div>
+      <ion-card-subtitle class="slug-line">/p/{{ site.slug }}</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <p class="meta-line">Template: {{ site.template.id }} · {{ site.sectionCount }} sections</p>
+      <p class="meta-line">Updated {{ site.updatedAt | date: 'mediumDate' }}</p>
+      <div class="actions-row">
+        <ion-button size="small" fill="outline" [routerLink]="['/tabs/portfolio', site.id]">
+          Preview & Edit
+        </ion-button>
+        <ion-button
+          size="small"
+          [color]="site.status === 'published' ? 'warning' : 'primary'"
+          [disabled]="busyId() === site.id"
+          (click)="togglePublish(site)"
+        >
+          {{ site.status === 'published' ? 'Unpublish' : 'Publish' }}
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+  } } }
 </ion-content>

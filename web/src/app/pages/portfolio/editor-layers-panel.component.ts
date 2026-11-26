@@ -73,7 +73,7 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       </div>
 
       <!-- Sections Tree -->
-      <ul class="layers__list" role="listbox" aria-label="Page sections">
+      <ul class="layers__list" role="list" aria-label="Page sections">
         @for (section of sections(); track section.id; let i = $index) {
           <li
             class="lyr-row"
@@ -172,7 +172,7 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
               type="button"
               class="nav-box__toggle"
               (click)="navOpen.update(v => !v)"
-              appTip="Toggle navigation links"
+              [appTip]="'Nav ' + navItems().length + ' — toggle navigation links'"
             >
               <app-editor-icon name="compass" [size]="13" />
               <span>Nav</span>
@@ -271,8 +271,10 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       width: 240px;
       height: 100%;
       background: var(--xcron-bg-elevated);
-      border-right: 1px solid var(--xcron-line);
-      transition: width 180ms cubic-bezier(0.22, 1, 0.36, 1);
+      border: 1px solid var(--xcron-line);
+      border-radius: var(--xcron-radius);
+      box-shadow: var(--xcron-shadow);
+      transition: width 220ms var(--xcron-ease);
       overflow: hidden;
     }
 
@@ -285,9 +287,10 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       align-items: center;
       justify-content: space-between;
       gap: 6px;
-      height: 44px;
-      padding: 0 10px;
+      min-height: 48px;
+      padding: 0 12px;
       border-bottom: 1px solid var(--xcron-line);
+      background: var(--xcron-wash);
       flex-shrink: 0;
     }
 
@@ -331,19 +334,26 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       padding: 0;
-      border: 0;
-      border-radius: 7px;
+      border: 1px solid transparent;
+      border-radius: 0.6rem;
       background: transparent;
       color: var(--xcron-muted);
       cursor: pointer;
+      transition: background 160ms var(--xcron-ease), color 160ms var(--xcron-ease);
     }
 
-    .lyr-btn:hover {
-      background: var(--xcron-wash);
+    .lyr-btn:hover,
+    .lyr-btn:focus-visible {
+      background: color-mix(in srgb, var(--xcron-primary) 10%, transparent);
       color: var(--xcron-ink);
+    }
+
+    .lyr-btn:focus-visible {
+      outline: none;
+      border-color: var(--xcron-primary);
     }
 
     .layers__list {
@@ -363,13 +373,20 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: flex;
       align-items: center;
       gap: 7px;
-      min-height: 36px;
-      padding: 5px 8px;
-      border-radius: 8px;
+      min-height: 40px;
+      padding: 6px 9px;
+      border-radius: var(--xcron-radius-sm);
       border: 1px solid transparent;
       color: var(--xcron-ink);
       cursor: pointer;
-      transition: background 120ms ease, border-color 120ms ease;
+      transition:
+        background 160ms var(--xcron-ease),
+        border-color 160ms var(--xcron-ease),
+        transform 160ms var(--xcron-ease);
+    }
+
+    .lyr-row:hover {
+      transform: translateY(-1px);
     }
 
     .layers--collapsed .lyr-row {
@@ -400,6 +417,12 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
 
     .lyr-row--drag-over {
       border-top: 2px solid var(--xcron-primary);
+    }
+
+    .lyr-row:focus-visible {
+      outline: none;
+      border-color: var(--xcron-primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--xcron-primary) 18%, transparent);
     }
 
     .lyr-grip {
@@ -461,10 +484,10 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       top: 50%;
       transform: translateY(-50%);
       padding: 2px;
-      border-radius: 7px;
+      border-radius: 0.6rem;
       background: var(--xcron-bg-elevated);
-      border: 1px solid var(--xcron-line);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--xcron-line-strong);
+      box-shadow: var(--xcron-shadow);
     }
 
     .lyr-row:hover .lyr-actions,
@@ -486,9 +509,14 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       cursor: pointer;
     }
 
-    .lyr-act:hover:not(:disabled) {
+    .lyr-act:hover:not(:disabled),
+    .lyr-act:focus-visible:not(:disabled) {
       background: var(--xcron-wash);
       color: var(--xcron-ink);
+    }
+
+    .lyr-act:focus-visible {
+      outline: 1px solid var(--xcron-primary);
     }
 
     .lyr-act:disabled {
@@ -512,16 +540,20 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       justify-content: center;
       gap: 6px;
       width: 100%;
-      height: 32px;
+      height: 36px;
       padding: 0;
       border: 1px dashed var(--xcron-line-strong);
-      border-radius: 8px;
+      border-radius: var(--xcron-radius-sm);
       background: transparent;
       color: var(--xcron-muted);
-      font-size: 12px;
+      font-family: var(--xcron-font-body);
+      font-size: 0.78rem;
       font-weight: 600;
       cursor: pointer;
-      transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+      transition:
+        border-color 160ms var(--xcron-ease),
+        color 160ms var(--xcron-ease),
+        background 160ms var(--xcron-ease);
     }
 
     .lyr-add-btn:hover {
@@ -604,6 +636,39 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: flex;
       flex-direction: column;
       gap: 1px;
+    }
+
+    @media (max-width: 620px) {
+      .layers,
+      .layers--collapsed {
+        width: 100%;
+        height: 220px;
+      }
+
+      .layers__list {
+        flex-direction: row;
+        gap: 6px;
+        padding: 8px;
+        overflow-x: auto;
+      }
+
+      .lyr-row,
+      .layers--collapsed .lyr-row {
+        flex: 0 0 190px;
+        justify-content: flex-start;
+        min-height: 44px;
+        padding: 8px;
+      }
+
+      .layers--collapsed .lyr-meta,
+      .layers--collapsed .layers__title,
+      .layers--collapsed .layers__count {
+        display: grid;
+      }
+
+      .nav-box {
+        display: none;
+      }
     }
   `,
 })

@@ -2,11 +2,105 @@
   @if (!isBareRoute()) {
   <header class="top">
     <a class="logo" routerLink="/" (click)="closeMenu()">
-      <span class="logo__x">X Cron</span>
-      <span class="logo__jobs">Jobs</span>
+      <img
+        class="logo__img logo__img--on-light"
+        src="brand/xcron-job-header-light.png"
+        alt="Xcron JOB"
+        width="120"
+        height="40"
+      />
+      <img
+        class="logo__img logo__img--on-dark"
+        src="brand/xcron-job-header.png"
+        alt=""
+        aria-hidden="true"
+        width="120"
+        height="40"
+      />
     </a>
 
     <div class="top__actions">
+      <div class="pref-wrap" #themePref>
+        <button
+          type="button"
+          class="pref-btn"
+          data-testid="nav-theme"
+          [attr.aria-label]="'nav.theme' | t"
+          [attr.aria-expanded]="themeMenuOpen()"
+          aria-controls="nav-theme-options"
+          (click)="toggleThemeMenu()"
+        >
+          <svg class="pref-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+            <path d="M12 3.8a8.2 8.2 0 0 1 0 16.4V3.8Z" fill="currentColor" opacity="0.85" />
+          </svg>
+        </button>
+        @if (themeMenuOpen()) {
+          <div class="pref-pop" id="nav-theme-options" role="group" [attr.aria-label]="'nav.theme' | t">
+            <p class="pref-pop__title">{{ 'nav.theme' | t }}</p>
+            <div class="pref-pop__list">
+              @for (opt of themeOptions; track opt) {
+                <button
+                  type="button"
+                  class="pref-opt"
+                  [attr.aria-pressed]="themePreference() === opt"
+                  (click)="selectTheme(opt)"
+                >
+                  <span class="pref-opt__swatch" [attr.data-theme-option]="opt" aria-hidden="true"></span>
+                  <span>{{ themeLabelKey(opt) | t }}</span>
+                  @if (themePreference() === opt) {
+                    <span class="pref-opt__check" aria-hidden="true">✓</span>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="pref-wrap" #languagePref>
+        <button
+          type="button"
+          class="pref-btn"
+          data-testid="nav-language"
+          [attr.aria-label]="'nav.language' | t"
+          [attr.aria-expanded]="languageMenuOpen()"
+          aria-controls="nav-language-options"
+          (click)="toggleLanguageMenu()"
+        >
+          <svg class="pref-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+            <path
+              d="M3.7 12h16.6M12 3.5c2.2 2.4 3.3 5.3 3.3 8.5s-1.1 6.1-3.3 8.5c-2.2-2.4-3.3-5.3-3.3-8.5s1.1-6.1 3.3-8.5Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+        @if (languageMenuOpen()) {
+          <div class="pref-pop" id="nav-language-options" role="group" [attr.aria-label]="'nav.language' | t">
+            <p class="pref-pop__title">{{ 'nav.language' | t }}</p>
+            <div class="pref-pop__list">
+              @for (lang of languageOptions(); track lang.code) {
+                <button
+                  type="button"
+                  class="pref-opt"
+                  [attr.aria-pressed]="currentLanguage() === lang.code"
+                  (click)="selectLanguage(lang.code)"
+                >
+                  <span>{{ lang.nativeName || lang.name }}</span>
+                  @if (currentLanguage() === lang.code) {
+                    <span class="pref-opt__check" aria-hidden="true">✓</span>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
       @if (isSignedIn()) {
         <a
           routerLink="/notifications"
@@ -80,13 +174,7 @@
       aria-busy="true"
       [attr.aria-label]="'common.loading' | t"
     >
-      <span class="handoff-overlay__spin" aria-hidden="true"></span>
-    </div>
-  }
-
-  @if (!online()) {
-    <div class="offline-banner" role="status" aria-live="polite">
-      You’re offline — reconnect to search, apply, or sync.
+      <app-xcron-spinner />
     </div>
   }
 
@@ -103,9 +191,24 @@
     class="drawer"
     [class.drawer--open]="menuOpen()"
     [attr.aria-hidden]="!menuOpen()"
+    [attr.inert]="!menuOpen() ? '' : null"
   >
     <div class="drawer__head">
-      <p class="drawer__brand">X Cron</p>
+      <img
+        class="drawer__brand drawer__brand--on-light"
+        src="brand/xcron-job-header-light.png"
+        alt="Xcron JOB"
+        width="120"
+        height="40"
+      />
+      <img
+        class="drawer__brand drawer__brand--on-dark"
+        src="brand/xcron-job-header.png"
+        alt=""
+        aria-hidden="true"
+        width="120"
+        height="40"
+      />
       <button type="button" class="drawer__close" [attr.aria-label]="'menu.close' | t" (click)="closeMenu()">
         ×
       </button>
@@ -251,7 +354,7 @@
     <router-outlet />
   </main>
 
-  @if (!isBareRoute() && !isAdmin()) {
+  @if (!isBareRoute() && !isAdmin() && !hideFooter()) {
     <footer class="foot" aria-label="Site footer">
       <app-get-app-cta variant="band" />
       @if (footer(); as foot) {
@@ -352,6 +455,7 @@
         class="toast"
         [class.toast--success]="toast.tone === 'success' || toast.tone === 'default'"
         [class.toast--error]="toast.tone === 'error'"
+        [class.toast--warning]="toast.tone === 'warning'"
         (click)="dismissToast(toast.id)"
       >
         {{ toast.text }}

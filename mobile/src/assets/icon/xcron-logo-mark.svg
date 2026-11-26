@@ -1,5 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="X Cron Jobs">
-  <rect width="512" height="512" rx="112" fill="#0a0a0a"/>
-  <text x="256" y="250" text-anchor="middle" font-family="Syne, Arial Black, sans-serif" font-size="118" font-weight="800" letter-spacing="-7" fill="#f4f4f2">X Cron</text>
-  <text x="256" y="310" text-anchor="middle" font-family="DM Sans, Arial, sans-serif" font-size="28" font-weight="600" letter-spacing="6" fill="#bdbdbd">JOBS</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Xcron JOB">
+  <g fill="none" stroke="#1a1430" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M176 102l-24-24M336 102l24-24" stroke-width="13"/>
+    <circle cx="256" cy="226" r="116" stroke-width="12"/>
+    <circle cx="256" cy="226" r="94" stroke="#b6b0c4" stroke-width="4"/>
+    <path d="M256 226v-56M256 226l38 26" stroke-width="12"/>
+    <circle cx="256" cy="226" r="8" fill="#1a1430" stroke="none"/>
+    <path d="M256 100v14M382 226h-14M256 352v-14M130 226h14" stroke="#9a92ae" stroke-width="7"/>
+  </g>
+  <path d="M150 366h212" stroke="#cfc6e8" stroke-width="3"/>
+  <text x="256" y="418" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" fill="#1a1430">Xcron</text>
+  <text x="256" y="458" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="600" letter-spacing="15" fill="#1a1430">J O B</text>
 </svg>

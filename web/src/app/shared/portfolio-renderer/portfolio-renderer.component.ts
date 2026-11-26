@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   input,
@@ -50,6 +51,12 @@ function luminance(hex: string): number {
   return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
 }
 
+function contrastRatio(a: number, b: number): number {
+  const lighter = Math.max(a, b);
+  const darker = Math.min(a, b);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 /**
  * Public portfolio renderer — enhanced with visual-builder capabilities.
  *
@@ -66,6 +73,7 @@ function luminance(hex: string): number {
   imports: [CommonModule, FormsModule, PortfolioCustomCodeComponent],
   templateUrl: './portfolio-renderer.component.html',
   styleUrl: './portfolio-renderer.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
@@ -161,7 +169,14 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
   readonly accentInk = computed(() => {
     const accent = this.tokens().accent;
     try {
-      return luminance(accent) > 0.55 ? '#111111' : '#ffffff';
+      // Pick the ink by actual WCAG contrast against the accent: a fixed
+      // luminance cutoff makes mid-tone accents (e.g. #2f6fed) fail AA.
+      const background = luminance(accent);
+      const whiteRatio = contrastRatio(background, 1);
+      const darkRatio = contrastRatio(background, luminance('#111111'));
+      if (whiteRatio >= 4.5) return '#ffffff';
+      if (darkRatio >= 4.5) return '#111111';
+      return whiteRatio >= darkRatio ? '#ffffff' : '#111111';
     } catch {
       return '#ffffff';
     }
@@ -198,6 +213,8 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
   readonly dragSectionId = signal<string | null>(null);
   readonly dragOverSectionId = signal<string | null>(null);
   readonly dragPosition = signal<'above' | 'below' | null>(null);
+  /** Touch-first drag state used by the grip; also works with a mouse. */
+  readonly pointerDragOffsetPx = signal(0);
 
   /** Hover section */
   readonly hoverSectionId = signal<string | null>(null);
@@ -242,9 +259,13 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
     if (typeof value !== 'string') return '';
     const raw = value.trim();
     if (!raw) return '';
-    if (raw.startsWith('#')) return raw;
-    if (/^(https:\/\/|http:\/\/|mailto:|tel:)/i.test(raw)) return raw;
-    return '';
+    if (raw.startsWith('#')) {
+      return /^#[A-Za-z0-9_-]*$/.test(raw) ? raw : '';
+    }
+    if (raw.startsWith('//')) return '';
+    if (!/^(https:\/\/|http:\/\/|mailto:|tel:)/i.test(raw)) return '';
+    if (/[\u0000-\u001f\u007f]/.test(raw)) return '';
+    return raw;
   }
 
   image(value: unknown): string {
@@ -254,12 +275,14 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
 
   mailto(value: unknown): string {
     const email = this.plain(value);
-    return email ? `mailto:${email}` : '';
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return '';
+    return `mailto:${email}`;
   }
 
   tel(value: unknown): string {
     const phone = this.plain(value);
-    return phone ? `tel:${phone.replace(/[^+\d]/g, '')}` : '';
+    const digits = phone.replace(/[^+\d]/g, '');
+    return digits ? `tel:${digits}` : '';
   }
 
   plain(value: unknown): string {
@@ -542,6 +565,96 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
     this.resetDrag();
   }
 
+  /**
+   * Touch-first reorder from the grip. Pointer events work with fingers, pens
+   * and mice in Android WebViews, where HTML5 drag/drop is unreliable.
+   */
+  onGripPointerDown(event: PointerEvent, sectionId: string): void {
+    if (!this.editable() || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+    this.pointerDrag = {
+      sectionId,
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      targetSectionId: sectionId,
+      position: null,
+    };
+    this.dragSectionId.set(sectionId);
+    this.pointerDragOffsetPx.set(0);
+  }
+
+  onGripPointerMove(event: PointerEvent): void {
+    const drag = this.pointerDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+
+    this.pointerDragOffsetPx.set(event.clientY - drag.startY);
+
+    const elements = Array.from(
+      this.mainRef?.nativeElement.querySelectorAll<HTMLElement>('.pf-section') ?? [],
+    );
+    let targetSectionId = drag.sectionId;
+    let position: 'above' | 'below' = 'below';
+    for (const element of elements) {
+      if (!element.id) continue;
+      const rect = element.getBoundingClientRect();
+      if (event.clientY < rect.top + rect.height / 2) {
+        targetSectionId = element.id;
+        position = 'above';
+        break;
+      }
+      targetSectionId = element.id;
+      position = 'below';
+    }
+    drag.targetSectionId = targetSectionId;
+    drag.position = position;
+    this.dragOverSectionId.set(targetSectionId);
+    this.dragPosition.set(position);
+  }
+
+  onGripPointerUp(event: PointerEvent): void {
+    const drag = this.pointerDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+
+    const sections = this.document().pages[0]?.sections ?? [];
+    const fromIndex = sections.findIndex((section) => section.id === drag.sectionId);
+    let toIndex = sections.findIndex((section) => section.id === drag.targetSectionId);
+    if (toIndex >= 0) {
+      if (drag.position === 'below') toIndex += 1;
+      if (fromIndex < toIndex) toIndex -= 1;
+    }
+    if (fromIndex >= 0 && toIndex >= 0 && fromIndex !== toIndex) {
+      this.sectionReorder.emit({ fromIndex, toIndex });
+    }
+    this.resetPointerDrag();
+  }
+
+  onGripPointerCancel(): void {
+    this.resetPointerDrag();
+  }
+
+  pointerDragStyle(sectionId: string): string | null {
+    if (!this.pointerDrag || this.pointerDrag.sectionId !== sectionId) return null;
+    return `translateY(${this.pointerDragOffsetPx()}px)`;
+  }
+
+  private resetPointerDrag(): void {
+    this.pointerDrag = null;
+    this.pointerDragOffsetPx.set(0);
+    this.resetDrag();
+  }
+
+  private pointerDrag: {
+    sectionId: string;
+    pointerId: number;
+    startY: number;
+    targetSectionId: string;
+    position: 'above' | 'below' | null;
+  } | null = null;
+
   private resetDrag(): void {
     this.dragSectionId.set(null);
     this.dragOverSectionId.set(null);
@@ -572,7 +685,8 @@ export class PortfolioRendererComponent implements AfterViewInit, OnDestroy {
     if (style.paddingBottom) result['padding-bottom'] = style.paddingBottom;
     if (style.textAlign) result['text-align'] = style.textAlign;
     if (style.backgroundImage) {
-      result['background-image'] = `url(${style.backgroundImage})`;
+      // Quote the URL to neutralise any stray characters that slipped through.
+      result['background-image'] = `url("${style.backgroundImage.replace(/"/g, '%22')}")`;
       result['background-size'] = style.backgroundSize || 'cover';
       result['background-position'] = style.backgroundPosition || 'center';
       result['background-repeat'] = 'no-repeat';

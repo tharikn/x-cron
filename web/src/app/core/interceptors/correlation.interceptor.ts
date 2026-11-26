@@ -1,5 +1,6 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
+import { isAppApiRequest } from '../utils/api-request';
 
 function newRequestId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -10,6 +11,9 @@ function newRequestId(): string {
 
 /** Attach X-Request-Id and stamp correlationId onto HttpErrorResponse. */
 export const correlationInterceptor: HttpInterceptorFn = (req, next) => {
+  // Keep custom headers off third-party origins so their CORS preflight passes.
+  if (!isAppApiRequest(req.url)) return next(req);
+
   const id = req.headers.get('X-Request-Id') || newRequestId();
   return next(req.clone({ setHeaders: { 'X-Request-Id': id } })).pipe(
     catchError((err: unknown) => {

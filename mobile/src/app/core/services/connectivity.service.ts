@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 
-/** Browser + Capacitor online/offline for retry banners. */
+/** Browser + Capacitor online/offline signal for warning toasts and retry UI. */
 @Injectable({ providedIn: 'root' })
 export class ConnectivityService {
   readonly online = signal(

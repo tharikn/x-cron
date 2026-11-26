@@ -93,7 +93,16 @@
         <!-- Section label badge & left-click menu trigger (editor only) -->
         @if (editable()) {
           <div class="pf-builder-label">
-            <span class="pf-builder-label__grip" title="Drag to reorder">⠿</span>
+            <span
+              class="pf-builder-label__grip"
+              title="Drag to reorder"
+              role="button"
+              [style.transform]="pointerDragStyle(section.id)"
+              (pointerdown)="onGripPointerDown($event, section.id)"
+              (pointermove)="onGripPointerMove($event)"
+              (pointerup)="onGripPointerUp($event)"
+              (pointercancel)="onGripPointerCancel()"
+            >⠿</span>
             <span class="pf-builder-label__type">{{ section.type }}</span>
             <span class="pf-builder-label__variant">{{ section.variant }}</span>
             @if (sectionIssueCount(section.id) > 0) {
@@ -191,6 +200,8 @@
                   <img
                     [src]="image(section.props['imageUrl'])"
                     [alt]="getDisplayValue(section, 'imageAlt')"
+                    width="1200"
+                    height="900"
                     loading="eager"
                     decoding="async"
                   />
@@ -277,7 +288,14 @@
                   <article class="pf-project">
                     @if (image(row['imageUrl'])) {
                       <div class="pf-project__media">
-                        <img [src]="image(row['imageUrl'])" alt="" loading="lazy" decoding="async" />
+                        <img
+                          [src]="image(row['imageUrl'])"
+                          alt=""
+                          width="800"
+                          height="500"
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </div>
                     }
                     <div class="pf-project__body">
@@ -475,6 +493,8 @@
                       <img
                         [src]="image(row['url'])"
                         [alt]="rowText(row, 'alt')"
+                        width="600"
+                        height="450"
                         loading="lazy"
                         decoding="async"
                       />

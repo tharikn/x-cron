@@ -1,7 +1,7 @@
 <section class="page">
   @if (busy()) {
     <div class="auth-loading-overlay" role="status" aria-live="polite" aria-busy="true" data-testid="login-spinner">
-      <span class="sk sk--btn-bar auth-loading-overlay__bar" aria-hidden="true"></span>
+      <app-xcron-spinner />
     </div>
   }
   <div
@@ -55,44 +55,46 @@
         <button type="button" class="secondary" (click)="logout()">Sign out</button>
       </div>
     } @else if (isSignedIn() && needsAdminLogin()) {
-      <div class="panel">
-        <p>Signed in as {{ profileName() }}</p>
-        <p class="role">This session is not admin. Enter the admin password below for Dashboard / History.</p>
-        <button type="button" class="secondary" (click)="logout()">Sign out</button>
+      <div class="auth-card">
+        <div class="panel auth-panel">
+          <p>Signed in as <strong>{{ profileName() }}</strong></p>
+          <p class="role">This session is not admin. Enter the admin password below for Dashboard / History.</p>
+          <button type="button" class="secondary" (click)="logout()">Sign out</button>
+        </div>
+        <form class="form auth-form" (ngSubmit)="signInAdmin()">
+          <label>
+            <span>Admin email</span>
+            <input
+              type="email"
+              [(ngModel)]="adminEmail"
+              name="adminEmail"
+              placeholder="superadmin@xcron.app"
+              required
+              autocomplete="username"
+            />
+          </label>
+          <label>
+            <span>Password</span>
+            <input
+              type="password"
+              [(ngModel)]="adminPassword"
+              name="adminPassword"
+              placeholder="••••••••"
+              required
+              minlength="8"
+              autocomplete="current-password"
+            />
+          </label>
+          <button type="submit" [disabled]="busy()">
+            @if (busy()) {
+              <span class="sk sk--btn-bar" aria-hidden="true"></span>
+              Signing in…
+            } @else {
+              Switch to admin
+            }
+          </button>
+        </form>
       </div>
-      <form class="form" (ngSubmit)="signInAdmin()">
-        <label>
-          <span>Admin email</span>
-          <input
-            type="email"
-            [(ngModel)]="adminEmail"
-            name="adminEmail"
-            placeholder="superadmin@xcron.app"
-            required
-            autocomplete="username"
-          />
-        </label>
-        <label>
-          <span>Password</span>
-          <input
-            type="password"
-            [(ngModel)]="adminPassword"
-            name="adminPassword"
-            placeholder="••••••••"
-            required
-            minlength="8"
-            autocomplete="current-password"
-          />
-        </label>
-        <button type="submit" [disabled]="busy()">
-          @if (busy()) {
-            <span class="sk sk--btn-bar" aria-hidden="true"></span>
-            Signing in…
-          } @else {
-            Switch to admin
-          }
-        </button>
-      </form>
     } @else if (isSignedIn() && mode() !== 'admin') {
       <nav class="hub-tabs" aria-label="Account sections">
         <button
@@ -850,57 +852,16 @@
         }
       }
     } @else if (needsAdminLogin() || mode() === 'admin') {
-      <form class="form" (ngSubmit)="signInAdmin()">
-        <label>
-          <span>Admin email</span>
-          <input
-            type="email"
-            [(ngModel)]="adminEmail"
-            name="adminEmail"
-            placeholder="superadmin@xcron.app"
-            required
-            autocomplete="username"
-          />
-        </label>
-        <label>
-          <span>Password</span>
-          <input
-            type="password"
-            [(ngModel)]="adminPassword"
-            name="adminPassword"
-            placeholder="••••••••"
-            required
-            minlength="8"
-            autocomplete="current-password"
-          />
-        </label>
-        <button type="submit" [disabled]="busy()">
-          @if (busy()) {
-            <span class="sk sk--btn-bar" aria-hidden="true"></span>
-            Signing in…
-          } @else {
-            Sign in as admin
-          }
-        </button>
-      </form>
-      @if (!needsAdminLogin()) {
-        <button type="button" class="text-link" (click)="setMode('account')">
-          ← Back to account sign in
-        </button>
-      }
-    } @else {
-      @if (accountForm() === 'login') {
-        <form class="form" (ngSubmit)="submitAccount()">
+      <div class="auth-card">
+        <form class="form auth-form" (ngSubmit)="signInAdmin()">
           <label>
-            <span>Username</span>
+            <span>Admin email</span>
             <input
-              type="text"
-              [(ngModel)]="username"
-              name="username"
-              placeholder="Enter Username"
+              type="email"
+              [(ngModel)]="adminEmail"
+              name="adminEmail"
+              placeholder="superadmin@xcron.app"
               required
-              minlength="3"
-              maxlength="32"
               autocomplete="username"
             />
           </label>
@@ -908,8 +869,8 @@
             <span>Password</span>
             <input
               type="password"
-              [(ngModel)]="password"
-              name="password"
+              [(ngModel)]="adminPassword"
+              name="adminPassword"
               placeholder="••••••••"
               required
               minlength="8"
@@ -920,116 +881,165 @@
             @if (busy()) {
               <span class="sk sk--btn-bar" aria-hidden="true"></span>
               Signing in…
-            } @else if (needsEmployerSignIn()) {
-              Employer sign in
             } @else {
-              Login
+              Sign in as admin
             }
           </button>
         </form>
-
-        <div class="signup-block">
-          <p class="signup-block__label">New here?</p>
-          <button type="button" class="secondary signup-block__btn" (click)="setAccountForm('register')">
-            Sign Up → Create new account
-          </button>
-        </div>
-      } @else {
-        <form class="form" (ngSubmit)="submitAccount()">
-          <label>
-            <span>Username</span>
-            <input
-              type="text"
-              [(ngModel)]="username"
-              name="username"
-              placeholder="Enter Username"
-              required
-              minlength="3"
-              maxlength="32"
-              autocomplete="username"
-            />
-          </label>
-          <label>
-            <span>Password</span>
-            <input
-              type="password"
-              [(ngModel)]="password"
-              name="password"
-              placeholder="••••••••"
-              required
-              minlength="8"
-              autocomplete="new-password"
-            />
-          </label>
-          <label>
-            <span>Confirm password</span>
-            <input
-              type="password"
-              [(ngModel)]="confirmPassword"
-              name="confirmPassword"
-              placeholder="••••••••"
-              required
-              minlength="8"
-              autocomplete="new-password"
-            />
-          </label>
-          <fieldset class="role-choice">
-            <legend>I am a</legend>
-            <div class="role-choice__options">
-              <label class="role-choice__option">
-                <input
-                  type="radio"
-                  name="intendedRole"
-                  value="seeker"
-                  [(ngModel)]="intendedRoleChoice"
-                />
-                <span>Job Seeker</span>
-              </label>
-              <label class="role-choice__option">
-                <input
-                  type="radio"
-                  name="intendedRole"
-                  value="employer"
-                  [(ngModel)]="intendedRoleChoice"
-                />
-                <span>Recruiter</span>
-              </label>
-            </div>
-          </fieldset>
-          <button type="submit" [disabled]="busy()">
-            @if (busy()) {
-              <span class="sk sk--btn-bar" aria-hidden="true"></span>
-              Creating…
-            } @else if (intendedRoleChoice === 'employer') {
-              Create recruiter account
-            } @else {
-              Create account
-            }
-          </button>
-        </form>
-
-        <button type="button" class="text-link" (click)="setAccountForm('login')">
-          ← Back to Login
-        </button>
-      }
-
-      <div class="guest-block">
-        <p class="guest-block__label">Guest use</p>
-        @if (googleConfigured()) {
-          <div #googleHost class="google-btn-host" aria-label="Sign in with Google"></div>
-        } @else {
-          <button type="button" class="secondary google-fallback" [disabled]="busy()" (click)="signInWithGoogleStub()">
-            Sign in with Google
-          </button>
+        @if (!needsAdminLogin()) {
+          <div class="auth-links">
+            <button type="button" class="text-link" (click)="setMode('account')">
+              ← Back to account sign in
+            </button>
+          </div>
         }
       </div>
+    } @else {
+      <div class="auth-card">
+        @if (accountForm() === 'login') {
+          <form class="form auth-form" (ngSubmit)="submitAccount()">
+            <label>
+              <span>Username</span>
+              <input
+                type="text"
+                [(ngModel)]="username"
+                name="username"
+                placeholder="Enter Username"
+                required
+                minlength="3"
+                maxlength="32"
+                autocomplete="username"
+              />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                type="password"
+                [(ngModel)]="password"
+                name="password"
+                placeholder="••••••••"
+                required
+                minlength="8"
+                autocomplete="current-password"
+              />
+            </label>
+            <button type="submit" [disabled]="busy()">
+              @if (busy()) {
+                <span class="sk sk--btn-bar" aria-hidden="true"></span>
+                Signing in…
+              } @else if (needsEmployerSignIn()) {
+                Employer sign in
+              } @else {
+                Login
+              }
+            </button>
+          </form>
 
-      <button type="button" class="text-link" (click)="forgotPassword()">
-        Forgot password?
-      </button>
-      <button type="button" class="text-link" (click)="setMode('admin')">
-        Admin password login
-      </button>
+          <div class="signup-block">
+            <p class="signup-block__label">New here?</p>
+            <button type="button" class="secondary signup-block__btn" (click)="setAccountForm('register')">
+              Sign Up → Create new account
+            </button>
+          </div>
+        } @else {
+          <form class="form auth-form" (ngSubmit)="submitAccount()">
+            <label>
+              <span>Username</span>
+              <input
+                type="text"
+                [(ngModel)]="username"
+                name="username"
+                placeholder="Enter Username"
+                required
+                minlength="3"
+                maxlength="32"
+                autocomplete="username"
+              />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                type="password"
+                [(ngModel)]="password"
+                name="password"
+                placeholder="••••••••"
+                required
+                minlength="8"
+                autocomplete="new-password"
+              />
+            </label>
+            <label>
+              <span>Confirm password</span>
+              <input
+                type="password"
+                [(ngModel)]="confirmPassword"
+                name="confirmPassword"
+                placeholder="••••••••"
+                required
+                minlength="8"
+                autocomplete="new-password"
+              />
+            </label>
+            <fieldset class="role-choice">
+              <legend>I am a</legend>
+              <div class="role-choice__options">
+                <label class="role-choice__option">
+                  <input
+                    type="radio"
+                    name="intendedRole"
+                    value="seeker"
+                    [(ngModel)]="intendedRoleChoice"
+                  />
+                  <span>Job Seeker</span>
+                </label>
+                <label class="role-choice__option">
+                  <input
+                    type="radio"
+                    name="intendedRole"
+                    value="employer"
+                    [(ngModel)]="intendedRoleChoice"
+                  />
+                  <span>Recruiter</span>
+                </label>
+              </div>
+            </fieldset>
+            <button type="submit" [disabled]="busy()">
+              @if (busy()) {
+                <span class="sk sk--btn-bar" aria-hidden="true"></span>
+                Creating…
+              } @else if (intendedRoleChoice === 'employer') {
+                Create recruiter account
+              } @else {
+                Create account
+              }
+            </button>
+          </form>
+
+          <button type="button" class="text-link auth-back-link" (click)="setAccountForm('login')">
+            ← Back to Login
+          </button>
+        }
+
+        <div class="guest-block">
+          <p class="guest-block__label">Guest use</p>
+          @if (googleConfigured()) {
+            <div #googleHost class="google-btn-host" aria-label="Sign in with Google"></div>
+          } @else {
+            <button type="button" class="secondary google-fallback" [disabled]="busy()" (click)="signInWithGoogleStub()">
+              Sign in with Google
+            </button>
+          }
+        </div>
+
+        <div class="auth-links">
+          <button type="button" class="text-link" (click)="forgotPassword()">
+            Forgot password?
+          </button>
+          <button type="button" class="text-link" (click)="setMode('admin')">
+            Admin password login
+          </button>
+        </div>
+      </div>
     }
   </div>
 </section>

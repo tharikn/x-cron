@@ -258,10 +258,10 @@ export type ContextMenuScope = 'section' | 'canvas' | 'nav';
       pointer-events: auto;
       min-width: 236px;
       padding: 5px;
-      border-radius: 12px;
+      border-radius: var(--xcron-radius-sm);
       border: 1px solid var(--xcron-line-strong);
       background: var(--xcron-bg-elevated);
-      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
+      box-shadow: var(--xcron-shadow-hover);
       z-index: 10001;
       animation: ctx-pop 110ms cubic-bezier(0.22, 1, 0.36, 1) both;
     }
@@ -335,8 +335,14 @@ export type ContextMenuScope = 'section' | 'canvas' | 'nav';
       transition: background 100ms ease, color 100ms ease;
     }
 
-    .ctx-item:hover:not(:disabled) {
+    .ctx-item:hover:not(:disabled),
+    .ctx-item:focus-visible:not(:disabled) {
       background: color-mix(in srgb, var(--xcron-primary) 13%, transparent);
+    }
+
+    .ctx-item:focus-visible,
+    .ctx-align-btn:focus-visible {
+      outline: 1px solid var(--xcron-primary);
     }
 
     .ctx-item:disabled {

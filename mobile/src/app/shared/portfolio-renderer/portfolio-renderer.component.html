@@ -2,6 +2,8 @@
   class="pf"
   [class.pf--dark]="mode() === 'dark'"
   [class.pf--compact]="tokens().density === 'compact'"
+  [class.pf--editable]="editable()"
+  [class.pf--guides]="editable() && showGuides()"
   [attr.data-device]="device()"
   [attr.lang]="activeLocale()"
   [style.--pf-primary]="tokens().primary"
@@ -13,17 +15,41 @@
   [style.--pf-density]="density()"
   [style.--pf-heading-font]="headingFont()"
   [style.--pf-body-font]="bodyFont()"
+  (contextmenu)="onCanvasContextMenu($event)"
 >
   <a class="pf__skip" href="#pf-main">Skip to content</a>
 
   @if (!fullCodePage()) {
-  <header class="pf__nav">
+  <header class="pf__nav" [class.pf__nav--builder]="editable()" (contextmenu)="onNavContextMenu($event)">
     <div class="pf__nav-inner">
-      <a class="pf__brand" href="#pf-main">{{ brandName() }}</a>
-      @if (navItems().length) {
+      @if (editable()) {
+        <span
+          class="pf__brand pf-editable"
+          contenteditable="true"
+          title="Click to edit site brand name"
+          [attr.data-placeholder]="'Brand Name'"
+          (blur)="onBrandInlineBlur($event)"
+          (keydown)="onInlineKeydown($event, '', '')"
+        >{{ brandName() }}</span>
+      } @else {
+        <a class="pf__brand" href="#pf-main">{{ brandName() }}</a>
+      }
+      @if (navItems().length || editable()) {
         <nav class="pf__links" aria-label="Sections">
           @for (item of navItems(); track item.id) {
-            <a [href]="anchor(item.target)">{{ t(item.label) }}</a>
+            @if (editable()) {
+              <span
+                class="pf__link pf-editable"
+                contenteditable="true"
+                title="Click to edit nav link label"
+                [attr.data-placeholder]="'Nav Link'"
+                (blur)="onNavInlineBlur($event, item.id)"
+                (keydown)="onInlineKeydown($event, '', '')"
+                (click)="onNavLinkClick($event, anchor(item.target))"
+              >{{ t(item.label) }}</span>
+            } @else {
+              <a [href]="anchor(item.target)">{{ t(item.label) }}</a>
+            }
           }
         </nav>
       }
@@ -31,44 +57,141 @@
   </header>
   }
 
-  <main class="pf__main" id="pf-main">
+  <main class="pf__main" id="pf-main" #mainRef>
     @if (!sections().length) {
       <div class="pf__empty">
         <p>This page has no visible sections yet.</p>
+        @if (editable()) {
+          <button type="button" class="pf-empty-add" (click)="emitQuickInsert()">+ Add section</button>
+        }
       </div>
     }
 
-    @for (section of sections(); track section.id) {
+    @for (section of sections(); track section.id; let i = $index) {
       <section
-        [class]="'pf-section pf-section--' + section.type + (fullCodePage() ? ' pf-section--fullcode' : '')"
+        [class]="'pf-section pf-section--' + section.type + (editable() ? ' pf-section--builder' : '') + (fullCodePage() ? ' pf-section--fullcode' : '')"
+        [class.pf-section--selected]="isSectionSelected(section.id)"
+        [class.pf-section--hovered]="isSectionHovered(section.id)"
+        [class.pf-section--invalid]="isSectionInvalid(section.id)"
+        [class.pf-section--dragging]="isDragging(section.id)"
+        [class.pf-section--drag-over-above]="isDragOver(section.id) && getDragPosition() === 'above'"
+        [class.pf-section--drag-over-below]="isDragOver(section.id) && getDragPosition() === 'below'"
         [attr.data-variant]="section.variant"
         [id]="section.id"
+        [attr.draggable]="editable() ? 'true' : null"
         [ngStyle]="getSectionStyles(section)"
+        (click)="onSectionClick($event, section.id)"
+        (contextmenu)="onSectionContextMenu($event, section.id)"
+        (mouseenter)="onSectionMouseEnter(section.id)"
+        (mouseleave)="onSectionMouseLeave(section.id)"
+        (dragstart)="onDragStart($event, section.id)"
+        (dragover)="onDragOver($event, section.id)"
+        (dragleave)="onDragLeave($event, section.id)"
+        (drop)="onDrop($event, section.id)"
+        (dragend)="onDragEnd()"
       >
+        <!-- Section label badge & left-click menu trigger (editor only) -->
+        @if (editable()) {
+          <div class="pf-builder-label">
+            <span
+              class="pf-builder-label__grip"
+              title="Drag to reorder"
+              role="button"
+              [style.transform]="pointerDragStyle(section.id)"
+              (pointerdown)="onGripPointerDown($event, section.id)"
+              (pointermove)="onGripPointerMove($event)"
+              (pointerup)="onGripPointerUp($event)"
+              (pointercancel)="onGripPointerCancel()"
+            >⠿</span>
+            <span class="pf-builder-label__type">{{ section.type }}</span>
+            <span class="pf-builder-label__variant">{{ section.variant }}</span>
+            @if (sectionIssueCount(section.id) > 0) {
+              <span class="pf-builder-label__issue" title="Validation issues">! {{ sectionIssueCount(section.id) }}</span>
+            }
+          </div>
+
+          <div class="pf-builder-quick" (click)="$event.stopPropagation()">
+            <button
+              type="button"
+              class="pf-builder-quick__btn"
+              title="Insert section below"
+              aria-label="Insert section below"
+              (click)="emitQuickInsert(section.id)"
+            >+</button>
+            <button
+              type="button"
+              class="pf-builder-quick__btn"
+              title="Section options"
+              aria-label="Section options"
+              (click)="onSectionMenuButton($event, section.id)"
+            >⋯</button>
+          </div>
+        }
+
         @switch (section.type) {
           @case ('hero') {
-            <div class="pf-inner pf-hero">
+            <div class="pf-inner pf-hero" [ngStyle]="getSectionInnerStyles(section)">
               <div class="pf-hero__copy">
-                @if (has(section.props['eyebrow'])) {
-                  <p class="pf-eyebrow">{{ t(section.props['eyebrow']) }}</p>
+                @if (has(section.props['eyebrow']) || editable()) {
+                  <p
+                    class="pf-eyebrow"
+                    [class.pf-editable]="editable()"
+                    [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'eyebrow')"
+                    [attr.contenteditable]="editable() ? 'true' : null"
+                    [attr.data-placeholder]="'Eyebrow text'"
+                    (click)="startInlineEdit($event, section.id, 'eyebrow')"
+                    (blur)="onInlineBlur($event, section.id, 'eyebrow')"
+                    (keydown)="onInlineKeydown($event, section.id, 'eyebrow')"
+                  >{{ getDisplayValue(section, 'eyebrow') }}</p>
                 }
-                @if (has(section.props['headline'])) {
-                  <h1 class="pf-display">{{ t(section.props['headline']) }}</h1>
+                @if (has(section.props['headline']) || editable()) {
+                  <h1
+                    class="pf-display"
+                    [class.pf-editable]="editable()"
+                    [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'headline')"
+                    [attr.contenteditable]="editable() ? 'true' : null"
+                    [attr.data-placeholder]="'Your Name'"
+                    (click)="startInlineEdit($event, section.id, 'headline')"
+                    (blur)="onInlineBlur($event, section.id, 'headline')"
+                    (keydown)="onInlineKeydown($event, section.id, 'headline')"
+                  >{{ getDisplayValue(section, 'headline') }}</h1>
                 }
-                @if (has(section.props['subheadline'])) {
-                  <p class="pf-hero__sub">{{ t(section.props['subheadline']) }}</p>
+                @if (has(section.props['subheadline']) || editable()) {
+                  <p
+                    class="pf-hero__sub"
+                    [class.pf-editable]="editable()"
+                    [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'subheadline')"
+                    [attr.contenteditable]="editable() ? 'true' : null"
+                    [attr.data-placeholder]="'A brief introduction about yourself'"
+                    (click)="startInlineEdit($event, section.id, 'subheadline')"
+                    (blur)="onInlineBlur($event, section.id, 'subheadline')"
+                    (keydown)="onInlineKeydown($event, section.id, 'subheadline')"
+                  >{{ getDisplayValue(section, 'subheadline') }}</p>
                 }
                 @if (has(section.props['primaryCtaLabel']) && href(section.props['primaryCtaHref'])) {
                   <div class="pf-actions">
                     <a
                       class="pf-btn"
-                      [href]="href(section.props['primaryCtaHref'])"
+                      [class.pf-editable]="editable()"
+                      [href]="editable() ? null : href(section.props['primaryCtaHref'])"
+                      [attr.contenteditable]="editable() ? 'true' : null"
+                      [attr.data-placeholder]="'Button text'"
                       [attr.target]="isExternal(href(section.props['primaryCtaHref'])) ? '_blank' : null"
                       [attr.rel]="isExternal(href(section.props['primaryCtaHref'])) ? 'noopener noreferrer' : null"
                       (click)="onLinkClick($event, href(section.props['primaryCtaHref']), t(section.props['primaryCtaLabel']))"
-                    >
-                      {{ t(section.props['primaryCtaLabel']) }}
-                    </a>
+                      (blur)="onInlineBlur($event, section.id, 'primaryCtaLabel')"
+                      (keydown)="onInlineKeydown($event, section.id, 'primaryCtaLabel')"
+                    >{{ getDisplayValue(section, 'primaryCtaLabel') }}</a>
+                  </div>
+                } @else if (editable()) {
+                  <div class="pf-actions">
+                    <span
+                      class="pf-btn pf-editable pf-editable--empty"
+                      [attr.contenteditable]="'true'"
+                      [attr.data-placeholder]="'Button text'"
+                      (blur)="onInlineBlur($event, section.id, 'primaryCtaLabel')"
+                      (keydown)="onInlineKeydown($event, section.id, 'primaryCtaLabel')"
+                    >{{ getDisplayValue(section, 'primaryCtaLabel') }}</span>
                   </div>
                 }
               </div>
@@ -76,7 +199,9 @@
                 <figure class="pf-hero__media">
                   <img
                     [src]="image(section.props['imageUrl'])"
-                    [alt]="has(section.props['imageAlt']) ? t(section.props['imageAlt']) : ''"
+                    [alt]="getDisplayValue(section, 'imageAlt')"
+                    width="1200"
+                    height="900"
                     loading="eager"
                     decoding="async"
                   />
@@ -86,25 +211,58 @@
           }
 
           @case ('about') {
-            <div class="pf-inner pf-about">
-              @if (has(section.props['title'])) {
-                <h2 class="pf-title">{{ t(section.props['title']) }}</h2>
+            <div class="pf-inner pf-about" [ngStyle]="getSectionInnerStyles(section)">
+              @if (has(section.props['title']) || editable()) {
+                <h2
+                  class="pf-title"
+                  [class.pf-editable]="editable()"
+                  [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'title')"
+                  [attr.contenteditable]="editable() ? 'true' : null"
+                  [attr.data-placeholder]="'About Me'"
+                  (click)="startInlineEdit($event, section.id, 'title')"
+                  (blur)="onInlineBlur($event, section.id, 'title')"
+                  (keydown)="onInlineKeydown($event, section.id, 'title')"
+                >{{ getDisplayValue(section, 'title') }}</h2>
               }
-              @if (has(section.props['body'])) {
-                <p class="pf-prose">{{ t(section.props['body']) }}</p>
+              @if (has(section.props['body']) || editable()) {
+                <p
+                  class="pf-prose"
+                  [class.pf-editable]="editable()"
+                  [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'body')"
+                  [attr.contenteditable]="editable() ? 'true' : null"
+                  [attr.data-placeholder]="'Tell your story here...'"
+                  (click)="startInlineEdit($event, section.id, 'body')"
+                  (blur)="onInlineBlur($event, section.id, 'body')"
+                  (keydown)="onInlineKeydown($event, section.id, 'body')"
+                >{{ getDisplayValue(section, 'body') }}</p>
               }
             </div>
           }
 
           @case ('skills') {
-            <div class="pf-inner">
-              @if (has(section.props['title'])) {
-                <h2 class="pf-title">{{ t(section.props['title']) }}</h2>
+            <div class="pf-inner" [ngStyle]="getSectionInnerStyles(section)">
+              @if (has(section.props['title']) || editable()) {
+                <h2
+                  class="pf-title"
+                  [class.pf-editable]="editable()"
+                  [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'title')"
+                  [attr.contenteditable]="editable() ? 'true' : null"
+                  [attr.data-placeholder]="'What I do'"
+                  (click)="startInlineEdit($event, section.id, 'title')"
+                  (blur)="onInlineBlur($event, section.id, 'title')"
+                  (keydown)="onInlineKeydown($event, section.id, 'title')"
+                >{{ getDisplayValue(section, 'title') }}</h2>
               }
               @if (list(section.props['items']).length) {
                 <ul class="pf-skills">
                   @for (item of list(section.props['items']); track $index) {
-                    <li class="pf-skill">{{ item }}</li>
+                    <li
+                      class="pf-skill"
+                      [class.pf-editable]="editable()"
+                      [attr.contenteditable]="editable() ? 'true' : null"
+                      (blur)="onListInlineBlur($event, section.id, 'items', $index)"
+                      (keydown)="onRowInlineKeydown($event)"
+                    >{{ item }}</li>
                   }
                 </ul>
               }
@@ -112,42 +270,64 @@
           }
 
           @case ('projects') {
-            <div class="pf-inner">
-              @if (has(section.props['title'])) {
-                <h2 class="pf-title">{{ t(section.props['title']) }}</h2>
+            <div class="pf-inner" [ngStyle]="getSectionInnerStyles(section)">
+              @if (has(section.props['title']) || editable()) {
+                <h2
+                  class="pf-title"
+                  [class.pf-editable]="editable()"
+                  [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'title')"
+                  [attr.contenteditable]="editable() ? 'true' : null"
+                  [attr.data-placeholder]="'My Work'"
+                  (click)="startInlineEdit($event, section.id, 'title')"
+                  (blur)="onInlineBlur($event, section.id, 'title')"
+                  (keydown)="onInlineKeydown($event, section.id, 'title')"
+                >{{ getDisplayValue(section, 'title') }}</h2>
               }
               <div class="pf-projects">
                 @for (row of rows(section.props['items']); track $index) {
                   <article class="pf-project">
                     @if (image(row['imageUrl'])) {
                       <div class="pf-project__media">
-                        <img [src]="image(row['imageUrl'])" alt="" loading="lazy" decoding="async" />
+                        <img
+                          [src]="image(row['imageUrl'])"
+                          alt=""
+                          width="800"
+                          height="500"
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </div>
                     }
                     <div class="pf-project__body">
-                      @if (rowText(row, 'title')) {
-                        <h3 class="pf-project__title">
-                          @if (href(row['url'])) {
-                            <a
-                              [href]="href(row['url'])"
-                              [attr.target]="isExternal(href(row['url'])) ? '_blank' : null"
-                              [attr.rel]="isExternal(href(row['url'])) ? 'noopener noreferrer' : null"
-                              (click)="onLinkClick($event, href(row['url']), rowText(row, 'title'))"
-                            >
-                              {{ rowText(row, 'title') }}
-                            </a>
-                          } @else {
-                            {{ rowText(row, 'title') }}
-                          }
-                        </h3>
+                      @if (rowText(row, 'title') || editable()) {
+                        <h3
+                          class="pf-project__title"
+                          [class.pf-editable]="editable()"
+                          [class.pf-editable--empty]="editable() && !rowText(row, 'title')"
+                          [attr.contenteditable]="editable() ? 'true' : null"
+                          [attr.data-placeholder]="'Project title'"
+                          (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'title')"
+                          (keydown)="onRowInlineKeydown($event)"
+                        >{{ rowText(row, 'title') }}</h3>
                       }
-                      @if (rowText(row, 'description')) {
-                        <p class="pf-project__text">{{ rowText(row, 'description') }}</p>
+                      @if (rowText(row, 'description') || editable()) {
+                        <p
+                          class="pf-project__text"
+                          [class.pf-editable]="editable()"
+                          [class.pf-editable--empty]="editable() && !rowText(row, 'description')"
+                          [attr.contenteditable]="editable() ? 'true' : null"
+                          [attr.data-placeholder]="'Project description'"
+                          (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'description')"
+                          (keydown)="onRowInlineKeydown($event)"
+                        >{{ rowText(row, 'description') }}</p>
                       }
                       @if (list(row['tags']).length) {
                         <ul class="pf-tags">
                           @for (tag of list(row['tags']); track $index) {
-                            <li>{{ tag }}</li>
+                            <li
+                              [class.pf-editable]="editable()"
+                              [attr.contenteditable]="editable() ? 'true' : null"
+                            >{{ tag }}</li>
                           }
                         </ul>
                       }
@@ -159,24 +339,65 @@
           }
 
           @case ('experience') {
-            <div class="pf-inner">
-              @if (has(section.props['title'])) {
-                <h2 class="pf-title">{{ t(section.props['title']) }}</h2>
+            <div class="pf-inner" [ngStyle]="getSectionInnerStyles(section)">
+              @if (has(section.props['title']) || editable()) {
+                <h2
+                  class="pf-title"
+                  [class.pf-editable]="editable()"
+                  [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'title')"
+                  [attr.contenteditable]="editable() ? 'true' : null"
+                  [attr.data-placeholder]="'Experience'"
+                  (click)="startInlineEdit($event, section.id, 'title')"
+                  (blur)="onInlineBlur($event, section.id, 'title')"
+                  (keydown)="onInlineKeydown($event, section.id, 'title')"
+                >{{ getDisplayValue(section, 'title') }}</h2>
               }
               <ol class="pf-timeline">
                 @for (row of rows(section.props['items']); track $index) {
                   <li class="pf-timeline__item">
-                    @if (rowText(row, 'period')) {
-                      <p class="pf-timeline__period">{{ rowText(row, 'period') }}</p>
+                    @if (rowText(row, 'period') || editable()) {
+                      <p
+                        class="pf-timeline__period"
+                        [class.pf-editable]="editable()"
+                        [class.pf-editable--empty]="editable() && !rowText(row, 'period')"
+                        [attr.contenteditable]="editable() ? 'true' : null"
+                        [attr.data-placeholder]="'2020 — Present'"
+                        (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'period')"
+                        (keydown)="onRowInlineKeydown($event)"
+                      >{{ rowText(row, 'period') }}</p>
                     }
-                    @if (rowText(row, 'role')) {
-                      <h3 class="pf-timeline__role">{{ rowText(row, 'role') }}</h3>
+                    @if (rowText(row, 'role') || editable()) {
+                      <h3
+                        class="pf-timeline__role"
+                        [class.pf-editable]="editable()"
+                        [class.pf-editable--empty]="editable() && !rowText(row, 'role')"
+                        [attr.contenteditable]="editable() ? 'true' : null"
+                        [attr.data-placeholder]="'Job Title'"
+                        (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'role')"
+                        (keydown)="onRowInlineKeydown($event)"
+                      >{{ rowText(row, 'role') }}</h3>
                     }
-                    @if (rowText(row, 'company')) {
-                      <p class="pf-timeline__company">{{ rowText(row, 'company') }}</p>
+                    @if (rowText(row, 'company') || editable()) {
+                      <p
+                        class="pf-timeline__company"
+                        [class.pf-editable]="editable()"
+                        [class.pf-editable--empty]="editable() && !rowText(row, 'company')"
+                        [attr.contenteditable]="editable() ? 'true' : null"
+                        [attr.data-placeholder]="'Company Name'"
+                        (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'company')"
+                        (keydown)="onRowInlineKeydown($event)"
+                      >{{ rowText(row, 'company') }}</p>
                     }
-                    @if (rowText(row, 'description')) {
-                      <p class="pf-timeline__text">{{ rowText(row, 'description') }}</p>
+                    @if (rowText(row, 'description') || editable()) {
+                      <p
+                        class="pf-timeline__text"
+                        [class.pf-editable]="editable()"
+                        [class.pf-editable--empty]="editable() && !rowText(row, 'description')"
+                        [attr.contenteditable]="editable() ? 'true' : null"
+                        [attr.data-placeholder]="'What you did here...'"
+                        (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'description')"
+                        (keydown)="onRowInlineKeydown($event)"
+                      >{{ rowText(row, 'description') }}</p>
                     }
                   </li>
                 }
@@ -185,24 +406,65 @@
           }
 
           @case ('education') {
-            <div class="pf-inner">
-              @if (has(section.props['title'])) {
-                <h2 class="pf-title">{{ t(section.props['title']) }}</h2>
+            <div class="pf-inner" [ngStyle]="getSectionInnerStyles(section)">
+              @if (has(section.props['title']) || editable()) {
+                <h2
+                  class="pf-title"
+                  [class.pf-editable]="editable()"
+                  [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'title')"
+                  [attr.contenteditable]="editable() ? 'true' : null"
+                  [attr.data-placeholder]="'Education'"
+                  (click)="startInlineEdit($event, section.id, 'title')"
+                  (blur)="onInlineBlur($event, section.id, 'title')"
+                  (keydown)="onInlineKeydown($event, section.id, 'title')"
+                >{{ getDisplayValue(section, 'title') }}</h2>
               }
               <ul class="pf-education">
                 @for (row of rows(section.props['items']); track $index) {
                   <li class="pf-education__item">
-                    @if (rowText(row, 'period')) {
-                      <p class="pf-timeline__period">{{ rowText(row, 'period') }}</p>
+                    @if (rowText(row, 'period') || editable()) {
+                      <p
+                        class="pf-timeline__period"
+                        [class.pf-editable]="editable()"
+                        [class.pf-editable--empty]="editable() && !rowText(row, 'period')"
+                        [attr.contenteditable]="editable() ? 'true' : null"
+                        [attr.data-placeholder]="'2016 — 2020'"
+                        (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'period')"
+                        (keydown)="onRowInlineKeydown($event)"
+                      >{{ rowText(row, 'period') }}</p>
                     }
-                    @if (rowText(row, 'degree')) {
-                      <h3 class="pf-timeline__role">{{ rowText(row, 'degree') }}</h3>
+                    @if (rowText(row, 'degree') || editable()) {
+                      <h3
+                        class="pf-timeline__role"
+                        [class.pf-editable]="editable()"
+                        [class.pf-editable--empty]="editable() && !rowText(row, 'degree')"
+                        [attr.contenteditable]="editable() ? 'true' : null"
+                        [attr.data-placeholder]="'Degree'"
+                        (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'degree')"
+                        (keydown)="onRowInlineKeydown($event)"
+                      >{{ rowText(row, 'degree') }}</h3>
                     }
-                    @if (rowText(row, 'school')) {
-                      <p class="pf-timeline__company">{{ rowText(row, 'school') }}</p>
+                    @if (rowText(row, 'school') || editable()) {
+                      <p
+                        class="pf-timeline__company"
+                        [class.pf-editable]="editable()"
+                        [class.pf-editable--empty]="editable() && !rowText(row, 'school')"
+                        [attr.contenteditable]="editable() ? 'true' : null"
+                        [attr.data-placeholder]="'Institution Name'"
+                        (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'school')"
+                        (keydown)="onRowInlineKeydown($event)"
+                      >{{ rowText(row, 'school') }}</p>
                     }
-                    @if (rowText(row, 'description')) {
-                      <p class="pf-timeline__text">{{ rowText(row, 'description') }}</p>
+                    @if (rowText(row, 'description') || editable()) {
+                      <p
+                        class="pf-timeline__text"
+                        [class.pf-editable]="editable()"
+                        [class.pf-editable--empty]="editable() && !rowText(row, 'description')"
+                        [attr.contenteditable]="editable() ? 'true' : null"
+                        [attr.data-placeholder]="'Description'"
+                        (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'description')"
+                        (keydown)="onRowInlineKeydown($event)"
+                      >{{ rowText(row, 'description') }}</p>
                     }
                   </li>
                 }
@@ -211,9 +473,18 @@
           }
 
           @case ('gallery') {
-            <div class="pf-inner">
-              @if (has(section.props['title'])) {
-                <h2 class="pf-title">{{ t(section.props['title']) }}</h2>
+            <div class="pf-inner" [ngStyle]="getSectionInnerStyles(section)">
+              @if (has(section.props['title']) || editable()) {
+                <h2
+                  class="pf-title"
+                  [class.pf-editable]="editable()"
+                  [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'title')"
+                  [attr.contenteditable]="editable() ? 'true' : null"
+                  [attr.data-placeholder]="'Gallery'"
+                  (click)="startInlineEdit($event, section.id, 'title')"
+                  (blur)="onInlineBlur($event, section.id, 'title')"
+                  (keydown)="onInlineKeydown($event, section.id, 'title')"
+                >{{ getDisplayValue(section, 'title') }}</h2>
               }
               <div class="pf-gallery">
                 @for (row of rows(section.props['items']); track $index) {
@@ -222,11 +493,20 @@
                       <img
                         [src]="image(row['url'])"
                         [alt]="rowText(row, 'alt')"
+                        width="600"
+                        height="450"
                         loading="lazy"
                         decoding="async"
                       />
-                      @if (rowText(row, 'caption')) {
-                        <figcaption>{{ rowText(row, 'caption') }}</figcaption>
+                      @if (rowText(row, 'caption') || editable()) {
+                        <figcaption
+                          [class.pf-editable]="editable()"
+                          [class.pf-editable--empty]="editable() && !rowText(row, 'caption')"
+                          [attr.contenteditable]="editable() ? 'true' : null"
+                          [attr.data-placeholder]="'Caption'"
+                          (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'caption')"
+                          (keydown)="onRowInlineKeydown($event)"
+                        >{{ rowText(row, 'caption') }}</figcaption>
                       }
                     </figure>
                   }
@@ -236,25 +516,52 @@
           }
 
           @case ('testimonials') {
-            <div class="pf-inner">
-              @if (has(section.props['title'])) {
-                <h2 class="pf-title">{{ t(section.props['title']) }}</h2>
+            <div class="pf-inner" [ngStyle]="getSectionInnerStyles(section)">
+              @if (has(section.props['title']) || editable()) {
+                <h2
+                  class="pf-title"
+                  [class.pf-editable]="editable()"
+                  [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'title')"
+                  [attr.contenteditable]="editable() ? 'true' : null"
+                  [attr.data-placeholder]="'What People Say'"
+                  (click)="startInlineEdit($event, section.id, 'title')"
+                  (blur)="onInlineBlur($event, section.id, 'title')"
+                  (keydown)="onInlineKeydown($event, section.id, 'title')"
+                >{{ getDisplayValue(section, 'title') }}</h2>
               }
               <div class="pf-quotes">
                 @for (row of rows(section.props['items']); track $index) {
-                  @if (rowText(row, 'quote')) {
+                  @if (rowText(row, 'quote') || editable()) {
                     <figure class="pf-quote">
                       <blockquote>
-                        <p>{{ rowText(row, 'quote') }}</p>
+                        <p
+                          [class.pf-editable]="editable()"
+                          [class.pf-editable--empty]="editable() && !rowText(row, 'quote')"
+                          [attr.contenteditable]="editable() ? 'true' : null"
+                          [attr.data-placeholder]="'Quote text...'"
+                          (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'quote')"
+                          (keydown)="onRowInlineKeydown($event)"
+                        >{{ rowText(row, 'quote') }}</p>
                       </blockquote>
-                      @if (rowText(row, 'author') || rowText(row, 'role')) {
+                      @if (rowText(row, 'author') || rowText(row, 'role') || editable()) {
                         <figcaption>
-                          @if (rowText(row, 'author')) {
-                            <cite>{{ rowText(row, 'author') }}</cite>
-                          }
-                          @if (rowText(row, 'role')) {
-                            <span class="pf-quote__role">{{ rowText(row, 'role') }}</span>
-                          }
+                          <cite
+                            [class.pf-editable]="editable()"
+                            [class.pf-editable--empty]="editable() && !rowText(row, 'author')"
+                            [attr.contenteditable]="editable() ? 'true' : null"
+                            [attr.data-placeholder]="'Author name'"
+                            (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'author')"
+                            (keydown)="onRowInlineKeydown($event)"
+                          >{{ rowText(row, 'author') }}</cite>
+                          <span
+                            class="pf-quote__role"
+                            [class.pf-editable]="editable()"
+                            [class.pf-editable--empty]="editable() && !rowText(row, 'role')"
+                            [attr.contenteditable]="editable() ? 'true' : null"
+                            [attr.data-placeholder]="'Role'"
+                            (blur)="onRowInlineBlur($event, section.id, 'items', $index, 'role')"
+                            (keydown)="onRowInlineKeydown($event)"
+                          >{{ rowText(row, 'role') }}</span>
                         </figcaption>
                       }
                     </figure>
@@ -265,17 +572,44 @@
           }
 
           @case ('contact') {
-            <div class="pf-inner">
+            <div class="pf-inner" [ngStyle]="getSectionInnerStyles(section)">
               <div class="pf-contact">
                 <div class="pf-contact__copy">
-                  @if (has(section.props['title'])) {
-                    <h2 class="pf-title">{{ t(section.props['title']) }}</h2>
+                  @if (has(section.props['title']) || editable()) {
+                    <h2
+                      class="pf-title"
+                      [class.pf-editable]="editable()"
+                      [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'title')"
+                      [attr.contenteditable]="editable() ? 'true' : null"
+                      [attr.data-placeholder]="'Get in Touch'"
+                      (click)="startInlineEdit($event, section.id, 'title')"
+                      (blur)="onInlineBlur($event, section.id, 'title')"
+                      (keydown)="onInlineKeydown($event, section.id, 'title')"
+                    >{{ getDisplayValue(section, 'title') }}</h2>
                   }
-                  @if (has(section.props['body'])) {
-                    <p class="pf-prose">{{ t(section.props['body']) }}</p>
+                  @if (has(section.props['body']) || editable()) {
+                    <p
+                      class="pf-prose"
+                      [class.pf-editable]="editable()"
+                      [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'body')"
+                      [attr.contenteditable]="editable() ? 'true' : null"
+                      [attr.data-placeholder]="'Contact description...'"
+                      (click)="startInlineEdit($event, section.id, 'body')"
+                      (blur)="onInlineBlur($event, section.id, 'body')"
+                      (keydown)="onInlineKeydown($event, section.id, 'body')"
+                    >{{ getDisplayValue(section, 'body') }}</p>
                   }
-                  @if (has(section.props['location'])) {
-                    <p class="pf-contact__location">{{ t(section.props['location']) }}</p>
+                  @if (has(section.props['location']) || editable()) {
+                    <p
+                      class="pf-contact__location"
+                      [class.pf-editable]="editable()"
+                      [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'location')"
+                      [attr.contenteditable]="editable() ? 'true' : null"
+                      [attr.data-placeholder]="'City, Country'"
+                      (click)="startInlineEdit($event, section.id, 'location')"
+                      (blur)="onInlineBlur($event, section.id, 'location')"
+                      (keydown)="onInlineKeydown($event, section.id, 'location')"
+                    >{{ getDisplayValue(section, 'location') }}</p>
                   }
                 </div>
                 <div class="pf-contact__details">
@@ -321,34 +655,57 @@
           }
 
           @case ('cta') {
-            <div class="pf-inner">
+            <div class="pf-inner" [ngStyle]="getSectionInnerStyles(section)">
               <div class="pf-cta">
-                @if (has(section.props['headline'])) {
-                  <h2 class="pf-cta__title">{{ t(section.props['headline']) }}</h2>
+                @if (has(section.props['headline']) || editable()) {
+                  <h2
+                    class="pf-cta__title"
+                    [class.pf-editable]="editable()"
+                    [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'headline')"
+                    [attr.contenteditable]="editable() ? 'true' : null"
+                    [attr.data-placeholder]="'Call to Action'"
+                    (click)="startInlineEdit($event, section.id, 'headline')"
+                    (blur)="onInlineBlur($event, section.id, 'headline')"
+                    (keydown)="onInlineKeydown($event, section.id, 'headline')"
+                  >{{ getDisplayValue(section, 'headline') }}</h2>
                 }
-                @if (has(section.props['body'])) {
-                  <p class="pf-cta__text">{{ t(section.props['body']) }}</p>
+                @if (has(section.props['body']) || editable()) {
+                  <p
+                    class="pf-cta__text"
+                    [class.pf-editable]="editable()"
+                    [class.pf-editable--empty]="editable() && !getDisplayValue(section, 'body')"
+                    [attr.contenteditable]="editable() ? 'true' : null"
+                    [attr.data-placeholder]="'CTA description'"
+                    (click)="startInlineEdit($event, section.id, 'body')"
+                    (blur)="onInlineBlur($event, section.id, 'body')"
+                    (keydown)="onInlineKeydown($event, section.id, 'body')"
+                  >{{ getDisplayValue(section, 'body') }}</p>
                 }
                 @if (has(section.props['buttonLabel']) && href(section.props['buttonHref'])) {
                   <a
                     class="pf-btn pf-btn--light"
-                    [href]="href(section.props['buttonHref'])"
+                    [class.pf-editable]="editable()"
+                    [href]="editable() ? null : href(section.props['buttonHref'])"
+                    [attr.contenteditable]="editable() ? 'true' : null"
+                    [attr.data-placeholder]="'Button text'"
                     [attr.target]="isExternal(href(section.props['buttonHref'])) ? '_blank' : null"
                     [attr.rel]="isExternal(href(section.props['buttonHref'])) ? 'noopener noreferrer' : null"
                     (click)="onLinkClick($event, href(section.props['buttonHref']), t(section.props['buttonLabel']))"
-                  >
-                    {{ t(section.props['buttonLabel']) }}
-                  </a>
+                    (blur)="onInlineBlur($event, section.id, 'buttonLabel')"
+                    (keydown)="onInlineKeydown($event, section.id, 'buttonLabel')"
+                  >{{ getDisplayValue(section, 'buttonLabel') }}</a>
                 }
               </div>
             </div>
           }
 
           @case ('custom-code') {
-            <div class="pf-inner" [class.pf-inner--full]="fullCodePage()">
+            <div class="pf-inner pf-custom-code" [class.pf-inner--full]="fullCodePage()" [ngStyle]="getSectionInnerStyles(section)">
               <app-portfolio-custom-code
                 [props]="section.props"
+                [editable]="editable()"
                 [mode]="mode()"
+                [showDiagnostics]="editable()"
                 [storageKey]="codeStorageKey(section)"
               />
             </div>

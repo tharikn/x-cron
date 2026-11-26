@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonApp, IonRouterOutlet, ToastController } from '@ionic/angular';
 import { AndroidBackService } from './core/services/android-back.service';
@@ -51,6 +51,19 @@ export class AppComponent implements OnInit {
   readonly themePromptOpen = this.onboarding.themePromptOpen;
   readonly online = this.connectivity.online;
 
+  private lastOnline: boolean | null = null;
+  private offlineToast?: Awaited<ReturnType<ToastController['create']>>;
+
+  constructor() {
+    // Offline is a transient warning popup, not a persistent layout banner.
+    effect(() => {
+      const online = this.online();
+      if (this.lastOnline === online) return;
+      this.lastOnline = online;
+      if (!online) void this.showOfflineToast();
+    });
+  }
+
   async ngOnInit(): Promise<void> {
     this.theme.init();
     this.connectivity.start();
@@ -94,6 +107,18 @@ export class AppComponent implements OnInit {
 
   onThemePromptClosed(): void {
     void this.maybeForceProfileSetup();
+  }
+
+  private async showOfflineToast(): Promise<void> {
+    await this.offlineToast?.dismiss();
+    const toast = await this.toastController.create({
+      message: 'You’re offline — reconnect to search, apply, or sync.',
+      duration: 4000,
+      position: 'bottom',
+      cssClass: ['xcron-toast', 'xcron-toast--warning'],
+    });
+    this.offlineToast = toast;
+    await toast.present();
   }
 
   private async maybeForceProfileSetup(): Promise<void> {

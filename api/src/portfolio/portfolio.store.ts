@@ -57,4 +57,9 @@ export abstract class PortfolioStore {
   ): Promise<PortfolioDomainBinding | null>;
   abstract saveDomain(domain: PortfolioDomainBinding): Promise<PortfolioDomainBinding>;
   abstract deleteDomain(domainId: string): Promise<boolean>;
+
+  // ── Public discovery & sitemap ──────────────────────────────────────────
+  abstract listPublishedSites(
+    limit?: number,
+  ): Promise<Array<{ slug: string; updatedAt: string }>>;
 }

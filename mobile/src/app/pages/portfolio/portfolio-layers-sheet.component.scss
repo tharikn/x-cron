@@ -1,0 +1,105 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--xcron-bg-elevated);
+}
+
+.sheet__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--xcron-line);
+  padding-bottom: 0.6rem;
+}
+
+h2,
+p {
+  margin: 0;
+}
+
+p {
+  margin-top: 0.2rem;
+  color: var(--xcron-muted);
+  font-size: 0.82rem;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 0.6rem;
+}
+
+.layer {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: 12px;
+  background: var(--xcron-wash);
+}
+
+.layer--selected {
+  border-color: var(--xcron-primary);
+  box-shadow: inset 3px 0 0 var(--xcron-primary);
+}
+
+.layer--hidden {
+  opacity: 0.6;
+}
+
+.layer__main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--xcron-ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.layer__main ion-icon {
+  color: var(--xcron-primary);
+  font-size: 1.1rem;
+}
+
+.layer__main span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.layer__main strong {
+  font-size: 0.9rem;
+}
+
+.layer__main small {
+  color: var(--xcron-muted);
+  font-size: 0.75rem;
+}
+
+.layer__tools {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.empty {
+  padding: 2rem 0;
+  text-align: center;
+}

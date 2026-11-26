@@ -153,3 +153,38 @@ describe('PortfolioService custom domain bindings', () => {
     await expect(service.getPublicSiteByHostname('www.acme.com')).rejects.toThrow();
   });
 });
+
+describe('PortfolioService IDOR protection', () => {
+  it('hides a foreign site from another user (getSite)', async () => {
+    const store = new PortfolioMemoryStore();
+    const service = new PortfolioService(store);
+    const site = await service.createSite('user-1', {
+      name: 'Private Portfolio',
+      templateId: 'minimal-swiss-01',
+    });
+    await expect(service.getSite('user-2', site.id)).rejects.toThrow();
+    await expect(service.getDraft('user-2', site.id)).rejects.toThrow();
+    await expect(service.listVersions('user-2', site.id)).rejects.toThrow();
+    await expect(service.analytics('user-2', site.id)).rejects.toThrow();
+  });
+
+  it('prevents a foreign user from mutating another user site', async () => {
+    const store = new PortfolioMemoryStore();
+    const service = new PortfolioService(store);
+    const site = await service.createSite('user-1', {
+      name: 'Private Portfolio',
+      templateId: 'minimal-swiss-01',
+    });
+    const draft = await service.getDraft('user-1', site.id);
+    await expect(
+      service.saveDraft('user-2', site.id, {
+        document: draft.document,
+        baseRevision: draft.site.draftRevision,
+      } as never),
+    ).rejects.toThrow();
+    await expect(service.deleteSite('user-2', site.id)).rejects.toThrow();
+    await expect(
+      service.publish('user-2', site.id, { idempotencyKey: 'x' } as never),
+    ).rejects.toThrow();
+  });
+});

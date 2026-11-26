@@ -31,7 +31,7 @@ const DEFAULTS: WebPreferences = {
   remotePreferred: false,
   sort: 'newest',
   notifyEmail: false,
-  theme: 'system',
+  theme: 'light',
 };
 
 @Injectable({ providedIn: 'root' })

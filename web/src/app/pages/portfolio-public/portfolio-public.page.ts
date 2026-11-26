@@ -1,12 +1,22 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { Component, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  OnInit,
+  PLATFORM_ID,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type {
   PortfolioDocument,
   PublicPortfolioResponse,
 } from '../../core/models/portfolio.model';
 import { PortfolioService } from '../../core/services/portfolio.service';
 import { SeoService } from '../../core/services/seo.service';
+import { ToastService } from '../../core/services/toast.service';
 import { environment } from '../../../environments/environment';
 import { PortfolioRendererComponent } from '../../shared/portfolio-renderer/portfolio-renderer.component';
 
@@ -15,23 +25,32 @@ import { PortfolioRendererComponent } from '../../shared/portfolio-renderer/port
  *
  * Reads only the immutable published JSON from the anonymous runtime endpoint.
  * Draft content can never reach this route.
+ * Faulty or broken portfolio links automatically route back to X Cron Jobs.
  */
 @Component({
   selector: 'app-portfolio-public',
-  imports: [PortfolioRendererComponent],
+  imports: [RouterLink, PortfolioRendererComponent],
   templateUrl: './portfolio-public.page.html',
   styleUrl: './portfolio-public.page.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PortfolioPublicPage implements OnInit {
+export class PortfolioPublicPage implements OnInit, OnDestroy {
   private readonly portfolio = inject(PortfolioService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly seo = inject(SeoService);
+  private readonly toast = inject(ToastService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly browserDocument = inject(DOCUMENT);
 
   readonly loading = signal(true);
   readonly notFound = signal(false);
   readonly response = signal<PublicPortfolioResponse | null>(null);
+  readonly countdown = signal(4);
+  readonly redirectCancelled = signal(false);
+
+  private redirectTimer: ReturnType<typeof setTimeout> | null = null;
+  private intervalTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly document = computed<PortfolioDocument | null>(() => {
     const data = this.response();
@@ -75,12 +94,54 @@ export class PortfolioPublicPage implements OnInit {
       this.notFound.set(true);
       this.seo.setPage({
         title: 'Portfolio not found',
-        description: 'This portfolio is not published.',
+        description: 'This portfolio link is inactive or does not exist.',
         path: `/p/${slug}`,
         robots: 'noindex,nofollow',
       });
+      if (isPlatformBrowser(this.platformId)) {
+        this.startFaultyLinkRecovery();
+      }
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.clearTimers();
+  }
+
+  cancelRedirect(): void {
+    this.redirectCancelled.set(true);
+    this.clearTimers();
+  }
+
+  private startFaultyLinkRecovery(): void {
+    this.intervalTimer = setInterval(() => {
+      this.countdown.update((n) => {
+        if (n <= 1) {
+          this.clearTimers();
+          if (!this.redirectCancelled()) {
+            this.toast.show(
+              'Portfolio link is inactive. Redirected to X Cron Jobs.',
+              'default',
+            );
+            void this.router.navigateByUrl('/');
+          }
+          return 0;
+        }
+        return n - 1;
+      });
+    }, 1000);
+  }
+
+  private clearTimers(): void {
+    if (this.redirectTimer) {
+      clearTimeout(this.redirectTimer);
+      this.redirectTimer = null;
+    }
+    if (this.intervalTimer) {
+      clearInterval(this.intervalTimer);
+      this.intervalTimer = null;
     }
   }
 
@@ -96,19 +157,6 @@ export class PortfolioPublicPage implements OnInit {
   }
 
   private applySeo(data: PublicPortfolioResponse): void {
-    const seo = data.seo;
-    this.seo.setPage({
-      title: seo.title,
-      description: seo.description,
-      path: seo.canonicalPath,
-      robots: seo.robots,
-    });
-    if (seo.ogImage) {
-      const image = /^https?:\/\//i.test(seo.ogImage)
-        ? seo.ogImage
-        : `${environment.siteUrl}${seo.ogImage}`;
-      this.seo.setSocialImage(image);
-    }
-    this.seo.setStructuredData(seo.jsonLd);
+    this.seo.setPortfolioPublicSeo(data.seo);
   }
 }

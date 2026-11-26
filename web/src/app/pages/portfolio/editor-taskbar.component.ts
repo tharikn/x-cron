@@ -188,14 +188,16 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      height: 34px;
-      padding: 0 12px;
+      gap: 10px;
+      min-height: 40px;
+      padding: 6px 16px;
       background: var(--xcron-bg-elevated);
       border-top: 1px solid var(--xcron-line);
-      font-size: 11px;
+      font-family: var(--xcron-font-body);
+      font-size: 0.72rem;
       color: var(--xcron-muted);
       user-select: none;
+      flex-wrap: wrap;
     }
 
     .tsk__group {
@@ -228,9 +230,14 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       cursor: pointer;
     }
 
-    .tsk-item--btn:hover {
+    .tsk-item--btn:hover,
+    .tsk-item--btn:focus-visible {
       background: var(--xcron-wash);
       color: var(--xcron-ink);
+    }
+
+    .tsk-item--btn:focus-visible {
+      outline: 1px solid var(--xcron-primary);
     }
 
     .tsk-item--strong {
@@ -294,19 +301,26 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 24px;
-      height: 24px;
+      width: 30px;
+      height: 30px;
       padding: 0;
-      border: 0;
-      border-radius: 6px;
+      border: 1px solid transparent;
+      border-radius: 0.6rem;
       background: transparent;
       color: var(--xcron-muted);
       cursor: pointer;
+      transition: background 160ms var(--xcron-ease), color 160ms var(--xcron-ease);
     }
 
-    .tsk-icon-btn:hover:not(:disabled) {
+    .tsk-icon-btn:hover:not(:disabled),
+    .tsk-icon-btn:focus-visible:not(:disabled) {
       background: var(--xcron-wash);
       color: var(--xcron-ink);
+    }
+
+    .tsk-icon-btn:focus-visible {
+      outline: none;
+      border-color: var(--xcron-primary);
     }
 
     .tsk-icon-btn:disabled {
@@ -341,6 +355,18 @@ import { EditorTooltipDirective } from './editor-tooltip.directive';
 
     .tsk-zoom__select:hover {
       background-color: var(--xcron-wash) !important;
+    }
+
+    @media (max-width: 620px) {
+      .tsk {
+        padding: 8px 10px;
+      }
+
+      .tsk-icon-btn,
+      .tsk-badge,
+      .tsk-item--btn {
+        min-height: 44px;
+      }
     }
   `,
 })

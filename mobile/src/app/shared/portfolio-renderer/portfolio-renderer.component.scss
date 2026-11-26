@@ -135,6 +135,7 @@
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
   color: var(--pf-muted);
+  cursor: pointer;
   transition:
     color 150ms ease,
     background 150ms ease;
@@ -859,5 +860,250 @@
   .pf-btn:hover,
   .pf-gallery__item:hover img {
     transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Visual Builder — inline editing, selection, drag-and-drop
+   Only active when .pf--editable is present (editor canvas mode)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.pf--editable {
+  /* ── Inline editing ──────────────────────────────────────────────── */
+
+  .pf-editable {
+    position: relative;
+    cursor: text;
+    transition: outline 120ms ease, background 120ms ease;
+    border-radius: 4px;
+    min-height: 1em;
+
+    &:hover {
+      outline: 1.5px dashed color-mix(in srgb, var(--pf-accent) 55%, transparent);
+      outline-offset: 3px;
+    }
+
+    &:focus {
+      outline: 2px solid var(--pf-accent);
+      outline-offset: 3px;
+      background: color-mix(in srgb, var(--pf-accent) 6%, transparent);
+    }
+
+    &--empty:not(:focus)::after {
+      content: attr(data-placeholder);
+      color: color-mix(in srgb, var(--pf-text) 28%, transparent);
+      pointer-events: none;
+      font-style: italic;
+    }
+  }
+
+  /* ── Section builder wrapper ─────────────────────────────────────── */
+
+  .pf-section--builder {
+    position: relative;
+    cursor: grab;
+    transition: outline 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .pf-section--hovered {
+    outline: 1.5px dashed color-mix(in srgb, var(--pf-accent) 40%, transparent);
+    outline-offset: -1px;
+  }
+
+  &:not(.pf--guides) .pf-section--hovered {
+    outline: none;
+  }
+
+  &:not(.pf--guides) .pf-builder-label {
+    display: none;
+  }
+
+  .pf-builder-quick {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--pf-accent) 92%, #000);
+    color: var(--pf-accent-ink);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 150ms ease, transform 150ms ease;
+    pointer-events: none;
+    box-shadow: 0 2px 10px color-mix(in srgb, #000 24%, transparent);
+  }
+
+  .pf-section--selected .pf-builder-quick,
+  .pf-section--hovered .pf-builder-quick {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .pf-builder-quick__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .pf-builder-quick__btn:hover {
+    background: color-mix(in srgb, var(--pf-accent-ink) 18%, transparent);
+  }
+
+  .pf-empty-add {
+    margin-top: 12px;
+    padding: 8px 16px;
+    border: 1px solid var(--pf-accent);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--pf-accent);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .pf-section--selected {
+    outline: 2px solid var(--pf-accent);
+    outline-offset: -1px;
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--pf-accent) 15%, transparent),
+      0 0 24px color-mix(in srgb, var(--pf-accent) 10%, transparent);
+  }
+
+  .pf-section--invalid {
+    outline: 2px solid #e5484d;
+    outline-offset: -1px;
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, #e5484d 22%, transparent),
+      0 0 24px color-mix(in srgb, #e5484d 14%, transparent);
+  }
+
+  .pf-section--dragging {
+    opacity: 0.55;
+    outline: 2px dashed var(--pf-accent);
+    z-index: 30;
+  }
+
+  .pf-section--drag-over-above {
+    &::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--pf-accent);
+      border-radius: 2px;
+      z-index: 20;
+      box-shadow: 0 0 8px color-mix(in srgb, var(--pf-accent) 50%, transparent);
+    }
+  }
+
+  .pf-section--drag-over-below {
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--pf-accent);
+      border-radius: 2px;
+      z-index: 20;
+      box-shadow: 0 0 8px color-mix(in srgb, var(--pf-accent) 50%, transparent);
+    }
+  }
+
+  /* ── Section label badge ─────────────────────────────────────────── */
+
+  .pf-builder-label {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem 0.2rem 0.35rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--pf-accent) 92%, #000);
+    color: var(--pf-accent-ink);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 150ms ease, transform 150ms ease;
+    pointer-events: none;
+    box-shadow: 0 2px 8px color-mix(in srgb, #000 20%, transparent);
+  }
+
+  .pf-section--selected .pf-builder-label,
+  .pf-section--hovered .pf-builder-label,
+  .pf-section--invalid .pf-builder-label {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .pf-section--invalid .pf-builder-label {
+    background: #e5484d;
+    color: #fff;
+  }
+
+  .pf-builder-label__issue {
+    font-weight: 700;
+  }
+
+  .pf-builder-label__grip {
+    cursor: grab;
+    font-size: 0.85rem;
+    line-height: 1;
+    letter-spacing: -0.08em;
+    opacity: 0.7;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    min-width: 24px;
+    min-height: 24px;
+    text-align: center;
+  }
+
+  .pf-builder-label__grip:active {
+    cursor: grabbing;
+  }
+
+  .pf-builder-label__variant {
+    /* Keep full contrast against the section badge background. */
+    font-weight: 400;
+  }
+
+  /* ── Buttons in edit mode shouldn't navigate ─────────────────────── */
+  .pf-btn.pf-editable {
+    cursor: text;
+  }
+
+  .pf-btn.pf-editable:hover {
+    transform: none;
+    filter: none;
   }
 }

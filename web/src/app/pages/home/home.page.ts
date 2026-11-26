@@ -111,6 +111,7 @@ export class HomePage implements OnInit, OnDestroy {
   readonly isSignedIn = this.auth.isSignedIn;
   readonly savingSearch = signal(false);
   readonly filterChips = signal<FilterChip[]>([]);
+  readonly advancedOpen = signal(false);
 
   keyword = '';
   location = '';
@@ -174,11 +175,30 @@ export class HomePage implements OnInit, OnDestroy {
     this.sortOpen.set(false);
   }
 
+  toggleAdvanced(): void {
+    this.advancedOpen.update((open) => !open);
+  }
+
+  advancedFilterCount(): number {
+    let count = 0;
+    if (this.jobType) count++;
+    if (this.category.trim()) count++;
+    if (this.skills.trim()) count++;
+    if (this.salaryMin != null && Number.isFinite(this.salaryMin)) count++;
+    if (this.postedWithin) count++;
+    if (this.remote) count++;
+    if (this.walkInOnly) count++;
+    if (this.verifiedEmployer) count++;
+    if (this.fresher) count++;
+    if (this.easyApply) count++;
+    return count;
+  }
+
   async ngOnInit(): Promise<void> {
     this.seo.setPage({
-      title: 'X Cron',
+      title: 'Xcron JOB',
       description:
-        'X Cron Jobs — local-first, multilingual job discovery for India. Browse without signing in.',
+        'Xcron JOB — local-first, multilingual job discovery for India. Browse without signing in.',
       path: '/',
     });
     try {
@@ -216,6 +236,7 @@ export class HomePage implements OnInit, OnDestroy {
       }
     }
     this.refreshChips();
+    this.advancedOpen.set(this.advancedFilterCount() > 0);
     await this.search({ skipUrlWrite: hasFilterParams });
 
     this.route.queryParamMap.subscribe((map) => {

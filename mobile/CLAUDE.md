@@ -38,9 +38,9 @@ Requires API running for live data (`../api`). Env: `src/environments/environmen
 - Models/utils: `core/models/`, `core/utils/format.ts`, offline `core/data/mock-jobs.ts`
 - App init: `AuthService.ensureSession()` (`APP_INITIALIZER` + `app.component`) via `/auth/me`; memory Bearer + `localStorage` refresh (survives Capacitor process death) + one-tab (`TabSessionService` / `X-Tab-Id`); **native** uses Bearer-only (`withCredentials: false` via `api-credentials.ts`) to avoid cross-origin cookie/CSRF traps; browser/`ng serve` keeps cookie dual-auth + CSRF headers. `adminGuard` blocks Import/Job Fare until admin is confirmed; `employerGuard` gates Post (employer username/password register/login, not admin); `authInterceptor` refreshes once on 401 then clears; foreground resume calls `slideSessionIfNeeded` for long-lived alerts
 - Admin tabs render only when `isAdmin()` is true after session validation — never from localStorage roles alone. Post is employer+admin; Import/Job Fare stay admin-only. Moderation Approve/Reject queue also when `isModerator()`; full Trust desk stays on web `/admin/trust`
-- Android UX (Doc 10): `DeepLinkService` (`https://x-cron.onrender.com` + `xcron://`) → jobs/applications/feedback; `AndroidBackService`; offline banner; `correlationInterceptor` — [../docs/WEBSITE_AND_ANDROID_UX.md](../docs/WEBSITE_AND_ANDROID_UX.md)
+- Android UX (Doc 10): `DeepLinkService` (`https://x-cron.onrender.com` + `xcron://`) → jobs/applications/feedback; `AndroidBackService`; offline warning toast; `correlationInterceptor` — [../docs/WEBSITE_AND_ANDROID_UX.md](../docs/WEBSITE_AND_ANDROID_UX.md)
 - Android project: `android/` (permissions + deep-link intent filters in `AndroidManifest.xml`; camera for import). `MainActivity` enables WebView debugging when `BuildConfig.DEBUG` — keep `buildFeatures.buildConfig = true` in `android/app/build.gradle` (AGP 8+ default is off)
-- **Boot splash:** `index.html` `#boot-splash` shows `assets/icon/xcron-logo-mark-square.png` on `#070412` until `AppComponent` finishes session/prefs hydrate; native uses `@capacitor/splash-screen` (`launchAutoHide: false`) + Android `drawable/splash.xml` / `splash_logo` (`AppTheme.NoActionBarLaunch`). Hide via `dismissBootSplash()` — do not auto-hide before the app is ready.
+- **Boot splash:** `index.html` `#boot-splash` shows `assets/icon/xcron-logo-mark-square-light.png` on light `#f7f5fc` until `AppComponent` finishes session/prefs hydrate; native uses `@capacitor/splash-screen` (`launchAutoHide: false`) + Android `drawable/splash.xml` / `splash_logo` (`AppTheme.NoActionBarLaunch`). Hide via `dismissBootSplash()` — do not auto-hide before the app is ready.
 
 ## Product / UI rules
 
@@ -105,7 +105,7 @@ Discover search location starts empty (applies saved prefs only when present) �
 - After native plugin or web asset changes that Android needs: `npm run cap:sync`
 - Do not hand-edit generated `android/.../assets/public/chunk-*` — rebuild + sync
 - Avoid drive-by refactors / unrelated lint churn
-- **Android launcher icon:** full-bleed square from `src/assets/icon/xcron-logo-mark-square.png` → `android/app/src/main/res/mipmap-*/ic_launcher*.png` + adaptive bg `#0A0A0A`. Do not leave Capacitor default robot icons. Source `xcron-logo-mark.png` has white corner padding — always flatten to the square asset before regenerating mipmaps.
+- **Android launcher icon:** transparent clock marks → `android/app/src/main/res/mipmap-*/ic_launcher*.png` (dark strokes) + `ic_launcher_foreground.png` (white strokes) on adaptive bg `#0A0A0A`. Do not leave Capacitor default robot icons or reintroduce the black tile.
 - **Android splash:** keep `drawable/splash.xml` (night-sky + centered `splash_logo`) in sync with the square logo mark; density Capacitor default `splash.png` folders must not reappear after `cap sync` / asset regen.
 
 ## Stubs

@@ -57,6 +57,7 @@ html[data-theme='dark'] {
   --xcron-pad-x: 1rem;
   --xcron-content-max: 100%;
   --xcron-starfield-opacity: 0.85;
+  --xcron-hero-glow-opacity: 1;
   --xcron-toolbar-bg: rgba(7, 4, 18, 0.92);
   --xcron-canvas-bg:
     radial-gradient(900px 520px at 50% -5%, rgba(88, 28, 135, 0.35) 0%, transparent 58%),
@@ -65,7 +66,8 @@ html[data-theme='dark'] {
     linear-gradient(180deg, #12081f 0%, #070412 48%, #030208 100%);
 }
 
-/* Light — bright violet surfaces (signed-in Theme tab) */
+/* Light — bright violet surfaces (default) */
+:root,
 html[data-theme='light'] {
   color-scheme: light;
   --xcron-bg: #f7f5fc;
@@ -83,6 +85,7 @@ html[data-theme='light'] {
   --xcron-text: var(--xcron-ink);
   --xcron-border: var(--xcron-line);
   --xcron-starfield-opacity: 0;
+  --xcron-hero-glow-opacity: 0.55;
   --xcron-toolbar-bg: rgba(247, 245, 252, 0.94);
   --xcron-canvas-bg:
     radial-gradient(820px 480px at 50% -8%, rgba(124, 92, 255, 0.14) 0%, transparent 55%),
@@ -108,6 +111,7 @@ html[data-theme='warm'] {
   --xcron-text: var(--xcron-ink);
   --xcron-border: var(--xcron-line);
   --xcron-starfield-opacity: 0;
+  --xcron-hero-glow-opacity: 0.6;
   --xcron-toolbar-bg: rgba(246, 239, 230, 0.94);
   --xcron-canvas-bg:
     radial-gradient(820px 480px at 50% -8%, rgba(245, 165, 36, 0.18) 0%, transparent 55%),
@@ -607,3 +611,68 @@ body.import-batch-modal-open {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Native app-like View Transitions (Angular Router) */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: 160ms cubic-bezier(0.4, 0, 1, 1) both xcron-fade-out;
+  }
+  ::view-transition-new(root) {
+    animation: 200ms cubic-bezier(0, 0, 0.2, 1) both xcron-fade-in;
+  }
+}
+
+@keyframes xcron-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes xcron-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Theme-aware PNG variants. These rules must stay global: Angular scopes
+   component styles by adding an _ngcontent attribute to every selector part,
+   so an `html[data-theme='dark']` rule inside a component never matches. */
+html:not([data-theme]) .logo__img--on-dark,
+html[data-theme='light'] .logo__img--on-dark,
+html[data-theme='warm'] .logo__img--on-dark,
+html:not([data-theme]) .drawer__brand--on-dark,
+html[data-theme='light'] .drawer__brand--on-dark,
+html[data-theme='warm'] .drawer__brand--on-dark,
+html:not([data-theme]) .xcron-spinner__ring--on-dark,
+html[data-theme='light'] .xcron-spinner__ring--on-dark,
+html[data-theme='warm'] .xcron-spinner__ring--on-dark,
+html:not([data-theme]) .xcron-spinner__logo--on-dark,
+html[data-theme='light'] .xcron-spinner__logo--on-dark,
+html[data-theme='warm'] .xcron-spinner__logo--on-dark {
+  display: none;
+}
+
+html[data-theme='dark'] .logo__img--on-light,
+html[data-theme='dark'] .drawer__brand--on-light,
+html[data-theme='dark'] .xcron-spinner__ring--on-light,
+html[data-theme='dark'] .xcron-spinner__logo--on-light {
+  display: none;
+}
+
+html[data-theme='dark'] .logo__img--on-dark,
+html[data-theme='dark'] .drawer__brand--on-dark,
+html[data-theme='dark'] .xcron-spinner__ring--on-dark,
+html[data-theme='dark'] .xcron-spinner__logo--on-dark {
+  display: block;
+}
+
+/* The sign-in busy overlay is a dark scrim in every theme, so keep the
+   high-contrast (white arc + white clock) spinner there. */
+html .auth-loading-overlay .xcron-spinner__ring--on-light,
+html .auth-loading-overlay .xcron-spinner__logo--on-light {
+  display: none;
+}
+
+html .auth-loading-overlay .xcron-spinner__ring--on-dark,
+html .auth-loading-overlay .xcron-spinner__logo--on-dark {
+  display: block;
+}
+

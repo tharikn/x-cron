@@ -140,29 +140,29 @@
             @for (template of pagedTemplates(); track template.id) {
               <div
                 class="tpl-card"
-                role="button"
-                tabindex="0"
                 [class.tpl-card--selected]="selectedTemplateId() === template.id"
                 [class.tpl-card--hovered]="hoveredTemplateId() === template.id"
                 (mouseenter)="hoveredTemplateId.set(template.id)"
                 (mouseleave)="hoveredTemplateId.set(null)"
-                (focus)="hoveredTemplateId.set(template.id)"
-                (blur)="hoveredTemplateId.set(null)"
                 (click)="selectTemplate(template)"
-                (keydown.enter)="selectTemplate(template)"
-                (keydown.space)="selectTemplate(template); $event.preventDefault()"
-                [attr.aria-label]="'Choose design: ' + template.name"
-                [attr.aria-pressed]="selectedTemplateId() === template.id"
               >
                 <div class="tpl-card__thumb">
-                  <div class="tpl-card__renderer-wrap">
-                    @if (templateDocuments().get(template.id); as doc) {
-                      <app-portfolio-renderer
-                        [document]="doc"
-                        [locale]="activeLocale()"
-                        device="desktop"
-                        [forceMode]="template.theme.mode === 'system' ? '' : template.theme.mode"
-                      />
+                  <!-- Thumbnails are decorative previews: hide their links from touch-target and a11y audits. -->
+                  <div class="tpl-card__renderer-wrap" aria-hidden="true" inert>
+                    @defer (on viewport) {
+                      @if (templateDocuments().get(template.id); as doc) {
+                        <app-portfolio-renderer
+                          [document]="doc"
+                          [locale]="activeLocale()"
+                          device="desktop"
+                          [forceMode]="template.theme.mode === 'system' ? '' : template.theme.mode"
+                        />
+                      }
+                    } @placeholder {
+                      <div
+                        class="tpl-card__preview-placeholder"
+                        [style.background]="template.previewGradient"
+                      ></div>
                     }
                   </div>
 
@@ -183,7 +183,8 @@
                       type="button"
                       class="tpl-card__icon-btn tpl-card__icon-btn--primary"
                       title="Choose this design"
-                      aria-label="Use {{ template.name }} and continue"
+                      [attr.aria-label]="'Choose ' + template.name"
+                      [attr.aria-pressed]="selectedTemplateId() === template.id"
                       (click)="useTemplate(template); $event.stopPropagation()"
                     >
                       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

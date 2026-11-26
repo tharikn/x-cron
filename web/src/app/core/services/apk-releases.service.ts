@@ -42,44 +42,73 @@ export class ApkReleasesService {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  /**
+   * The CTA renders in the home panel, drawer and footer at once. Share one
+   * in-flight request per repo instead of firing the same GitHub call 3×.
+   */
+  private latestRequest: Promise<void> | null = null;
+  private resumeRequest: Promise<void> | null = null;
+
   /** Home / CTA: latest release only (no version history fetch). */
   async loadLatest(): Promise<void> {
     if (!environment.androidReleasesApiUrl) return;
+    if (this.latestRequest) return this.latestRequest;
+
     this.loading.set(true);
     this.error.set(null);
-    try {
-      const url = `${environment.androidReleasesApiUrl}/latest?t=${Date.now()}`;
-      const release = await firstValueFrom(
-        this.http.get<GitHubRelease>(url, {
-          headers: { Accept: 'application/vnd.github+json' },
-        }),
-      );
-      if (release?.draft || release?.prerelease) {
+    const request = (async () => {
+      try {
+        const url = `${environment.androidReleasesApiUrl}/latest?t=${Date.now()}`;
+        const release = await firstValueFrom(
+          this.http.get<GitHubRelease>(url, {
+            headers: { Accept: 'application/vnd.github+json' },
+          }),
+        );
+        if (release?.draft || release?.prerelease) {
+          this.latest.set(null);
+          return;
+        }
+        this.latest.set(this.toRow(release));
+      } catch {
+        this.error.set('Could not load latest release');
         this.latest.set(null);
-        return;
       }
-      const row = this.toRow(release);
-      this.latest.set(row);
-    } catch {
-      this.error.set('Could not load latest release');
-      this.latest.set(null);
+    })();
+
+    this.latestRequest = request;
+    try {
+      await request;
     } finally {
       this.loading.set(false);
+      this.latestRequest = null;
     }
   }
 
   /** Latest XCron CV APK from its own GitHub repo; silent on failure (static link is the fallback). */
   async loadLatestResume(): Promise<void> {
     if (!environment.resumeReleasesApiUrl) return;
+    if (this.resumeRequest) return this.resumeRequest;
+
+    const request = (async () => {
+      try {
+        const release = await firstValueFrom(
+          this.http.get<GitHubRelease>(`${environment.resumeReleasesApiUrl}/latest?t=${Date.now()}`, {
+            headers: { Accept: 'application/vnd.github+json' },
+          }),
+        );
+        this.latestResume.set(
+          release?.draft || release?.prerelease ? null : this.toRow(release, 'xcron-cv.apk'),
+        );
+      } catch {
+        this.latestResume.set(null);
+      }
+    })();
+
+    this.resumeRequest = request;
     try {
-      const release = await firstValueFrom(
-        this.http.get<GitHubRelease>(`${environment.resumeReleasesApiUrl}/latest?t=${Date.now()}`, {
-          headers: { Accept: 'application/vnd.github+json' },
-        }),
-      );
-      this.latestResume.set(release?.draft || release?.prerelease ? null : this.toRow(release, 'xcron-cv.apk'));
-    } catch {
-      this.latestResume.set(null);
+      await request;
+    } finally {
+      this.resumeRequest = null;
     }
   }
 

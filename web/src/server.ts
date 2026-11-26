@@ -45,30 +45,50 @@ app.get('/robots.txt', (_req, res) => {
 
 app.get('/sitemap.xml', async (_req, res) => {
   try {
-    const response = await fetch(`${apiUrl}/jobs?sort=newest&limit=50`);
-    if (!response.ok) {
-      throw new Error(`API ${response.status}`);
-    }
-    const data = (await response.json()) as {
-      items: Array<{ slug: string; publishedAt: string; location: { state: string; city: string } }>;
-    };
-
-    const urls = [
-      { loc: `${siteUrl}/`, lastmod: new Date().toISOString() },
-      ...data.items.map((job) => ({
-        loc: `${siteUrl}/jobs/${job.slug}`,
-        lastmod: job.publishedAt,
-      })),
-      ...[...new Set(data.items.map((job) => `${job.location.state}/${job.location.city}`))].map(
-        (place) => ({
-          loc: `${siteUrl}/locations/${place
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9\-\/]/g, '')}`,
-          lastmod: new Date().toISOString(),
-        }),
+    const [jobsRes, portfoliosRes] = await Promise.allSettled([
+      fetch(`${apiUrl}/jobs?sort=newest&limit=50`).then((r) =>
+        r.ok ? ((r.json() as unknown) as { items: Array<{ slug: string; publishedAt: string; location: { state: string; city: string } }> }) : null,
       ),
+      fetch(`${apiUrl}/portfolio/public-sitemap`).then((r) =>
+        r.ok ? ((r.json() as unknown) as Array<{ slug: string; updatedAt: string }>) : null,
+      ),
+    ]);
+
+    const jobsData = jobsRes.status === 'fulfilled' ? jobsRes.value : null;
+    const portfoliosData = portfoliosRes.status === 'fulfilled' ? portfoliosRes.value : null;
+
+    const urls: Array<{ loc: string; lastmod: string }> = [
+      { loc: `${siteUrl}/`, lastmod: new Date().toISOString() },
     ];
+
+    if (jobsData?.items && Array.isArray(jobsData.items)) {
+      urls.push(
+        ...jobsData.items.map((job) => ({
+          loc: `${siteUrl}/jobs/${job.slug}`,
+          lastmod: job.publishedAt,
+        })),
+        ...[...new Set(jobsData.items.map((job) => `${job.location.state}/${job.location.city}`))].map(
+          (place) => ({
+            loc: `${siteUrl}/locations/${place
+              .toLowerCase()
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9\-\/]/g, '')}`,
+            lastmod: new Date().toISOString(),
+          }),
+        ),
+      );
+    }
+
+    if (Array.isArray(portfoliosData)) {
+      for (const pf of portfoliosData) {
+        if (pf?.slug) {
+          urls.push({
+            loc: `${siteUrl}/p/${pf.slug}`,
+            lastmod: pf.updatedAt || new Date().toISOString(),
+          });
+        }
+      }
+    }
 
     const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -99,12 +119,25 @@ app.use(
 );
 
 app.use((req, res, next) => {
+  if (req.path.startsWith('/p/')) {
+    res.setHeader(
+      'Cache-Control',
+      'public, max-age=60, s-maxage=3600, stale-while-revalidate=86400',
+    );
+  }
   angularApp
     .handle(req)
     .then((response) =>
       response ? writeResponseToNodeResponse(response, res) : next(),
     )
-    .catch(next);
+    .catch((err) => {
+      // Isolate faulty live portfolio renders from crashing the server or affecting other sites
+      if (req.path.startsWith('/p/')) {
+        console.warn(`[SSR Portfolio Protect] Faulty live portfolio encountered at ${req.path}. Routing to main app.`);
+        return res.redirect(302, '/');
+      }
+      next(err);
+    });
 });
 
 if (isMainModule(import.meta.url) || process.env['pm_id']) {

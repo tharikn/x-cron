@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Xcron JOB">
+  <g transform="translate(-24.32 -13.69) scale(0.34375)" fill="none" stroke="#f4f4f2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M176 102l-24-24M336 102l24-24" stroke-width="13"/>
+    <circle cx="256" cy="226" r="116" stroke-width="12"/>
+    <circle cx="256" cy="226" r="94" stroke="#8b8498" stroke-width="4"/>
+    <path d="M256 226v-56M256 226l38 26" stroke-width="12"/>
+    <circle cx="256" cy="226" r="8" fill="#f4f4f2" stroke="none"/>
+    <path d="M256 100v14M382 226h-14M256 352v-14M130 226h14" stroke="#a9a3b4" stroke-width="7"/>
+  </g>
+</svg>

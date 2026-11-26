@@ -134,8 +134,12 @@
   z-index: 2;
   margin-top: 0.5rem;
   border: 0;
-  background: transparent;
-  color: var(--xcron-primary);
+  /* The backdrop is translucent and dark in light themes; give the link its
+     own elevated surface so ink/background contrast holds in every theme. */
+  background: var(--xcron-bg-elevated);
+  color: var(--xcron-ink);
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -143,7 +147,7 @@
 }
 
 .tour-dismiss:hover {
-  color: var(--xcron-accent);
+  background: var(--xcron-bg);
 }
 
 /* ── Highlight box pinned to the target element ── */

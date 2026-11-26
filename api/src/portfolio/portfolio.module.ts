@@ -1,27 +1,34 @@
 import { Module } from '@nestjs/common';
 import { AiModule } from '../ai/ai.module';
+import { PrismaService } from '../prisma/prisma.service';
 import { StorageModule } from '../storage/storage.module';
 import { PortfolioAiService } from './portfolio-ai.service';
 import { PortfolioController } from './portfolio.controller';
 import { PortfolioMemoryStore } from './portfolio.memory-store';
+import { PortfolioPrismaStore } from './portfolio.prisma-store';
 import { PortfolioService } from './portfolio.service';
 import { PortfolioStore } from './portfolio.store';
 
 /**
  * Dynamic Portfolios — self-contained module.
  *
- * Storage is in-memory for the MVP (matches the project default data store and
- * needs no database change). `PortfolioStore` is the repository port; a Prisma
- * implementation can be swapped in via `PORTFOLIO_STORE=prisma` once the
- * migration lands, without touching the service or clients.
+ * Configurable repository port: `PortfolioStore` is backed by `PortfolioPrismaStore`
+ * when `PORTFOLIO_STORE=prisma`, or `PortfolioMemoryStore` by default.
  */
 @Module({
   imports: [AiModule, StorageModule],
   controllers: [PortfolioController],
   providers: [
+    PortfolioMemoryStore,
+    PortfolioPrismaStore,
     {
       provide: PortfolioStore,
-      useClass: PortfolioMemoryStore,
+      useFactory: (prisma: PrismaService, mem: PortfolioMemoryStore) => {
+        return process.env.PORTFOLIO_STORE === 'prisma'
+          ? new PortfolioPrismaStore(prisma)
+          : mem;
+      },
+      inject: [PrismaService, PortfolioMemoryStore],
     },
     PortfolioService,
     PortfolioAiService,

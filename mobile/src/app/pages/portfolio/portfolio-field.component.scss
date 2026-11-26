@@ -1,0 +1,101 @@
+:host {
+  display: block;
+}
+
+.field {
+  margin-bottom: 0.75rem;
+}
+
+ion-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  --background: transparent;
+}
+
+ion-input,
+ion-textarea {
+  --background: var(--xcron-wash);
+  --color: var(--xcron-ink);
+  width: 100%;
+}
+
+ion-textarea.code-input {
+  --font-family: 'SFMono-Regular', ui-monospace, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.image-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.45rem 0;
+}
+
+.image-upload {
+  padding: 0.55rem 0.9rem;
+  border: 1px dashed var(--xcron-line-strong, #4a4268);
+  border-radius: 10px;
+  color: var(--xcron-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.list-field {
+  padding: 0.25rem 0 0.5rem;
+}
+
+.list-field__label {
+  margin: 0 0 0.5rem;
+  color: var(--xcron-ink-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.list-row ion-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.row-card {
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.7rem 0.75rem;
+  border: 1px solid var(--xcron-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--xcron-wash) 55%, transparent);
+}
+
+.row-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  color: var(--xcron-ink-soft);
+  font-size: 0.85rem;
+}
+
+.row-card__tools {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.muted,
+.field-error {
+  margin: 0.25rem 0;
+  color: var(--xcron-muted);
+  font-size: 0.8rem;
+}
+
+.field-error {
+  color: var(--xcron-danger, #f43f5e);
+}

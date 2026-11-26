@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -142,6 +143,7 @@ export class PortfolioController {
     return this.portfolio.createSite(user.id, dto);
   }
 
+  @Header('Cache-Control', 'no-store, private')
   @Get('sites/:siteId')
   getSite(@CurrentUser() user: AuthUser, @Param('siteId') siteId: string) {
     return this.portfolio.getSite(user.id, siteId);
@@ -205,6 +207,7 @@ export class PortfolioController {
 
   // ── Draft / autosave ────────────────────────────────────────────────────
 
+  @Header('Cache-Control', 'no-store, private')
   @Get('sites/:siteId/draft')
   getDraft(@CurrentUser() user: AuthUser, @Param('siteId') siteId: string) {
     return this.portfolio.getDraft(user.id, siteId);
@@ -278,6 +281,7 @@ export class PortfolioController {
     return this.portfolio.unpublish(user.id, siteId);
   }
 
+  @Header('Cache-Control', 'no-store, private')
   @Get('sites/:siteId/analytics')
   analytics(@CurrentUser() user: AuthUser, @Param('siteId') siteId: string) {
     return this.portfolio.analytics(user.id, siteId);
@@ -285,11 +289,20 @@ export class PortfolioController {
 
   // ── Public runtime (anonymous) ──────────────────────────────────────────
 
+  /** Public sitemap index for search engines (Google, Bing). */
+  @Public()
+  @Header('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400')
+  @Get('public-sitemap')
+  getPublicSitemap() {
+    return this.portfolio.listPublishedSlugs();
+  }
+
   /**
    * Read-optimized published representation. Draft/preview data is never
    * returned here. Immutable version ids make this safe to cache long-term.
    */
   @Public()
+  @Header('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300')
   @Get('public/:slug')
   getPublic(@Param('slug') slug: string, @Query('locale') locale?: string) {
     return this.portfolio.getPublicSite(slug, locale);
@@ -301,6 +314,7 @@ export class PortfolioController {
    * lookup, so host-based routing cannot be probed arbitrarily.
    */
   @Public()
+  @Header('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300')
   @Get('public/host/:hostname')
   getPublicByHostname(
     @Param('hostname') hostname: string,
@@ -311,6 +325,7 @@ export class PortfolioController {
 
   /** Privacy-light analytics beacon. Never blocks rendering. */
   @Public()
+  @AuthThrottle()
   @Post('public/:slug/events')
   recordEvent(
     @Param('slug') slug: string,

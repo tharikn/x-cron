@@ -1,10 +1,11 @@
 import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import type {
-  PortfolioDocument,
-  PortfolioLocalizedText,
-  PortfolioTemplateSummary,
+import {
+  localizedValue,
+  type PortfolioDocument,
+  type PortfolioLocalizedText,
+  type PortfolioTemplateSummary,
 } from '../../core/models/portfolio.model';
 import { PortfolioService } from '../../core/services/portfolio.service';
 import { SeoService } from '../../core/services/seo.service';
@@ -19,6 +20,7 @@ import {
 } from './portfolio-wizard-stepper.component';
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
+const GENERIC_LINK_TEXT = /^(?:read more|learn more|click here|more|here)$/i;
 
 export type PaginationItem =
   | { kind: 'page'; page: number }
@@ -440,11 +442,19 @@ export class PortfolioWizardPage implements OnInit {
         };
       }
 
-      if (section.type === 'hero' && !props['subheadline']) {
-        props['subheadline'] = {
-          [locale]:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore.',
-        };
+      if (section.type === 'hero') {
+        // Template previews are audited as real pages; generic CTA text fails link-text SEO.
+        const ctaLabel = localizedValue(props['primaryCtaLabel'], locale, 'en-IN');
+        if (GENERIC_LINK_TEXT.test(ctaLabel)) {
+          props['primaryCtaLabel'] = { [locale]: 'Read more about my work' };
+        }
+
+        if (!props['subheadline']) {
+          props['subheadline'] = {
+            [locale]:
+              'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore.',
+          };
+        }
       }
 
       return {

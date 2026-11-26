@@ -53,6 +53,7 @@ import {
 import { formatPostedDate, jobPath } from '../../core/utils/format';
 import type { Job } from '../../core/models/job.model';
 import { PiiFieldComponent } from '../../shared/pii-field/pii-field.component';
+import { XcronSpinnerComponent } from '../../shared/xcron-spinner/xcron-spinner.component';
 
 type SignInMode = 'account' | 'admin';
 type AccountForm = 'login' | 'register';
@@ -60,7 +61,7 @@ export type AccountTab = 'profile' | 'apply' | 'activity' | 'rating' | 'account'
 
 @Component({
   selector: 'app-sign-in',
-  imports: [DatePipe, FormsModule, RouterLink, PiiFieldComponent],
+  imports: [DatePipe, FormsModule, RouterLink, PiiFieldComponent, XcronSpinnerComponent],
   templateUrl: './sign-in.page.html',
   styleUrl: './sign-in.page.scss',
 })

@@ -8,5 +8,13 @@ import { AuthService } from '../services/auth.service';
  * shared guards used by existing features.
  */
 export const portfolioGuard: CanActivateFn = async (_route, state) => {
-  return true;
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  await auth.ensureSession();
+  if (auth.isSignedIn()) {
+    return true;
+  }
+  return router.createUrlTree(['/sign-in'], {
+    queryParams: { returnUrl: state.url },
+  });
 };

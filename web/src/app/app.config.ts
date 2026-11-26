@@ -5,12 +5,17 @@ import {
   inject,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import {
+  provideClientHydration,
+  withEventReplay,
+  withHttpTransferCacheOptions,
+} from '@angular/platform-browser';
 import {
   PreloadAllModules,
   provideRouter,
   withInMemoryScrolling,
   withPreloading,
+  withViewTransitions,
 } from '@angular/router';
 import { apiLoadingInterceptor } from './core/interceptors/api-loading.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
@@ -27,6 +32,7 @@ export const appConfig: ApplicationConfig = {
       routes,
       withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }),
       withPreloading(PreloadAllModules),
+      withViewTransitions({ skipInitialTransition: true }),
     ),
     provideHttpClient(
       withFetch(),
@@ -36,7 +42,12 @@ export const appConfig: ApplicationConfig = {
         apiLoadingInterceptor,
       ]),
     ),
-    provideClientHydration(withEventReplay()),
+    provideClientHydration(
+      withEventReplay(),
+      withHttpTransferCacheOptions({
+        includePostRequests: false,
+      }),
+    ),
     {
       provide: APP_INITIALIZER,
       multi: true,

@@ -15,7 +15,7 @@ export class ThemeService {
   private mediaQuery: MediaQueryList | null = null;
 
   readonly preference = signal<ThemePreference>(this.read());
-  readonly resolved = signal<ResolvedTheme>('dark');
+  readonly resolved = signal<ResolvedTheme>('light');
 
   /** Apply local preference immediately. */
   init(): void {
@@ -67,6 +67,13 @@ export class ThemeService {
         resolved === 'dark' ? '#070412' : resolved === 'warm' ? '#f6efe6' : '#f7f5fc',
       );
     }
+    const icons = document.querySelectorAll<HTMLLinkElement>(
+      'link[rel~="icon"][data-icon-light][data-icon-dark]',
+    );
+    icons.forEach((icon) => {
+      const next = resolved === 'dark' ? icon.dataset['iconDark'] : icon.dataset['iconLight'];
+      if (next) icon.setAttribute('href', next);
+    });
   }
 
   private resolve(pref: ThemePreference): ResolvedTheme {
@@ -86,6 +93,6 @@ export class ThemeService {
     } catch {
       // ignore
     }
-    return 'system';
+    return 'light';
   }
 }

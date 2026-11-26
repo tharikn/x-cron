@@ -63,3 +63,5 @@ api/openapi.json
 *.csv
 # Tesseract OCR language packs (downloaded locally)
 *.traineddata
+.agents
+.taste-skill

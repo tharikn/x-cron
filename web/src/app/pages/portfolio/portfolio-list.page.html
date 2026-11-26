@@ -1,81 +1,261 @@
 <section class="page">
-  <header class="head">
-    <div>
-      <p class="eyebrow">Dynamic portfolios</p>
-      <h1>Portfolios</h1>
+  <header class="masthead">
+    <div class="masthead__copy">
+      <p class="eyebrow"><span class="eyebrow__dot"></span> Dynamic portfolios</p>
+      <h1>Your portfolios</h1>
       <p class="lead">
-        Structured, JSON-first pages. Draft safely, publish an immutable version, roll back any time.
+        Pick a design, put your work in it, and publish when it reads right. Nothing goes live until
+        you publish a version.
       </p>
+      <div class="masthead__actions">
+        <a class="btn" routerLink="/portfolio/new">
+          New portfolio
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+        <span class="masthead__hint">Every publish creates a version you can roll back to.</span>
+      </div>
     </div>
-    <div class="head__actions">
-      <a class="btn" routerLink="/portfolio/new">New portfolio</a>
+
+    <div class="showcase" aria-hidden="true">
+      <div class="showcase__window showcase__window--back"></div>
+      <div class="showcase__window">
+        <div class="showcase__bar">
+          <i></i><i></i><i></i>
+          <span>/p/{{ sites()[0]?.slug || 'your-portfolio' }}</span>
+        </div>
+        <div class="showcase__page">
+          <div class="showcase__nav">
+            <strong>{{ sites()[0]?.name || 'Your portfolio' }}</strong>
+            <span></span><span></span>
+          </div>
+          <div class="showcase__hero">
+            <small>{{ sites()[0] ? 'Selected work' : 'A place for your work' }}</small>
+            <b>{{ sites()[0]?.name || 'Make it yours' }}</b>
+            <span class="showcase__rule"></span>
+            <em>View projects</em>
+          </div>
+          <div class="showcase__tiles"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+      <div class="showcase__status">
+        <span></span>
+        {{ sites()[0]?.status === 'published' ? 'Live version' : 'Private draft' }}
+      </div>
     </div>
   </header>
 
-  @if (loading()) {
-    <p class="state">Loading your portfolios…</p>
-  } @else if (!sites().length) {
-    <div class="empty card">
-      <h2>No portfolios yet</h2>
-      <p>Choose a design, add the details, then publish your first page in a few minutes.</p>
-      <a class="btn" routerLink="/portfolio/new">Create a portfolio</a>
+  <div class="summary" aria-label="Portfolio summary">
+    <div class="summary__item">
+      <strong>{{ sites().length }}</strong>
+      <span>{{ sites().length === 1 ? 'Portfolio' : 'Portfolios' }}</span>
     </div>
-  } @else {
-    <ul class="sites">
-      @for (site of sites(); track site.id) {
-        <li class="site card">
-          <div class="site__head">
-            <div>
-              <h2>
-                <a [routerLink]="['/portfolio', site.id]">{{ site.name }}</a>
-              </h2>
-              <p class="site__path">/p/{{ site.slug }}</p>
-            </div>
-            <span class="pill" [attr.data-status]="site.status">{{ statusLabel(site) }}</span>
-          </div>
+    <div class="summary__item">
+      <strong>{{ publishedCount() }}</strong>
+      <span>Published</span>
+    </div>
+    <div class="summary__item">
+      <strong>{{ draftCount() }}</strong>
+      <span>In progress</span>
+    </div>
+    <p class="summary__note">Draft edits stay out of the public page.</p>
+  </div>
 
-          <dl class="site__meta">
-            <div>
-              <dt>Sections</dt>
-              <dd>{{ site.sectionCount }}</dd>
-            </div>
-            <div>
-              <dt>Language</dt>
-              <dd>{{ site.defaultLocale }}</dd>
-            </div>
-            <div>
-              <dt>Template</dt>
-              <dd>{{ site.template.id }}</dd>
-            </div>
-            <div>
-              <dt>Updated</dt>
-              <dd>{{ site.updatedAt | date: 'mediumDate' }}</dd>
-            </div>
-          </dl>
-
-          <div class="site__actions">
-            <a class="btn btn--sm" [routerLink]="['/portfolio', site.id]">Edit draft</a>
-            @if (site.status === 'published') {
-              <a
-                class="btn btn--ghost btn--sm"
-                [routerLink]="['/p', site.slug]"
-                target="_blank"
-                rel="noopener"
-              >
-                View live
-              </a>
-            }
-            <button
-              type="button"
-              class="btn btn--ghost btn--sm danger"
-              [disabled]="deletingId() === site.id"
-              (click)="remove(site)"
-            >
-              {{ deletingId() === site.id ? 'Deleting…' : 'Delete' }}
-            </button>
-          </div>
+  @if (loading()) {
+    <ul class="site-grid" aria-hidden="true">
+      @for (slot of skeletonSlots; track slot) {
+        <li class="site site--skeleton card">
+          <span class="sk site__sk-visual"></span>
+          <span class="sk sk--title"></span>
+          <span class="sk sk--text"></span>
+          <span class="sk sk--meta"></span>
+          <span class="sk site__sk-actions"></span>
         </li>
       }
     </ul>
+  } @else if (!sites().length) {
+    <section class="empty card" aria-labelledby="empty-title">
+      <div class="empty__visual" aria-hidden="true">
+        <div class="empty__sheet">
+          <span class="empty__sheet-bar"></span>
+          <span class="empty__sheet-line empty__sheet-line--wide"></span>
+          <span class="empty__sheet-line"></span>
+          <span class="empty__sheet-cta"></span>
+          <span class="empty__sheet-grid"><i></i><i></i><i></i></span>
+        </div>
+      </div>
+      <div class="empty__copy">
+        <p class="eyebrow">Start here</p>
+        <h2 id="empty-title">Make the first page.</h2>
+        <p>
+          A portfolio gives your work a single address. Choose a design, fill it in, and share the
+          published link.
+        </p>
+        <a class="btn" routerLink="/portfolio/new">
+          Create a portfolio
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+      </div>
+      <ol class="empty__steps">
+        <li><span>01</span> Choose a design</li>
+        <li><span>02</span> Add your work</li>
+        <li><span>03</span> Publish a version</li>
+      </ol>
+    </section>
+  } @else {
+    <section class="workspace" aria-labelledby="workspace-title">
+      <div class="workspace__head">
+        <div>
+          <h2 id="workspace-title">All portfolios</h2>
+          <p aria-live="polite">
+            Showing {{ filteredSites().length }} of {{ sites().length }}
+            {{ sites().length === 1 ? 'portfolio' : 'portfolios' }}
+          </p>
+        </div>
+
+        <div class="tools">
+          <label class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="m16 16 4.5 4.5" stroke-linecap="round" />
+            </svg>
+            <span class="sr-only">Search portfolios</span>
+            <input
+              type="search"
+              [(ngModel)]="query"
+              placeholder="Search name, slug, or design"
+              autocomplete="off"
+            />
+          </label>
+
+          <div class="segmented" role="group" aria-label="Filter by status">
+            @for (filter of filters; track filter.id) {
+              <button
+                type="button"
+                [class.is-active]="statusFilter() === filter.id"
+                [attr.aria-pressed]="statusFilter() === filter.id"
+                (click)="statusFilter.set(filter.id)"
+              >
+                {{ filter.label }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      @if (!filteredSites().length) {
+        <div class="no-results card">
+          <p>No portfolios match those filters.</p>
+          <button type="button" class="btn btn--ghost btn--sm" (click)="clearFilters()">
+            Clear filters
+          </button>
+        </div>
+      } @else {
+        <ul class="site-grid">
+          @for (site of filteredSites(); track site.id) {
+            <li class="site card">
+              <a
+                class="site__visual"
+                [routerLink]="['/portfolio', site.id]"
+                [style.background]="gradientFor(site)"
+                [attr.aria-label]="'Open ' + site.name + ' in the editor'"
+              >
+                <span class="site__browser"><i></i><i></i><i></i><em>/p/{{ site.slug }}</em></span>
+                <span
+                  class="site__page"
+                  [style.--pf-surface]="surfaceFor(site)"
+                  [style.--pf-ink]="inkFor(site)"
+                  [style.--pf-accent]="accentFor(site)"
+                >
+                  <span class="site__nav">
+                    <b>{{ site.name }}</b>
+                    <i></i><i></i>
+                  </span>
+                  <span class="site__hero">
+                    <small>{{ familyFor(site) }}</small>
+                    <strong>{{ site.name }}</strong>
+                    <span class="site__rule"></span>
+                    <em>View projects</em>
+                  </span>
+                  <span class="site__tiles"><i></i><i></i><i></i></span>
+                </span>
+              </a>
+
+              <span class="pill" [attr.data-status]="site.status">{{ statusLabel(site) }}</span>
+
+              <div class="site__content">
+                <div class="site__title-row">
+                  <h3><a [routerLink]="['/portfolio', site.id]">{{ site.name }}</a></h3>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    [attr.aria-label]="'Copy public link for ' + site.name"
+                    (click)="copyPath(site)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                      <rect x="8" y="8" width="11" height="11" rx="2" />
+                      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                    </svg>
+                  </button>
+                </div>
+
+                <p class="site__path">/p/{{ site.slug }}</p>
+
+                <dl class="site__facts">
+                  <div><dt>Sections</dt><dd>{{ site.sectionCount }}</dd></div>
+                  <div><dt>Language</dt><dd>{{ site.defaultLocale }}</dd></div>
+                  <div><dt>Design</dt><dd>{{ site.template.id }}</dd></div>
+                  <div><dt>Updated</dt><dd>{{ site.updatedAt | date: 'mediumDate' }}</dd></div>
+                </dl>
+
+                <div class="site__actions">
+                  <a class="btn btn--sm" [routerLink]="['/portfolio', site.id]">Edit draft</a>
+                  @if (site.status === 'published') {
+                    <a
+                      class="btn btn--ghost btn--sm"
+                      [routerLink]="['/p', site.slug]"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      View live
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path d="M14 5h5v5M19 5l-8 8" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4" stroke-linecap="round" />
+                      </svg>
+                    </a>
+                  }
+                  <button
+                    type="button"
+                    class="icon-btn icon-btn--danger"
+                    [disabled]="deletingId() === site.id"
+                    [attr.aria-label]="'Delete ' + site.name"
+                    (click)="remove(site)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                      <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </li>
+          }
+
+          <li class="create-tile">
+            <a routerLink="/portfolio/new">
+              <span class="create-tile__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                </svg>
+              </span>
+              <strong>Start another portfolio</strong>
+              <span>Pick a design and make it yours.</span>
+            </a>
+          </li>
+        </ul>
+      }
+    </section>
   }
 </section>

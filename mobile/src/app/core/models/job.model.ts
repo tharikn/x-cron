@@ -166,7 +166,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   remotePreferred: false,
   interfaceLocale: 'en',
   sort: 'newest',
-  theme: 'system',
+  theme: 'light',
 };
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {

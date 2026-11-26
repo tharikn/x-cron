@@ -307,6 +307,7 @@
                       @if (selectedDefinition(); as definition) {
                         <span
                           class="info-trigger"
+                          role="img"
                           [appTip]="definition.description"
                           [appTipDesc]="definition.accessibility.join(' Â· ')"
                         >
@@ -371,7 +372,7 @@
                           </span>
                           <span class="field__meta-icons">
                             @if (fieldTooltip(field)) {
-                              <span class="info-trigger" [appTip]="fieldTooltip(field)">
+                              <span class="info-trigger" role="img" [appTip]="fieldTooltip(field)">
                                 <app-editor-icon name="info" [size]="12" />
                               </span>
                             }
@@ -397,6 +398,7 @@
                               [attr.placeholder]="field.placeholder ?? null"
                               [name]="'field-' + field.key"
                               [id]="'field-' + field.key"
+                              [attr.aria-label]="field.label"
                               [attr.aria-invalid]="controlIssue ? 'true' : null"
                             />
                           }
@@ -409,6 +411,7 @@
                               [attr.placeholder]="field.placeholder ?? null"
                               [name]="'field-' + field.key"
                               [id]="'field-' + field.key"
+                              [attr.aria-label]="field.label"
                               [attr.aria-invalid]="controlIssue ? 'true' : null"
                             ></textarea>
                           }
@@ -417,6 +420,7 @@
                               type="url"
                               [ngModel]="section.props[field.key]"
                               (ngModelChange)="setProp(field.key, $event)"
+                              [attr.aria-label]="field.label"
                               [attr.placeholder]="field.placeholder ?? 'https://â€¦'"
                               [name]="'field-' + field.key"
                               [id]="'field-' + field.key"
@@ -428,6 +432,7 @@
                               type="url"
                               [ngModel]="section.props[field.key]"
                               (ngModelChange)="setProp(field.key, $event)"
+                              [attr.aria-label]="field.label"
                               placeholder="https://â€¦"
                               [name]="'field-' + field.key"
                               [id]="'field-' + field.key"
@@ -441,6 +446,7 @@
                               [attr.maxlength]="field.maxLength ?? null"
                               [name]="'field-' + field.key"
                               [id]="'field-' + field.key"
+                              [attr.aria-label]="field.label"
                               [attr.aria-invalid]="controlIssue ? 'true' : null"
                             />
                           }
@@ -451,6 +457,7 @@
                                   [ngModel]="item"
                                   (ngModelChange)="updateListItem(field.key, i, $event)"
                                   [name]="'list-' + field.key + '-' + i"
+                                  [attr.aria-label]="field.label + ' ' + (i + 1)"
                                 />
                                 <button type="button" class="mini-icon-btn mini-icon-btn--danger" (click)="removeListItem(field.key, i)" appTip="Remove item">
                                   <app-editor-icon name="x" [size]="13" />

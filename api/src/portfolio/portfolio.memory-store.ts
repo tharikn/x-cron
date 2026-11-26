@@ -240,6 +240,15 @@ export class PortfolioMemoryStore extends PortfolioStore {
     return existed;
   }
 
+  async listPublishedSites(
+    limit = 100,
+  ): Promise<Array<{ slug: string; updatedAt: string }>> {
+    return [...this.sites.values()]
+      .filter((site) => site.status === 'published' && site.publishedVersionId)
+      .slice(0, limit)
+      .map((site) => ({ slug: site.slug, updatedAt: site.updatedAt }));
+  }
+
   async clearForUser(ownerUserId: string): Promise<void> {
     for (const site of [...this.sites.values()]) {
       if (site.ownerUserId === ownerUserId) {

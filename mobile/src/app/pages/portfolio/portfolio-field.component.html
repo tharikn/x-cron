@@ -1,0 +1,197 @@
+<div class="field" [attr.data-kind]="field().kind">
+  @switch (field().kind) {
+    @case ('localizedText') {
+      <ion-item>
+        <ion-label position="stacked">{{ field().label }}</ion-label>
+        <ion-input
+          [value]="localized"
+          [placeholder]="field().placeholder || ''"
+          [maxlength]="field().maxLength || null"
+          (ionInput)="localized = $any($event.target).value || ''"
+        ></ion-input>
+      </ion-item>
+    }
+    @case ('localizedTextarea') {
+      <ion-item>
+        <ion-label position="stacked">{{ field().label }}</ion-label>
+        <ion-textarea
+          [value]="localized"
+          [placeholder]="field().placeholder || ''"
+          [maxlength]="field().maxLength || null"
+          [autoGrow]="true"
+          rows="3"
+          (ionInput)="localized = $any($event.target).value || ''"
+        ></ion-textarea>
+      </ion-item>
+    }
+    @case ('code') {
+      <ion-item>
+        <ion-label position="stacked">{{ field().label }}</ion-label>
+        <ion-textarea
+          class="code-input"
+          [value]="text"
+          [maxlength]="field().maxLength || null"
+          [autoGrow]="false"
+          rows="6"
+          spellcheck="false"
+          (ionInput)="text = $any($event.target).value || ''"
+        ></ion-textarea>
+      </ion-item>
+    }
+    @case ('url') {
+      <ion-item>
+        <ion-label position="stacked">{{ field().label }}</ion-label>
+        <ion-input
+          type="url"
+          inputmode="url"
+          [value]="text"
+          [placeholder]="field().placeholder || 'https://…'"
+          (ionInput)="text = $any($event.target).value || ''"
+        ></ion-input>
+      </ion-item>
+    }
+    @case ('image') {
+      <ion-item>
+        <ion-label position="stacked">{{ field().label }}</ion-label>
+        <ion-input
+          type="url"
+          inputmode="url"
+          [value]="text"
+          placeholder="https://…"
+          (ionInput)="text = $any($event.target).value || ''"
+        ></ion-input>
+      </ion-item>
+      <div class="image-actions">
+        <label class="image-upload">
+          {{ uploading() ? 'Uploading…' : 'Upload' }}
+          <input
+            type="file"
+            hidden
+            accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
+            (change)="onImageFilePicked($event)"
+          />
+        </label>
+        <ion-button fill="outline" size="small" (click)="pickFromCamera()">
+          <ion-icon name="camera-outline" slot="start"></ion-icon>
+          Camera
+        </ion-button>
+      </div>
+      @if (uploadError()) {
+        <p class="field-error">{{ uploadError() }}</p>
+      }
+    }
+    @case ('text') {
+      <ion-item>
+        <ion-label position="stacked">{{ field().label }}</ion-label>
+        <ion-input
+          [value]="text"
+          [placeholder]="field().placeholder || ''"
+          [maxlength]="field().maxLength || null"
+          (ionInput)="text = $any($event.target).value || ''"
+        ></ion-input>
+      </ion-item>
+    }
+    @case ('number') {
+      <ion-item>
+        <ion-label position="stacked">{{ field().label }}</ion-label>
+        <ion-input
+          type="number"
+          inputmode="numeric"
+          [value]="numeric === null ? '' : numeric"
+          [min]="field().min ?? null"
+          [max]="field().max ?? null"
+          (ionInput)="numeric = $any($event.target).value === '' ? null : +$any($event.target).value"
+        ></ion-input>
+      </ion-item>
+    }
+    @case ('toggle') {
+      <ion-item>
+        <ion-toggle justify="space-between" [checked]="checked" (ionChange)="checked = $any($event.detail.checked)">
+          {{ field().label }}
+        </ion-toggle>
+      </ion-item>
+    }
+    @case ('textList') {
+      <div class="list-field">
+        <p class="list-field__label">{{ field().label }}</p>
+        @for (item of list; track $index) {
+          <div class="list-row">
+            <ion-input
+              [value]="item"
+              [placeholder]="field().placeholder || 'Value'"
+              (ionInput)="updateListItem($index, $any($event.target).value || '')"
+            ></ion-input>
+            <ion-button fill="clear" size="small" aria-label="Remove item" (click)="removeListItem($index)">
+              <ion-icon name="trash-outline"></ion-icon>
+            </ion-button>
+          </div>
+        } @empty {
+          <p class="muted">No items yet.</p>
+        }
+        <ion-button fill="outline" size="small" (click)="addListItem()">
+          <ion-icon name="add-outline" slot="start"></ion-icon>
+          Add item
+        </ion-button>
+      </div>
+    }
+    @case ('objectList') {
+      <div class="list-field">
+        <p class="list-field__label">{{ field().label }}</p>
+        @for (row of rows; track $index) {
+          <div class="row-card">
+            <div class="row-card__head">
+              <strong>{{ field().itemLabel || 'Item' }} {{ $index + 1 }}</strong>
+              <div class="row-card__tools">
+                <ion-button
+                  fill="clear"
+                  size="small"
+                  aria-label="Move up"
+                  [disabled="$index === 0"
+                  (click)="moveRow($index, -1)"
+                >
+                  <ion-icon name="arrow-up-outline"></ion-icon>
+                </ion-button>
+                <ion-button
+                  fill="clear"
+                  size="small"
+                  aria-label="Move down"
+                  [disabled="$index === rows.length - 1"
+                  (click)="moveRow($index, 1)"
+                >
+                  <ion-icon name="arrow-down-outline"></ion-icon>
+                </ion-button>
+                <ion-button fill="clear" size="small" aria-label="Remove item" (click)="removeRow($index)">
+                  <ion-icon name="trash-outline"></ion-icon>
+                </ion-button>
+              </div>
+            </div>
+            @for (nested of field().itemFields || []; track nested.key) {
+              @if (nested.kind === 'localizedText' || nested.kind === 'localizedTextarea') {
+                <ion-item>
+                  <ion-label position="stacked">{{ nested.label }}</ion-label>
+                  <ion-input
+                    [value]="localizedRowValue(row, nested.key)"
+                    (ionInput)="setRowLocalized(row, nested.key, $any($event.target).value || '')"
+                  ></ion-input>
+                </ion-item>
+              } @else {
+                <app-portfolio-field
+                  [field]="nested"
+                  [locale]="locale()"
+                  [value]="rowValue(row, nested.key)"
+                  (valueChange)="setRowValue(row, nested.key, $event)"
+                />
+              }
+            }
+          </div>
+        } @empty {
+          <p class="muted">No items yet.</p>
+        }
+        <ion-button fill="outline" size="small" (click)="addRow()">
+          <ion-icon name="add-outline" slot="start"></ion-icon>
+          Add {{ field().itemLabel || 'item' }}
+        </ion-button>
+      </div>
+    }
+  }
+</div>

@@ -73,7 +73,7 @@ export class UpdatePortfolioSiteDto {
 export class CreatePortfolioDomainDto {
   @IsString()
   @MinLength(3)
-  @MaxLength(40)
+  @MaxLength(64)
   siteId!: string;
 
   @IsString()
@@ -97,7 +97,7 @@ export class VerifyPortfolioDomainDto {
 export class ListPortfolioDomainsQueryDto {
   @IsOptional()
   @IsString()
-  @MaxLength(40)
+  @MaxLength(64)
   siteId?: string;
 }
 

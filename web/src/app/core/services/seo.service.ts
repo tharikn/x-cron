@@ -78,6 +78,51 @@ export class SeoService {
     this.setJsonLd(data);
   }
 
+  /** Advanced SEO for public portfolio with rich OpenGraph, Twitter cards, and Schema.org. */
+  setPortfolioPublicSeo(input: {
+    title: string;
+    description: string;
+    canonicalPath: string;
+    robots?: string;
+    ogImage?: string;
+    jsonLd?: Record<string, unknown>;
+  }): void {
+    const fullTitle =
+      input.title && input.title !== environment.siteName
+        ? `${environment.siteName} · ${input.title}`
+        : environment.siteName;
+    const url = `${environment.siteUrl}${input.canonicalPath}`;
+
+    this.title.setTitle(fullTitle);
+    this.meta.updateTag({ name: 'description', content: input.description });
+    this.meta.updateTag({ name: 'robots', content: input.robots ?? 'index,follow' });
+    this.meta.updateTag({ property: 'og:title', content: fullTitle });
+    this.meta.updateTag({ property: 'og:description', content: input.description });
+    this.meta.updateTag({ property: 'og:url', content: url });
+    this.meta.updateTag({ property: 'og:type', content: 'profile' });
+
+    if (input.ogImage) {
+      const imgUrl = /^https?:\/\//i.test(input.ogImage)
+        ? input.ogImage
+        : `${environment.siteUrl}${input.ogImage}`;
+      this.meta.updateTag({ property: 'og:image', content: imgUrl });
+      this.meta.updateTag({ name: 'twitter:image', content: imgUrl });
+      this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    } else {
+      this.meta.updateTag({ name: 'twitter:card', content: 'summary' });
+    }
+
+    this.meta.updateTag({ name: 'twitter:title', content: fullTitle });
+    this.meta.updateTag({ name: 'twitter:description', content: input.description });
+
+    this.setCanonical(url);
+    if (input.jsonLd) {
+      this.setStructuredData(input.jsonLd);
+    } else {
+      this.clearJsonLd();
+    }
+  }
+
   /** Update just the social-share image without touching the rest of the tags. */
   setSocialImage(url: string): void {
     if (!url) return;

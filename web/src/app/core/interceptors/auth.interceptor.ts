@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { from, switchMap, catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { TabSessionService } from '../services/tab-session.service';
+import { isAppApiRequest } from '../utils/api-request';
 import { csrfHeaders } from '../utils/csrf';
 
 const AUTH_ENTRY_MARKERS = [
@@ -22,6 +23,9 @@ function isAuthEntry(url: string): boolean {
  * Attach credentials + tab/CSRF headers; on 401 refresh once then clear.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  // Never attach credentials or API headers to third-party origins.
+  if (!isAppApiRequest(req.url)) return next(req);
+
   const auth = inject(AuthService);
   const tabs = inject(TabSessionService);
 

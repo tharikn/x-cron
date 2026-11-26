@@ -521,7 +521,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `interceptors/correlation.interceptor.ts` | Send `X-Request-Id`; stamp errors for support refs |
 | `services/deep-link.service.ts` | Map https / `xcron://` URLs → tab routes |
 | `services/android-back.service.ts` | Hardware back → history / Discover / exit |
-| `services/connectivity.service.ts` | Online/offline banner signal |
+| `services/connectivity.service.ts` | Online/offline signal for warning toasts |
 | `services/auth.service.ts` | Username/password + Google + admin auth client |
 | `services/jobs.service.ts` | Search/post/moderation API client (`directPublish` on create) |
 | `services/portfolio.service.ts` | Dynamic Portfolios API client (list/create/preview/quick edit) |
@@ -618,9 +618,10 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `web/README.md` | Web package readme |
 | `web/CLAUDE.md` | Agent guide for Angular SSR web |
 | `web/public/favicon.ico` | Favicon |
-| `web/public/brand/xcron-logo-mark-square.png` | Square brand mark for browser OS notifications |
-| `mobile/src/assets/icon/xcron-logo-mark-square.png` | Square brand mark (mobile browser Notification icon) |
-| `mobile/android/.../drawable/ic_notification_large.png` | Android expanded notification large icon (X Cron square) |
+| `web/public/brand/xcron-logo-mark-square-light.png` | Transparent light-theme clock mark for browser OS notifications |
+| `web/public/brand/xcron-logo-mark-square.png` | Transparent dark-theme clock mark for dark surfaces |
+| `mobile/src/assets/icon/xcron-logo-mark-square-light.png` | Transparent light-theme clock mark (mobile browser Notification icon) |
+| `mobile/android/.../drawable/ic_notification_large.png` | Android expanded notification large icon (transparent white clock) |
 | `mobile/android/.../drawable/ic_stat_xcron.xml` | Android status-bar white silhouette for LocalNotifications / FCM |
 | `web/public/downloads/` | Local smoke APK (gitignored) + pointer `version.json` + README — **prod APK = GitHub Releases** |
 | `web/scripts/sync-apk.mjs` | Local-only debug APK copy for `ng serve` smoke |
@@ -656,7 +657,7 @@ Also see: [DEVELOPER.md](./DEVELOPER.md) · [ROADMAP.md](./ROADMAP.md)
 | `core/services/seo.service.ts` | Title/meta/canonical |
 | `core/services/ads.service.ts` | Home ad rail client |
 | `core/services/site.service.ts` | Public footer config client (`GET /site/footer`) |
-| `core/services/connectivity.service.ts` | Online/offline banner signal |
+| `core/services/connectivity.service.ts` | Online/offline signal for warning toasts |
 | `core/interceptors/correlation.interceptor.ts` | Send `X-Request-Id`; stamp errors for support refs |
 | `core/models/site.model.ts` | Footer config types |
 | `core/utils/format.ts` | Display helpers |

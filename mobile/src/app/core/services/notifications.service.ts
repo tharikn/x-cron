@@ -808,12 +808,12 @@ export class NotificationsService {
     }
   }
 
-  /** Square X Cron mark — browser shade (Ionic serve / PWA). */
+  /** Transparent Xcron JOB mark — browser shade (Ionic serve / PWA). */
   private osIconUrl(): string {
     if (typeof window === 'undefined') {
-      return '/assets/icon/xcron-logo-mark-square.png';
+      return '/assets/icon/xcron-logo-mark-square-light.png';
     }
-    return `${window.location.origin}/assets/icon/xcron-logo-mark-square.png`;
+    return `${window.location.origin}/assets/icon/xcron-logo-mark-square-light.png`;
   }
 
   /**

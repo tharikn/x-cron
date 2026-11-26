@@ -74,7 +74,7 @@ export class EditorTooltipService {
 @Directive({
   selector: '[appTip]',
   host: {
-    '[attr.aria-label]': 'ariaLabel()',
+    '[attr.aria-label]': 'ariaLabel() || null',
   },
 })
 export class EditorTooltipDirective implements OnDestroy {
@@ -157,11 +157,11 @@ export class EditorTooltipDirective implements OnDestroy {
       transform: translate(-50%, 0);
       max-width: 260px;
       padding: 6px 10px;
-      border-radius: 8px;
+      border-radius: var(--xcron-radius-sm);
       border: 1px solid var(--xcron-line-strong);
-      background: color-mix(in srgb, var(--xcron-bg-elevated) 96%, #000);
+      background: color-mix(in srgb, var(--xcron-bg-elevated) 96%, var(--xcron-bg));
       color: var(--xcron-ink);
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+      box-shadow: var(--xcron-shadow);
       pointer-events: none;
       animation: pf-tip-in 90ms ease-out both;
     }

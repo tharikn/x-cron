@@ -147,6 +147,8 @@ export class PortfolioService {
   private readonly publishKeys = new Map<string, string>();
   /** Prevents duplicate sample-draft creation on concurrent first loads. */
   private readonly sampleSeeds = new Map<string, Promise<void>>();
+  /** Micro-cache for high-throughput public site reads (60s TTL). */
+  private readonly publicCache = new Map<string, { data: PublicPortfolioResponse; expiresAt: number }>();
 
   constructor(private readonly store: PortfolioStore) {}
 
@@ -281,6 +283,7 @@ export class PortfolioService {
       site.name = name;
       site.document.site.name = name;
     }
+    const previousSlug = site.slug;
     if (input.slug != null) {
       const slug = await this.resolveSlug(input.slug, site.id);
       site.slug = slug;
@@ -301,13 +304,18 @@ export class PortfolioService {
     site.document = validatePortfolioDocument(site.document).document ?? site.document;
     site.updatedAt = new Date().toISOString();
     await this.store.saveSite(site);
+    if (previousSlug && previousSlug !== site.slug) {
+      this.invalidatePublicCache(previousSlug);
+    }
+    this.invalidatePublicCache(site.slug);
     return toSummary(site);
   }
 
   async deleteSite(userId: string, siteId: string): Promise<{ ok: true }> {
-    await this.requireSite(userId, siteId);
+    const site = await this.requireSite(userId, siteId);
     await this.store.deleteSite(siteId);
     this.publishKeys.delete(`${siteId}:*`);
+    this.invalidatePublicCache(site.slug);
     return { ok: true };
   }
 
@@ -445,6 +453,7 @@ export class PortfolioService {
     site.updatedAt = version.createdAt;
     await this.store.saveSite(site);
     this.publishKeys.set(key, version.id);
+    this.invalidatePublicCache(site.slug);
 
     return {
       site: toSummary(site),
@@ -462,6 +471,7 @@ export class PortfolioService {
     site.publishedVersionId = null;
     site.updatedAt = new Date().toISOString();
     await this.store.saveSite(site);
+    this.invalidatePublicCache(site.slug);
     return toSummary(site);
   }
 
@@ -526,7 +536,22 @@ export class PortfolioService {
       }
     }
 
-    const validation = validateForPublish(source.document);
+    // Site identity is owned by the site record; enforce it so rollback cannot
+    // resurrect a stale slug/name inside the document.
+    const enforced: unknown = {
+      ...(source.document as unknown as Record<string, unknown>),
+      site: {
+        ...source.document.site,
+        id: site.id,
+        slug: site.slug,
+        name: site.name,
+      },
+    };
+    const normalized = validatePortfolioDocument(enforced);
+    if (!normalized.ok || !normalized.document) {
+      throw validationError(normalized.issues);
+    }
+    const validation = validateForPublish(normalized.document);
     if (!validation.ok) {
       throw new BadRequestException({
         code: 'PORTFOLIO_VALIDATION_FAILED',
@@ -536,23 +561,24 @@ export class PortfolioService {
     }
 
     const versions = await this.store.listVersions(siteId);
+    const rollbackDocument = cloneDocument(normalized.document);
     const version: PortfolioVersionRecord = {
       id: `ver_${randomUUID()}`,
       siteId,
       workspaceId: site.workspaceId,
       versionNumber: (versions[0]?.versionNumber ?? 0) + 1,
-      document: cloneDocument(source.document),
-      templateId: source.templateId,
-      templateVersion: source.templateVersion,
-      schemaVersion: source.schemaVersion,
-      checksum: checksumOf(source.document),
+      document: rollbackDocument,
+      templateId: rollbackDocument.site.template.id,
+      templateVersion: rollbackDocument.site.template.version,
+      schemaVersion: rollbackDocument.schemaVersion,
+      checksum: checksumOf(rollbackDocument),
       createdAt: new Date().toISOString(),
       actorUserId: userId,
       sourceVersionId: source.id,
     };
     await this.store.addVersion(version);
 
-    site.document = cloneDocument(source.document);
+    site.document = cloneDocument(rollbackDocument);
     site.draftRevision += 1;
     site.status = 'published';
     site.publishedVersionId = version.id;
@@ -560,6 +586,7 @@ export class PortfolioService {
     site.updatedAt = version.createdAt;
     await this.store.saveSite(site);
     this.publishKeys.set(key, version.id);
+    this.invalidatePublicCache(site.slug);
 
     return {
       site: toSummary(site),
@@ -570,10 +597,30 @@ export class PortfolioService {
 
   // ── Public runtime ──────────────────────────────────────────────────────
 
+  private invalidatePublicCache(slug?: string): void {
+    if (!slug) {
+      this.publicCache.clear();
+      return;
+    }
+    const prefix = `${slug.toLowerCase()}:`;
+    for (const key of this.publicCache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.publicCache.delete(key);
+      }
+    }
+  }
+
   async getPublicSite(
     slug: string,
     locale?: string,
   ): Promise<PublicPortfolioResponse> {
+    const normalizedSlug = slug.trim().toLowerCase();
+    const cacheKey = `${normalizedSlug}:${locale || ''}`;
+    const cached = this.publicCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
     const site = await this.store.getSiteBySlug(slug);
     const version = await this.loadPublishedVersion(site);
     const activeLocale =
@@ -581,7 +628,7 @@ export class PortfolioService {
         ? normalizeLocaleCode(locale)
         : version.document.site.defaultLocale;
     const seo = buildPortfolioSeo(version.document, activeLocale);
-    return {
+    const response: PublicPortfolioResponse = {
       site: version.document.site,
       theme: version.document.theme,
       navigation: version.document.navigation,
@@ -590,6 +637,21 @@ export class PortfolioService {
       publishedAt: version.createdAt,
       seo,
     };
+    if (this.publicCache.size >= 500) {
+      // Bound the in-memory cache to avoid unbounded growth from unique slugs.
+      this.publicCache.clear();
+    }
+    this.publicCache.set(cacheKey, {
+      data: response,
+      expiresAt: Date.now() + 60_000,
+    });
+    return response;
+  }
+
+  async listPublishedSlugs(
+    limit = 100,
+  ): Promise<Array<{ slug: string; updatedAt: string }>> {
+    return this.store.listPublishedSites(limit);
   }
 
   /**

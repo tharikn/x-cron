@@ -1,0 +1,118 @@
+<div class="sheet">
+  <div class="sheet__head">
+    <h2>Design</h2>
+    <ion-button fill="clear" size="small" (click)="dismiss.emit()">Close</ion-button>
+  </div>
+
+  @if (draft(); as current) {
+    <div class="sheet__body">
+      <p class="group-label">Palette</p>
+      <div class="presets">
+        @for (preset of presets; track preset.label) {
+          <button type="button" class="preset" (click)="usePreset(preset)">
+            <span
+              class="preset__dots"
+              [style.--c1]="preset.primary"
+              [style.--c2]="preset.accent"
+              [style.--c3]="preset.surface"
+            ></span>
+            {{ preset.label }}
+          </button>
+        }
+      </div>
+
+      <p class="group-label">Mode</p>
+      <ion-item>
+        <ion-select [value]="current.mode" interface="popover" (ionChange)="setMode($any($event.detail.value))">
+          <ion-select-option value="light">Light</ion-select-option>
+          <ion-select-option value="dark">Dark</ion-select-option>
+          <ion-select-option value="system">System</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <p class="group-label">Colors</p>
+      <div class="colors">
+        <label>
+          <span>Primary</span>
+          <input
+            type="color"
+            [value]="current.tokens.primary"
+            (input)="setToken('primary', $any($event.target).value)"
+          />
+        </label>
+        <label>
+          <span>Accent</span>
+          <input type="color" [value]="current.tokens.accent" (input)="setToken('accent', $any($event.target).value)" />
+        </label>
+        <label>
+          <span>Surface</span>
+          <input
+            type="color"
+            [value]="current.tokens.surface"
+            (input)="setToken('surface', $any($event.target).value)"
+          />
+        </label>
+        <label>
+          <span>Text</span>
+          <input type="color" [value]="current.tokens.text" (input)="setToken('text', $any($event.target).value)" />
+        </label>
+      </div>
+
+      <p class="group-label">Typography & layout</p>
+      <ion-item>
+        <ion-label position="stacked">Heading font</ion-label>
+        <ion-select
+          [value]="current.tokens.fontHeading"
+          interface="popover"
+          (ionChange)="setToken('fontHeading', $any($event.detail.value))"
+        >
+          @for (font of fonts; track font) {
+            <ion-select-option [value]="font">{{ font }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Body font</ion-label>
+        <ion-select
+          [value]="current.tokens.fontBody"
+          interface="popover"
+          (ionChange)="setToken('fontBody', $any($event.detail.value))"
+        >
+          @for (font of fonts; track font) {
+            <ion-select-option [value]="font">{{ font }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Corner radius</ion-label>
+        <ion-select
+          [value]="current.tokens.radius"
+          interface="popover"
+          (ionChange)="setToken('radius', $any($event.detail.value))"
+        >
+          <ion-select-option value="sm">Small</ion-select-option>
+          <ion-select-option value="md">Medium</ion-select-option>
+          <ion-select-option value="lg">Large</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Density</ion-label>
+        <ion-select
+          [value]="current.tokens.density"
+          interface="popover"
+          (ionChange)="setToken('density', $any($event.detail.value))"
+        >
+          <ion-select-option value="compact">Compact</ion-select-option>
+          <ion-select-option value="comfortable">Comfortable</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </div>
+
+    <div class="sheet__foot">
+      <ion-button expand="block" (click)="submit()">
+        <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+        Apply theme
+      </ion-button>
+    </div>
+  }
+</div>

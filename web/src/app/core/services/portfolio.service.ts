@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type {
   PortfolioAiGenerateInput,
@@ -278,9 +278,11 @@ export class PortfolioService {
   ): Promise<PublicPortfolioResponse> {
     const qs = locale ? `?locale=${encodeURIComponent(locale)}` : '';
     return firstValueFrom(
-      this.http.get<PublicPortfolioResponse>(
-        `${this.base}/public/host/${encodeURIComponent(hostname)}${qs}`,
-      ),
+      this.http
+        .get<PublicPortfolioResponse>(
+          `${this.base}/public/host/${encodeURIComponent(hostname)}${qs}`,
+        )
+        .pipe(timeout(5000)),
     );
   }
 
@@ -342,9 +344,11 @@ export class PortfolioService {
   ): Promise<PublicPortfolioResponse> {
     const qs = locale ? `?locale=${encodeURIComponent(locale)}` : '';
     return firstValueFrom(
-      this.http.get<PublicPortfolioResponse>(
-        `${this.base}/public/${encodeURIComponent(slug)}${qs}`,
-      ),
+      this.http
+        .get<PublicPortfolioResponse>(
+          `${this.base}/public/${encodeURIComponent(slug)}${qs}`,
+        )
+        .pipe(timeout(5000)),
     );
   }
 

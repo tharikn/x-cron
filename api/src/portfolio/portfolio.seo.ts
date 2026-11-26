@@ -83,6 +83,7 @@ export function buildPortfolioSeo(
   const skillItems = Array.isArray(skills?.props['items'])
     ? (skills?.props['items'] as string[]).slice(0, 30)
     : [];
+  const headline = localized(hero?.props['headline'], activeLocale, defaultLocale);
 
   const jsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
@@ -91,6 +92,8 @@ export function buildPortfolioSeo(
       '@type': 'Person',
       name: document.site.name,
       description,
+      ...(headline ? { jobTitle: headline } : {}),
+      ...(ogImage ? { image: ogImage } : {}),
       ...(location ? { address: { '@type': 'PostalAddress', addressLocality: location } } : {}),
       ...(sameAs.length > 0 ? { sameAs } : {}),
       ...(skillItems.length > 0 ? { knowsAbout: skillItems } : {}),
