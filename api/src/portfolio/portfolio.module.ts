@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AiModule } from '../ai/ai.module';
+import { StorageModule } from '../storage/storage.module';
 import { PortfolioAiService } from './portfolio-ai.service';
 import { PortfolioController } from './portfolio.controller';
 import { PortfolioMemoryStore } from './portfolio.memory-store';
@@ -15,7 +16,7 @@ import { PortfolioStore } from './portfolio.store';
  * migration lands, without touching the service or clients.
  */
 @Module({
-  imports: [AiModule],
+  imports: [AiModule, StorageModule],
   controllers: [PortfolioController],
   providers: [
     {

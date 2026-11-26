@@ -68,6 +68,39 @@ export class UpdatePortfolioSiteDto {
   locales?: string[];
 }
 
+// ── Custom domain bindings (docs/dynamic-portfolios/13-DOMAIN-SUBDOMAIN-ROUTING.md) ──
+
+export class CreatePortfolioDomainDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(40)
+  siteId!: string;
+
+  @IsString()
+  @MinLength(3)
+  @MaxLength(253)
+  hostname!: string;
+
+  @IsOptional()
+  @IsIn(['TXT', 'CNAME'])
+  verificationMethod?: 'TXT' | 'CNAME';
+}
+
+export class VerifyPortfolioDomainDto {
+  /** DNS record value (TXT) or CNAME target the owner just published. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  token?: string;
+}
+
+export class ListPortfolioDomainsQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  siteId?: string;
+}
+
 export class SavePortfolioDraftDto {
   @IsObject()
   document!: Record<string, unknown>;

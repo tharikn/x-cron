@@ -484,6 +484,7 @@ model SeekerProfile {
   id                  String   @id @default(uuid())
   userId              String   @unique
   displayName         String?
+  photoUrl            String?
   mobile              String?
   email               String?
   showContact         Boolean  @default(false)

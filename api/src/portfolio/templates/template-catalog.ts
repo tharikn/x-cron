@@ -7,6 +7,7 @@ import type {
   PortfolioSectionType,
   PortfolioTemplateDefinition,
 } from '../portfolio.types';
+import { ALL_GENERATED_SEEDS } from './seeds';
 
 /**
  * Starter template catalog (MVP).
@@ -25,13 +26,13 @@ const VERSION = '1.0.0';
 const l = (en: string, ta?: string): PortfolioLocalizedText =>
   ta ? { 'en-IN': en, 'ta-IN': ta } : { 'en-IN': en };
 
-interface SeedSection {
+export interface SeedSection {
   type: PortfolioSectionType;
   variant?: string;
   props: Record<string, unknown>;
 }
 
-interface SeedTemplate {
+export interface SeedTemplate {
   id: string;
   name: string;
   category: string;
@@ -1281,8 +1282,10 @@ function toDefinition(seed: SeedTemplate): PortfolioTemplateDefinition {
   };
 }
 
-export const PORTFOLIO_TEMPLATES: PortfolioTemplateDefinition[] =
-  SEEDS.map(toDefinition);
+export const PORTFOLIO_TEMPLATES: PortfolioTemplateDefinition[] = [
+  ...SEEDS,
+  ...ALL_GENERATED_SEEDS,
+].map(toDefinition);
 
 const TEMPLATE_BY_ID = new Map(
   PORTFOLIO_TEMPLATES.map((template) => [template.id, template]),

@@ -1,10 +1,15 @@
 <div class="pf-code" [class.pf-code--editable]="editable()">
+  <!--
+    srcdoc is intentionally NOT bound here: Angular sanitises `iframe[srcdoc]`
+    as HTML and strips <style>/<script>. The component assigns the composed
+    document to the property instead. `sandbox` must stay a static attribute
+    (Angular NG0910); it is the security boundary.
+  -->
   @if (resolved().allowForms && resolved().allowPopups) {
     <iframe
       #frame
       class="pf-code__frame"
       sandbox="allow-scripts allow-forms allow-popups"
-      [srcdoc]="source()"
       [attr.title]="frameTitle()"
       [attr.loading]="editable() ? null : 'lazy'"
       referrerpolicy="no-referrer"
@@ -16,7 +21,6 @@
       #frame
       class="pf-code__frame"
       sandbox="allow-scripts allow-forms"
-      [srcdoc]="source()"
       [attr.title]="frameTitle()"
       [attr.loading]="editable() ? null : 'lazy'"
       referrerpolicy="no-referrer"
@@ -28,7 +32,6 @@
       #frame
       class="pf-code__frame"
       sandbox="allow-scripts allow-popups"
-      [srcdoc]="source()"
       [attr.title]="frameTitle()"
       [attr.loading]="editable() ? null : 'lazy'"
       referrerpolicy="no-referrer"
@@ -40,7 +43,6 @@
       #frame
       class="pf-code__frame"
       sandbox="allow-scripts"
-      [srcdoc]="source()"
       [attr.title]="frameTitle()"
       [attr.loading]="editable() ? null : 'lazy'"
       referrerpolicy="no-referrer"

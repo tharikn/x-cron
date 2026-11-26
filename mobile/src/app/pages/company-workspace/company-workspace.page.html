@@ -31,6 +31,21 @@
       </div>
     </article>
   } @else if (tab() === 'profile') {
+    <div class="cw__logo-row">
+      @if (logoUrl) {
+        <img [src]="logoUrl" alt="Company logo" class="cw__logo" />
+      }
+      <label class="image-upload">
+        {{ uploadingLogo() ? 'Uploading…' : 'Upload logo' }}
+        <input
+          type="file"
+          hidden
+          accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
+          (change)="onLogoPicked($event)"
+        />
+      </label>
+      <ion-button fill="outline" size="small" (click)="pickLogoFromCamera()">Camera</ion-button>
+    </div>
     <ion-list class="cw__form">
       <ion-item><ion-input label="Display name" labelPlacement="stacked" [(ngModel)]="name"></ion-input></ion-item>
       <ion-item><ion-input label="Legal name" labelPlacement="stacked" [(ngModel)]="legalName"></ion-input></ion-item>

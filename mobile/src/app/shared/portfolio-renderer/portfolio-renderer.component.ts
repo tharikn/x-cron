@@ -232,4 +232,12 @@ export class PortfolioRendererComponent {
     if (style.maxWidth) result['max-width'] = style.maxWidth;
     return result;
   }
+
+  /**
+   * Namespace for the author's browser storage. Scoping by site and section
+   * keeps two portfolios (or two code blocks) from reading each other's data.
+   */
+  codeStorageKey(section: PortfolioSection): string {
+    return `${this.document().site.id}:${section.id}`;
+  }
 }

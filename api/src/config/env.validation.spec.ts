@@ -44,6 +44,29 @@ describe('env.validation', () => {
     expect(() => validateEnv({ FILE_STORAGE: 's3', FILE_S3_BUCKET: 'b' })).not.toThrow();
   });
 
+  it('requires full Supabase S3 config when UPLOAD_STORAGE=supabase', () => {
+    expect(() => validateEnv({ UPLOAD_STORAGE: 'supabase' })).toThrow(/SUPABASE_BUCKET/);
+    expect(() =>
+      validateEnv({
+        UPLOAD_STORAGE: 'supabase',
+        SUPABASE_BUCKET: 'xcron-assets',
+        SUPABASE_ENDPOINT: 'https://ref.storage.supabase.co/storage/v1/s3',
+        SUPABASE_ACCESS_KEY_ID: 'id',
+        SUPABASE_SECRET_ACCESS_KEY: 'secret',
+      }),
+    ).toThrow(/SUPABASE_REGION/);
+    expect(() =>
+      validateEnv({
+        UPLOAD_STORAGE: 'supabase',
+        SUPABASE_BUCKET: 'xcron-assets',
+        SUPABASE_ENDPOINT: 'https://ref.storage.supabase.co/storage/v1/s3',
+        SUPABASE_ACCESS_KEY_ID: 'id',
+        SUPABASE_SECRET_ACCESS_KEY: 'secret',
+        SUPABASE_REGION: 'ap-southeast-2',
+      }),
+    ).not.toThrow();
+  });
+
   it('parses boolean-ish flags', () => {
     for (const v of ['1', 'true', 'YES', ' on ']) expect(flagEnabled(v)).toBe(true);
     for (const v of ['0', 'false', 'off']) expect(flagEnabled(v)).toBe(false);

@@ -73,6 +73,33 @@
             </ion-item>
 
             <ion-item>
+              <ion-label position="stacked">Hero Image</ion-label>
+              <ion-input
+                [(ngModel)]="heroImageUrl"
+                placeholder="https://…"
+              ></ion-input>
+            </ion-item>
+
+            <div class="image-actions">
+              <label class="image-upload">
+                {{ uploadingImage() ? 'Uploading…' : 'Upload image' }}
+                <input
+                  type="file"
+                  hidden
+                  accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
+                  (change)="onImageFilePicked($event)"
+                />
+              </label>
+              <ion-button
+                fill="outline"
+                size="small"
+                (click)="pickHeroImageFromCamera()"
+              >
+                Camera
+              </ion-button>
+            </div>
+
+            <ion-item>
               <ion-label position="stacked">About Bio</ion-label>
               <ion-textarea
                 [(ngModel)]="aboutBio"

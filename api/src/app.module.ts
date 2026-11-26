@@ -6,6 +6,7 @@ import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './auth/roles.guard';
 import { ChannelsModule } from './channels/channels.module';
+import { EmailModule } from './email/email.module';
 import { CompaniesModule } from './companies/companies.module';
 import { validateEnv } from './config/env.validation';
 import { FilesModule } from './files/files.module';
@@ -15,6 +16,7 @@ import { I18nModule } from './i18n/i18n.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { JobsModule } from './jobs/jobs.module';
+import { JobAssetsModule } from './job-assets/job-assets.module';
 import { AccountModule } from './account/account.module';
 import { AdsModule } from './ads/ads.module';
 import { ApplyProfilesModule } from './apply-profiles/apply-profiles.module';
@@ -34,6 +36,7 @@ import { SeekerModule } from './seeker/seeker.module';
 import { RedisModule } from './redis/redis.module';
 import { SecurityModule } from './security/security.module';
 import { SiteModule } from './site/site.module';
+import { StorageModule } from './storage/storage.module';
 import { TrackingModule } from './tracking/tracking.module';
 
 @Module({
@@ -44,15 +47,18 @@ import { TrackingModule } from './tracking/tracking.module';
     PrismaModule,
     OutboxModule,
     FilesModule,
+    StorageModule,
     AiModule,
     AuthModule,
     HandoffModule,
     CompaniesModule,
     ModerationModule,
     JobsModule,
+    JobAssetsModule,
     IngestionModule,
     IntegrationsModule,
     ChannelsModule,
+    EmailModule,
     PaymentsModule,
     PreferencesModule,
     NotificationsModule,

@@ -3,18 +3,20 @@ import {
   Component,
   ElementRef,
   OnDestroy,
-  ViewChild,
   afterNextRender,
   computed,
   effect,
   input,
   signal,
+  viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   CUSTOM_CODE_LIMITS,
+  CUSTOM_CODE_STORAGE_LIMITS,
   composeCustomCodeDocument,
   readCustomCodeProps,
+  type CustomCodeStorage,
 } from './custom-code-frame';
 
 interface FrameMessage {
@@ -22,7 +24,18 @@ interface FrameMessage {
   type?: string;
   height?: number;
   message?: string;
+  store?: string;
+  op?: string;
+  key?: string;
+  value?: string;
 }
+
+type StorageName = 'localStorage' | 'sessionStorage';
+
+/** Parent-origin namespace for per-section browser storage. */
+const STORAGE_PREFIX = 'xcron.pf-code.v1.';
+const STORAGE_NAMES: readonly StorageName[] = ['localStorage', 'sessionStorage'];
+const BLOCKED_STORAGE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function newToken(): string {
   const cryptoRef = globalThis.crypto as Crypto | undefined;
@@ -34,7 +47,7 @@ function newToken(): string {
  * Renders one allow-listed `custom-code` section inside an opaque-origin frame.
  *
  * Security properties:
- *   • sandbox without `allow-same-origin` → no cookies, storage or parent DOM
+ *   • sandbox without `allow-same-origin` → no cookies, native storage or parent DOM
  *   • CSP `default-src 'none'` inside the frame; external hosts only on request
  *   • messages are accepted only from this exact iframe and this instance token
  *   • author source is embedded as text, never interpolated into the app DOM
@@ -53,9 +66,13 @@ export class PortfolioCustomCodeComponent implements OnDestroy {
   readonly mode = input<'light' | 'dark'>('light');
   /** Show captured runtime errors under the frame (editor only). */
   readonly showDiagnostics = input(false);
+  /**
+   * Stable namespace (site + section) for the author's localStorage and
+   * sessionStorage. Empty disables persistence; the in-frame shim still works.
+   */
+  readonly storageKey = input<string>('');
 
-  @ViewChild('frame')
-  private frameRef?: ElementRef<HTMLIFrameElement>;
+  private readonly frame = viewChild<ElementRef<HTMLIFrameElement>>('frame');
 
   private readonly token = newToken();
   private readonly measuredHeight = signal(0);
@@ -77,6 +94,7 @@ export class PortfolioCustomCodeComponent implements OnDestroy {
       ? composeCustomCodeDocument(readCustomCodeProps(this.displayProps()), {
           mode: this.mode(),
           token: this.token,
+          storage: this.readStorageSeed(),
         })
       : '',
   );
@@ -97,6 +115,18 @@ export class PortfolioCustomCodeComponent implements OnDestroy {
 
   constructor() {
     afterNextRender(() => this.hydrated.set(true));
+    /**
+     * Angular's HTML sanitizer treats `iframe[srcdoc]` as HTML and removes the
+     * frame's `<style>` and `<script>` blocks. Never bind it in the template:
+     * assign the property directly. The sandbox attribute is the security
+     * boundary here, not Angular's sanitizer.
+     */
+    effect(() => {
+      const frame = this.frame()?.nativeElement;
+      const source = this.source();
+      if (!frame || frame.srcdoc === source) return;
+      frame.srcdoc = source;
+    });
     effect(() => {
       const next = this.props();
       if (typeof window === 'undefined') return;
@@ -119,7 +149,7 @@ export class PortfolioCustomCodeComponent implements OnDestroy {
   }
 
   private readonly handleMessage = (event: MessageEvent): void => {
-    const frame = this.frameRef?.nativeElement;
+    const frame = this.frame()?.nativeElement;
     // Opaque-origin frames report `origin: "null"`, so identity of the source
     // window plus the per-instance token is the correct check.
     if (!frame || event.source !== frame.contentWindow) return;
@@ -141,6 +171,95 @@ export class PortfolioCustomCodeComponent implements OnDestroy {
       const current = this.diagnostics();
       if (current.includes(message)) return;
       this.diagnostics.set([...current.slice(-3), message]);
+      return;
+    }
+    if (data.type === 'storage') {
+      this.persistStorage(data);
     }
   };
+
+  private storageName(key: string, store: StorageName): string {
+    return `${STORAGE_PREFIX}${key}.${store}`;
+  }
+
+  /** Read the persisted values once, before composing the frame document. */
+  private readStorageSeed(): CustomCodeStorage {
+    const seed: CustomCodeStorage = { localStorage: {}, sessionStorage: {} };
+    const key = this.storageKey();
+    if (!key || typeof window === 'undefined') return seed;
+    for (const store of STORAGE_NAMES) {
+      try {
+        const raw = window[store].getItem(this.storageName(key, store));
+        if (!raw || raw.length > CUSTOM_CODE_STORAGE_LIMITS.bytes) continue;
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
+        const values: Record<string, string> = {};
+        for (const [entryKey, entryValue] of Object.entries(parsed)) {
+          if (
+            typeof entryValue === 'string' &&
+            entryKey.length > 0 &&
+            entryKey.length <= CUSTOM_CODE_STORAGE_LIMITS.keyLength &&
+            entryValue.length <= CUSTOM_CODE_STORAGE_LIMITS.valueLength &&
+            !BLOCKED_STORAGE_KEYS.has(entryKey)
+          ) {
+            values[entryKey] = entryValue;
+          }
+        }
+        seed[store] = values;
+      } catch {
+        // Storage can be disabled (private mode, embedded browser); keep seed empty.
+      }
+    }
+    return seed;
+  }
+
+  /**
+   * Persist an author storage write under a namespaced parent-origin key. The
+   * frame never sees app data: it only reads back its own section namespace.
+   */
+  private persistStorage(data: FrameMessage): void {
+    const key = this.storageKey();
+    if (!key || typeof window === 'undefined') return;
+    const store: StorageName | null =
+      data.store === 'localStorage' || data.store === 'sessionStorage' ? data.store : null;
+    const op = data.op;
+    if (!store || (op !== 'set' && op !== 'remove' && op !== 'clear')) return;
+
+    const name = this.storageName(key, store);
+    try {
+      const raw = window[store].getItem(name);
+      const parsed: unknown =
+        raw && raw.length <= CUSTOM_CODE_STORAGE_LIMITS.bytes ? JSON.parse(raw) : null;
+      const values: Record<string, string> =
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+          ? { ...(parsed as Record<string, string>) }
+          : {};
+
+      if (op === 'clear') {
+        for (const entryKey of Object.keys(values)) delete values[entryKey];
+      } else {
+        const entryKey = String(data.key ?? '');
+        if (
+          !entryKey ||
+          entryKey.length > CUSTOM_CODE_STORAGE_LIMITS.keyLength ||
+          BLOCKED_STORAGE_KEYS.has(entryKey)
+        ) {
+          return;
+        }
+        if (op === 'remove') {
+          delete values[entryKey];
+        } else {
+          const entryValue = String(data.value ?? '');
+          if (entryValue.length > CUSTOM_CODE_STORAGE_LIMITS.valueLength) return;
+          values[entryKey] = entryValue;
+        }
+      }
+
+      const serialized = JSON.stringify(values);
+      if (serialized.length > CUSTOM_CODE_STORAGE_LIMITS.bytes) return;
+      window[store].setItem(name, serialized);
+    } catch {
+      // Quota exceeded or storage disabled: the in-frame shim keeps working.
+    }
+  }
 }

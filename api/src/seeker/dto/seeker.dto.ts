@@ -7,9 +7,11 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
   Max,
   MaxLength,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import {
@@ -134,6 +136,13 @@ export class UpsertSeekerProfileDto {
   @MaxLength(80)
   @IsSafeText({ max: 80 })
   displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @ValidateIf((_, v) => !!v)
+  @IsUrl({ require_protocol: true })
+  photoUrl?: string;
 
   @IsOptional()
   @SanitizeOptionalText()

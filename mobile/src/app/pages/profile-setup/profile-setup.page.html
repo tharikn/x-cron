@@ -38,6 +38,27 @@
             <p class="field-error">{{ err }}</p>
           }
         </label>
+        <div class="asset-field">
+          <span>Profile photo (optional)</span>
+          <span class="asset-row">
+            @if (photoUrl) {
+              <img [src]="photoUrl" alt="Profile photo" class="asset-thumb" />
+            }
+            <label class="image-upload">
+              {{ uploadingPhoto() ? 'Uploading…' : 'Upload photo' }}
+              <input
+                type="file"
+                hidden
+                accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
+                (change)="onPhotoPicked($event)"
+              />
+            </label>
+            <button type="button" class="btn-secondary" (click)="pickPhotoFromCamera()">
+              Camera
+            </button>
+            @if (uploadingPhoto()) { <span>Uploading…</span> }
+          </span>
+        </div>
         <label [class.is-invalid]="!!fieldErrors['mobile']">
           <span>{{ 'onboarding.fields.mobile' | t }}</span>
           <app-pii-field
@@ -263,6 +284,22 @@
           <span>{{ 'onboarding.fields.openToWork' | t }}</span>
           <input type="checkbox" [(ngModel)]="openToWork" name="openToWork" />
         </label>
+
+        <div class="asset-field">
+          <span>Resume / CV (optional, private)</span>
+          <span class="asset-row">
+            <label class="image-upload">
+              {{ uploadingResume() ? 'Uploading…' : 'Upload resume' }}
+              <input
+                type="file"
+                hidden
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                (change)="onResumePicked($event)"
+              />
+            </label>
+            @if (uploadingResume()) { <span>Uploading…</span> }
+          </span>
+        </div>
       }
     </div>
 

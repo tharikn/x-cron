@@ -94,7 +94,7 @@ Done: public traffic does not hit DB on every request.
 
 ### DP-022 Domain/subdomain
 Platform subdomain first, domain verification next.
-Done: host resolves only to verified bindings.
+Done: host resolves only to verified bindings; custom domain binding + TXT/CNAME verification shipped for published sites.
 
 ## Product capabilities
 ### DP-023 Multilingual

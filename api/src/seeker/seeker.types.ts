@@ -4,6 +4,8 @@ export type NoticePeriod = 'serving' | '1' | '2' | '3' | 'immediate';
 
 export interface SeekerProfile {
   displayName?: string;
+  /** Public image URL from the isolated upload provider (purpose=profile-photo). */
+  photoUrl?: string;
   mobile?: string;
   email?: string;
   showContact: boolean;

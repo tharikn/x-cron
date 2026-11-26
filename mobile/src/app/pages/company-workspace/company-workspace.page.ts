@@ -1,5 +1,6 @@
 import { KeyValuePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -23,6 +24,7 @@ import {
   type CompanyMemberDto,
   type RecruiterDashboardDto,
 } from '../../core/services/companies.service';
+import { useJobImageUpload } from '../../core/hooks/use-job-image-upload';
 import { AuthService } from '../../core/services/auth.service';
 import { friendlyHttpMessage } from '../../core/utils/friendly-http-message';
 
@@ -54,6 +56,7 @@ export class CompanyWorkspacePage implements OnInit {
   private readonly companies = inject(CompaniesService);
   private readonly toastController = inject(ToastController);
   private readonly auth = inject(AuthService);
+  private readonly jobImageUpload = useJobImageUpload();
 
   readonly tab = signal<Tab>('dashboard');
   readonly loading = signal(true);
@@ -65,8 +68,10 @@ export class CompanyWorkspacePage implements OnInit {
     Array<{ id: string; email: string; role: string; status: string; expiresAt: string }>
   >([]);
   readonly lastInviteLink = signal<string | null>(null);
+  readonly uploadingLogo = this.jobImageUpload.pending;
 
   name = '';
+  logoUrl = '';
   legalName = '';
   about = '';
   website = '';
@@ -137,6 +142,7 @@ export class CompanyWorkspacePage implements OnInit {
 
   private fillForm(c: CompanyDto): void {
     this.name = c.name || '';
+    this.logoUrl = c.logoUrl || '';
     this.legalName = c.legalName || '';
     this.about = c.about || '';
     this.website = c.website || '';
@@ -146,6 +152,42 @@ export class CompanyWorkspacePage implements OnInit {
     this.hiringLocationsText = (c.hiringLocations || []).join(', ');
   }
 
+  onLogoPicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) void this.uploadLogo(file);
+  }
+
+  async pickLogoFromCamera(): Promise<void> {
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 80,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt,
+      });
+      const response = await fetch(photo.webPath || photo.path || '');
+      const blob = await response.blob();
+      await this.uploadLogo(
+        new File([blob], `company-logo-${Date.now()}.jpg`, {
+          type: blob.type || 'image/jpeg',
+        }),
+      );
+    } catch {
+      await this.toast('Could not open the camera.', 'danger');
+    }
+  }
+
+  async uploadLogo(file: File): Promise<void> {
+    const uploaded = await this.jobImageUpload.upload(file, 'company-logo');
+    if (!uploaded) {
+      await this.toast(this.jobImageUpload.error() ?? 'Could not upload logo.', 'danger');
+      return;
+    }
+    this.logoUrl = uploaded.url;
+    await this.toast('Logo uploaded. Save the profile to apply it.');
+  }
+
   async saveProfile(): Promise<void> {
     const c = this.company();
     if (!c) return;
@@ -153,6 +195,7 @@ export class CompanyWorkspacePage implements OnInit {
     try {
       const updated = await this.companies.patch(c.id, {
         name: this.name.trim(),
+        logoUrl: this.logoUrl.trim() || undefined,
         legalName: this.legalName.trim() || undefined,
         about: this.about.trim(),
         website: this.website.trim() || undefined,

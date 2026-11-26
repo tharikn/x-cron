@@ -39,9 +39,31 @@ const envSchema = z
     FILE_S3_BUCKET: z.string().optional(),
     FILE_S3_REGION: z.string().optional(),
     FILE_S3_ENDPOINT: z.string().optional(),
+    // Isolated upload/storage layer (portfolio media + job-portal assets).
+    UPLOAD_STORAGE: z.enum(['local', 'memory', 'r2', 'supabase']).optional(),
+    UPLOAD_LOCAL_DIR: z.string().optional(),
+    R2_BUCKET: z.string().optional(),
+    R2_ENDPOINT: z.string().optional(),
+    R2_ACCESS_KEY_ID: z.string().optional(),
+    R2_SECRET_ACCESS_KEY: z.string().optional(),
+    R2_REGION: z.string().optional(),
+    SUPABASE_BUCKET: z.string().optional(),
+    SUPABASE_ENDPOINT: z.string().optional(),
+    SUPABASE_ACCESS_KEY_ID: z.string().optional(),
+    SUPABASE_SECRET_ACCESS_KEY: z.string().optional(),
+    SUPABASE_REGION: z.string().optional(),
     OTEL_ENABLED: z.string().optional(),
     OTEL_SERVICE_NAME: z.string().optional(),
     SEARCH_FTS_ENABLED: z.string().optional(),
+    EMAIL_PROVIDER: z.string().optional(),
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().optional(),
+    EMAIL_FROM_NAME: z.string().optional(),
+    EMAIL_WEEKLY_ALERTS_ENABLED: z.string().optional(),
+    EMAIL_WEEKLY_DAY: z.string().optional(),
+    EMAIL_WEEKLY_HOUR: z.string().optional(),
+    OTP_TTL_MINUTES: z.string().optional(),
+    APP_URL: z.string().optional(),
   })
   .passthrough()
   .superRefine((env, ctx) => {
@@ -79,6 +101,29 @@ const envSchema = z
           path: ['FILE_S3_BUCKET'],
           message: 'FILE_S3_BUCKET required when FILE_STORAGE=s3',
         });
+      }
+    }
+
+    const uploadMode = (env.UPLOAD_STORAGE ?? 'local').toLowerCase();
+    if (uploadMode === 'r2' || uploadMode === 'supabase') {
+      const prefix = uploadMode === 'r2' ? 'R2' : 'SUPABASE';
+      const suffixes = [
+        'BUCKET',
+        'ENDPOINT',
+        'ACCESS_KEY_ID',
+        'SECRET_ACCESS_KEY',
+        // Supabase uses a real region for SigV4; R2's client defaults to `auto`.
+        ...(uploadMode === 'supabase' ? ['REGION'] : []),
+      ];
+      for (const suffix of suffixes) {
+        const label = `${prefix}_${suffix}`;
+        if (!String((env as Record<string, unknown>)[label] ?? '').trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [label],
+            message: `${label} required when UPLOAD_STORAGE=${uploadMode}`,
+          });
+        }
       }
     }
   });

@@ -1,7 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { IonContent, ToastController } from '@ionic/angular';
+import { useJobImageUpload } from '../../core/hooks/use-job-image-upload';
+import { useResumeUpload } from '../../core/hooks/use-resume-upload';
 import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { AuthService } from '../../core/services/auth.service';
 import {
@@ -40,17 +43,22 @@ export class ProfileSetupPage implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly toastController = inject(ToastController);
+  private readonly jobImageUpload = useJobImageUpload();
+  private readonly resumeUpload = useResumeUpload();
 
   readonly step = signal<ProfileSetupStep>('personal');
   readonly celebrating = signal(false);
   readonly busy = signal(false);
   readonly progress = signal(25);
+  readonly uploadingPhoto = this.jobImageUpload.pending;
+  readonly uploadingResume = this.resumeUpload.pending;
 
   /** Match apply-profile limits so onboard skills unlock Easy apply. */
   readonly skillMin = 2;
   readonly skillMax = 7;
 
   displayName = '';
+  photoUrl = '';
   mobile = '';
   email = '';
   showContact = false;
@@ -112,6 +120,58 @@ export class ProfileSetupPage implements OnInit {
       // start empty
     }
     this.syncProgress();
+  }
+
+  onPhotoPicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) void this.uploadPhoto(file);
+  }
+
+  async pickPhotoFromCamera(): Promise<void> {
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 80,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt,
+      });
+      const response = await fetch(photo.webPath || photo.path || '');
+      const blob = await response.blob();
+      await this.uploadPhoto(
+        new File([blob], `profile-photo-${Date.now()}.jpg`, {
+          type: blob.type || 'image/jpeg',
+        }),
+      );
+    } catch {
+      await this.showToast('Could not open the camera.', 'error');
+    }
+  }
+
+  async uploadPhoto(file: File): Promise<void> {
+    const uploaded = await this.jobImageUpload.upload(file, 'profile-photo');
+    if (!uploaded) {
+      await this.showToast(this.jobImageUpload.error() ?? 'Could not upload photo.', 'error');
+      return;
+    }
+    this.photoUrl = uploaded.url;
+    await this.showToast('Photo uploaded. It will be saved with your profile.');
+  }
+
+  onResumePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) void this.uploadResume(file);
+  }
+
+  async uploadResume(file: File): Promise<void> {
+    const asset = await this.resumeUpload.upload(file);
+    if (!asset) {
+      await this.showToast(this.resumeUpload.error() ?? 'Could not upload resume.', 'error');
+      return;
+    }
+    await this.showToast('Resume uploaded privately to your job assets.');
   }
 
   stepTitleKey(): string {
@@ -237,6 +297,7 @@ export class ProfileSetupPage implements OnInit {
       u?.displayName?.trim() ||
       u?.username?.trim() ||
       '';
+    this.photoUrl = profile.photoUrl ?? '';
     this.mobile = profile.mobile ?? '';
     this.email = profile.email?.trim() || u?.email?.trim() || '';
     this.showContact = profile.showContact ?? false;
@@ -284,6 +345,7 @@ export class ProfileSetupPage implements OnInit {
       }
       return this.patch({
         displayName: this.displayName.trim(),
+        photoUrl: this.photoUrl.trim() || undefined,
         mobile: this.mobile.trim() || undefined,
         email: this.email.trim() || undefined,
         showContact: this.showContact,

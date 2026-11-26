@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import {
   IonBackButton,
   IonBadge,
@@ -26,6 +27,7 @@ import type {
   PortfolioDocument,
   PortfolioSiteSummary,
 } from '../../core/models/portfolio.model';
+import { useImageUpload } from '../../core/hooks/use-image-upload';
 import { PortfolioService } from '../../core/services/portfolio.service';
 import { PortfolioRendererComponent } from '../../shared/portfolio-renderer/portfolio-renderer.component';
 import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.component';
@@ -61,6 +63,7 @@ import { ListSkeletonComponent } from '../../shared/skeleton/list-skeleton.compo
 export class PortfolioDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly portfolio = inject(PortfolioService);
+  private readonly imageUpload = useImageUpload();
   private readonly toastCtrl = inject(ToastController);
 
   private async showToast(message: string): Promise<void> {
@@ -74,9 +77,11 @@ export class PortfolioDetailPage implements OnInit {
   readonly site = signal<PortfolioSiteSummary | null>(null);
   readonly draft = signal<PortfolioDocument | null>(null);
   readonly tab = signal<'preview' | 'quick-edit'>('preview');
+  readonly uploadingImage = this.imageUpload.pending;
 
   heroHeadline = '';
   heroSubheadline = '';
+  heroImageUrl = '';
   aboutBio = '';
 
   private siteId = '';
@@ -121,7 +126,44 @@ export class PortfolioDetailPage implements OnInit {
 
     this.heroHeadline = readLoc(hero?.props['headline']);
     this.heroSubheadline = readLoc(hero?.props['subheadline']);
+    this.heroImageUrl = readLoc(hero?.props['imageUrl']);
     this.aboutBio = readLoc(about?.props['body']);
+  }
+
+  onImageFilePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) void this.uploadHeroImage(file);
+  }
+
+  async pickHeroImageFromCamera(): Promise<void> {
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 80,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt,
+      });
+      const response = await fetch(photo.webPath || photo.path || '');
+      const blob = await response.blob();
+      await this.uploadHeroImage(
+        new File([blob], `capture-${Date.now()}.jpg`, {
+          type: blob.type || 'image/jpeg',
+        }),
+      );
+    } catch {
+      await this.showToast('Could not open the camera.');
+    }
+  }
+
+  async uploadHeroImage(file: File): Promise<void> {
+    const uploaded = await this.imageUpload.upload(file, 'portfolio');
+    if (!uploaded) {
+      await this.showToast(this.imageUpload.error() ?? 'Could not upload image.');
+      return;
+    }
+    this.heroImageUrl = uploaded.url;
+    await this.showToast('Image uploaded. Save changes to apply it.');
   }
 
   async saveQuickEdit(): Promise<void> {
@@ -144,6 +186,7 @@ export class PortfolioDetailPage implements OnInit {
         ...((hero.props['subheadline'] as Record<string, string>) || {}),
         [loc]: this.heroSubheadline,
       };
+      hero.props['imageUrl'] = this.heroImageUrl;
     }
 
     if (about) {

@@ -13,6 +13,7 @@ The MVP implementation follows the repository route conventions and ships only t
 3. Media: implemented as a URL-based asset registry (`POST /v1/portfolio/media`, `DELETE /v1/portfolio/media/:assetId`). The spec's `upload-intent` / `complete` binary upload pipeline is deferred.
 4. AI: implemented as `POST /v1/portfolio/ai/generate` returning structured copy proposals with a deterministic fallback. Editor-side accept/reject workflow is deferred.
 5. Public analytics: implemented as `POST /v1/portfolio/public/:slug/events` (privacy-light beacon).
+6. Domains: implemented as `GET /v1/portfolio/domains`, `POST /v1/portfolio/domains`, `POST /v1/portfolio/domains/:domainId/verify`, `DELETE /v1/portfolio/domains/:domainId` plus the host-based public read `GET /v1/portfolio/public/host/:hostname`. The spec's `/api/v1/portfolio/*` prefix deviation applies here too (implemented as `/v1/portfolio/*`).
 
 ## Core resources
 

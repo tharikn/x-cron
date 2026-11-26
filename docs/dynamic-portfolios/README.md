@@ -16,7 +16,7 @@ The platform must support:
 - JSON-first site storage.
 - Reusable sections/components.
 - Draft, preview, publish and rollback.
-- Platform subdomains and future custom domains.
+- Platform subdomains and custom domains (custom domains require verified DNS ownership; platform subdomain routing is deferred).
 - SEO metadata, sitemap and structured data.
 - Image/media optimization.
 - Accessibility and reduced-motion support.

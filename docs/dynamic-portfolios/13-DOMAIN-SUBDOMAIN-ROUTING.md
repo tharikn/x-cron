@@ -2,7 +2,7 @@
 
 ## MVP implementation status
 
-The shipped MVP serves public portfolios from the platform path `/p/:slug` (anonymous, no auth). Subdomain and custom-domain routing described below is deferred; domain binding/verification is part of that deferred capability.
+The shipped MVP serves public portfolios from the platform path `/p/:slug` (anonymous, no auth). Subdomain routing is deferred; custom domain binding and verification are implemented for published sites.
 
 ## Platform URL
 
@@ -10,7 +10,9 @@ Every site receives a platform URL such as username.xcron.example or site-slug.x
 
 ## Custom domains
 
-Future paid capability: example.com and www.example.com.
+Optional capability: example.com and www.example.com, bound only after DNS ownership verification.
+
+Implemented: `POST /v1/portfolio/domains` issues a TXT (`_xcron.<host>` → `xcron-verify=<token>`) or CNAME (`<host>` → `<token>.cname.xcron.app`) ownership challenge; `POST /v1/portfolio/domains/:domainId/verify` accepts the published record value and promotes the binding to `verified`; `DELETE /v1/portfolio/domains/:domainId` detaches it.
 
 ## Domain binding
 

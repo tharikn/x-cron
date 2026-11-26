@@ -12,12 +12,19 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { createHash } from 'crypto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadedFile, UseInterceptors } from '@nestjs/common';
+import { memoryStorage } from 'multer';
 import type { AuthUser } from '../auth/auth.types';
 import { CurrentUser, Public } from '../auth/decorators';
 import { AuthThrottle } from '../security/decorators';
+import { UploadService } from '../storage/upload.service';
+import { MAX_IMAGE_BYTES } from '../storage/upload-validation';
 import {
   CreatePortfolioSiteDto,
+  CreatePortfolioDomainDto,
   GeneratePortfolioCopyDto,
+  ListPortfolioDomainsQueryDto,
   ListPortfolioTemplatesQueryDto,
   PortfolioEventDto,
   PublishPortfolioDto,
@@ -25,6 +32,7 @@ import {
   SavePortfolioDraftDto,
   UpdatePortfolioSiteDto,
   ValidatePortfolioDraftDto,
+  VerifyPortfolioDomainDto,
 } from './dto/portfolio.dto';
 import { PortfolioAiService } from './portfolio-ai.service';
 import { PortfolioService } from './portfolio.service';
@@ -34,6 +42,7 @@ export class PortfolioController {
   constructor(
     private readonly portfolio: PortfolioService,
     private readonly ai: PortfolioAiService,
+    private readonly uploads: UploadService,
   ) {}
 
   // ── Catalog / registry (signed-in editor) ───────────────────────────────
@@ -70,7 +79,7 @@ export class PortfolioController {
     return this.ai.generateCopy(dto);
   }
 
-  // ── Media library (URL-based in MVP; binary upload deferred) ─────────────
+  // ── Media library (URL registry + isolated binary upload) ───────────────
 
   @Get('media')
   listMedia(@CurrentUser() user: AuthUser) {
@@ -82,12 +91,39 @@ export class PortfolioController {
     return this.portfolio.addMedia(user.id, body.url);
   }
 
+  /**
+   * Uploaded image → media library in one call. Bytes go to the storage
+   * provider; only the returned http(s) URL is stored in the portfolio draft.
+   */
+  @Post('media/upload')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
+    }),
+  )
+  async uploadMedia(
+    @CurrentUser() user: AuthUser,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    const uploaded = await this.uploads.upload(file, user.id, 'portfolio');
+    const media = await this.portfolio.addMedia(user.id, uploaded.url, uploaded.id);
+    return { ...media, upload: uploaded };
+  }
+
   @Delete('media/:assetId')
-  deleteMedia(
+  async deleteMedia(
     @CurrentUser() user: AuthUser,
     @Param('assetId') assetId: string,
   ) {
-    return this.portfolio.deleteMedia(user.id, assetId);
+    const media = await this.portfolio.findMedia(user.id, assetId);
+    const result = await this.portfolio.deleteMedia(user.id, assetId);
+    if (media?.storageAssetId) {
+      await this.uploads
+        .deleteOwned(media.storageAssetId, user.id)
+        .catch(() => undefined);
+    }
+    return result;
   }
 
   // ── Sites ───────────────────────────────────────────────────────────────
@@ -123,6 +159,48 @@ export class PortfolioController {
   @Delete('sites/:siteId')
   deleteSite(@CurrentUser() user: AuthUser, @Param('siteId') siteId: string) {
     return this.portfolio.deleteSite(user.id, siteId);
+  }
+
+  // ── Custom domain bindings (docs/dynamic-portfolios/13) ──────────────────
+
+  @Get('domains')
+  listDomains(
+    @CurrentUser() user: AuthUser,
+    @Query() query: ListPortfolioDomainsQueryDto,
+  ) {
+    return this.portfolio
+      .listDomains(user.id, query.siteId)
+      .then((items) => ({ items }));
+  }
+
+  @AuthThrottle()
+  @Post('domains')
+  createDomain(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreatePortfolioDomainDto,
+  ) {
+    return this.portfolio.createDomain(user.id, dto.siteId, {
+      hostname: dto.hostname,
+      verificationMethod: dto.verificationMethod,
+    });
+  }
+
+  @AuthThrottle()
+  @Post('domains/:domainId/verify')
+  verifyDomain(
+    @CurrentUser() user: AuthUser,
+    @Param('domainId') domainId: string,
+    @Body() dto: VerifyPortfolioDomainDto,
+  ) {
+    return this.portfolio.verifyDomain(user.id, domainId, dto);
+  }
+
+  @Delete('domains/:domainId')
+  deleteDomain(
+    @CurrentUser() user: AuthUser,
+    @Param('domainId') domainId: string,
+  ) {
+    return this.portfolio.deleteDomain(user.id, domainId);
   }
 
   // ── Draft / autosave ────────────────────────────────────────────────────
@@ -215,6 +293,20 @@ export class PortfolioController {
   @Get('public/:slug')
   getPublic(@Param('slug') slug: string, @Query('locale') locale?: string) {
     return this.portfolio.getPublicSite(slug, locale);
+  }
+
+  /**
+   * Host-based public read for verified custom domains. The host is resolved
+   * exclusively through a verified domain binding — never a raw header/param
+   * lookup, so host-based routing cannot be probed arbitrarily.
+   */
+  @Public()
+  @Get('public/host/:hostname')
+  getPublicByHostname(
+    @Param('hostname') hostname: string,
+    @Query('locale') locale?: string,
+  ) {
+    return this.portfolio.getPublicSiteByHostname(hostname, locale);
   }
 
   /** Privacy-light analytics beacon. Never blocks rendering. */

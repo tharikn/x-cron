@@ -29,6 +29,7 @@ Nothing in this feature sanitises JavaScript. Sanitising JS is not a solvable pr
 |---|---|
 | Origin | `<iframe sandbox="allow-scripts …">` **without** `allow-same-origin` → opaque origin |
 | Cookies / session | Unreachable: no `document.cookie`, no authenticated `fetch`, and `credentialless` strips credentials from subresource requests in Chromium |
+| Browser storage | Bridged, not shared: an in-frame `Storage` shim works through postMessage and the host persists only this section's namespace on the app origin |
 | Parent DOM | Unreachable (no `allow-same-origin`) |
 | Top navigation | Denied (`allow-top-navigation*` never granted) |
 | Modals, pointer lock, downloads, presentation | Denied |
@@ -41,6 +42,29 @@ Nothing in this feature sanitises JavaScript. Sanitising JS is not a solvable pr
 | Source break-out | Author CSS/JS is embedded as text with `</style`/`</script`/`<!--` escapes, so it cannot terminate the wrapper |
 
 The iframe is display-only in the editor (`pointer-events: none`) so section selection, drag-and-drop and keyboard focus in the builder keep working. It becomes interactive in Preview and on the live site.
+
+## Rendering: srcdoc must be set imperatively
+
+`<iframe [srcdoc]="…">` is not used, and must not be reintroduced. Angular classifies `iframe[srcdoc]` as an HTML sink and runs its sanitizer on the binding, which removes the frame's `<style>` and `<script>` blocks. That silently strips the author's CSS and JavaScript while leaving the markup intact — an imported page then looks unstyled inside the editor and on the live site even though the CSS pane is populated.
+
+The component assigns `frame.srcdoc = source` directly after render. The Angular sanitizer cannot help here: author code is deliberately never sanitised, and the security boundary is the `sandbox` attribute plus the in-frame CSP, not the template binding. `sandbox` itself must stay a static attribute; Angular 22 rejects a dynamic binding with `NG0910`.
+
+A unit test (`portfolio-custom-code.component.spec.ts`) asserts that the rendered `srcdoc` still contains `<style>` and `<script>`.
+
+## Browser storage compatibility
+
+Author code that reads `localStorage` or `sessionStorage` used to fail immediately: an opaque origin throws `SecurityError`, which aborts the whole script before it renders anything (this was the cause of the imported "LOL Factory" page losing its joke grid and theme). The bridge now installs a `Storage`-compatible shim **before** the author script runs:
+
+| Property | Behaviour |
+|---|---|
+| API | `getItem`, `setItem`, `removeItem`, `clear`, `key`, `length`, property access, `in`, `delete`, `Object.keys` |
+| Initial data | Seeded synchronously while the document is composed, so the author's first read sees the saved value |
+| Persistence | Writes are posted to the parent and stored under `xcron.pf-code.v1.<siteId>:<sectionId>.<localStorage|sessionStorage>` in the host origin's matching store |
+| Scope | One namespace per site + section; the frame can never read app keys, cookies or another section's data |
+| Limits | 64 KB per section/store, 128-byte keys, 32 KB values; values over quota throw `QuotaExceededError` like the native API |
+| Failure mode | If host storage is unavailable (private mode, embedded browser), the shim keeps working in memory for the page lifetime |
+
+`sessionStorage` is persisted to the host `sessionStorage`, so it survives a reload in the same tab and resets like the native API. Cookies remain unavailable and are not emulated.
 
 ## Size and count limits
 
@@ -86,6 +110,7 @@ Two shared guards would otherwise block legitimate imports, so both are handled 
 - **CSP via `<meta>`**: the in-frame policy is best-effort. A determined author can remove their own meta tag. The sandbox attribute is the real boundary; the CSP only limits accidental network egress.
 - **No build step**: files are concatenated, not bundled. ES module imports and TypeScript do not work yet.
 - **No asset upload**: images must be `https:` URLs, same as the rest of the MVP.
+- **Storage is browser-local**: values persist per browser/device, not per account, and are capped at 64 KB per section. Cookies and cross-visitor data are not available until phase 2 gives the site its own origin.
 - **Cross-origin CSRF surface**: an opaque-origin frame can still issue simple requests to public endpoints. Mutating API routes rely on the existing CSRF token; the public analytics endpoint is rate-limited and non-sensitive. Phase 2 removes this class entirely.
 
 ## Phase 2 — separate-origin hosting (designed, not built)
@@ -101,4 +126,5 @@ To make custom code fully first-class (indexable, own URLs, no shared-origin req
 ## Testing
 
 - `api/src/portfolio/site-schema.spec.ts` → `portfolio custom code sandbox` covers formatting preservation, clamping, unknown props, size rejection, warnings and the publish gate.
+- `web/src/app/shared/portfolio-custom-code/portfolio-custom-code.component.spec.ts` → composed document keeps author CSS/JS, storage seed cannot break out of the wrapper script, `srcdoc` is assigned through the property, `allow-same-origin` is never granted, and namespaced storage hydrates the frame.
 - Web and mobile builds verify the renderer integration; the frame itself is browser-only by design.

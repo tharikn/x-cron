@@ -5,6 +5,7 @@ import {
 } from './portfolio.store';
 import type {
   PortfolioAnalyticsSummary,
+  PortfolioDomainBinding,
   PortfolioMediaAsset,
   PortfolioSiteRecord,
   PortfolioVersionRecord,
@@ -41,6 +42,7 @@ export class PortfolioMemoryStore extends PortfolioStore {
   private readonly versions = new Map<string, PortfolioVersionRecord[]>();
   private readonly analytics = new Map<string, AnalyticsBucket>();
   private readonly media = new Map<string, PortfolioMediaAsset[]>();
+  private readonly domains = new Map<string, PortfolioDomainBinding>();
 
   async listSites(ownerUserId: string): Promise<PortfolioSiteRecord[]> {
     return [...this.sites.values()]
@@ -69,6 +71,9 @@ export class PortfolioMemoryStore extends PortfolioStore {
     const existed = this.sites.delete(siteId);
     this.versions.delete(siteId);
     this.analytics.delete(siteId);
+    for (const [id, domain] of this.domains) {
+      if (domain.siteId === siteId) this.domains.delete(id);
+    }
     return existed;
   }
 
@@ -164,13 +169,27 @@ export class PortfolioMemoryStore extends PortfolioStore {
     );
   }
 
-  async addMedia(ownerUserId: string, url: string): Promise<PortfolioMediaAsset> {
+  async findMedia(
+    ownerUserId: string,
+    assetId: string,
+  ): Promise<PortfolioMediaAsset | null> {
+    return (
+      (this.media.get(ownerUserId) ?? []).find((a) => a.id === assetId) ?? null
+    );
+  }
+
+  async addMedia(
+    ownerUserId: string,
+    url: string,
+    storageAssetId?: string,
+  ): Promise<PortfolioMediaAsset> {
     const asset: PortfolioMediaAsset = {
       id: `media_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
       ownerUserId,
       url,
       kind: 'image',
       createdAt: new Date().toISOString(),
+      ...(storageAssetId ? { storageAssetId } : {}),
     };
     const list = this.media.get(ownerUserId) ?? [];
     list.push(asset);
@@ -185,6 +204,40 @@ export class PortfolioMemoryStore extends PortfolioStore {
     list.splice(idx, 1);
     this.media.set(ownerUserId, list);
     return true;
+  }
+
+  // ── Domain bindings ─────────────────────────────────────────────────────
+
+  async listDomains(siteId?: string): Promise<PortfolioDomainBinding[]> {
+    const bindings = [...this.domains.values()];
+    const filtered = siteId
+      ? bindings.filter((domain) => domain.siteId === siteId)
+      : bindings;
+    return filtered.sort((a, b) => a.hostname.localeCompare(b.hostname));
+  }
+
+  async getDomain(domainId: string): Promise<PortfolioDomainBinding | null> {
+    return this.domains.get(domainId) ?? null;
+  }
+
+  async getDomainByHostname(
+    hostname: string,
+  ): Promise<PortfolioDomainBinding | null> {
+    const normalized = hostname.trim().toLowerCase();
+    for (const domain of this.domains.values()) {
+      if (domain.hostname === normalized) return domain;
+    }
+    return null;
+  }
+
+  async saveDomain(domain: PortfolioDomainBinding): Promise<PortfolioDomainBinding> {
+    this.domains.set(domain.id, domain);
+    return domain;
+  }
+
+  async deleteDomain(domainId: string): Promise<boolean> {
+    const existed = this.domains.delete(domainId);
+    return existed;
   }
 
   async clearForUser(ownerUserId: string): Promise<void> {

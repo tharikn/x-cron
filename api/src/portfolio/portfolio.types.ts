@@ -185,6 +185,8 @@ export interface PortfolioMediaAsset {
   url: string;
   kind: 'image';
   createdAt: string;
+  /** Set when the asset came from the upload pipeline; enables object cleanup. */
+  storageAssetId?: string;
 }
 
 export interface PortfolioAnalyticsSummary {
@@ -197,4 +199,36 @@ export interface PortfolioAnalyticsSummary {
   byLocale: Array<{ locale: string; views: number }>;
   byReferrer: Array<{ referrer: string; views: number }>;
   updatedAt: string;
+}
+
+// ── Custom domain bindings (DP-022 / docs/dynamic-portfolios/13) ───────────
+
+export type PortfolioDomainStatus = 'pending' | 'verified' | 'rejected';
+
+export type PortfolioDomainVerificationMethod = 'TXT' | 'CNAME';
+
+export type PortfolioDomainTlsState = 'none' | 'provisioning' | 'active' | 'failed';
+
+export interface PortfolioDomainChallenge {
+  type: 'TXT' | 'CNAME';
+  /** DNS record name the owner must create, e.g. `_xcron.example.com`. */
+  name: string;
+  /** TXT record value the owner must publish, e.g. `xcron-verify=<token>`. */
+  value?: string;
+  /** CNAME target the owner must point at. */
+  target?: string;
+}
+
+export interface PortfolioDomainBinding {
+  id: string;
+  siteId: string;
+  workspaceId: string;
+  hostname: string;
+  verificationMethod: PortfolioDomainVerificationMethod;
+  status: PortfolioDomainStatus;
+  challenge: PortfolioDomainChallenge | null;
+  tlsState: PortfolioDomainTlsState;
+  createdAt: string;
+  updatedAt: string;
+  verifiedAt: string | null;
 }

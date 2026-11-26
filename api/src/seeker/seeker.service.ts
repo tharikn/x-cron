@@ -91,6 +91,7 @@ export class SeekerService {
       this.deriveExperienceBand(dto.careerStage, dto.experienceYears);
     const profile = await this.store.upsertProfile(user.id, {
       displayName: dto.displayName?.trim() || undefined,
+      photoUrl: dto.photoUrl?.trim() || undefined,
       mobile: dto.mobile?.trim() || undefined,
       email: dto.email?.trim() || undefined,
       showContact: dto.showContact,

@@ -79,6 +79,7 @@ export class SeekerMemoryStore extends SeekerStore {
     const current = await this.getProfile(userId);
     const next: SeekerProfile = {
       displayName: patch.displayName ?? current.displayName,
+      photoUrl: patch.photoUrl ?? current.photoUrl,
       mobile: patch.mobile ?? current.mobile,
       email: patch.email ?? current.email,
       showContact: patch.showContact ?? current.showContact,

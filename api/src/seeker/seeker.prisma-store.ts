@@ -75,6 +75,7 @@ function asSavedSearchQuery(
 
 function mapProfile(row: {
   displayName: string | null;
+  photoUrl: string | null;
   mobile: string | null;
   email: string | null;
   showContact: boolean;
@@ -101,6 +102,7 @@ function mapProfile(row: {
 }): SeekerProfile {
   return {
     displayName: row.displayName ?? undefined,
+    photoUrl: row.photoUrl ?? undefined,
     mobile: row.mobile ?? undefined,
     email: row.email ?? undefined,
     showContact: row.showContact,
@@ -250,6 +252,7 @@ export class SeekerPrismaStore extends SeekerStore {
     const current = await this.getProfile(userId);
     const next: SeekerProfile = {
       displayName: patch.displayName ?? current.displayName,
+      photoUrl: patch.photoUrl ?? current.photoUrl,
       mobile: patch.mobile ?? current.mobile,
       email: patch.email ?? current.email,
       showContact: patch.showContact ?? current.showContact,
@@ -277,6 +280,7 @@ export class SeekerPrismaStore extends SeekerStore {
 
     const data = {
       displayName: next.displayName ?? null,
+      photoUrl: next.photoUrl ?? null,
       mobile: next.mobile ?? null,
       email: next.email ?? null,
       showContact: next.showContact,

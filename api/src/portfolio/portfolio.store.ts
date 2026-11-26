@@ -1,5 +1,6 @@
 import type {
   PortfolioAnalyticsSummary,
+  PortfolioDomainBinding,
   PortfolioMediaAsset,
   PortfolioSiteRecord,
   PortfolioVersionRecord,
@@ -35,6 +36,25 @@ export abstract class PortfolioStore {
   abstract clearForUser(ownerUserId: string): Promise<void>;
 
   abstract listMedia(ownerUserId: string): Promise<PortfolioMediaAsset[]>;
-  abstract addMedia(ownerUserId: string, url: string): Promise<PortfolioMediaAsset>;
+  abstract findMedia(
+    ownerUserId: string,
+    assetId: string,
+  ): Promise<PortfolioMediaAsset | null>;
+  abstract addMedia(
+    ownerUserId: string,
+    url: string,
+    storageAssetId?: string,
+  ): Promise<PortfolioMediaAsset>;
   abstract deleteMedia(ownerUserId: string, assetId: string): Promise<boolean>;
+
+  // ── Domain bindings ─────────────────────────────────────────────────────
+
+  /** Domain bindings for a site (when `siteId` is given) or for an owner. */
+  abstract listDomains(siteId?: string): Promise<PortfolioDomainBinding[]>;
+  abstract getDomain(domainId: string): Promise<PortfolioDomainBinding | null>;
+  abstract getDomainByHostname(
+    hostname: string,
+  ): Promise<PortfolioDomainBinding | null>;
+  abstract saveDomain(domain: PortfolioDomainBinding): Promise<PortfolioDomainBinding>;
+  abstract deleteDomain(domainId: string): Promise<boolean>;
 }

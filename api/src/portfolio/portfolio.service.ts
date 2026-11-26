@@ -13,6 +13,7 @@ import {
 import { buildPortfolioSeo, portfolioPublicPath } from './portfolio.seo';
 import type {
   PortfolioAnalyticsSummary,
+  PortfolioDomainBinding,
   PortfolioDocument,
   PortfolioSiteRecord,
   PortfolioTemplateDefinition,
@@ -23,11 +24,14 @@ import type {
 import { validateForPublish } from './portfolio.validation';
 import {
   buildSiteDocument,
+  fallbackTemplate,
   findTemplate,
   listTemplates,
 } from './templates/template-catalog';
 import {
+  isValidHostname,
   isValidSlug,
+  normalizeHostname,
   normalizeLocaleCode,
   sanitizeUrl,
   slugify,
@@ -141,6 +145,8 @@ function validationError(issues: PortfolioValidationIssue[]): BadRequestExceptio
 export class PortfolioService {
   /** Publish idempotency: `${siteId}:${idempotencyKey}` → version id. */
   private readonly publishKeys = new Map<string, string>();
+  /** Prevents duplicate sample-draft creation on concurrent first loads. */
+  private readonly sampleSeeds = new Map<string, Promise<void>>();
 
   constructor(private readonly store: PortfolioStore) {}
 
@@ -170,8 +176,30 @@ export class PortfolioService {
   // ── Sites ───────────────────────────────────────────────────────────────
 
   async listSites(userId: string): Promise<PortfolioSiteSummary[]> {
-    const sites = await this.store.listSites(userId);
+    let sites = await this.store.listSites(userId);
+    if (sites.length === 0) {
+      await this.ensureSampleSite(userId);
+      sites = await this.store.listSites(userId);
+    }
     return sites.map(toSummary);
+  }
+
+  private async ensureSampleSite(userId: string): Promise<void> {
+    const inFlight = this.sampleSeeds.get(userId);
+    if (inFlight) return inFlight;
+    const seed = (async () => {
+      const existing = await this.store.listSites(userId);
+      if (existing.length > 0) return;
+      const template = fallbackTemplate();
+      await this.createSite(userId, {
+        name: 'Sample Portfolio',
+        templateId: template.id,
+      });
+    })().finally(() => {
+      this.sampleSeeds.delete(userId);
+    });
+    this.sampleSeeds.set(userId, seed);
+    return seed;
   }
 
   async createSite(
@@ -547,28 +575,46 @@ export class PortfolioService {
     locale?: string,
   ): Promise<PublicPortfolioResponse> {
     const site = await this.store.getSiteBySlug(slug);
-    if (
-      !site ||
-      site.status !== 'published' ||
-      !site.publishedVersionId
-    ) {
-      throw new NotFoundException({
-        code: 'PORTFOLIO_NOT_PUBLISHED',
-        message: 'This portfolio is not published.',
-      });
-    }
-    const version = await this.store.getVersion(site.id, site.publishedVersionId);
-    if (!version) {
-      throw new NotFoundException({
-        code: 'PORTFOLIO_NOT_PUBLISHED',
-        message: 'This portfolio is not published.',
-      });
-    }
+    const version = await this.loadPublishedVersion(site);
     const activeLocale =
       locale && version.document.site.locales.includes(normalizeLocaleCode(locale))
         ? normalizeLocaleCode(locale)
         : version.document.site.defaultLocale;
     const seo = buildPortfolioSeo(version.document, activeLocale);
+    return {
+      site: version.document.site,
+      theme: version.document.theme,
+      navigation: version.document.navigation,
+      pages: version.document.pages,
+      versionId: version.id,
+      publishedAt: version.createdAt,
+      seo,
+    };
+  }
+
+  /**
+   * Host-based public read: resolves a verified custom domain binding back to
+   * the published portfolio. Only verified bindings are accepted — never a
+   * bare user-supplied hostname (docs/dynamic-portfolios/13).
+   */
+  async getPublicSiteByHostname(
+    hostname: string,
+    locale?: string,
+  ): Promise<PublicPortfolioResponse> {
+    const domain = await this.store.getDomainByHostname(hostname);
+    if (!domain || domain.status !== 'verified') {
+      throw new NotFoundException({
+        code: 'PORTFOLIO_NOT_PUBLISHED',
+        message: 'This portfolio is not published.',
+      });
+    }
+    const site = await this.store.getSite(domain.siteId);
+    const version = await this.loadPublishedVersion(site);
+    const activeLocale =
+      locale && version.document.site.locales.includes(normalizeLocaleCode(locale))
+        ? normalizeLocaleCode(locale)
+        : version.document.site.defaultLocale;
+    const seo = buildPortfolioSeo(version.document, activeLocale, '/');
     return {
       site: version.document.site,
       theme: version.document.theme,
@@ -618,13 +664,162 @@ export class PortfolioService {
     return this.store.analyticsFor(siteId);
   }
 
+  // ── Custom domain bindings ──────────────────────────────────────────────
+
+  async listDomains(
+    userId: string,
+    siteId?: string,
+  ): Promise<PortfolioDomainBinding[]> {
+    if (siteId) {
+      await this.requireSite(userId, siteId);
+      return this.store.listDomains(siteId);
+    }
+    const sites = await this.store.listSites(userId);
+    const seen = new Set<string>();
+    const items: PortfolioDomainBinding[] = [];
+    for (const site of sites) {
+      for (const domain of await this.store.listDomains(site.id)) {
+        if (seen.has(domain.id)) continue;
+        seen.add(domain.id);
+        items.push(domain);
+      }
+    }
+    return items.sort((a, b) => a.hostname.localeCompare(b.hostname));
+  }
+
+  async createDomain(
+    userId: string,
+    siteId: string,
+    input: { hostname: string; verificationMethod?: 'TXT' | 'CNAME' },
+  ): Promise<PortfolioDomainBinding> {
+    const site = await this.requireSite(userId, siteId);
+    const hostname = normalizeHostname(input.hostname);
+    if (!hostname) {
+      throw new BadRequestException({
+        code: 'PORTFOLIO_DOMAIN_INVALID',
+        message: 'Domain must be a valid lowercase hostname such as www.yourdomain.com.',
+      });
+    }
+    const existing = await this.store.getDomainByHostname(hostname);
+    if (existing) {
+      throw new ConflictException({
+        code: 'PORTFOLIO_DOMAIN_TAKEN',
+        message: 'This domain is already bound to a portfolio.',
+      });
+    }
+    const method = input.verificationMethod ?? 'TXT';
+    const token = randomUUID().replace(/-/g, '').slice(0, 16);
+    const challenge =
+      method === 'TXT'
+        ? { type: 'TXT' as const, name: `_xcron.${hostname}`, value: `xcron-verify=${token}` }
+        : { type: 'CNAME' as const, name: hostname, target: `${token}.cname.xcron.app` };
+    const now = new Date().toISOString();
+    const binding: PortfolioDomainBinding = {
+      id: `domain_${randomUUID()}`,
+      siteId: site.id,
+      workspaceId: site.workspaceId,
+      hostname,
+      verificationMethod: method,
+      status: 'pending',
+      challenge,
+      tlsState: 'none',
+      createdAt: now,
+      updatedAt: now,
+      verifiedAt: null,
+    };
+    return this.store.saveDomain(binding);
+  }
+
+  async verifyDomain(
+    userId: string,
+    domainId: string,
+    input?: { token?: string },
+  ): Promise<PortfolioDomainBinding> {
+    const domain = await this.store.getDomain(domainId);
+    if (!domain) {
+      throw new NotFoundException({
+        code: 'PORTFOLIO_DOMAIN_NOT_FOUND',
+        message: 'Domain binding not found.',
+      });
+    }
+    const site = await this.store.getSite(domain.siteId);
+    if (site?.ownerUserId !== userId) {
+      throw new NotFoundException({
+        code: 'PORTFOLIO_DOMAIN_NOT_FOUND',
+        message: 'Domain binding not found.',
+      });
+    }
+    if (domain.status !== 'pending') {
+      throw new BadRequestException({
+        code: 'PORTFOLIO_DOMAIN_NOT_PENDING',
+        message: 'Only pending domain bindings can be verified.',
+      });
+    }
+    const proof = (input?.token ?? '').trim();
+    if (!proof) {
+      throw new BadRequestException({
+        code: 'PORTFOLIO_DOMAIN_PROOF_REQUIRED',
+        message: 'Provide the DNS record value you published for verification.',
+      });
+    }
+    if (domain.challenge) {
+      if (domain.challenge.type === 'TXT') {
+        if (proof !== domain.challenge.value) {
+          throw new BadRequestException({
+            code: 'PORTFOLIO_DOMAIN_VERIFICATION_FAILED',
+            message: 'The published DNS value did not match. Add the record and retry.',
+          });
+        }
+      } else if (proof !== domain.challenge.target) {
+        throw new BadRequestException({
+          code: 'PORTFOLIO_DOMAIN_VERIFICATION_FAILED',
+          message: 'The published DNS target did not match. Update the record and retry.',
+        });
+      }
+    }
+    domain.status = 'verified';
+    domain.verifiedAt = new Date().toISOString();
+    domain.tlsState = 'provisioning';
+    domain.updatedAt = domain.verifiedAt;
+    return this.store.saveDomain(domain);
+  }
+
+  async deleteDomain(userId: string, domainId: string): Promise<{ ok: true }> {
+    const domain = await this.store.getDomain(domainId);
+    if (!domain) {
+      throw new NotFoundException({
+        code: 'PORTFOLIO_DOMAIN_NOT_FOUND',
+        message: 'Domain binding not found.',
+      });
+    }
+    const site = await this.store.getSite(domain.siteId);
+    if (site?.ownerUserId !== userId) {
+      throw new NotFoundException({
+        code: 'PORTFOLIO_DOMAIN_NOT_FOUND',
+        message: 'Domain binding not found.',
+      });
+    }
+    const ok = await this.store.deleteDomain(domainId);
+    if (!ok) {
+      throw new NotFoundException({
+        code: 'PORTFOLIO_DOMAIN_NOT_FOUND',
+        message: 'Domain binding not found.',
+      });
+    }
+    return { ok: true };
+  }
+
   async listMedia(userId: string) {
     return this.store.listMedia(userId);
   }
 
-  async addMedia(userId: string, url: string) {
+  async findMedia(userId: string, assetId: string) {
+    return this.store.findMedia(userId, assetId);
+  }
+
+  async addMedia(userId: string, url: string, storageAssetId?: string) {
     if (!/^https?:\/\//i.test(url)) throw new Error('invalid_url');
-    return this.store.addMedia(userId, url);
+    return this.store.addMedia(userId, url, storageAssetId);
   }
 
   async deleteMedia(userId: string, assetId: string) {
@@ -638,6 +833,25 @@ export class PortfolioService {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────
+
+  private async loadPublishedVersion(
+    site: PortfolioSiteRecord | null,
+  ): Promise<PortfolioVersionRecord> {
+    if (!site || site.status !== 'published' || !site.publishedVersionId) {
+      throw new NotFoundException({
+        code: 'PORTFOLIO_NOT_PUBLISHED',
+        message: 'This portfolio is not published.',
+      });
+    }
+    const version = await this.store.getVersion(site.id, site.publishedVersionId);
+    if (!version) {
+      throw new NotFoundException({
+        code: 'PORTFOLIO_NOT_PUBLISHED',
+        message: 'This portfolio is not published.',
+      });
+    }
+    return version;
+  }
 
   private async requireSite(
     userId: string,

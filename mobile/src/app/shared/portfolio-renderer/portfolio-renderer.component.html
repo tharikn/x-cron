@@ -346,7 +346,11 @@
 
           @case ('custom-code') {
             <div class="pf-inner" [class.pf-inner--full]="fullCodePage()">
-              <app-portfolio-custom-code [props]="section.props" [mode]="mode()" />
+              <app-portfolio-custom-code
+                [props]="section.props"
+                [mode]="mode()"
+                [storageKey]="codeStorageKey(section)"
+              />
             </div>
           }
         }

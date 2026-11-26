@@ -45,7 +45,8 @@
 
 - The section stores `html`, `css`, `js` as opaque strings. The API strips control characters only; it never rewrites source.
 - It renders exclusively through `app-portfolio-custom-code`, which composes a separate document and loads it in `<iframe sandbox="allow-scripts [allow-forms] [allow-popups]" credentialless>` with **no** `allow-same-origin`. Never add `allow-same-origin`, `allow-top-navigation`, `allow-modals` or `allow-downloads`.
-- Never bind user HTML with `innerHTML`, `bypassSecurityTrustHtml` or a template interpolation. The frame document is built as text and set via `srcdoc`.
+- Never bind user HTML with `innerHTML`, `bypassSecurityTrustHtml`, `[srcdoc]` or a template interpolation. The frame document is built as text and assigned imperatively with `frame.srcdoc = source`; Angular's HTML sanitizer removes `<style>`/`<script>` from a `[srcdoc]` binding. Keep `sandbox` static (Angular 22 `NG0910`).
+- `localStorage`/`sessionStorage` are bridged. The bridge installs an in-memory `Storage` shim before author code, seeded from and persisted to `xcron.pf-code.v1.<siteId>:<sectionId>.<store>` on the app origin (64 KB/store, 128-byte keys, 32 KB values). Cookies stay blocked and the frame never sees other app keys.
 - The frame is `pointer-events: none` in the editor so selection/drag still work; it is interactive in Preview and on the public page.
 - Publishing is blocked until `acknowledged` is true (`PORTFOLIO_CUSTOM_CODE_UNACKNOWLEDGED`).
 - Size limits live in the registry (`code` field `maxLength`) and are enforced by `sanitizeField`; oversized code is rejected, not truncated.

@@ -30,11 +30,13 @@ export function portfolioPublicPath(slug: string): string {
 /**
  * Build SEO + JSON-LD from trusted structured fields only. No raw JSON-LD
  * injection is possible: the payload is constructed here, never authored by the
- * user.
+ * user. `canonicalPath` defaults to the platform public path and can be
+ * overridden for host-bound sites (verified custom domain → site root).
  */
 export function buildPortfolioSeo(
   document: PortfolioDocument,
   locale?: string,
+  canonicalPath: string = portfolioPublicPath(document.site.slug),
 ): PortfolioPublicSeo {
   const defaultLocale = document.site.defaultLocale;
   const activeLocale = locale ?? defaultLocale;
@@ -47,7 +49,6 @@ export function buildPortfolioSeo(
     localized(page?.seo.description, activeLocale, defaultLocale) ||
     localized(hero?.props['subheadline'], activeLocale, defaultLocale) ||
     `Portfolio of ${document.site.name}.`;
-  const canonicalPath = portfolioPublicPath(document.site.slug);
 
   let ogImage = page?.seo.imageUrl ?? '';
   if (!ogImage) {

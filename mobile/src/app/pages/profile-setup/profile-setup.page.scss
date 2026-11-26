@@ -344,6 +344,38 @@ input:not([type]):focus {
   }
 }
 
+.asset-field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: var(--xcron-text-meta);
+  font-weight: var(--xcron-weight-medium);
+}
+
+.asset-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  color: var(--xcron-muted);
+  font-weight: var(--xcron-weight-regular, 400);
+}
+
+.asset-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--xcron-radius);
+  border: 1px solid var(--xcron-line);
+  object-fit: cover;
+  background: var(--xcron-wash);
+}
+
+.image-upload {
+  padding: 0.55rem 0.9rem;
+  border: 1px dashed var(--xcron-line-strong, #4a4268);
+  border-radius: var(--xcron-radius);
+  cursor: pointer;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .setup,
   .celebrate,

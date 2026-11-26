@@ -92,6 +92,31 @@ export function isReservedSlug(value: string): boolean {
   return RESERVED_SLUGS.has(value.trim().toLowerCase());
 }
 
+const HOSTNAME_LABEL_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const HOSTNAME_RE =
+  /^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/;
+
+/**
+ * Lowercase host validation for custom domain bindings: DNS labels only, no
+ * leading/trailing hyphens, TLD required, total length capped at 253.
+ * IP literals and localhost are rejected — only public hostnames are bindable.
+ */
+export function normalizeHostname(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const host = value.trim().toLowerCase();
+  if (!HOSTNAME_RE.test(host)) return null;
+  const labels = host.split('.');
+  if (labels.some((label) => !HOSTNAME_LABEL_RE.test(label))) return null;
+  if (labels.length < 2) return null; // require a registrable domain
+  if (labels.every((label) => /^[0-9]+$/.test(label))) return null; // bare IP literal
+  if (host.includes(':')) return null; // IPv6 literal
+  return host;
+}
+
+export function isValidHostname(value: unknown): value is string {
+  return typeof normalizeHostname(value) === 'string';
+}
+
 /** Strip control characters, collapse ragged whitespace, cap length. */
 export function cleanText(value: string, maxLength: number): string {
   return value
