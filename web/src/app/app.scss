@@ -16,6 +16,12 @@
   display: block;
 }
 
+/* The marketing page provides its own edge-to-edge chrome and gutters. */
+.shell--landing {
+  max-width: none;
+  padding-inline: 0;
+}
+
 .top {
   display: flex;
   justify-content: space-between;

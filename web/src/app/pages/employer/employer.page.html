@@ -2,11 +2,11 @@
   <section class="missing">
     <h1>Employer not found</h1>
     <p>{{ error() }}</p>
-    <a routerLink="/">Back to jobs</a>
+    <a routerLink="/jobs">Back to jobs</a>
   </section>
 } @else {
   <section class="employer">
-    <p class="crumb"><a routerLink="/">Jobs</a> / Employer</p>
+    <p class="crumb"><a routerLink="/jobs">Jobs</a> / Employer</p>
     <h1>{{ name() }}</h1>
     @if (verified()) {
       <p class="verified">Verified employer</p>

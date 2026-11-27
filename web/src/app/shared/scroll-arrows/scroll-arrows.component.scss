@@ -1,0 +1,64 @@
+:host {
+  position: fixed;
+  right: max(1.25rem, calc(env(safe-area-inset-right) + 0.75rem));
+  bottom: max(2.25rem, calc(env(safe-area-inset-bottom) + 1.25rem));
+  z-index: 65;
+  display: block;
+  pointer-events: none;
+}
+
+.scroll-arrows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.scroll-arrows__btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--xcron-cta-gradient);
+  color: #fff;
+  box-shadow:
+    0 10px 24px rgba(40, 20, 90, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.14) inset;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    transform 160ms var(--xcron-ease, ease),
+    box-shadow 160ms var(--xcron-ease, ease),
+    opacity 160ms var(--xcron-ease, ease);
+}
+
+.scroll-arrows__btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 14px 28px rgba(40, 20, 90, 0.34),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+.scroll-arrows__btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.scroll-arrows__btn:focus-visible {
+  outline: 3px solid var(--xcron-primary-hover, #9580ff);
+  outline-offset: 3px;
+}
+
+.scroll-arrows__icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-arrows__btn {
+    transition: none;
+  }
+}

@@ -22,19 +22,13 @@ export class OnboardingService {
 
   readonly themePromptOpen = signal(false);
 
-  /** Theme chooser for every new app session. */
+  /** Theme chooser is disabled; keep API for compatibility. */
   needsThemePrompt(): boolean {
-    try {
-      return sessionStorage.getItem(THEME_PROMPT_KEY) !== '1';
-    } catch {
-      return true;
-    }
+    return false;
   }
 
   openThemePromptIfNeeded(): void {
-    if (this.needsThemePrompt()) {
-      this.themePromptOpen.set(true);
-    }
+    this.themePromptOpen.set(false);
   }
 
   completeThemePrompt(): void {

@@ -9,6 +9,8 @@ import type {
 } from '../models/language.model';
 
 const KEY = 'xcron.web.language';
+const CATALOG_CACHE_KEY = 'xcron.web.i18n.catalog.v1';
+const CATALOG_TTL_MS = 10 * 60_000;
 
 const FALLBACK_LANGUAGES: AppLanguageOption[] = [
   {
@@ -204,6 +206,7 @@ export class LocaleService {
   readonly languages = signal<AppLanguageOption[]>(FALLBACK_LANGUAGES);
   readonly language = signal<string>(this.read());
   readonly ready = signal(false);
+  private catalogFetchedAt = 0;
 
   readonly strings = computed(() => {
     const code = this.language();
@@ -218,31 +221,77 @@ export class LocaleService {
   });
 
   async hydrate(): Promise<void> {
+    const cached = this.readCatalogCache();
+    if (cached) {
+      this.applyCatalog(cached.catalog, false);
+      this.catalogFetchedAt = cached.at;
+    }
+    if (Date.now() - this.catalogFetchedAt < CATALOG_TTL_MS) {
+      this.ready.set(true);
+      return;
+    }
+
     try {
       const catalog = await firstValueFrom(
         this.http.get<I18nCatalogResponse>(`${environment.apiUrl}/i18n`),
       );
-      const fallbackEn = FALLBACK_LANGUAGES.find((l) => l.code === 'en')?.strings ?? {};
-      const items = (catalog.items ?? [])
-        .filter((l) => l.enabled !== false)
-        .map((l) => ({
-          ...l,
-          strings: { ...fallbackEn, ...(l.strings ?? {}) },
-        }));
-      if (items.length) {
-        this.languages.set(items);
-        const current = this.language();
-        if (!items.some((l) => l.code === current)) {
-          this.setLanguage(catalog.defaultLocale || items[0].code);
-        } else {
-          this.applyDocumentLang(current);
-        }
-      }
+      this.applyCatalog(catalog, true);
+      this.writeCatalogCache(catalog);
+      this.catalogFetchedAt = Date.now();
     } catch {
-      // keep fallback catalog
+      // keep cached/fallback catalog
       this.applyDocumentLang(this.language());
     } finally {
       this.ready.set(true);
+    }
+  }
+
+  private applyCatalog(catalog: I18nCatalogResponse, persistSelection: boolean): void {
+    const fallbackEn = FALLBACK_LANGUAGES.find((l) => l.code === 'en')?.strings ?? {};
+    const items = (catalog.items ?? [])
+      .filter((l) => l.enabled !== false)
+      .map((l) => ({
+        ...l,
+        strings: { ...fallbackEn, ...(l.strings ?? {}) },
+      }));
+    if (!items.length) {
+      this.applyDocumentLang(this.language());
+      return;
+    }
+    this.languages.set(items);
+    const current = this.language();
+    if (!items.some((l) => l.code === current)) {
+      this.setLanguage(catalog.defaultLocale || items[0].code);
+    } else if (persistSelection) {
+      this.applyDocumentLang(current);
+    } else {
+      this.applyDocumentLang(current);
+    }
+  }
+
+  private readCatalogCache(): { at: number; catalog: I18nCatalogResponse } | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    try {
+      const raw = localStorage.getItem(CATALOG_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { at?: number; catalog?: I18nCatalogResponse };
+      if (!parsed?.at || !parsed.catalog) return null;
+      if (Date.now() - parsed.at > CATALOG_TTL_MS) return null;
+      return { at: parsed.at, catalog: parsed.catalog };
+    } catch {
+      return null;
+    }
+  }
+
+  private writeCatalogCache(catalog: I18nCatalogResponse): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      localStorage.setItem(
+        CATALOG_CACHE_KEY,
+        JSON.stringify({ at: Date.now(), catalog }),
+      );
+    } catch {
+      // Storage can be unavailable/full; ignore.
     }
   }
 

@@ -1,6 +1,6 @@
 @if (job(); as job) {
   <article class="job">
-    <p class="crumb"><a routerLink="/">Jobs</a> <span>/</span> {{ job.location.city }}</p>
+    <p class="crumb"><a routerLink="/jobs">Jobs</a> <span>/</span> {{ job.location.city }}</p>
     <div class="meta">
       <span class="badge">{{ languageLabel(job.contentLanguage) }}</span>
       <time>{{ formatPostedDate(job.publishedAt) }}</time>
@@ -232,7 +232,7 @@
   <section class="missing">
     <h1>Job not found</h1>
     <p>{{ error() }}</p>
-    <a routerLink="/" class="back">Back to jobs</a>
+    <a routerLink="/jobs" class="back">Back to jobs</a>
   </section>
 } @else {
   <app-job-detail-skeleton label="Loading job" />

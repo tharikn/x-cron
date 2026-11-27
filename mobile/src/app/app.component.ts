@@ -16,7 +16,7 @@ import { ThemeService } from './core/services/theme.service';
 import { TrackingService } from './core/services/tracking.service';
 import { HelpChatComponent } from './shared/help-chat/help-chat.component';
 import { ApiLoadingSkeletonComponent } from './shared/skeleton/api-loading-skeleton.component';
-import { ThemePromptComponent } from './shared/theme-prompt/theme-prompt.component';
+
 
 @Component({
   selector: 'app-root',
@@ -27,7 +27,6 @@ import { ThemePromptComponent } from './shared/theme-prompt/theme-prompt.compone
     IonRouterOutlet,
     HelpChatComponent,
     ApiLoadingSkeletonComponent,
-    ThemePromptComponent,
   ],
 })
 export class AppComponent implements OnInit {
@@ -48,7 +47,6 @@ export class AppComponent implements OnInit {
   private readonly tracking = inject(TrackingService);
 
   readonly busy = this.apiLoading.visible;
-  readonly themePromptOpen = this.onboarding.themePromptOpen;
   readonly online = this.connectivity.online;
 
   private lastOnline: boolean | null = null;
@@ -76,10 +74,7 @@ export class AppComponent implements OnInit {
     await this.locale.hydrate(this.preferences.preferences().interfaceLocale);
     // Session + prefs ready — drop HTML + native launch splash.
     void this.dismissBootSplash();
-    this.onboarding.openThemePromptIfNeeded();
-    if (!this.onboarding.themePromptOpen()) {
-      void this.maybeForceProfileSetup();
-    }
+    void this.maybeForceProfileSetup();
     this.notifications.watchOsPermission((status) => {
       void this.toastOsPermission(status);
     });
@@ -103,10 +98,6 @@ export class AppComponent implements OnInit {
     }
     this.notifications.startPolling();
     void this.appUpdate.checkForUpdate();
-  }
-
-  onThemePromptClosed(): void {
-    void this.maybeForceProfileSetup();
   }
 
   private async showOfflineToast(): Promise<void> {

@@ -18,7 +18,7 @@
       }
 
       <div class="state__actions">
-        <a routerLink="/" class="state__btn state__btn--primary">Explore Jobs on X Cron</a>
+        <a routerLink="/jobs" class="state__btn state__btn--primary">Explore Jobs on X Cron</a>
         @if (!redirectCancelled()) {
           <button type="button" class="state__btn state__btn--ghost" (click)="cancelRedirect()">
             Stay on page
@@ -35,7 +35,7 @@
 
     <!-- Floating Platform Badge: Ensures live site visitors can always navigate back to the main app -->
     <aside class="pf-platform-badge" aria-label="X Cron Jobs platform">
-      <a routerLink="/" class="pf-platform-badge__link" title="Discover opportunities on X Cron Jobs">
+      <a routerLink="/jobs" class="pf-platform-badge__link" title="Discover opportunities on X Cron Jobs">
         <span class="pf-platform-badge__dot"></span>
         <span class="pf-platform-badge__text">Built with <strong>X Cron</strong> · Explore Jobs</span>
       </a>

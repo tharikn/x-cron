@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
+import { Body, Controller, Get, Header, Put } from '@nestjs/common';
 import { Public, Roles } from '../auth/decorators';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { UpdateCommerceDto } from './dto/update-commerce.dto';
@@ -12,6 +12,7 @@ export class SiteController {
   /** Public footer chrome — social, addresses, quick links (no private contacts). */
   @Public()
   @Get('site/footer')
+  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600')
   getFooter() {
     return this.site.getFooter();
   }
@@ -19,6 +20,7 @@ export class SiteController {
   /** Public commerce settings (unlock price only — no private contacts). */
   @Public()
   @Get('site/commerce')
+  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600')
   getCommerce() {
     return this.site.getCommerce();
   }
@@ -26,6 +28,7 @@ export class SiteController {
   /** Auth TTL settings (session + OTP). Safe to expose; no secrets. */
   @Public()
   @Get('site/auth')
+  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600')
   getAuth() {
     return this.site.getAuth();
   }

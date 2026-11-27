@@ -1,0 +1,489 @@
+<a class="lp-skip" href="#lp-main">Skip to content</a>
+
+<div class="landing">
+  <header class="lp-nav" [class.lp-nav--scrolled]="scrolled()">
+    <div class="lp-nav__inner">
+      <a class="lp-brand" href="#top" (click)="goToTop($event)" aria-label="XcronJob home">
+        <img
+          src="brand/xcron-job-header-light.png"
+          alt="XcronJob"
+          width="120"
+          height="40"
+        />
+      </a>
+
+      <nav class="lp-nav__links" aria-label="Main navigation">
+        <a href="#top" class="is-active" (click)="goToTop($event)">Home</a>
+        <a routerLink="/jobs" routerLinkActive="is-active">Find Jobs</a>
+        <button type="button" (click)="openResume()">Resume Builder</button>
+        <a routerLink="/portfolio" routerLinkActive="is-active">Portfolio Generator</a>
+      </nav>
+
+      <div class="lp-nav__actions">
+        @if (isSignedIn()) {
+          <a class="lp-nav__login" routerLink="/me">Dashboard</a>
+        } @else {
+          <a class="lp-nav__login" routerLink="/sign-in">Login</a>
+        }
+        @if (isSignedIn()) {
+          <a class="lp-btn lp-btn--solid lp-btn--sm" routerLink="/me">Get Started</a>
+        } @else {
+          <a class="lp-btn lp-btn--solid lp-btn--sm" routerLink="/sign-in">Get Started</a>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="lp-menu-toggle"
+        [attr.aria-expanded]="menuOpen()"
+        aria-controls="lp-mobile-nav"
+        [attr.aria-label]="menuOpen() ? 'Close menu' : 'Open menu'"
+        (click)="toggleMenu()"
+      >
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <span
+      class="lp-scroll-progress"
+      aria-hidden="true"
+      [style.transform]="progressTransform()"
+    ></span>
+
+    @if (menuOpen()) {
+      <nav class="lp-mobile-nav" id="lp-mobile-nav" aria-label="Mobile navigation">
+        <a href="#top" (click)="goToTop($event)">Home</a>
+        <a routerLink="/jobs" (click)="closeMenu()">Find Jobs</a>
+        <button type="button" (click)="openResume()">Resume Builder</button>
+        <a routerLink="/portfolio" (click)="closeMenu()">Portfolio Generator</a>
+        @if (isSignedIn()) {
+          <a routerLink="/me" (click)="closeMenu()">Dashboard</a>
+        } @else {
+          <a routerLink="/sign-in" (click)="closeMenu()">Login</a>
+        }
+      </nav>
+    }
+  </header>
+
+  <main id="lp-main">
+    <section class="lp-hero" id="top" aria-labelledby="lp-hero-title">
+      <span class="lp-hero__glow" aria-hidden="true" [style.transform]="glowTransform()"></span>
+      <div class="lp-wrap lp-hero__grid">
+        <div class="lp-hero__copy">
+          <p class="lp-eyebrow"><span class="lp-eyebrow__dot"></span> Jobs · Resumes · Portfolios</p>
+          <h1 id="lp-hero-title">
+            Your Career.
+            <span>Your Identity.</span>
+            <span>Your Next Opportunity.</span>
+          </h1>
+          <p class="lp-lead">
+            Everything you need to move forward in your career. Discover opportunities, create
+            standout resumes, and build a professional portfolio – all in one place.
+          </p>
+          <div class="lp-actions">
+            <a class="lp-btn lp-btn--solid" routerLink="/jobs">Explore Jobs</a>
+            @if (isSignedIn()) {
+              <button type="button" class="lp-btn lp-btn--outline" (click)="openResume()">
+                Build Your Career
+              </button>
+            } @else {
+              <a
+                class="lp-btn lp-btn--outline"
+                routerLink="/sign-in"
+                [queryParams]="{ intent: 'resume' }"
+              >
+                Build Your Career
+              </a>
+            }
+          </div>
+        </div>
+
+        <div class="lp-hero__art" aria-hidden="true" [style.transform]="heroTransform()">
+          <span class="lp-hero__thread"></span>
+          <div class="lp-art-card lp-art-card--jobs">
+            <app-landing-preview kind="jobs" label="Job discovery" />
+          </div>
+          <div class="lp-art-card lp-art-card--portfolio">
+            <app-landing-preview kind="portfolio" label="your-portfolio" />
+          </div>
+          <div class="lp-art-card lp-art-card--resume">
+            <app-landing-preview kind="resume" label="Resume preview" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-section lp-products" id="products" aria-labelledby="lp-products-title">
+      <div class="lp-wrap">
+        <div class="lp-head" lpReveal>
+          <p class="lp-kicker">The platform</p>
+          <h2 id="lp-products-title">Three products. One career path.</h2>
+          <p class="lp-section-lead">
+            Each product works on its own. Together, they cover the whole move — from finding the
+            role to showing why you fit it.
+          </p>
+        </div>
+
+        <div class="lp-product-grid">
+          <article class="lp-product lp-product--jobs lp-delay-1" lpReveal>
+            <div class="lp-product__top">
+              <span class="lp-product__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="7" width="18" height="13" rx="2" />
+                  <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2" />
+                </svg>
+              </span>
+              <span class="lp-product__index">01</span>
+            </div>
+            <h3>Find Opportunities That Move You Forward.</h3>
+            <p class="lp-product__desc">
+              Discover relevant opportunities, explore companies, and connect with employers.
+            </p>
+            <ul class="lp-feature-list">
+              <li>Smart job discovery</li>
+              <li>Advanced job filters</li>
+              <li>Company exploration</li>
+              <li>Job application management</li>
+              <li>Saved jobs</li>
+              <li>Personalized opportunities</li>
+            </ul>
+            <a class="lp-text-link" routerLink="/jobs">
+              Explore Jobs
+              <span aria-hidden="true">→</span>
+            </a>
+          </article>
+
+          <article class="lp-product lp-product--resume lp-delay-2" lpReveal>
+            <div class="lp-product__top">
+              <span class="lp-product__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+                  <path d="M14 3v5h5M9 13h6M9 17h4" />
+                </svg>
+              </span>
+              <span class="lp-product__index">02</span>
+            </div>
+            <h3>Build a Resume That Gets Noticed.</h3>
+            <p class="lp-product__desc">
+              Create professional, ATS-friendly resumes with beautiful templates and powerful
+              customization.
+            </p>
+            <ul class="lp-feature-list">
+              <li>Professional templates</li>
+              <li>ATS-friendly formatting</li>
+              <li>Live resume preview</li>
+              <li>Resume customization</li>
+              <li>PDF export</li>
+              <li>Resume management</li>
+            </ul>
+            @if (isSignedIn()) {
+              <button type="button" class="lp-text-link" (click)="openResume()">
+                Create Resume
+                <span aria-hidden="true">→</span>
+              </button>
+            } @else {
+              <a
+                class="lp-text-link"
+                routerLink="/sign-in"
+                [queryParams]="{ intent: 'resume' }"
+              >
+                Create Resume
+                <span aria-hidden="true">→</span>
+              </a>
+            }
+          </article>
+
+          <article class="lp-product lp-product--portfolio lp-delay-3" lpReveal>
+            <div class="lp-product__top">
+              <span class="lp-product__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M3 9h18M8 13h3M8 16h7" />
+                </svg>
+              </span>
+              <span class="lp-product__index">03</span>
+            </div>
+            <h3>Turn Your Skills Into a Professional Portfolio.</h3>
+            <p class="lp-product__desc">
+              Create, customize, and publish stunning personal portfolio websites without
+              complicated development.
+            </p>
+            <ul class="lp-feature-list">
+              <li>13 starter templates</li>
+              <li>Custom HTML/CSS import</li>
+              <li>Live preview</li>
+              <li>Publish and manage portfolios</li>
+              <li>Version history and rollback</li>
+              <li>Privacy-light visit insights</li>
+            </ul>
+            <a class="lp-text-link" routerLink="/portfolio">
+              Build Your Portfolio
+              <span aria-hidden="true">→</span>
+            </a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-section lp-how" id="how" aria-labelledby="lp-how-title">
+      <div class="lp-wrap">
+        <div class="lp-head" lpReveal>
+          <p class="lp-kicker">The journey</p>
+          <h2 id="lp-how-title">How XcronJob works</h2>
+          <p class="lp-section-lead">Four steps from first search to first conversation.</p>
+        </div>
+
+        <ol class="lp-steps">
+          <li class="lp-step" lpReveal>
+            <span class="lp-step__number">01</span>
+            <h3>Discover</h3>
+            <p>Explore opportunities that match your skills and interests.</p>
+          </li>
+          <li class="lp-step" lpReveal>
+            <span class="lp-step__number">02</span>
+            <h3>Prepare</h3>
+            <p>Build and customize your professional resume.</p>
+          </li>
+          <li class="lp-step" lpReveal>
+            <span class="lp-step__number">03</span>
+            <h3>Showcase</h3>
+            <p>Create a portfolio that demonstrates your skills and projects.</p>
+          </li>
+          <li class="lp-step" lpReveal>
+            <span class="lp-step__number">04</span>
+            <h3>Apply</h3>
+            <p>Use your professional identity to pursue opportunities.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="lp-section lp-why" id="why" aria-labelledby="lp-why-title">
+      <div class="lp-wrap">
+        <div class="lp-head" lpReveal>
+          <p class="lp-kicker">The advantage</p>
+          <h2 id="lp-why-title">Why XcronJob?</h2>
+          <p class="lp-section-lead">Less switching between tools, more time spent on the move itself.</p>
+        </div>
+
+        <div class="lp-why-grid">
+          <article class="lp-why-item" lpReveal>
+            <span class="lp-why-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><circle cx="5" cy="6" r="2" /><circle cx="19" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="18" r="2" /><path d="M7 7.5l3 2.5M17 7.5 14 10M7 17l3-2.5M17 17l-3-2.5" /></svg>
+            </span>
+            <h3>One ecosystem</h3>
+            <p>Jobs, resumes, and portfolios live under one account.</p>
+          </article>
+          <article class="lp-why-item" lpReveal>
+            <span class="lp-why-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
+            </span>
+            <h3>Resume creation</h3>
+            <p>Structure your experience in a clear, ATS-friendly format.</p>
+          </article>
+          <article class="lp-why-item" lpReveal>
+            <span class="lp-why-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M7 13h4M7 16h8" /></svg>
+            </span>
+            <h3>Portfolio publishing</h3>
+            <p>Preview your site, publish a version, and keep earlier versions.</p>
+          </article>
+          <article class="lp-why-item" lpReveal>
+            <span class="lp-why-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4M8.5 11h5M11 8.5v5" /></svg>
+            </span>
+            <h3>Simpler discovery</h3>
+            <p>Filter roles and companies without losing your place.</p>
+          </article>
+          <article class="lp-why-item" lpReveal>
+            <span class="lp-why-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.6 3.2 7.9 8 9 4.8-1.1 8-4.4 8-9V7Z" /><path d="m9 12 2 2 4-4" /></svg>
+            </span>
+            <h3>Built for everyone</h3>
+            <p>Clear layouts, keyboard access, and a calm, readable interface.</p>
+          </article>
+          <article class="lp-why-item" lpReveal>
+            <span class="lp-why-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v5l3 2" /><circle cx="12" cy="12" r="9" /><path d="M9 3h6" /></svg>
+            </span>
+            <h3>Time-saving workflow</h3>
+            <p>Reuse one professional identity across every application.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-section lp-showcase" id="showcase" aria-labelledby="lp-showcase-title">
+      <div class="lp-wrap">
+        <div class="lp-head" lpReveal>
+          <p class="lp-kicker">A closer look</p>
+          <h2 id="lp-showcase-title">See the tools in action.</h2>
+          <p class="lp-section-lead">Switch between the three products to see what each one is built for.</p>
+        </div>
+
+        <div class="lp-tabs" role="tablist" aria-label="Product previews" lpReveal>
+          @for (tab of tabs; track tab.id; let i = $index) {
+            <button
+              type="button"
+              role="tab"
+              [id]="'lp-tab-' + tab.id"
+              [attr.aria-selected]="activeTab() === tab.id"
+              [attr.aria-controls]="'lp-panel-' + tab.id"
+              [class.is-active]="activeTab() === tab.id"
+              (click)="selectTab(tab.id)"
+              (keydown)="onTabKeydown($event, i)"
+            >
+              {{ tab.label }}
+            </button>
+          }
+        </div>
+
+        @for (tab of tabs; track tab.id) {
+          @if (activeTab() === tab.id) {
+            <div
+              class="lp-tab-panel"
+              lpReveal
+              role="tabpanel"
+              [id]="'lp-panel-' + tab.id"
+              [attr.aria-labelledby]="'lp-tab-' + tab.id"
+            >
+              <div class="lp-tab-panel__visual">
+                @defer (on viewport) {
+                  <app-landing-preview [kind]="tab.id" [label]="tab.label + ' preview'" />
+                } @placeholder {
+                  <div class="lp-preview-slot"></div>
+                }
+              </div>
+              <div class="lp-tab-panel__copy">
+                <p class="lp-kicker">{{ tab.kicker }}</p>
+                <h3>{{ tab.title }}</h3>
+                <p class="lp-tab-panel__body">{{ tab.body }}</p>
+                <ul class="lp-tab-panel__highlights">
+                  @for (highlight of tab.highlights; track highlight) {
+                    <li><span aria-hidden="true">✓</span> {{ highlight }}</li>
+                  }
+                </ul>
+                @switch (tab.id) {
+                  @case ('jobs') {
+                    <a class="lp-btn lp-btn--solid" routerLink="/jobs">Explore Jobs</a>
+                  }
+                  @case ('resume') {
+                    @if (isSignedIn()) {
+                      <button type="button" class="lp-btn lp-btn--solid" (click)="openResume()">
+                        Create Resume
+                      </button>
+                    } @else {
+                      <a class="lp-btn lp-btn--solid" routerLink="/sign-in" [queryParams]="{ intent: 'resume' }">
+                        Create Resume
+                      </a>
+                    }
+                  }
+                  @case ('portfolio') {
+                    <a class="lp-btn lp-btn--solid" routerLink="/portfolio">Build Your Portfolio</a>
+                  }
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </section>
+
+    <section class="lp-section lp-reviews" id="reviews" aria-labelledby="lp-reviews-title">
+      <div class="lp-wrap">
+        <div class="lp-head" lpReveal>
+          <p class="lp-kicker">Student voices</p>
+          <h2 id="lp-reviews-title">Built for the way students actually work.</h2>
+          <p class="lp-section-lead">
+            Sample reviews for this demo, written in the voices of Chennai students.
+          </p>
+        </div>
+
+        <div class="lp-review-grid">
+          @for (review of reviews; track review.name; let i = $index) {
+            <article class="lp-review lp-delay-{{ i + 1 }}" lpReveal>
+              <div class="lp-review__person">
+                <span class="lp-review__avatar">
+                  <img
+                    [src]="review.avatar"
+                    [alt]="review.name"
+                    width="52"
+                    height="52"
+                    loading="lazy"
+                  />
+                </span>
+                <div class="lp-review__identity">
+                  <h3>{{ review.name }}</h3>
+                  <p>{{ review.detail }}</p>
+                </div>
+                <span class="lp-review__badge">Sample</span>
+              </div>
+              <blockquote>“{{ review.quote }}”</blockquote>
+              <p class="lp-review__product">{{ review.product }}</p>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-close" id="start" aria-labelledby="lp-close-title">
+      <div class="lp-wrap lp-close__inner" lpReveal>
+        <div>
+          <h2 id="lp-close-title">Your Next Chapter Starts With XcronJob.</h2>
+          <p>Discover opportunities. Build your identity. Make your next move.</p>
+        </div>
+        <div class="lp-actions">
+          <a class="lp-btn lp-btn--light" routerLink="/jobs">Explore Jobs</a>
+          @if (isSignedIn()) {
+            <a class="lp-btn lp-btn--ghost-light" routerLink="/me">Get Started</a>
+          } @else {
+            <a class="lp-btn lp-btn--ghost-light" routerLink="/sign-in">Get Started</a>
+          }
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="lp-footer">
+    <div class="lp-wrap">
+      <div class="lp-footer__grid">
+        <div class="lp-footer__brand" lpReveal>
+          <img src="brand/xcron-job-header-light.png" alt="XcronJob" width="120" height="40" />
+          <p>Discover opportunities. Build your identity. Make your next move.</p>
+        </div>
+        <nav class="lp-footer__col" lpReveal aria-label="Product links">
+          <h2>Products</h2>
+          <a routerLink="/jobs">Find Jobs</a>
+          <button type="button" (click)="openResume()">Resume Builder</button>
+          <a routerLink="/portfolio">Portfolio Generator</a>
+        </nav>
+        <nav class="lp-footer__col" lpReveal aria-label="Company links">
+          <h2>Company</h2>
+          <a href="#why">About</a>
+          <a routerLink="/feedback">Contact</a>
+        </nav>
+        <nav class="lp-footer__col" lpReveal aria-label="Legal links">
+          <h2>Legal</h2>
+          <a routerLink="/privacy">Privacy Policy</a>
+          <a routerLink="/terms">Terms and Conditions</a>
+        </nav>
+        @if (footer().socialLinks.length) {
+          <nav class="lp-footer__col" lpReveal aria-label="Social links">
+            <h2>Follow</h2>
+            @for (social of footer().socialLinks; track social.id) {
+              <a [href]="social.url" target="_blank" rel="noopener noreferrer">
+                {{ social.label }}
+              </a>
+            }
+          </nav>
+        }
+      </div>
+      <div class="lp-footer__bar">
+        <p>© {{ year }} XcronJob. All rights reserved.</p>
+        <a href="#top" (click)="goToTop($event)">Back to top</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<app-scroll-arrows />

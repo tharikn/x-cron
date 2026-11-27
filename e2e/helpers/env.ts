@@ -77,7 +77,7 @@ export function pathsFor(client: ClientKind): ClientPaths {
     };
   }
   return {
-    home: '/',
+    home: '/jobs',
     account: '/sign-in',
     signIn: '/sign-in',
     post: '/post',

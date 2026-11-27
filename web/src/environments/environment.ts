@@ -5,6 +5,8 @@ export const environment = {
   resumeUrl: 'http://localhost:4300',
   siteUrl: 'http://localhost:4000',
   siteName: 'Xcron JOB',
+  /** One-time "Welcome" portal prompt. Off by default; the homepage never shows it. */
+  welcomePromptEnabled: false,
   /** Google OAuth Web client ID. Empty = local email stub on Sign in → Google. */
   googleClientId:
     '199090164542-ina98t21c5d8mm081gnj0j9fo5qvgsd0.apps.googleusercontent.com',

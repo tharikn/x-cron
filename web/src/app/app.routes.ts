@@ -18,7 +18,9 @@ function withQuery(path: string, queryParams: Record<string, string>): string {
 export const routes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./pages/home/home.page').then((m) => m.HomePage),
+    // The landing page owns its own chrome; the app shell's prompts stay off here.
+    data: { bareShell: true, landingShell: true },
+    loadComponent: () => import('./pages/landing/landing.page').then((m) => m.LandingPage),
   },
   // Doc 10 UX aliases → X Cron routes (do not rename canonical paths).
   { path: 'login', redirectTo: 'sign-in', pathMatch: 'full' },
@@ -335,7 +337,15 @@ export const routes: Routes = [
     path: 'jobs',
     children: [
       {
+        path: '',
+        pathMatch: 'full',
+        // High-intent public route: prefetch on idle, not during startup.
+        data: { preload: true },
+        loadComponent: () => import('./pages/home/home.page').then((m) => m.HomePage),
+      },
+      {
         path: '**',
+        data: { preload: true },
         loadComponent: () =>
           import('./pages/job-detail/job-detail.page').then((m) => m.JobDetailPage),
       },

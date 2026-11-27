@@ -34,16 +34,16 @@ Parent: [../CLAUDE.md](../CLAUDE.md)
 
 | Method | Path | Access | Throttle |
 | --- | --- | --- | --- |
-| GET | `/v1/ai/help/status` | auth | default |
-| POST | `/v1/ai/help/chat` | auth | `@ChatThrottle` (~3/min) + service cooldown/budget → **429** |
+| GET | `/v1/ai/help/status` | public | default |
+| POST | `/v1/ai/help/chat` | public | `@ChatThrottle` (~3/min) + service cooldown/budget → **429** |
 
 ## Security
 
-- Auth required (guests never see FAB; API still enforces session)
+- Signed-in users are keyed by `userId`; guests by client IP + tab id
 - Input sanitized + length capped; history capped
 - System prompt refuses off-topic / secrets / invented contacts
 - CSRF + existing cookie/Bearer guards apply
-- Quota is per `userId` in-process (resets on API restart / UTC day)
+- Quota is per quota key in-process (resets on API restart / UTC day)
 
 ## Files
 

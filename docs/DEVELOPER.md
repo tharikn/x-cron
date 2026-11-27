@@ -166,7 +166,7 @@ Node **22.22.3+** required.
 - Design: [CHANNEL_PULL.md](./CHANNEL_PULL.md) · agent guide: [../api/src/channels/CLAUDE.md](../api/src/channels/CLAUDE.md)
 
 ### In-app help chatbot (signed-in, free/low model)
-- Floating chat FAB bottom-right on web + mobile — only after account / `isSignedIn()` and `AI_HELP_ENABLED=1`
+- Floating chat FAB bottom-right: web when `AI_HELP_ENABLED=1` (guests use a per-tab anonymous quota, signed-in users keep their own); mobile remains signed-in only
 - Default scope: app usage help (search, apply, post, settings) — locked system prompt; no invented contacts
 - Free path: Groq `openai/gpt-oss-20b` (or stub canned FAQ / local Ollama tiny). Note: `llama-3.1-8b-instant` shut down 2026-08-16 — defaults updated to Groq’s replacement.
 - Security: auth required · `@ChatThrottle` (~3/min) · per-user cooldown (`AI_HELP_COOLDOWN_MS`) · daily token budget (`AI_HELP_DAILY_TOKEN_BUDGET`) → **429** + cool-down when exhausted

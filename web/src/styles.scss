@@ -635,9 +635,6 @@ body.import-batch-modal-open {
 /* Theme-aware PNG variants. These rules must stay global: Angular scopes
    component styles by adding an _ngcontent attribute to every selector part,
    so an `html[data-theme='dark']` rule inside a component never matches. */
-html:not([data-theme]) .logo__img--on-dark,
-html[data-theme='light'] .logo__img--on-dark,
-html[data-theme='warm'] .logo__img--on-dark,
 html:not([data-theme]) .drawer__brand--on-dark,
 html[data-theme='light'] .drawer__brand--on-dark,
 html[data-theme='warm'] .drawer__brand--on-dark,
@@ -650,18 +647,22 @@ html[data-theme='warm'] .xcron-spinner__logo--on-dark {
   display: none;
 }
 
-html[data-theme='dark'] .logo__img--on-light,
 html[data-theme='dark'] .drawer__brand--on-light,
 html[data-theme='dark'] .xcron-spinner__ring--on-light,
 html[data-theme='dark'] .xcron-spinner__logo--on-light {
   display: none;
 }
 
-html[data-theme='dark'] .logo__img--on-dark,
 html[data-theme='dark'] .drawer__brand--on-dark,
 html[data-theme='dark'] .xcron-spinner__ring--on-dark,
 html[data-theme='dark'] .xcron-spinner__logo--on-dark {
   display: block;
+}
+
+/* Single logo element: swap source by theme so the browser downloads only the
+   active variant instead of both light/dark PNGs. */
+html[data-theme='dark'] .logo__img {
+  content: url('/brand/xcron-job-header.png');
 }
 
 /* The sign-in busy overlay is a dark scrim in every theme, so keep the
@@ -674,5 +675,69 @@ html .auth-loading-overlay .xcron-spinner__logo--on-light {
 html .auth-loading-overlay .xcron-spinner__ring--on-dark,
 html .auth-loading-overlay .xcron-spinner__logo--on-dark {
   display: block;
+}
+
+/* Added only while the landing page is mounted; anchors scroll gently. */
+html.lp-smooth-scroll {
+  scroll-behavior: smooth;
+  scroll-padding-top: 92px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.lp-smooth-scroll {
+    scroll-behavior: auto;
+  }
+}
+
+/* Landing scroll reveals. Hidden only after hydration so SSR content stays visible. */
+.lp-reveal {
+  transition:
+    opacity 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--lp-reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+html.lp-anim-ready .lp-reveal:not(.is-visible) {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+html.lp-anim-ready .lp-reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.lp-delay-1 {
+  --lp-reveal-delay: 80ms;
+}
+
+.lp-delay-2 {
+  --lp-reveal-delay: 160ms;
+}
+
+.lp-delay-3 {
+  --lp-reveal-delay: 240ms;
+}
+
+.lp-delay-4 {
+  --lp-reveal-delay: 320ms;
+}
+
+.lp-delay-5 {
+  --lp-reveal-delay: 400ms;
+}
+
+.lp-delay-6 {
+  --lp-reveal-delay: 480ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-reveal,
+  html.lp-anim-ready .lp-reveal:not(.is-visible) {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 

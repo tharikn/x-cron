@@ -26,25 +26,11 @@ describe('OnboardingService', () => {
     });
   });
 
-  it('opens the theme chooser once on a normal route', () => {
+  it('does not open the theme chooser', () => {
     const service = TestBed.inject(OnboardingService);
-    expect(service.needsThemePrompt()).toBe(true);
-
-    service.openThemePromptIfNeeded();
-    expect(service.themePromptOpen()).toBe(true);
-
-    service.completeThemePrompt();
-    expect(service.themePromptOpen()).toBe(false);
     expect(service.needsThemePrompt()).toBe(false);
-  });
-
-  it('never opens the theme chooser on a published portfolio URL', () => {
-    routerStub.url = '/p/jane-doe?locale=en-IN';
-    const service = TestBed.inject(OnboardingService);
-    expect(service.needsThemePrompt()).toBe(true);
 
     service.openThemePromptIfNeeded();
     expect(service.themePromptOpen()).toBe(false);
-    expect(sessionStorage.getItem('xcron.web.themePromptDone')).toBeNull();
   });
 });

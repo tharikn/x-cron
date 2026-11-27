@@ -1,5 +1,6 @@
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type {
@@ -81,23 +82,65 @@ const FALLBACK_AUTH: SiteAuthConfig = {
   updatedAt: new Date(0).toISOString(),
 };
 
+const FOOTER_CACHE_KEY = 'xcron.web.site.footer.v1';
+const FOOTER_TTL_MS = 10 * 60_000;
+
 @Injectable({ providedIn: 'root' })
 export class SiteService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly footer = signal<SiteFooterConfig>(FALLBACK_FOOTER);
   readonly commerce = signal<SiteCommerceConfig>(FALLBACK_COMMERCE);
   readonly authConfig = signal<SiteAuthConfig>(FALLBACK_AUTH);
+  private footerFetchedAt = 0;
 
   async hydrateFooter(): Promise<void> {
+    const cached = this.readFooterCache();
+    if (cached) {
+      this.footer.set(this.normalize(cached.footer));
+      this.footerFetchedAt = cached.at;
+    }
+    if (Date.now() - this.footerFetchedAt < FOOTER_TTL_MS) return;
+
     try {
       const doc = await firstValueFrom(
         this.http.get<SiteFooterConfig>(`${environment.apiUrl}/site/footer`),
       );
       this.footer.set(this.normalize(doc));
+      this.writeFooterCache(doc);
+      this.footerFetchedAt = Date.now();
     } catch {
-      this.footer.set(FALLBACK_FOOTER);
+      if (!cached) {
+        this.footer.set(FALLBACK_FOOTER);
+      }
+    }
+  }
+
+  private readFooterCache(): { at: number; footer: SiteFooterConfig } | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    try {
+      const raw = localStorage.getItem(FOOTER_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { at?: number; footer?: SiteFooterConfig };
+      if (!parsed?.at || !parsed.footer) return null;
+      if (Date.now() - parsed.at > FOOTER_TTL_MS) return null;
+      return { at: parsed.at, footer: parsed.footer };
+    } catch {
+      return null;
+    }
+  }
+
+  private writeFooterCache(footer: SiteFooterConfig): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      localStorage.setItem(
+        FOOTER_CACHE_KEY,
+        JSON.stringify({ at: Date.now(), footer }),
+      );
+    } catch {
+      // Storage can be unavailable/full; ignore.
     }
   }
 

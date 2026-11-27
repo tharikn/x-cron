@@ -7,6 +7,7 @@ import {
   OnInit,
   PLATFORM_ID,
   ViewChild,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -42,7 +43,7 @@ import { HelpChatComponent } from './shared/help-chat/help-chat.component';
 import { RouteEnterDirective } from './shared/route-enter/route-enter.directive';
 import { ApiLoadingSkeletonComponent } from './shared/skeleton/api-loading-skeleton.component';
 import { XcronSpinnerComponent } from './shared/xcron-spinner/xcron-spinner.component';
-import { ThemePromptComponent } from './shared/theme-prompt/theme-prompt.component';
+
 import { PortalChoicePromptComponent } from './shared/portal-choice/portal-choice-prompt.component';
 
 const FOOTER_ITEM_KEYS: Record<string, string> = {
@@ -69,7 +70,6 @@ const FOOTER_ITEM_KEYS: Record<string, string> = {
     RouteEnterDirective,
     ApiLoadingSkeletonComponent,
     XcronSpinnerComponent,
-    ThemePromptComponent,
     PortalChoicePromptComponent,
   ],
   templateUrl: './app.html',
@@ -97,7 +97,9 @@ export class App implements OnInit, OnDestroy {
   @ViewChild('themePref') private themePref?: ElementRef<HTMLElement>;
   @ViewChild('languagePref') private languagePref?: ElementRef<HTMLElement>;
   private readonly onVisChange = () => {
-    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+    if (!isPlatformBrowser(this.platformId)) return;
+    this.scheduleNotifPolling();
+    if (document.visibilityState === 'visible') {
       void this.pollNotifications();
     }
   };
@@ -107,10 +109,10 @@ export class App implements OnInit, OnDestroy {
   readonly languageMenuOpen = signal(false);
   readonly navigating = signal(false);
   readonly isBareRoute = signal(false);
+  readonly isLandingRoute = signal(false);
   readonly hideFooter = signal(false);
   readonly apiBusy = this.apiLoading.visible;
   readonly toasts = this.toastService.messages;
-  readonly themePromptOpen = this.onboarding.themePromptOpen;
   readonly portalChoiceOpen = this.onboarding.portalChoiceOpen;
   readonly online = this.connectivity.online;
   readonly isSignedIn = this.auth.isSignedIn;
@@ -159,17 +161,23 @@ export class App implements OnInit, OnDestroy {
         );
       }
     });
+
+    // Keep the first render free of notification, onboarding, and analytics
+    // traffic. These are useful, but they must not compete with the LCP
+    // request or delay interactivity.
+    if (isPlatformBrowser(this.platformId)) {
+      afterNextRender(() => {
+        this.connectivity.start();
+        this.tracking.start();
+        void this.hydrateNotifications();
+        void this.initOnboarding();
+      });
+    }
   }
 
   ngOnInit(): void {
     void this.locale.hydrate();
     void this.site.hydrateFooter();
-    void this.hydrateNotifications();
-    if (isPlatformBrowser(this.platformId)) {
-      this.connectivity.start();
-      this.tracking.start();
-      void this.initOnboarding();
-    }
     this.syncBareRoute();
     this.navSub = this.router.events
       .pipe(
@@ -196,6 +204,7 @@ export class App implements OnInit, OnDestroy {
   private syncBareRoute(): void {
     const root = this.router.routerState.snapshot.root;
     this.isBareRoute.set(this.hasBareShell(root));
+    this.isLandingRoute.set(this.hasLandingShell(root));
     this.hideFooter.set(this.hasHideFooter(root));
   }
 
@@ -206,6 +215,13 @@ export class App implements OnInit, OnDestroy {
     );
   }
 
+  private hasLandingShell(route: ActivatedRouteSnapshot): boolean {
+    return (
+      route.data['landingShell'] === true ||
+      route.children.some((child) => this.hasLandingShell(child))
+    );
+  }
+
   private hasHideFooter(route: ActivatedRouteSnapshot): boolean {
     return (
       route.data['hideFooter'] === true ||
@@ -213,16 +229,9 @@ export class App implements OnInit, OnDestroy {
     );
   }
 
-  onThemePromptClosed(): void {
-    void this.maybeForceProfileSetup();
-  }
-
   onPortalChoiceClosed(): void {
     this.onboarding.completePortalChoice();
-    this.onboarding.openThemePromptIfNeeded();
-    if (!this.onboarding.themePromptOpen()) {
-      void this.maybeForceProfileSetup();
-    }
+    void this.maybeForceProfileSetup();
   }
 
   private async initOnboarding(): Promise<void> {
@@ -231,10 +240,7 @@ export class App implements OnInit, OnDestroy {
       this.onboarding.openPortalChoiceIfNeeded();
       return;
     }
-    this.onboarding.openThemePromptIfNeeded();
-    if (!this.onboarding.themePromptOpen()) {
-      void this.maybeForceProfileSetup();
-    }
+    void this.maybeForceProfileSetup();
   }
 
   private async maybeForceProfileSetup(): Promise<void> {
@@ -434,10 +440,28 @@ export class App implements OnInit, OnDestroy {
 
   private startNotifPolling(): void {
     if (!isPlatformBrowser(this.platformId) || this.notifPollId != null) return;
+    this.scheduleNotifPolling();
+    document.addEventListener('visibilitychange', this.onVisChange);
+  }
+
+  private scheduleNotifPolling(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (this.notifPollId != null) {
+      clearInterval(this.notifPollId);
+      this.notifPollId = null;
+    }
     this.notifPollId = setInterval(() => {
       void this.pollNotifications();
-    }, 20_000);
-    document.addEventListener('visibilitychange', this.onVisChange);
+    }, this.notifPollMs());
+  }
+
+  private notifPollMs(): number {
+    const saveData =
+      typeof navigator !== 'undefined' &&
+      Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+    const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+    if (saveData) return hidden ? 180_000 : 60_000;
+    return hidden ? 60_000 : 20_000;
   }
 
   private stopNotifPolling(): void {

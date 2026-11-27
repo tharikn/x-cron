@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Header, Param } from '@nestjs/common';
 import { Public } from '../auth/decorators';
 import { I18nService } from './i18n.service';
 
@@ -9,6 +9,7 @@ export class I18nController {
   /** Dropdown catalog — language metadata from DB/store. */
   @Public()
   @Get('languages')
+  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600')
   listLanguages() {
     return this.i18n.listLanguages();
   }
@@ -16,12 +17,14 @@ export class I18nController {
   /** All enabled locales + UI strings (instant client switch). */
   @Public()
   @Get('i18n')
+  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600')
   catalogs() {
     return this.i18n.catalogs();
   }
 
   @Public()
   @Get('i18n/:locale')
+  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600')
   strings(@Param('locale') locale: string) {
     return this.i18n.strings(locale);
   }

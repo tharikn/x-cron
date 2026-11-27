@@ -1,6 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 import type { SeekerProfile } from './seeker.service';
 
@@ -30,6 +31,8 @@ export class OnboardingService {
 
   /** First-open portal choice prompt (Jobs vs Resume Builder). */
   needsPortalChoice(): boolean {
+    // Configurable welcome prompt. Disabled by default so it never interrupts the homepage.
+    if (!environment.welcomePromptEnabled) return false;
     if (!isPlatformBrowser(this.platformId)) return false;
     try {
       return localStorage.getItem(PORTAL_CHOICE_KEY) !== '1';
@@ -55,35 +58,13 @@ export class OnboardingService {
     this.portalChoiceOpen.set(false);
   }
 
-  /** Theme chooser for every new browser session. */
+  /** Theme chooser is disabled; keep API for compatibility. */
   needsThemePrompt(): boolean {
-    if (!isPlatformBrowser(this.platformId)) return false;
-    try {
-      return sessionStorage.getItem(THEME_PROMPT_KEY) !== '1';
-    } catch {
-      return true;
-    }
-  }
-
-  /**
-   * Published portfolio URLs are standalone sites. Never interrupt a visitor
-   * (or the editor's "Open live site" tab) with the app-level theme chooser.
-   */
-  private isPublicPortfolioRoute(): boolean {
-    const isPublicPath = (path: string): boolean =>
-      /^\/p\/[^/]+(?:\/|$)/.test(path.split('?')[0] ?? '');
-    if (isPublicPath(this.router.url)) return true;
-    // Initial navigation may still be pending when onboarding starts.
-    return isPlatformBrowser(this.platformId)
-      ? isPublicPath(window.location.pathname)
-      : false;
+    return false;
   }
 
   openThemePromptIfNeeded(): void {
-    if (this.isPublicPortfolioRoute()) return;
-    if (this.needsThemePrompt()) {
-      this.themePromptOpen.set(true);
-    }
+    this.themePromptOpen.set(false);
   }
 
   completeThemePrompt(): void {

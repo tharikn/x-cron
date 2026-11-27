@@ -45,22 +45,27 @@ export class ApkReleasesService {
   /**
    * The CTA renders in the home panel, drawer and footer at once. Share one
    * in-flight request per repo instead of firing the same GitHub call 3×.
+   * Cache results briefly to avoid re-downloading release metadata on
+   * navigation; GitHub releases change rarely.
    */
   private latestRequest: Promise<void> | null = null;
   private resumeRequest: Promise<void> | null = null;
+  private latestFetchedAt = 0;
+  private resumeFetchedAt = 0;
+  private readonly releaseTtlMs = 10 * 60_000;
 
   /** Home / CTA: latest release only (no version history fetch). */
   async loadLatest(): Promise<void> {
     if (!environment.androidReleasesApiUrl) return;
+    if (this.latest() && Date.now() - this.latestFetchedAt < this.releaseTtlMs) return;
     if (this.latestRequest) return this.latestRequest;
 
     this.loading.set(true);
     this.error.set(null);
     const request = (async () => {
       try {
-        const url = `${environment.androidReleasesApiUrl}/latest?t=${Date.now()}`;
         const release = await firstValueFrom(
-          this.http.get<GitHubRelease>(url, {
+          this.http.get<GitHubRelease>(`${environment.androidReleasesApiUrl}/latest`, {
             headers: { Accept: 'application/vnd.github+json' },
           }),
         );
@@ -69,6 +74,7 @@ export class ApkReleasesService {
           return;
         }
         this.latest.set(this.toRow(release));
+        this.latestFetchedAt = Date.now();
       } catch {
         this.error.set('Could not load latest release');
         this.latest.set(null);
@@ -87,18 +93,20 @@ export class ApkReleasesService {
   /** Latest XCron CV APK from its own GitHub repo; silent on failure (static link is the fallback). */
   async loadLatestResume(): Promise<void> {
     if (!environment.resumeReleasesApiUrl) return;
+    if (this.latestResume() && Date.now() - this.resumeFetchedAt < this.releaseTtlMs) return;
     if (this.resumeRequest) return this.resumeRequest;
 
     const request = (async () => {
       try {
         const release = await firstValueFrom(
-          this.http.get<GitHubRelease>(`${environment.resumeReleasesApiUrl}/latest?t=${Date.now()}`, {
+          this.http.get<GitHubRelease>(`${environment.resumeReleasesApiUrl}/latest`, {
             headers: { Accept: 'application/vnd.github+json' },
           }),
         );
         this.latestResume.set(
           release?.draft || release?.prerelease ? null : this.toRow(release, 'xcron-cv.apk'),
         );
+        this.resumeFetchedAt = Date.now();
       } catch {
         this.latestResume.set(null);
       }
@@ -118,7 +126,7 @@ export class ApkReleasesService {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const url = `${environment.androidReleasesApiUrl}?per_page=${limit}&t=${Date.now()}`;
+      const url = `${environment.androidReleasesApiUrl}?per_page=${limit}`;
       const rows = await firstValueFrom(
         this.http.get<GitHubRelease[]>(url, {
           headers: { Accept: 'application/vnd.github+json' },

@@ -32,7 +32,6 @@ export class HelpChatComponent implements OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly log = viewChild<ElementRef<HTMLElement>>('log');
 
-  readonly isSignedIn = this.auth.isSignedIn;
   readonly open = signal(false);
   readonly busy = signal(false);
   readonly enabled = signal(false);
@@ -49,21 +48,19 @@ export class HelpChatComponent implements OnDestroy {
   ] as const;
 
   private msgSeq = 0;
-  private loadedForUser: string | null = null;
+  private loadedForIdentity: string | null = null;
   private cooldownTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     effect(() => {
-      const signedIn = this.isSignedIn();
       const userId = this.auth.user()?.id ?? null;
       if (!isPlatformBrowser(this.platformId)) return;
 
-      if (!signedIn || !userId) {
-        this.resetLocal();
-        return;
-      }
-      if (this.loadedForUser === userId) return;
-      this.loadedForUser = userId;
+      // Guests get the same widget with a per-tab anonymous quota on the API.
+      const identity = userId ?? 'guest';
+      if (this.loadedForIdentity === identity) return;
+      this.resetLocal();
+      this.loadedForIdentity = identity;
       void this.hydrate();
     });
 
@@ -256,7 +253,7 @@ export class HelpChatComponent implements OnDestroy {
   }
 
   private resetLocal(): void {
-    this.loadedForUser = null;
+    this.loadedForIdentity = null;
     this.enabled.set(false);
     this.open.set(false);
     this.messages.set([]);

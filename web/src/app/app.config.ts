@@ -1,8 +1,8 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
-  APP_INITIALIZER,
   ApplicationConfig,
   inject,
+  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import {
@@ -11,7 +11,6 @@ import {
   withHttpTransferCacheOptions,
 } from '@angular/platform-browser';
 import {
-  PreloadAllModules,
   provideRouter,
   withInMemoryScrolling,
   withPreloading,
@@ -20,6 +19,7 @@ import {
 import { apiLoadingInterceptor } from './core/interceptors/api-loading.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { correlationInterceptor } from './core/interceptors/correlation.interceptor';
+import { IdlePreloadStrategy } from './core/routing/idle-preload.strategy';
 import { AuthService } from './core/services/auth.service';
 import { PreferencesService } from './core/services/preferences.service';
 import { ThemeService } from './core/services/theme.service';
@@ -31,7 +31,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       routes,
       withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }),
-      withPreloading(PreloadAllModules),
+      withPreloading(IdlePreloadStrategy),
       withViewTransitions({ skipInitialTransition: true }),
     ),
     provideHttpClient(
@@ -48,22 +48,27 @@ export const appConfig: ApplicationConfig = {
         includePostRequests: false,
       }),
     ),
-    {
-      provide: APP_INITIALIZER,
-      multi: true,
-      useFactory: () => {
-        const auth = inject(AuthService);
-        const theme = inject(ThemeService);
-        const prefs = inject(PreferencesService);
-        return async () => {
-          theme.init();
-          await auth.ensureSession();
+    provideAppInitializer(() => {
+      const auth = inject(AuthService);
+      const theme = inject(ThemeService);
+      const prefs = inject(PreferencesService);
+
+      // Theme must be applied before the first paint so there is no flash.
+      theme.init();
+
+      // Do not block bootstrap on `/auth/me` or `/me/preferences`. Route
+      // guards already await `ensureSession()`, so unguarded pages can render
+      // immediately and signed-in chrome hydrates a moment later.
+      void auth
+        .ensureSession()
+        .then(() => {
           if (auth.isSignedIn()) {
-            await prefs.hydrateFromApi();
-            theme.syncFromRemote(prefs.prefs().theme);
+            void prefs.hydrateFromApi();
           }
-        };
-      },
-    },
+        })
+        .catch(() => {
+          // Session validation is best-effort; guards handle the redirect.
+        });
+    }),
   ],
 };

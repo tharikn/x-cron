@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { CurrentUser, Public, Roles } from '../auth/decorators';
 import type { AuthUser } from '../auth/auth.types';
 import { AuthThrottle, ChatThrottle } from '../security/decorators';
+import { extractClientIp, extractTabId } from '../security/token.util';
 import { AiService } from './ai.service';
 import { EnrichJobDto } from './dto/enrich-job.dto';
 import { HelpChatDto } from './help/dto/help-chat.dto';
@@ -34,24 +36,45 @@ export class AiController {
   }
 
   /**
-   * Signed-in in-app help assistant status (token budget + cooldown).
-   * Guests never see the floating widget; this still requires a session.
+   * In-app help assistant status (token budget + cooldown).
+   * Guests get a per-tab anonymous quota; signed-in users keep theirs.
    */
+  @Public()
   @Get('help/status')
-  helpStatus(@CurrentUser() user: AuthUser) {
+  helpStatus(@Req() req: Request, @CurrentUser() user?: AuthUser) {
     return {
-      ...this.help.statusForUser(user.id),
+      ...this.help.statusForUser(this.quotaIdentity(req, user)),
       welcome: this.help.welcomeMessage(),
     };
   }
 
   /**
-   * Lightweight app-help chat. Auth required. Heavy throttle + per-user
-   * cooldown + daily token budget. Free/low model via AI_HELP_* env.
+   * Lightweight app-help chat. Heavy throttle + per-quota cooldown and daily
+   * token budget. Free/low model via AI_HELP_* env.
    */
+  @Public()
   @ChatThrottle()
   @Post('help/chat')
-  helpChat(@CurrentUser() user: AuthUser, @Body() dto: HelpChatDto) {
-    return this.help.chat(user.id, dto.message, dto.history ?? []);
+  helpChat(
+    @Req() req: Request,
+    @CurrentUser() user: AuthUser | undefined,
+    @Body() dto: HelpChatDto,
+  ) {
+    return this.help.chat(
+      this.quotaIdentity(req, user),
+      dto.message,
+      dto.history ?? [],
+    );
+  }
+
+  /**
+   * Stable key for quota/cooldown. Signed-in users are keyed by user id;
+   * guests by client IP + tab id so one tab cannot mint unlimited budgets.
+   */
+  private quotaIdentity(req: Request, user?: AuthUser): string {
+    if (user?.id) return user.id;
+    const ip = extractClientIp(req) ?? 'unknown-ip';
+    const tab = extractTabId(req) ?? 'anon-tab';
+    return `guest:${ip}:${tab}`;
   }
 }

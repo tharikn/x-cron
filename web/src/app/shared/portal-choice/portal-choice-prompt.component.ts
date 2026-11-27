@@ -23,10 +23,10 @@ export class PortalChoicePromptComponent {
 
     if (choice === 'jobs') {
       if (this.auth.isSignedIn()) {
-        await this.router.navigateByUrl('/');
+        await this.router.navigateByUrl('/jobs');
       } else {
         await this.router.navigate(['/sign-in'], {
-          queryParams: { returnUrl: '/' },
+          queryParams: { returnUrl: '/jobs' },
         });
       }
       return;

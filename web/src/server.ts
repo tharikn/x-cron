@@ -4,6 +4,7 @@ import {
   isMainModule,
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
+import compression from 'compression';
 import express from 'express';
 import { join } from 'node:path';
 
@@ -14,6 +15,8 @@ const siteUrl = process.env['SITE_URL'] || 'http://localhost:4000';
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 const isProd = (process.env['NODE_ENV'] ?? 'development') === 'production';
+
+app.use(compression());
 
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -113,6 +116,7 @@ ${urls
 app.use(
   express.static(browserDistFolder, {
     maxAge: '1y',
+    immutable: true,
     index: false,
     redirect: false,
   }),

@@ -95,7 +95,7 @@ Do **not** reuse seeker Saved/Applied/Contacted/Searches blocks for employers.
 
 ## Auth-only floating chrome
 
-- **Help chatbot FAB** (web + mobile bottom) — only when `isSignedIn()` **and** API `AI_HELP_ENABLED`; hide on logout / guest browse
+- **Help chatbot FAB** — web: whenever API `AI_HELP_ENABLED` (guests use a per-tab anonymous quota, signed-in users keep their own); mobile: signed-in users + `AI_HELP_ENABLED`
 
 ## Rules agents must follow
 

@@ -199,7 +199,7 @@ export class HomePage implements OnInit, OnDestroy {
       title: 'Xcron JOB',
       description:
         'Xcron JOB — local-first, multilingual job discovery for India. Browse without signing in.',
-      path: '/',
+      path: '/jobs',
     });
     try {
       this.categoriesCache = await this.jobsService.categories();

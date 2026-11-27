@@ -1,21 +1,18 @@
-<div class="shell" [class.shell--bare]="isBareRoute()">
+<div
+  class="shell"
+  [class.shell--bare]="isBareRoute()"
+  [class.shell--landing]="isLandingRoute()"
+>
   @if (!isBareRoute()) {
   <header class="top">
     <a class="logo" routerLink="/" (click)="closeMenu()">
       <img
-        class="logo__img logo__img--on-light"
+        class="logo__img"
         src="brand/xcron-job-header-light.png"
         alt="Xcron JOB"
         width="120"
         height="40"
-      />
-      <img
-        class="logo__img logo__img--on-dark"
-        src="brand/xcron-job-header.png"
-        alt=""
-        aria-hidden="true"
-        width="120"
-        height="40"
+        decoding="async"
       />
     </a>
 
@@ -214,7 +211,7 @@
       </button>
     </div>
     <nav class="drawer__nav">
-      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
+      <a routerLink="/jobs" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
         {{ 'nav.home' | t }}
       </a>
       <a href="#" data-testid="build-resume" (click)="buildResume($event)">
@@ -344,7 +341,9 @@
     </nav>
     @if (!isAdmin()) {
       <div class="drawer__foot">
-        <app-get-app-cta variant="link" (click)="closeMenu()" />
+        @defer (on immediate) {
+          <app-get-app-cta variant="link" (click)="closeMenu()" />
+        }
       </div>
     }
   </aside>
@@ -356,7 +355,9 @@
 
   @if (!isBareRoute() && !isAdmin() && !hideFooter()) {
     <footer class="foot" aria-label="Site footer">
-      <app-get-app-cta variant="band" />
+      @defer (on idle) {
+        <app-get-app-cta variant="band" />
+      }
       @if (footer(); as foot) {
         <div class="foot__grid">
           <div class="foot__brand">
@@ -464,14 +465,12 @@
   </div>
 }
 
-@if (!isBareRoute()) {
-  <app-help-chat />
+@if (!isBareRoute() || isLandingRoute()) {
+  @defer (on idle) {
+    <app-help-chat />
+  }
 }
 
-@if (!isBareRoute() && portalChoiceOpen()) {
+@defer (when !isBareRoute() && portalChoiceOpen()) {
   <app-portal-choice-prompt (closed)="onPortalChoiceClosed()" />
-}
-
-@if (!isBareRoute() && themePromptOpen()) {
-  <app-theme-prompt (closed)="onThemePromptClosed()" />
 }
